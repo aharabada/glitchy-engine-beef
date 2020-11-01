@@ -2,5 +2,3 @@ FileVersion = 1
 
 [Project]
 Name = "GlitchyEngine"
-TargetType = "BeefLib"
-StartupObject = "GlitchyEngine.Program"
