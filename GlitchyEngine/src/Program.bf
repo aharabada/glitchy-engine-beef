@@ -1,4 +1,6 @@
 using System;
+using GlitchLog;
+using System.Diagnostics;
 
 namespace GlitchyEngine
 {
@@ -9,11 +11,23 @@ namespace GlitchyEngine
 
 		public static int Main(String[] args)
 		{
+			Log.EngineLogger.Info("Initializing Application...");
+
+			Stopwatch initWatch = .StartNew();
+
 			var app = CreateApplication();
 
+			initWatch.Stop();
+
+			Log.EngineLogger.Info("Application initialized ({}ms).", initWatch.ElapsedMilliseconds);
+
 			app.Run();
+			
+			Log.EngineLogger.Info("Uninitializing Application...");
 
 			delete app;
+
+			Log.EngineLogger.Info("Application uninitialized.");
 
 			return 0;
 		}

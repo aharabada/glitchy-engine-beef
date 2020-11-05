@@ -1,11 +1,5 @@
 FileVersion = 1
-Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}}
+Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}}
 
 [Workspace]
 StartupProject = "Sandbox"
-
-[Configs.Test.Win32]
-ConfigSelections = {corlib = {Config = "Debug"}}
-
-[Configs.Test.Win64]
-ConfigSelections = {corlib = {Config = "Debug"}}
