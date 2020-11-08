@@ -1,4 +1,6 @@
 using System;
+using GlitchyEngine.Events;
+
 namespace GlitchyEngine
 {
 	public struct WindowDescription
@@ -28,7 +30,27 @@ namespace GlitchyEngine
 	// Todo: interface?
 	public abstract class Window
 	{
-		// Todo: callback/events?
+		public delegate void EventCallback(Event e);
+
+		protected EventCallback _eventCallback ~ delete _;
+
+		/**
+		 * Gets or Sets the minimum width of the window.
+		 */
+		public abstract int32 MinWidth {get; set;}
+		/**
+		 * Gets or Sets the minimum height of the window.
+		 */
+		public abstract int32 MinHeight {get; set;}
+		
+		/**
+		 * Gets or Sets the maximum width of the window.
+		 */
+		public abstract int32 MaxWidth {get; set;}
+		/**
+		 * Gets or Sets the maximum height of the window.
+		 */
+		public abstract int32 MaxHeight {get; set;}
 
 		/**
 		 * Gets or Sets the width of the window.
@@ -39,6 +61,15 @@ namespace GlitchyEngine
 		 */
 		public abstract int32 Height {get; set;}
 		/**
+		 * Gets or Sets the x-coordinate of the upper-left corner of the client area of the window.
+		 */
+		public abstract int32 PositionX {get; set;}
+		/**
+		 * Gets or Sets the y-coordinate of the upper-left corner of the client area of the window.
+		 */
+		public abstract int32 PositionY {get; set;}
+
+		/**
 		 * Gets or Sets the windows title.
 		 */
 		public abstract StringView Title {get; set;}
@@ -47,6 +78,12 @@ namespace GlitchyEngine
 		 * Gets or Sets whether or not the application uses VSync
 		 */
 		public abstract bool IsVSync {get; set;}
+
+		public EventCallback EventCallback
+		{
+			get => _eventCallback;
+			set => _eventCallback = value;
+		}
 
 		public abstract void Update();
 	}
