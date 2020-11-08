@@ -1,5 +1,5 @@
 FileVersion = 1
-Dependencies = {GlitchLog = "*", corlib = "*"}
+Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*"}
 
 [Project]
 Name = "GlitchyEngine"
