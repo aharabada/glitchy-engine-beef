@@ -3,4 +3,5 @@ Dependencies = {GlitchyEngine = "*", corlib = "*"}
 
 [Project]
 Name = "Sandbox"
+TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
