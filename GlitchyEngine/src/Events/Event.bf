@@ -29,6 +29,14 @@ namespace GlitchyEngine.Events
 	{
 		protected bool _handled;
 
+		public bool Handled
+		{
+			[Inline]
+			get => _handled;
+			[Inline]
+			set => _handled = value;
+		}
+
 		public abstract EventType EventType {get;}
 		public abstract StringView Name {get;}
 		public abstract EventCategory Category {get;}

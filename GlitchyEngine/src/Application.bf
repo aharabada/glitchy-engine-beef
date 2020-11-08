@@ -1,5 +1,5 @@
-using GlitchyEngine.Platform.Windows;
 using GlitchyEngine.Events;
+using GlitchyEngine.Platform.Windows;
 
 namespace GlitchyEngine
 {
@@ -7,6 +7,8 @@ namespace GlitchyEngine
 	{
 		private Window _window ~ delete _;
 		private bool _running = true;
+
+		private LayerStack _layerStack = new LayerStack() ~ delete _;
 
 		public bool IsRunning => _running;
 
@@ -17,22 +19,34 @@ namespace GlitchyEngine
 			_window.EventCallback = new => OnEvent;
 		}
 
-		public void Run()
-		{
-			while(_running)
-			{
-				_window.Update();
-			}
-		}
-
 		public void OnEvent(Event e)
 		{
 			EventDispatcher dispatcher = scope .(e);
 			dispatcher.Dispatch<WindowCloseEvent>(scope => OnWindowClose);
 
-			Log.EngineLogger.Trace("{}", e);
+			for(Layer layer in _layerStack)
+			{
+				layer.OnEvent(e);
+				if(e.Handled)
+					break;
+			}
 		}
-		
+
+		public void Run()
+		{
+			while(_running)
+			{
+				for(Layer layer in _layerStack)
+					layer.Update();
+
+				_window.Update();
+			}
+		}
+
+		public void PushLayer(Layer ownLayer) => _layerStack.PushLayer(ownLayer);
+
+		public void PushOverlay(Layer ownOverlay) => _layerStack.PushOverlay(ownOverlay);
+
 		public bool OnWindowClose(WindowCloseEvent e)
 		{
 			_running = false;

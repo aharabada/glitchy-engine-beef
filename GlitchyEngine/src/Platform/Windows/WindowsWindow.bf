@@ -348,9 +348,7 @@ namespace GlitchyEngine.Platform.Windows
 				{
 					/* Remove beeping sound when ALT + some key is pressed. */
 					if ( wParam == SC_KEYMENU )
-					{
 					    return 0;
-					}
 				}
 				// Window closing
 			case WM_CLOSE:
