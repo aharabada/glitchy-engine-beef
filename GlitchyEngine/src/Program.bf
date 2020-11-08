@@ -1,6 +1,7 @@
 using System;
 using GlitchLog;
 using System.Diagnostics;
+using GlitchyEngine.Platform.Windows;
 
 namespace GlitchyEngine
 {
@@ -13,13 +14,14 @@ namespace GlitchyEngine
 		{
 			Log.EngineLogger.Info("Initializing Application...");
 
-			Stopwatch initWatch = .StartNew();
+			Stopwatch initWatch = scope Stopwatch();
 
 			var app = CreateApplication();
 
 			initWatch.Stop();
 
 			Log.EngineLogger.Info("Application initialized ({}ms).", initWatch.ElapsedMilliseconds);
+			Log.EngineLogger.Info("Running App...");
 
 			app.Run();
 			
