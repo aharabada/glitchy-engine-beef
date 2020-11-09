@@ -14,8 +14,7 @@ namespace GlitchyEngine
 
 		public this()
 		{
-			// Todo: make Platform independent
-			_window = new WindowsWindow(WindowDescription());
+			_window = Window.CreateWindow(WindowDescription());
 			_window.EventCallback = new => OnEvent;
 		}
 

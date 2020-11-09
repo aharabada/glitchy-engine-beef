@@ -35,6 +35,12 @@ namespace GlitchyEngine
 		protected EventCallback _eventCallback ~ delete _;
 
 		/**
+		 * Function used to create a platform specific window.
+		 */
+		[LinkName("GlitchyEngine.Window.CreateWindow")]
+		public static extern Window CreateWindow(WindowDescription description);
+
+		/**
 		 * Gets or Sets the minimum width of the window.
 		 */
 		public abstract int32 MinWidth {get; set;}

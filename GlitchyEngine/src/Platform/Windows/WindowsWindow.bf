@@ -108,6 +108,14 @@ namespace GlitchyEngine.Platform.Windows
 			set;
 		}
 
+#if GE_WINDOWS
+		[Export, LinkName("GlitchyEngine.Window.CreateWindow")]
+		public static new Window CreateWindow(WindowDescription description)
+		{
+			return new WindowsWindow(description);
+		}
+#endif
+
 		public this(WindowDescription desc)
 		{
 			_minMaxInfo.MaximumTrackingSize.x = int32.MaxValue;
