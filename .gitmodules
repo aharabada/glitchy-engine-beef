@@ -1,3 +1,3 @@
 [submodule "vendor/directx"]
-	path = vendor/directx
+	path = GlitchyEngine/vendor/directx
 	url = https://github.com/aharabada/directx-beef.git
