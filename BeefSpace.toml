@@ -1,5 +1,5 @@
 FileVersion = 1
-Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}, DirectX = {Path = "GlitchyEngine/vendor/directx/DirectX"}, Imgui = {Path = "Imgui"}}
+Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}, DirectX = {Path = "vendor/directx/DirectX"}}
 
 [Workspace]
 StartupProject = "Sandbox"
