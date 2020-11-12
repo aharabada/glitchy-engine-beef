@@ -20,6 +20,7 @@ namespace GlitchyEngine
 		public void PushLayer(Layer ownLayer)
 		{
 			_layers.Insert(_insertIndex++, ownLayer);
+			ownLayer.OnAttach();
 		}
 		
 		/**
@@ -30,6 +31,7 @@ namespace GlitchyEngine
 		public void PushOverlay(Layer ownOverlay)
 		{
 			_layers.Add(ownOverlay);
+			ownOverlay.OnAttach();
 		}
 		
 		/**
@@ -41,6 +43,7 @@ namespace GlitchyEngine
 			if(_layers.Remove(layer))
 			{
 				_insertIndex--;
+				layer.OnDetach();
 			}
 		}
 		
@@ -50,7 +53,10 @@ namespace GlitchyEngine
 		 */
 		public void PopOverlay(Layer overlay)
 		{
-			_layers.Remove(overlay);
+			if(_layers.Remove(overlay))
+			{
+				overlay.OnDetach();
+			}
 		}
 
 		/**

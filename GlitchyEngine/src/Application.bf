@@ -1,20 +1,33 @@
+using System;
 using GlitchyEngine.Events;
 using GlitchyEngine.Platform.Windows;
+using GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine
 {
 	public class Application
 	{
+		static Application s_Instance = null;
+
 		private Window _window ~ delete _;
 		private bool _running = true;
 
 		private LayerStack _layerStack = new LayerStack() ~ delete _;
 
+		private GameTime _gameTime = new GameTime(true) ~ delete _;
+
 		public bool IsRunning => _running;
+		public Window Window => _window;
+
+		[Inline]
+		public static Application Get => s_Instance;
 
 		public this()
 		{
-			_window = Window.CreateWindow(WindowDescription());
+			Runtime.Assert(s_Instance == null, "Tried to create a second application.");
+			s_Instance = this;
+
+			_window = GlitchyEngine.Window.CreateWindow(WindowDescription());
 			_window.EventCallback = new => OnEvent;
 		}
 
@@ -35,10 +48,16 @@ namespace GlitchyEngine
 		{
 			while(_running)
 			{
+				DirectX.ImmediateContext.ClearRenderTargetView(DirectX.BackBufferTarget, .(1, 0, 1));
+
+				_gameTime.Tick();
+			
 				for(Layer layer in _layerStack)
-					layer.Update();
+					layer.Update(_gameTime);
 
 				_window.Update();
+
+				DirectX.Present();
 			}
 		}
 

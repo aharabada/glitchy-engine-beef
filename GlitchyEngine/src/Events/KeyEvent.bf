@@ -53,4 +53,29 @@ namespace GlitchyEngine.Events
 			strBuffer.AppendF("KeyReleasedEvent: {}", _keyCode);
 		}
 	}
+
+	public class KeyTypedEvent : Event, IEvent
+	{
+		private char16 _char;
+
+		[Inline]
+		public char16 Char => _char;
+
+		public override EventCategory Category => .Input | .Keyboard
+
+		public override EventType EventType => .KeyTyped;
+		public static EventType StaticType => .KeyTyped;
+		
+		public override StringView Name => "KeyTyped";
+
+		public this(char16 char)
+		{
+			_char = char;
+		}
+
+		public override void ToString(String strBuffer)
+		{
+			strBuffer.AppendF("KeyTypedEvent: {}", _char);
+		}
+	}
 }

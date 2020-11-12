@@ -6,6 +6,9 @@ using DirectX.Windows.Kernel32;
 using DirectX.Windows.WindowMessages;
 using GlitchyEngine.Events;
 using System.Diagnostics;
+using imgui_beef;
+using GlitchyEngine.Platform.DX11;
+using static System.Windows;
 
 namespace GlitchyEngine.Platform.Windows
 {
@@ -21,6 +24,8 @@ namespace GlitchyEngine.Platform.Windows
 		private MinMaxInfo _minMaxInfo;
 
 		private String _title ~ delete _;
+
+		private bool _isVSync = true;
 
 		public override int32 MinWidth
 		{
@@ -38,7 +43,7 @@ namespace GlitchyEngine.Platform.Windows
 			get => _minMaxInfo.MaximumTrackingSize.x;
 			set => _minMaxInfo.MaximumTrackingSize.x = value;
 		}
-		
+
 		public override int32 MaxHeight
 		{
 			get => _minMaxInfo.MaximumTrackingSize.y;
@@ -93,7 +98,7 @@ namespace GlitchyEngine.Platform.Windows
 		{
 			get
 			{
-				if(_title == null)
+				if (_title == null)
 					LoadTitle();
 
 				return _title;
@@ -104,8 +109,8 @@ namespace GlitchyEngine.Platform.Windows
 
 		public override bool IsVSync
 		{
-			get;
-			set;
+			get => _isVSync;
+			set => _isVSync = value;
 		}
 
 #if GE_WINDOWS
@@ -135,16 +140,16 @@ namespace GlitchyEngine.Platform.Windows
 			_windowClass.WindowProcedure = => MessageHandler;
 			_windowClass.HInstance = (.)_instanceHandle;
 
-			if(desc.Icon.Ptr != null)
+			if (desc.Icon.Ptr != null)
 				_windowClass.Icon = LoadImageW(0, desc.Icon.ToScopedNativeWChar!(), .Icon, 0, 0, .LoadFromFile);
 			else
 				_windowClass.Icon = 0;
-			
+
 			_windowClass.Cursor = LoadCursorW(0, IDC_ARROW);
 			_windowClass.BackgroundBrush = (HBRUSH)SystemColor.WindowFrame;
 			_windowClass.ClassName = "GlitchyEngineWindow".ToScopedNativeWChar!();
 
-			if(RegisterClassExW(ref _windowClass) == 0)
+			if (RegisterClassExW(ref _windowClass) == 0)
 			{
 				Log.EngineLogger.Error("Failed to register window class.", (HResult)GetLastError());
 				Runtime.FatalError("Failed to register window class");
@@ -158,24 +163,29 @@ namespace GlitchyEngine.Platform.Windows
 			SetWindowLongPtrW(_windowHandle, GWL_USERDATA, (int)myPtr);
 
 			LoadWindowRectangle();
-			
+
 			Log.EngineLogger.Trace("Created window \"{}\" ({}, {})", Title, Width, Height);
+
+			DirectX.Init(_windowHandle, (.)Width, (.)Height);
 		}
 
 		private bool _isResizingOrMoving;
 		private bool _isMinimized;
 
+		[CLink]
+		static extern IntBool IsWindowUnicode(HWND whnd);
+
 		private static LRESULT MessageHandler(HWND hwnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			void* windowPtr = (void*)GetWindowLongPtrW(hwnd, GWL_USERDATA);
 			WindowsWindow window = (WindowsWindow)Internal.UnsafeCastToObject(windowPtr);
-
-			if(window == null)
+			
+			if (window == null)
 			{
 				return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 			}
-
-			switch(uMsg)
+			
+			switch (uMsg)
 			{
 				////
 				//// Sizing and Moving
@@ -184,20 +194,20 @@ namespace GlitchyEngine.Platform.Windows
 				// Window min/max size requested
 			case WM_GETMINMAXINFO:
 				{
-					MinMaxInfo *info = (.)(void*)lParam;
+					MinMaxInfo* info = (.)(void*)lParam;
 					info.MinimumTrackingSize = window._minMaxInfo.MinimumTrackingSize;
 					info.MaximumTrackingSize = window._minMaxInfo.MaximumTrackingSize;
 				}
 				// Window size changed
 			case WM_SIZE:
 				{
-					if(wParam == (.)ResizingType.Minimized)
+					if (wParam == (.)ResizingType.Minimized)
 					{
-					    window._isMinimized = true;
+						window._isMinimized = true;
 					}
 					else if (window._isMinimized)
 					{
-					    window._isMinimized = false;
+						window._isMinimized = false;
 					}
 					else
 					{
@@ -210,13 +220,13 @@ namespace GlitchyEngine.Platform.Windows
 				// Window position changed
 			case WM_MOVE:
 				{
-					if(wParam == (.)ResizingType.Minimized)
+					if (wParam == (.)ResizingType.Minimized)
 					{
-					    window._isMinimized = true;
+						window._isMinimized = true;
 					}
 					else if (window._isMinimized)
 					{
-					    window._isMinimized = false;
+						window._isMinimized = false;
 					}
 					else
 					{
@@ -228,11 +238,13 @@ namespace GlitchyEngine.Platform.Windows
 				}
 				// Window resizing/moving started
 			case WM_ENTERSIZEMOVE:
-					window._isResizingOrMoving = true;
+				window._isResizingOrMoving = true;
 				// Window resizing/moving ended
 			case WM_EXITSIZEMOVE:
 				{
 					window._isResizingOrMoving = false;
+
+					DirectX.UpdateSwapchain((.)window.Width, (.)window.Height);
 
 					var resEvent = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, false);
 					window._eventCallback(resEvent);
@@ -296,7 +308,7 @@ namespace GlitchyEngine.Platform.Windows
 			case WM_XBUTTONDOWN:
 				{
 					MouseButton button = .None;
-					if(HighOrder!((int64)wParam) == 1)
+					if (HighOrder!((int64)wParam) == 1)
 						button = .XButton1;
 					else
 						button = .XButton2;
@@ -307,7 +319,7 @@ namespace GlitchyEngine.Platform.Windows
 			case WM_XBUTTONUP:
 				{
 					MouseButton button = .None;
-					if(HighOrder!((int64)wParam) == 1)
+					if (HighOrder!((int64)wParam) == 1)
 						button = .XButton1;
 					else
 						button = .XButton2;
@@ -334,7 +346,7 @@ namespace GlitchyEngine.Platform.Windows
 			case WM_MOUSEMOVE:
 				{
 					SplitHighAndLowOrder!(lParam, let x, let y);
-					
+
 					var event = scope MouseMovedEvent(x, y);
 					window._eventCallback(event);
 				}
@@ -344,6 +356,13 @@ namespace GlitchyEngine.Platform.Windows
 				////
 				//// Application
 				////
+			case WM_CHAR:
+				{
+					var event = scope KeyTypedEvent((char16)wParam);
+					window._eventCallback(event);
+
+					return 0;
+				}
 
 				// Window title changed
 			case WM_SETTEXT:
@@ -355,8 +374,8 @@ namespace GlitchyEngine.Platform.Windows
 			case WM_SYSCOMMAND:
 				{
 					/* Remove beeping sound when ALT + some key is pressed. */
-					if ( wParam == SC_KEYMENU )
-					    return 0;
+					if (wParam == SC_KEYMENU)
+						return 0;
 				}
 				// Window closing
 			case WM_CLOSE:
@@ -380,7 +399,7 @@ namespace GlitchyEngine.Platform.Windows
 				DispatchMessageW(&message);
 			}
 		}
-		
+
 		private void LoadWindowRectangle()
 		{
 			GetWindowRect(_windowHandle, let rectangle);
@@ -395,6 +414,9 @@ namespace GlitchyEngine.Platform.Windows
 		{
 			SetWindowPos(_windowHandle, 0, _clientRect.X, _clientRect.Y, _clientRect.Width, _clientRect.Height, 0);
 		}
+
+		[LinkName(.C)]
+		private static extern IntBool SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int32 X, int32 Y, int32 cx, int32 cy, uint32 uFlags);
 
 		/**
 		 * Gets the window title via WinApi and stores it in _title.

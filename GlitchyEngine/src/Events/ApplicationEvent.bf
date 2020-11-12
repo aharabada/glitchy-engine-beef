@@ -22,8 +22,8 @@ namespace GlitchyEngine.Events
 	
 	public class WindowResizeEvent : Event, IEvent
 	{
-		public int32 _width, _height;
-		public bool _isResizing;
+		private int32 _width, _height;
+		private bool _isResizing;
 
 		/// The new width of the window.
 		public int32 Width = _width;
@@ -57,8 +57,8 @@ namespace GlitchyEngine.Events
 
 	public class WindowMoveEvent : Event, IEvent
 	{
-		public int32 _x, _y;
-		public bool _isMoving;
+		private int32 _x, _y;
+		private bool _isMoving;
 
 		/// The new x-coordinate of the window.
 		public int32 X = _x;

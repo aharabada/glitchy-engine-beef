@@ -45,7 +45,6 @@ namespace GlitchLog
 		{
 			Runtime.Assert(Debug.IsDebuggerPresent, "The DebugLogger requires a debugger to be present.");
 		}
-
 		
 #if GL_NOLOG || GL_NOTRACE
 		[SkipCall]

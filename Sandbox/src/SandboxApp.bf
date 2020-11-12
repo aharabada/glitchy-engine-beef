@@ -3,6 +3,7 @@ using GlitchyEngine;
 using GlitchyEngine.Events;
 using System.Diagnostics;
 using GlitchLog;
+using GlitchyEngine.ImGui;
 
 namespace Sandbox
 {
@@ -11,13 +12,13 @@ namespace Sandbox
 		[AllowAppend]
 		public this() : base("Example") {  }
 
-		public override void Update()
+		public override void Update(GameTime gameTime)
 		{
 			Log.ClientLogger.Info("ExampleLayer.Update");
 
 			// Just for temporary vsyncing
 			// Todo: remove
-			DwmFlush();
+			//DwmFlush();
 		}
 
 		[CLink, Import("Dwmapi.lib")]
@@ -34,6 +35,7 @@ namespace Sandbox
 		public this()
 		{
 			PushLayer(new ExampleLayer());
+			PushOverlay(new ImGuiLayer());
 		}
 
 		[Export, LinkName("CreateApplication")]

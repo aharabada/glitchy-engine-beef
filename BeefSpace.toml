@@ -1,5 +1,5 @@
 FileVersion = 1
-Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}, DirectX = {Path = "vendor/directx/DirectX"}}
+Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}, DirectX = {Path = "GlitchyEngine/vendor/directx/DirectX"}, imgui-beef = {Path = "GlitchyEngine/vendor/imgui-beef/imgui-beef"}, imgui-impl-win32 = {Path = "GlitchyEngine/vendor/imgui-beef/imgui-impl-win32"}, imgui-impl-dx11 = {Path = "GlitchyEngine/vendor/imgui-beef/imgui-impl-dx11"}}
 
 [Workspace]
 StartupProject = "Sandbox"
