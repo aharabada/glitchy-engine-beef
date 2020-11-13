@@ -10,6 +10,19 @@ using imgui_beef;
 using GlitchyEngine.Platform.DX11;
 using static System.Windows;
 
+namespace GlitchyEngine
+{
+#if GE_WINDOWS
+	public extension Window
+	{
+		public static override Window CreateWindow(WindowDescription description)
+		{
+			return new GlitchyEngine.Platform.Windows.WindowsWindow(description);
+		}
+	}
+#endif
+}
+
 namespace GlitchyEngine.Platform.Windows
 {
 	public class WindowsWindow : Window
@@ -112,14 +125,6 @@ namespace GlitchyEngine.Platform.Windows
 			get => _isVSync;
 			set => _isVSync = value;
 		}
-
-#if GE_WINDOWS
-		[Export, LinkName("GlitchyEngine.Window.CreateWindow")]
-		public static new Window CreateWindow(WindowDescription description)
-		{
-			return new WindowsWindow(description);
-		}
-#endif
 
 		public this(WindowDescription desc)
 		{

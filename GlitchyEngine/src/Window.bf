@@ -37,7 +37,6 @@ namespace GlitchyEngine
 		/**
 		 * Function used to create a platform specific window.
 		 */
-		[LinkName("GlitchyEngine.Window.CreateWindow")]
 		public static extern Window CreateWindow(WindowDescription description);
 
 		/**
@@ -66,6 +65,7 @@ namespace GlitchyEngine
 		 * Gets or Sets the height of the window.
 		 */
 		public abstract int32 Height {get; set;}
+
 		/**
 		 * Gets or Sets the x-coordinate of the upper-left corner of the client area of the window.
 		 */
