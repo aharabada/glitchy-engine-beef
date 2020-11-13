@@ -14,15 +14,7 @@ namespace Sandbox
 
 		public override void Update(GameTime gameTime)
 		{
-			Log.ClientLogger.Info("ExampleLayer.Update");
-
-			// Just for temporary vsyncing
-			// Todo: remove
-			//DwmFlush();
 		}
-
-		[CLink, Import("Dwmapi.lib")]
-		static extern void DwmFlush();
 
 		public override void OnEvent(Event event)
 		{
