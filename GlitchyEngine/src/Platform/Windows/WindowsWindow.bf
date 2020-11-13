@@ -338,7 +338,8 @@ namespace GlitchyEngine.Platform.Windows
 				// Horizontal scrolling
 			case WM_MOUSEHWHEEL:
 				{
-					int32 rotation = (int16)HighOrder!((int64)wParam) / WHEEL_DELTA;
+					// horizontal scrolling is inverted for some reason
+					int32 rotation = -(int16)HighOrder!((int64)wParam) / WHEEL_DELTA;
 
 					var event = scope MouseScrolledEvent(rotation, 0);
 					window._eventCallback(event);
