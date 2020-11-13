@@ -213,6 +213,7 @@ namespace GlitchyEngine.Platform.Windows
 					{
 						SplitHighAndLowOrder!(lParam, out window._clientRect.Width, out window._clientRect.Height);
 
+						DirectX.UpdateSwapchain((.)window._clientRect.Width, (.)window._clientRect.Height);
 						WindowResizeEvent event = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, window._isResizingOrMoving);
 						window._eventCallback(event);
 					}
@@ -244,7 +245,7 @@ namespace GlitchyEngine.Platform.Windows
 				{
 					window._isResizingOrMoving = false;
 
-					DirectX.UpdateSwapchain((.)window.Width, (.)window.Height);
+					DirectX.UpdateSwapchain((.)window._clientRect.Width, (.)window._clientRect.Width);
 
 					var resEvent = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, false);
 					window._eventCallback(resEvent);
@@ -403,7 +404,7 @@ namespace GlitchyEngine.Platform.Windows
 
 		private void LoadWindowRectangle()
 		{
-			GetWindowRect(_windowHandle, let rectangle);
+			GetClientRect(_windowHandle, let rectangle);
 
 			_clientRect.X = rectangle.Left;
 			_clientRect.Y = rectangle.Top;
