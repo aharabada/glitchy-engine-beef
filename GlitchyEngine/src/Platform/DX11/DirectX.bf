@@ -64,6 +64,8 @@ namespace GlitchyEngine.Platform.DX11
 		 */
 		public static void UpdateSwapchain(uint32 width, uint32 height)
 		{
+			Log.EngineLogger.Trace("Updating swap chain ({}, {})", width, height);
+
 			uint32 backBufferCount = 2;
 			Format backBufferFormat = .R8G8B8A8_UNorm;
 			Format backBufferViewFormat = .R8G8B8A8_UNorm; // _SRGB
@@ -72,7 +74,8 @@ namespace GlitchyEngine.Platform.DX11
 			{
 				BackBufferTarget.Release();
 
-				SwapChain.ResizeBuffers(backBufferCount, width, height, backBufferFormat, .None);
+				var resizeResult = SwapChain.ResizeBuffers(backBufferCount, width, height, backBufferFormat, .None);
+				Debug.Assert(resizeResult.Succeeded, scope $"Failed to resize swap chain. Message({(int32)resizeResult}):{resizeResult}");
 			}
 			else
 			{
@@ -94,7 +97,8 @@ namespace GlitchyEngine.Platform.DX11
 				SwapChainFullscreenDescription fsSwapChainDesc = .();
 				fsSwapChainDesc.Windowed = true;
 
-				factory.CreateSwapChainForHwnd((.)Device, _windowHandle, ref swDesc, &fsSwapChainDesc, null, &SwapChain);
+				var createResult = factory.CreateSwapChainForHwnd((.)Device, _windowHandle, ref swDesc, &fsSwapChainDesc, null, &SwapChain);
+				Debug.Assert(createResult.Succeeded, scope $"Failed to create swap chain. Message({(int32)createResult}):{createResult}");
 
 				factory.Release();
 			}
