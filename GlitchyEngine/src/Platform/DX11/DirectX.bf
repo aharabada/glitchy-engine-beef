@@ -126,7 +126,7 @@ namespace GlitchyEngine.Platform.DX11
 
 		public static void Present()
 		{
-			SwapChain.Present(Application.Get.Window.IsVSync ? 1 : 0, .None);
+			SwapChain.Present(Application.Get().Window.IsVSync ? 1 : 0, .None);
 		}
 	}
 }

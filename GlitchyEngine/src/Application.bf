@@ -20,7 +20,7 @@ namespace GlitchyEngine
 		public Window Window => _window;
 
 		[Inline]
-		public static Application Get => s_Instance;
+		public static Application Get() => s_Instance;
 
 		public this()
 		{

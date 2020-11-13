@@ -166,7 +166,7 @@ namespace GlitchyEngine.ImGui
 
 			ref ImGui.IO io = ref ImGui.GetIO();
 
-			let window = Application.Get.Window;
+			let window = Application.Get().Window;
 			io.DisplaySize = .(window.Width, window.Height);
 			io.DeltaTime = (float)gameTime.FrameTime.TotalSeconds;
 
