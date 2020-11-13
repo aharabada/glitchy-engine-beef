@@ -27,17 +27,11 @@ namespace GlitchyEngine
 		}
 	}
 
-	// Todo: interface?
 	public abstract class Window
 	{
 		public delegate void EventCallback(Event e);
 
 		protected EventCallback _eventCallback ~ delete _;
-
-		/**
-		 * Function used to create a platform specific window.
-		 */
-		public static extern Window CreateWindow(WindowDescription description);
 
 		/**
 		 * Gets or Sets the minimum width of the window.
@@ -85,6 +79,10 @@ namespace GlitchyEngine
 		 */
 		public abstract bool IsVSync {get; set;}
 
+
+
+		public abstract void* NativeWindow {get;}
+
 		public EventCallback EventCallback
 		{
 			get => _eventCallback;
@@ -92,5 +90,10 @@ namespace GlitchyEngine
 		}
 
 		public abstract void Update();
+
+		/**
+		 * Function used to create a platform specific window.
+		 */
+		public static extern Window CreateWindow(WindowDescription description);
 	}
 }

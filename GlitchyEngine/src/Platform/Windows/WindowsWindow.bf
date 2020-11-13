@@ -126,6 +126,8 @@ namespace GlitchyEngine.Platform.Windows
 			set => _isVSync = value;
 		}
 
+		public override void* NativeWindow => (void*)(int)_windowHandle;
+
 		public this(WindowDescription desc)
 		{
 			_minMaxInfo.MaximumTrackingSize.x = int32.MaxValue;
