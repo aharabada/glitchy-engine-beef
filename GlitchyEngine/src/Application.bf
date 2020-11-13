@@ -48,10 +48,10 @@ namespace GlitchyEngine
 		{
 			while(_running)
 			{
+				_gameTime.Tick();
+
 				DirectX.ImmediateContext.ClearRenderTargetView(DirectX.BackBufferTarget, .(1, 0, 1));
 
-				_gameTime.Tick();
-			
 				for(Layer layer in _layerStack)
 					layer.Update(_gameTime);
 
