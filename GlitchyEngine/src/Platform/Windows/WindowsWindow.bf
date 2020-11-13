@@ -8,6 +8,7 @@ using GlitchyEngine.Events;
 using System.Diagnostics;
 using imgui_beef;
 using GlitchyEngine.Platform.DX11;
+using GlitchyEngine.Math;
 using static System.Windows;
 
 namespace GlitchyEngine
@@ -63,6 +64,20 @@ namespace GlitchyEngine.Platform.Windows
 			set => _minMaxInfo.MaximumTrackingSize.y = value;
 		}
 
+		//
+		// Size
+		//
+		public override Point Size
+		{
+			get => *(Point*)&_clientRect.Width;
+
+			set
+			{
+				*(Point*)&_clientRect.Width = value;
+				ApplyRectangle();
+			}
+		}
+
 		public override int32 Width
 		{
 			get => _clientRect.Width;
@@ -81,6 +96,20 @@ namespace GlitchyEngine.Platform.Windows
 			set
 			{
 				_clientRect.Height = value;
+				ApplyRectangle();
+			}
+		}
+		
+		//
+		// Position
+		//
+		public override Point Position
+		{
+			get => *(Point*)&_clientRect;
+
+			set
+			{
+				*(Point*)&_clientRect = value;
 				ApplyRectangle();
 			}
 		}
@@ -106,6 +135,8 @@ namespace GlitchyEngine.Platform.Windows
 				ApplyRectangle();
 			}
 		}
+
+
 
 		public override StringView Title
 		{

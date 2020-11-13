@@ -1,5 +1,6 @@
 using System;
 using GlitchyEngine.Events;
+using GlitchyEngine.Math;
 
 namespace GlitchyEngine
 {
@@ -50,7 +51,11 @@ namespace GlitchyEngine
 		 * Gets or Sets the maximum height of the window.
 		 */
 		public abstract int32 MaxHeight {get; set;}
-
+		
+		/**
+		 * Gets or Sets the width and height of the window.
+		 */
+		public abstract Point Size {get; set;}
 		/**
 		 * Gets or Sets the width of the window.
 		 */
@@ -59,6 +64,11 @@ namespace GlitchyEngine
 		 * Gets or Sets the height of the window.
 		 */
 		public abstract int32 Height {get; set;}
+		
+		/**
+		 * Gets or Sets the position of the upper-left corner of the client area of the window.
+		 */
+		public abstract Point Position {get; set;}
 
 		/**
 		 * Gets or Sets the x-coordinate of the upper-left corner of the client area of the window.
