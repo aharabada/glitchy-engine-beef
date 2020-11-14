@@ -9,25 +9,55 @@ namespace GlitchyEngine
 {
 	extension Input
 	{
+		static int8* LastKeyStates = new int8[256]* ~ delete _;
+		static int8* CurrentkeyStates = new int8[256]* ~ delete _;
+
 		[CLink, CallingConvention(.Stdcall)]
 		static extern int16 GetKeyState(int32 keycode);
 		
-		public override static bool IsKeyPressed(int32 keycode)
+		public override static bool IsKeyPressed(Key keycode)
 		{
-			int16 state = GetKeyState(keycode);
+			//int16 state = GetKeyState((.)keycode);
+			int8 state = CurrentkeyStates[(int)keycode];
 			return state < 0;
 		}
 		
-		public override static bool IsKeyReleased(int32 keycode)
+		public override static bool IsKeyReleased(Key keycode)
 		{
-			int16 state = GetKeyState(keycode);
+			//int16 state = GetKeyState((.)keycode);
+			int8 state = CurrentkeyStates[(int)keycode];
 			return state >= 0;
 		}
 		
-		public override static bool IsKeyToggled(int32 keycode)
+		public override static bool IsKeyToggled(Key keycode)
 		{
-			int16 state = GetKeyState(keycode);
+			//int16 state = GetKeyState((.)keycode);
+			int8 state = CurrentkeyStates[(int)keycode];
 			return (state & 0x1) == 1;
+		}
+
+		public override static bool WasKeyPressed(Key keycode)
+		{
+			int8 state = LastKeyStates[(int)keycode];
+			return state < 0;
+		}
+		
+		public override static bool WasKeyReleased(Key keycode)
+		{
+			int8 state = LastKeyStates[(int)keycode];
+			return state >= 0;
+		}
+		
+		public override static bool WasKeyToggled(Key keycode)
+		{
+			int8 state = LastKeyStates[(int)keycode];
+			return (state & 0x1) == 1;
+		}
+		
+		public override static bool IsKeyPressing(Key keycode)
+		{
+			return default;
+			//return IsKeyPressed(keycode) && WasKeyReleased(keycode);
 		}
 
 		private static mixin MouseButtonToKeyCode(MouseButton button)
@@ -35,7 +65,7 @@ namespace GlitchyEngine
 			int32 keycode;
 			switch(button)
 			{
-			case .LeftButton:
+			case MouseButton.LeftButton:
 				keycode = VK_LBUTTON;
 			case .RightButton:
 				keycode = VK_RBUTTON;
@@ -54,13 +84,15 @@ namespace GlitchyEngine
 
 		public override static bool IsMouseButtonPressed(MouseButton button)
 		{
-			int16 state = GetKeyState(MouseButtonToKeyCode!(button));
+			//int16 state = GetKeyState(MouseButtonToKeyCode!(button));
+			int8 state = CurrentkeyStates[MouseButtonToKeyCode!(button)];
 			return state < 0;
 		}
 
 		public override static bool IsMouseButtonReleased(MouseButton button)
 		{
-			int16 state = GetKeyState(MouseButtonToKeyCode!(button));
+			//int16 state = GetKeyState(MouseButtonToKeyCode!(button));
+			int8 state = CurrentkeyStates[MouseButtonToKeyCode!(button)];
 			return state >= 0;
 		}
 
@@ -97,6 +129,24 @@ namespace GlitchyEngine
 		public override static int32 GetMouseY()
 		{
 			return GetMousePos!().Y;
+		}
+		
+		public override static void NewFrame()
+		{
+			// Switch last and current keyStates
+			int8* buffer = LastKeyStates;
+			LastKeyStates = CurrentkeyStates;
+			CurrentkeyStates = buffer;
+
+			// Get current keyboard state
+			var result = DirectX.Windows.Winuser.GetKeyboardState((uint8*)CurrentkeyStates);
+
+			if(result == 0)
+			{
+				DirectX.Common.HResult res = (.)GetLastError();
+
+				Log.EngineLogger.Error("Failed to get keyboard state Message({}){}:", (int32)res, res);
+			}
 		}
 	}
 }

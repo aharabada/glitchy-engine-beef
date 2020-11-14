@@ -78,7 +78,7 @@ namespace GlitchyEngine
 		/**
 		 * Tells the timer that a frame has passed and updates the counters.
 		 */
-		public void Tick()
+		public void NewFrame()
 		{
 			TimeSpan old = _totalTime;
 			_totalTime = Elapsed;

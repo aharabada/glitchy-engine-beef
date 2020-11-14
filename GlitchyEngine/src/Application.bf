@@ -48,7 +48,9 @@ namespace GlitchyEngine
 		{
 			while(_running)
 			{
-				_gameTime.Tick();
+				_gameTime.NewFrame();
+
+				Input.NewFrame();
 
 				DirectX.ImmediateContext.ClearRenderTargetView(DirectX.BackBufferTarget, .(1, 0, 1));
 

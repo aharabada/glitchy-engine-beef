@@ -4,14 +4,14 @@ namespace GlitchyEngine.Events
 {
 	public abstract class KeyEvent : Event
 	{
-		protected int32 _keyCode;
+		protected Key _keyCode;
 
 		[Inline]
-		public int32 KeyCode => _keyCode;
+		public Key KeyCode => _keyCode;
 
 		public override EventCategory Category => .Input | .Keyboard
 
-		protected this(int32 keyCode)
+		protected this(Key keyCode)
 		{
 			_keyCode = keyCode;
 		}
@@ -28,7 +28,7 @@ namespace GlitchyEngine.Events
 
 		public override StringView Name => "KeyPressed";
 
-		public this(int32 keyCode, int32 repeatCount) : base(keyCode)
+		public this(Key keyCode, int32 repeatCount) : base(keyCode)
 		{
 			_repeatCount = repeatCount;
 		}
@@ -46,7 +46,7 @@ namespace GlitchyEngine.Events
 
 		public override StringView Name => "KeyReleased";
 
-		public this(int32 keyCode) : base(keyCode) {  }
+		public this(Key keyCode) : base(keyCode) {  }
 
 		public override void ToString(String strBuffer)
 		{

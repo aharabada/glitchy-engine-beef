@@ -125,7 +125,7 @@ namespace GlitchyEngine.ImGui
 			dispatcher.Dispatch<KeyPressedEvent>(scope (e) =>
 				{
 					ref ImGui.IO io = ref ImGui.GetIO();
-					io.KeysDown[e.KeyCode] = true;
+					io.KeysDown[(int32)e.KeyCode] = true;
 					
 					io.KeyCtrl = io.KeysDown[VK_CONTROL];
 					io.KeyShift = io.KeysDown[VK_SHIFT];
@@ -138,7 +138,7 @@ namespace GlitchyEngine.ImGui
 			dispatcher.Dispatch<KeyReleasedEvent>(scope (e) =>
 				{
 					ref ImGui.IO io = ref ImGui.GetIO();
-					io.KeysDown[e.KeyCode] = false;
+					io.KeysDown[(int32)e.KeyCode] = false;
 					
 					io.KeyCtrl = io.KeysDown[VK_CONTROL];
 					io.KeyShift = io.KeysDown[VK_SHIFT];

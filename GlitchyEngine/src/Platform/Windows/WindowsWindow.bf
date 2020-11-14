@@ -297,12 +297,12 @@ namespace GlitchyEngine.Platform.Windows
 
 			case WM_KEYDOWN:
 				{
-					var event = scope KeyPressedEvent((int32)wParam, (int32)lParam & 0xFFFF);
+					var event = scope KeyPressedEvent((Key)wParam, (int32)lParam & 0xFFFF);
 					window._eventCallback(event);
 				}
 			case WM_KEYUP:
 				{
-					var event = scope KeyReleasedEvent((int32)wParam);
+					var event = scope KeyReleasedEvent((Key)wParam);
 					window._eventCallback(event);
 				}
 

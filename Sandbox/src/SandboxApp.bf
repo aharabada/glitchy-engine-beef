@@ -14,6 +14,8 @@ namespace Sandbox
 
 		public override void Update(GameTime gameTime)
 		{
+			if(Input.IsKeyPressed(.Tab))
+				Log.ClientLogger.Info("Tab key is pressed!");
 		}
 
 		public override void OnEvent(Event event)
