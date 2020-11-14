@@ -3,7 +3,6 @@ using imgui_beef;
 using GlitchyEngine.Events;
 
 // Temporary
-using DirectX.Windows.VirtualKeyCodes;
 using GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.ImGui
@@ -25,28 +24,28 @@ namespace GlitchyEngine.ImGui
 
 			// Todo: Temporary, needs own keymap
 			// Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array that we will update during the application lifetime.
-			io.KeyMap[(int32)ImGui.Key.Tab] = VK_TAB;
-			io.KeyMap[(int32)ImGui.Key.LeftArrow] = VK_LEFT;
-			io.KeyMap[(int32)ImGui.Key.RightArrow] = VK_RIGHT;
-			io.KeyMap[(int32)ImGui.Key.UpArrow] = VK_UP;
-			io.KeyMap[(int32)ImGui.Key.DownArrow] = VK_DOWN;
-			io.KeyMap[(int32)ImGui.Key.PageUp] = VK_PRIOR;
-			io.KeyMap[(int32)ImGui.Key.PageDown] = VK_NEXT;
-			io.KeyMap[(int32)ImGui.Key.Home] = VK_HOME;
-			io.KeyMap[(int32)ImGui.Key.End] = VK_END;
-			io.KeyMap[(int32)ImGui.Key.Insert] = VK_INSERT;
-			io.KeyMap[(int32)ImGui.Key.Delete] = VK_DELETE;
-			io.KeyMap[(int32)ImGui.Key.Backspace] = VK_BACK;
-			io.KeyMap[(int32)ImGui.Key.Space] = VK_SPACE;
-			io.KeyMap[(int32)ImGui.Key.Enter] = VK_RETURN;
-			io.KeyMap[(int32)ImGui.Key.Escape] = VK_ESCAPE;
-			io.KeyMap[(int32)ImGui.Key.KeyPadEnter] = VK_RETURN;
-			io.KeyMap[(int32)ImGui.Key.A] = (int32)'A';
-			io.KeyMap[(int32)ImGui.Key.C] = (int32)'C';
-			io.KeyMap[(int32)ImGui.Key.V] = (int32)'V';
-			io.KeyMap[(int32)ImGui.Key.X] = (int32)'X';
-			io.KeyMap[(int32)ImGui.Key.Y] = (int32)'Y';
-			io.KeyMap[(int32)ImGui.Key.Z] = (int32)'Z';
+			io.KeyMap[(int32)ImGui.Key.Tab] = (int32)Key.Tab;
+			io.KeyMap[(int32)ImGui.Key.LeftArrow] = (int32)Key.Left;
+			io.KeyMap[(int32)ImGui.Key.RightArrow] = (int32)Key.Right;
+			io.KeyMap[(int32)ImGui.Key.UpArrow] = (int32)Key.Up;
+			io.KeyMap[(int32)ImGui.Key.DownArrow] = (int32)Key.Down;
+			io.KeyMap[(int32)ImGui.Key.PageUp] = (int32)Key.Prior;
+			io.KeyMap[(int32)ImGui.Key.PageDown] = (int32)Key.Next;
+			io.KeyMap[(int32)ImGui.Key.Home] = (int32)Key.Home;
+			io.KeyMap[(int32)ImGui.Key.End] = (int32)Key.End;
+			io.KeyMap[(int32)ImGui.Key.Insert] = (int32)Key.Insert;
+			io.KeyMap[(int32)ImGui.Key.Delete] = (int32)Key.Delete;
+			io.KeyMap[(int32)ImGui.Key.Backspace] = (int32)Key.Backspace;
+			io.KeyMap[(int32)ImGui.Key.Space] = (int32)Key.Space;
+			io.KeyMap[(int32)ImGui.Key.Enter] = (int32)Key.Return;
+			io.KeyMap[(int32)ImGui.Key.Escape] = (int32)Key.Escape;
+			io.KeyMap[(int32)ImGui.Key.KeyPadEnter] = (int32)Key.Return;
+			io.KeyMap[(int32)ImGui.Key.A] = (int32)(int32)Key.A;
+			io.KeyMap[(int32)ImGui.Key.C] = (int32)(int32)Key.C;
+			io.KeyMap[(int32)ImGui.Key.V] = (int32)(int32)Key.V;
+			io.KeyMap[(int32)ImGui.Key.X] = (int32)(int32)Key.X;
+			io.KeyMap[(int32)ImGui.Key.Y] = (int32)(int32)Key.Y;
+			io.KeyMap[(int32)ImGui.Key.Z] = (int32)(int32)Key.Z;
 			
 			// Todo: temporary, needs to be platform independant
 			ImGuiImplDx11.Init(Platform.DX11.DirectX.Device, Platform.DX11.DirectX.ImmediateContext);
@@ -127,10 +126,10 @@ namespace GlitchyEngine.ImGui
 					ref ImGui.IO io = ref ImGui.GetIO();
 					io.KeysDown[(int32)e.KeyCode] = true;
 					
-					io.KeyCtrl = io.KeysDown[VK_CONTROL];
-					io.KeyShift = io.KeysDown[VK_SHIFT];
-					io.KeyAlt = io.KeysDown[VK_MENU];
-					io.KeySuper = io.KeysDown[VK_LWIN] || io.KeysDown[VK_RWIN];
+					io.KeyCtrl = io.KeysDown[(int32)Key.Control];
+					io.KeyShift = io.KeysDown[(int32)Key.Shift];
+					io.KeyAlt = io.KeysDown[(int32)Key.Alt];
+					io.KeySuper = io.KeysDown[(int32)Key.LeftSuper] || io.KeysDown[(int32)Key.RightSuper];
 
 					return false;
 				});
@@ -140,10 +139,10 @@ namespace GlitchyEngine.ImGui
 					ref ImGui.IO io = ref ImGui.GetIO();
 					io.KeysDown[(int32)e.KeyCode] = false;
 					
-					io.KeyCtrl = io.KeysDown[VK_CONTROL];
-					io.KeyShift = io.KeysDown[VK_SHIFT];
-					io.KeyAlt = io.KeysDown[VK_MENU];
-					io.KeySuper = io.KeysDown[VK_LWIN] || io.KeysDown[VK_RWIN];
+					io.KeyCtrl = io.KeysDown[(int32)Key.Control];
+					io.KeyShift = io.KeysDown[(int32)Key.Shift];
+					io.KeyAlt = io.KeysDown[(int32)Key.Alt];
+					io.KeySuper = io.KeysDown[(int32)Key.LeftSuper] || io.KeysDown[(int32)Key.RightSuper];
 
 					return false;
 				});
