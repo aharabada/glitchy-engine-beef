@@ -2,6 +2,7 @@ using System;
 using GlitchyEngine.Events;
 using GlitchyEngine.Platform.Windows;
 using GlitchyEngine.Platform.DX11;
+using GlitchyEngine.ImGui;
 
 namespace GlitchyEngine
 {
@@ -13,6 +14,8 @@ namespace GlitchyEngine
 		private bool _running = true;
 
 		private LayerStack _layerStack = new LayerStack() ~ delete _;
+
+		private ImGuiLayer _imGuiLayer;
 
 		private GameTime _gameTime = new GameTime(true) ~ delete _;
 
@@ -29,6 +32,9 @@ namespace GlitchyEngine
 
 			_window = GlitchyEngine.Window.CreateWindow(WindowDescription());
 			_window.EventCallback = new => OnEvent;
+
+			_imGuiLayer = new ImGuiLayer();
+			PushLayer(_imGuiLayer);
 		}
 
 		public void OnEvent(Event e)
@@ -58,6 +64,8 @@ namespace GlitchyEngine
 					layer.Update(_gameTime);
 
 				_window.Update();
+
+				_imGuiLayer.ImGuiRender();
 
 				DirectX.Present();
 			}

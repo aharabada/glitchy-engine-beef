@@ -21,6 +21,19 @@ namespace Sandbox
 		public override void OnEvent(Event event)
 		{
 			Log.ClientLogger.Trace("{}", event);
+
+			EventDispatcher dispatcher = scope EventDispatcher(event);
+
+			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
+		}
+
+		private bool OnImGuiRender(ImGuiRenderEvent e)
+		{
+			ImGui.ImGui.Begin("Test");
+
+			ImGui.ImGui.End();
+
+			return false;
 		}
 	}
 

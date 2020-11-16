@@ -1,5 +1,5 @@
 using System;
-using imgui_beef;
+using ImGui;
 using GlitchyEngine.Events;
 
 // Temporary
@@ -18,41 +18,34 @@ namespace GlitchyEngine.ImGui
 			ImGui.CHECKVERSION();
 			ImGui.CreateContext();
 			ImGui.StyleColorsDark();
-			
-			ref ImGui.IO io = ref ImGui.GetIO();
-			io.BackendFlags |= .HasMouseCursors | .HasSetMousePos;
 
-			// Todo: Temporary, needs own keymap
-			// Keyboard mapping. ImGui will use those indices to peek into the io.KeysDown[] array that we will update during the application lifetime.
-			io.KeyMap[(int32)ImGui.Key.Tab] = (int32)Key.Tab;
-			io.KeyMap[(int32)ImGui.Key.LeftArrow] = (int32)Key.Left;
-			io.KeyMap[(int32)ImGui.Key.RightArrow] = (int32)Key.Right;
-			io.KeyMap[(int32)ImGui.Key.UpArrow] = (int32)Key.Up;
-			io.KeyMap[(int32)ImGui.Key.DownArrow] = (int32)Key.Down;
-			io.KeyMap[(int32)ImGui.Key.PageUp] = (int32)Key.Prior;
-			io.KeyMap[(int32)ImGui.Key.PageDown] = (int32)Key.Next;
-			io.KeyMap[(int32)ImGui.Key.Home] = (int32)Key.Home;
-			io.KeyMap[(int32)ImGui.Key.End] = (int32)Key.End;
-			io.KeyMap[(int32)ImGui.Key.Insert] = (int32)Key.Insert;
-			io.KeyMap[(int32)ImGui.Key.Delete] = (int32)Key.Delete;
-			io.KeyMap[(int32)ImGui.Key.Backspace] = (int32)Key.Backspace;
-			io.KeyMap[(int32)ImGui.Key.Space] = (int32)Key.Space;
-			io.KeyMap[(int32)ImGui.Key.Enter] = (int32)Key.Return;
-			io.KeyMap[(int32)ImGui.Key.Escape] = (int32)Key.Escape;
-			io.KeyMap[(int32)ImGui.Key.KeyPadEnter] = (int32)Key.Return;
-			io.KeyMap[(int32)ImGui.Key.A] = (int32)(int32)Key.A;
-			io.KeyMap[(int32)ImGui.Key.C] = (int32)(int32)Key.C;
-			io.KeyMap[(int32)ImGui.Key.V] = (int32)(int32)Key.V;
-			io.KeyMap[(int32)ImGui.Key.X] = (int32)(int32)Key.X;
-			io.KeyMap[(int32)ImGui.Key.Y] = (int32)(int32)Key.Y;
-			io.KeyMap[(int32)ImGui.Key.Z] = (int32)(int32)Key.Z;
-			
-			// Todo: temporary, needs to be platform independant
-			ImGuiImplDx11.Init(Platform.DX11.DirectX.Device, Platform.DX11.DirectX.ImmediateContext);
+			ref ImGui.IO io = ref ImGui.GetIO();
+			io.ConfigFlags |= .NavEnableKeyboard;
+			io.ConfigFlags |= .DockingEnable;
+			io.ConfigFlags |= .ViewportsEnable;
+
+			ref ImGui.Style style = ref ImGui.GetStyle();
+
+			if(io.ConfigFlags.HasFlag(.ViewportsEnable))
+			{
+				style.WindowRounding = 0.0f;
+				style.Colors[(int)ImGui.Col.WindowBg].w = 1.0f;
+			}
+
+			//ImGui.Dock
+
+#if GE_WINDOWS
+			// Todo: temporary, needs to be platform independent
+			ImGuiImplDX11.Init(Platform.DX11.DirectX.Device, Platform.DX11.DirectX.ImmediateContext);
+			ImGuiImplWin32.Init((Windows.HWnd)(int)Application.Get().Window.NativeWindow);
+#endif
 		}
 
 		public override void OnDetach()
 		{
+			ImGuiImplDX11.Shutdown();
+			ImGuiImplWin32.Shutdown();
+			ImGui.DestroyContext();
 		}
 
 		public override void OnEvent(Event event)
@@ -61,9 +54,9 @@ namespace GlitchyEngine.ImGui
 
 			dispatcher.Dispatch<WindowResizeEvent>(scope (e) =>
 				{
-					ref ImGui.IO io = ref ImGui.GetIO();
-					io.DisplaySize = .(e.Width, e.Height);
-					io.DisplayFramebufferScale = .(1.0f, 1.0f);
+					//ref ImGui.IO io = ref ImGui.GetIO();
+					//io.DisplaySize = .(e.Width, e.Height);
+					//io.DisplayFramebufferScale = .(1.0f, 1.0f);
 
 					return false;
 				});
@@ -150,32 +143,50 @@ namespace GlitchyEngine.ImGui
 			dispatcher.Dispatch<KeyTypedEvent>(scope (e) =>
 				{
 					ref ImGui.IO io = ref ImGui.GetIO();
-					io.AddInputCharacterUTF16((int16)e.Char);
+					io.AddInputCharacterUTF16((uint16)e.Char);
 
 					return false;
 				});
 		}
 
-		bool showDemo = true;
-		public override void Update(GameTime gameTime)
+		public void Begin()
 		{
 			var v = DirectX.ImmediateContext;
-
 			v.OutputMerger.SetRenderTargets(1, &DirectX.BackBufferTarget, null);
+			
+			ImGuiImplDX11.NewFrame();
+			ImGuiImplWin32.NewFrame();
+			ImGui.NewFrame();
+		}
 
+		bool showDemo = true;
+		public void ImGuiRender()
+		{
+			Begin();
+
+			var event = scope ImGuiRenderEvent();
+			Application.Get().OnEvent(event);
+
+			ImGui.ShowDemoWindow(&showDemo);
+
+			End();
+		}
+
+		public void End()
+		{
 			ref ImGui.IO io = ref ImGui.GetIO();
 
 			let window = Application.Get().Window;
 			io.DisplaySize = .(window.Width, window.Height);
-			io.DeltaTime = (float)gameTime.FrameTime.TotalSeconds;
-
-			ImGuiImplDx11.NewFrame();
-			ImGui.NewFrame();
-
-			ImGui.ShowDemoWindow(&showDemo);
 
 			ImGui.Render();
-			ImGuiImplDx11.RenderDrawData(ImGui.GetDrawData());
+			ImGuiImplDX11.RenderDrawData(ref ImGui.GetDrawData());
+
+			if(io.ConfigFlags.HasFlag(.ViewportsEnable))
+			{
+				ImGui.UpdatePlatformWindows();
+				ImGui.RenderPlatformWindowsDefault();
+			}
 		}
 	}
 }

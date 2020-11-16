@@ -59,11 +59,19 @@ namespace GlitchyEngine.Platform.DX11
 			Log.EngineLogger.Trace("D3D11 Device and Context created (Feature level: {})", deviceLevel);
 		}
 
+		static uint32 _width, _height;
+
 		/**
 		 * Initializes the swapchain.
 		 */
 		public static void UpdateSwapchain(uint32 width, uint32 height)
 		{
+			if(_width == width && _height == height)
+				return;
+
+			_width = width;
+			_height = height;
+
 			Log.EngineLogger.Trace("Updating swap chain ({}, {})", width, height);
 
 			uint32 backBufferCount = 2;

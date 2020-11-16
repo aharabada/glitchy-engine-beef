@@ -1,5 +1,5 @@
 FileVersion = 1
-Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", imgui-beef = "*", imgui-impl-win32 = "*", imgui-impl-dx11 = "*"}
+Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", ImGui = "*", ImGuiImplDx11 = "*", ImGuiImplWin32 = "*"}
 
 [Project]
 Name = "GlitchyEngine"
@@ -8,6 +8,7 @@ Name = "GlitchyEngine"
 PreprocessorMacros = ["DEBUG", "GE_WINDOWS"]
 
 [Configs.Debug.Win64]
+CLibType = "DynamicDebug"
 PreprocessorMacros = ["DEBUG", "GE_WINDOWS"]
 
 [Configs.Release.Win32]
