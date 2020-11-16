@@ -1,3 +1,4 @@
+#if GE_WINDOWS
 using System;
 using DirectX.Common;
 using DirectX.Windows;
@@ -12,20 +13,8 @@ using static System.Windows;
 
 namespace GlitchyEngine
 {
-#if GE_WINDOWS
+	/// The windows specific Window implementation
 	public extension Window
-	{
-		public static override Window CreateWindow(WindowDescription description)
-		{
-			return new GlitchyEngine.Platform.Windows.WindowsWindow(description);
-		}
-	}
-#endif
-}
-
-namespace GlitchyEngine.Platform.Windows
-{
-	public class WindowsWindow : Window
 	{
 		private Windows.HInstance _instanceHandle;
 		private Windows.HWnd _windowHandle;
@@ -135,8 +124,6 @@ namespace GlitchyEngine.Platform.Windows
 			}
 		}
 
-
-
 		public override StringView Title
 		{
 			get
@@ -158,7 +145,7 @@ namespace GlitchyEngine.Platform.Windows
 
 		public override void* NativeWindow => (void*)(int)_windowHandle;
 
-		public this(WindowDescription desc)
+		public override this(WindowDescription desc)
 		{
 			_minMaxInfo.MaximumTrackingSize.x = int32.MaxValue;
 			_minMaxInfo.MaximumTrackingSize.y = int32.MaxValue;
@@ -215,7 +202,7 @@ namespace GlitchyEngine.Platform.Windows
 		private static LRESULT MessageHandler(HWND hwnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			void* windowPtr = (void*)GetWindowLongPtrW(hwnd, GWL_USERDATA);
-			WindowsWindow window = (WindowsWindow)Internal.UnsafeCastToObject(windowPtr);
+			Window window = (Window)Internal.UnsafeCastToObject(windowPtr);
 			
 			if (window == null)
 			{
@@ -472,3 +459,4 @@ namespace GlitchyEngine.Platform.Windows
 		}
 	}
 }
+#endif

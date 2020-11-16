@@ -28,70 +28,73 @@ namespace GlitchyEngine
 		}
 	}
 
-	public abstract class Window
+	public class Window
 	{
 		public delegate void EventCallback(Event e);
 
 		protected EventCallback _eventCallback ~ delete _;
+		
+		public extern this(WindowDescription windowDescription);
 
 		/**
 		 * Gets or Sets the minimum width of the window.
 		 */
-		public abstract int32 MinWidth {get; set;}
+		public extern int32 MinWidth {get; set;}
 		/**
 		 * Gets or Sets the minimum height of the window.
 		 */
-		public abstract int32 MinHeight {get; set;}
+		public extern int32 MinHeight {get; set;}
 		
 		/**
 		 * Gets or Sets the maximum width of the window.
 		 */
-		public abstract int32 MaxWidth {get; set;}
+		public extern int32 MaxWidth {get; set;}
 		/**
 		 * Gets or Sets the maximum height of the window.
 		 */
-		public abstract int32 MaxHeight {get; set;}
+		public extern int32 MaxHeight {get; set;}
 		
 		/**
 		 * Gets or Sets the width and height of the window.
 		 */
-		public abstract Point Size {get; set;}
+		public extern Point Size {get; set;}
 		/**
 		 * Gets or Sets the width of the window.
 		 */
-		public abstract int32 Width {get; set;}
+		public extern int32 Width {get; set;}
 		/**
 		 * Gets or Sets the height of the window.
 		 */
-		public abstract int32 Height {get; set;}
+		public extern int32 Height {get; set;}
 		
 		/**
 		 * Gets or Sets the position of the upper-left corner of the client area of the window.
 		 */
-		public abstract Point Position {get; set;}
+		public extern Point Position {get; set;}
 
 		/**
 		 * Gets or Sets the x-coordinate of the upper-left corner of the client area of the window.
 		 */
-		public abstract int32 PositionX {get; set;}
+		public extern int32 PositionX {get; set;}
 		/**
 		 * Gets or Sets the y-coordinate of the upper-left corner of the client area of the window.
 		 */
-		public abstract int32 PositionY {get; set;}
+		public extern int32 PositionY {get; set;}
 
 		/**
 		 * Gets or Sets the windows title.
 		 */
-		public abstract StringView Title {get; set;}
+		public extern StringView Title {get; set;}
 
 		/**
 		 * Gets or Sets whether or not the application uses VSync
 		 */
-		public abstract bool IsVSync {get; set;}
+		public extern bool IsVSync {get; set;}
 
-
-
-		public abstract void* NativeWindow {get;}
+		/**
+		 * Gets a pointer to the platform specific window representation.
+		 */
+		public extern void* NativeWindow {get;}
 
 		public EventCallback EventCallback
 		{
@@ -99,11 +102,6 @@ namespace GlitchyEngine
 			set => _eventCallback = value;
 		}
 
-		public abstract void Update();
-
-		/**
-		 * Function used to create a platform specific window.
-		 */
-		public static extern Window CreateWindow(WindowDescription description);
+		public extern void Update();
 	}
 }

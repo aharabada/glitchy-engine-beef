@@ -12,7 +12,7 @@ namespace GlitchyEngine
 	/// Windows (WinApi) specific implementation of the Input-class
 	extension Input
 	{
-		/// Represents the state of the input devices on the windows plattform (WinApi that is).
+		/// Represents the state of the input devices on the windows platform (WinApi that is).
 		struct WindowsInputState
 		{
 			public int8[256] KeyStates;
