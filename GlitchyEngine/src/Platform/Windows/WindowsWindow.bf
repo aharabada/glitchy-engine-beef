@@ -6,7 +6,6 @@ using DirectX.Windows.Kernel32;
 using DirectX.Windows.WindowMessages;
 using GlitchyEngine.Events;
 using System.Diagnostics;
-using imgui_beef;
 using GlitchyEngine.Platform.DX11;
 using GlitchyEngine.Math;
 using static System.Windows;
@@ -282,8 +281,6 @@ namespace GlitchyEngine.Platform.Windows
 			case WM_EXITSIZEMOVE:
 				{
 					window._isResizingOrMoving = false;
-
-					DirectX.UpdateSwapchain((.)window._clientRect.Width, (.)window._clientRect.Width);
 
 					var resEvent = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, false);
 					window._eventCallback(resEvent);
