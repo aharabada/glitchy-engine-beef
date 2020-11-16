@@ -11,13 +11,7 @@ namespace GlitchyEngine
 		public StringView Title;
 		public StringView Icon;
 
-		public this()
-		{
-			Width = 1280;
-			Height = 720;
-			Title = "Glitchy Engine";
-			Icon = .();
-		}
+		public this() => this = default;
 
 		public this(uint32 width, uint32 height, StringView title, StringView icon = default)
 		{
@@ -26,6 +20,8 @@ namespace GlitchyEngine
 			Title = title;
 			Icon = icon;
 		}
+
+		public static readonly WindowDescription Default => .(1280, 720, "Glitchy Engine")
 	}
 
 	public class Window

@@ -29,7 +29,7 @@ namespace GlitchyEngine
 			Runtime.Assert(s_Instance == null, "Tried to create a second application.");
 			s_Instance = this;
 
-			_window = GlitchyEngine.Window.CreateWindow(WindowDescription());
+			_window = new Window(.Default);
 			_window.EventCallback = new => OnEvent;
 
 			_imGuiLayer = new ImGuiLayer();
