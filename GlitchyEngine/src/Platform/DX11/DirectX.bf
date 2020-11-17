@@ -5,6 +5,7 @@ using DirectX.Common;
 using System.Diagnostics;
 using DirectX.DXGI;
 using DirectX.DXGI.DXGI1_2;
+using DirectX.D3D11.SDKLayers;
 using static System.Windows;
 
 namespace GlitchyEngine.Platform.DX11
@@ -13,6 +14,7 @@ namespace GlitchyEngine.Platform.DX11
 	{
 		public static ID3D11Device* Device;
 		public static ID3D11DeviceContext* ImmediateContext;
+		public static ID3D11Debug* DebugDevice;
 		
 		public static IDXGIDevice* DxgiDevice;
 		public static IDXGISwapChain1* SwapChain;
@@ -55,9 +57,22 @@ namespace GlitchyEngine.Platform.DX11
 
 			FeatureLevel[] levels = scope .(.Level_11_0);
 
-			FeatureLevel deviceLevel = ?;
-			var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &Device, &deviceLevel, &ImmediateContext);
+			var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &Device, let deviceLevel, &ImmediateContext);
 			Debug.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message(0x{(int32)deviceResult}): {deviceResult}");
+
+#if DEBUG	
+			if(Device.QueryInterface<ID3D11Debug>(out DebugDevice).Succeeded)
+			{
+				ID3D11InfoQueue* infoQueue;
+				if(Device.QueryInterface<ID3D11InfoQueue>(out infoQueue).Succeeded)
+				{
+					infoQueue.SetBreakOnSeverity(.Corruption, true);
+					infoQueue.SetBreakOnSeverity(.Error, true);
+
+					infoQueue.Release();
+				}
+			}
+#endif
 
 			Log.EngineLogger.Trace("D3D11 Device and Context created (Feature level: {})", deviceLevel);
 		}
@@ -140,6 +155,10 @@ namespace GlitchyEngine.Platform.DX11
 
 			BackBufferTarget?.Release();
 			BackBufferTarget = null;
+
+			DebugDevice.ReportLiveDeviceObjects(.Detail);
+			DebugDevice?.Release();
+			DebugDevice = null;
 		}
 
 		public static void Present()
