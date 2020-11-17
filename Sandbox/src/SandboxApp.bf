@@ -42,7 +42,6 @@ namespace Sandbox
 		public this()
 		{
 			PushLayer(new ExampleLayer());
-			PushOverlay(new ImGuiLayer());
 		}
 
 		[Export, LinkName("CreateApplication")]

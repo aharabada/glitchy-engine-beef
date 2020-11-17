@@ -33,7 +33,7 @@ namespace GlitchyEngine
 			_window.EventCallback = new => OnEvent;
 
 			_imGuiLayer = new ImGuiLayer();
-			PushLayer(_imGuiLayer);
+			PushOverlay(_imGuiLayer);
 		}
 
 		public void OnEvent(Event e)

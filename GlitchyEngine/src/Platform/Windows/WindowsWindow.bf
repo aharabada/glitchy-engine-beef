@@ -16,6 +16,8 @@ namespace GlitchyEngine
 	/// The windows specific Window implementation
 	public extension Window
 	{
+		const String WindowClassName = "GlitchyEngineWindow";
+
 		private Windows.HInstance _instanceHandle;
 		private Windows.HWnd _windowHandle;
 
@@ -152,6 +154,14 @@ namespace GlitchyEngine
 
 			Init(desc);
 		}
+		
+		[LinkName("UnregisterClassW")]
+		static extern Windows.IntBool UnregisterClass(char16* className, Windows.HInstance hInstance);
+
+		public ~this()
+		{
+			UnregisterClass(WindowClassName.ToScopedNativeWChar!(), _instanceHandle);
+		}
 
 		private void Init(WindowDescription desc)
 		{
@@ -171,7 +181,7 @@ namespace GlitchyEngine
 
 			_windowClass.Cursor = LoadCursorW(0, IDC_ARROW);
 			_windowClass.BackgroundBrush = (HBRUSH)SystemColor.WindowFrame;
-			_windowClass.ClassName = "GlitchyEngineWindow".ToScopedNativeWChar!();
+			_windowClass.ClassName = WindowClassName.ToScopedNativeWChar!();
 
 			if (RegisterClassExW(ref _windowClass) == 0)
 			{

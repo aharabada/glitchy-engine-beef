@@ -13,6 +13,7 @@ namespace GlitchyEngine.ImGui
 
 		public override void OnAttach()
 		{
+			ImGuiImplWin32.EnableDpiAwareness();
 			Log.EngineLogger.Trace("Initializing ImGui...");
 
 			ImGui.CHECKVERSION();
@@ -24,8 +25,12 @@ namespace GlitchyEngine.ImGui
 			io.ConfigFlags |= .DockingEnable;
 			io.ConfigFlags |= .ViewportsEnable;
 
-			ref ImGui.Style style = ref ImGui.GetStyle();
+			// Todo: currently broken in ImGui
+			//io.ConfigFlags |= .DpiEnableScaleFonts;
+			//io.ConfigFlags |= .DpiEnableScaleViewports;
 
+			// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
+			ref ImGui.Style style = ref ImGui.GetStyle();
 			if(io.ConfigFlags.HasFlag(.ViewportsEnable))
 			{
 				style.WindowRounding = 0.0f;
@@ -36,8 +41,8 @@ namespace GlitchyEngine.ImGui
 
 #if GE_WINDOWS
 			// Todo: temporary, needs to be platform independent
-			ImGuiImplDX11.Init(Platform.DX11.DirectX.Device, Platform.DX11.DirectX.ImmediateContext);
 			ImGuiImplWin32.Init((Windows.HWnd)(int)Application.Get().Window.NativeWindow);
+			ImGuiImplDX11.Init(Platform.DX11.DirectX.Device, Platform.DX11.DirectX.ImmediateContext);
 #endif
 		}
 

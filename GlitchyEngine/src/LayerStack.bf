@@ -4,7 +4,16 @@ namespace GlitchyEngine
 {
 	public class LayerStack
 	{
-		private List<Layer> _layers = new List<Layer>() ~ DeleteContainerAndItems!(_);
+		private List<Layer> _layers = new List<Layer>() ~ delete _;
+
+		public ~this()
+		{
+			for(let layer in _layers)
+			{
+				layer.OnDetach();
+				delete layer;
+			}
+		}
 
 		/*
 		 * Marks the index of the last layer.
