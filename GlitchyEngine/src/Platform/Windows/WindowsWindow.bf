@@ -218,7 +218,9 @@ namespace GlitchyEngine
 			{
 				return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 			}
-			
+
+			ImGui.ImGuiImplWin32.WndProcHandler(hwnd, uMsg, wParam, lParam);
+
 			switch (uMsg)
 			{
 				////
@@ -371,8 +373,7 @@ namespace GlitchyEngine
 				// Horizontal scrolling
 			case WM_MOUSEHWHEEL:
 				{
-					// horizontal scrolling is inverted for some reason
-					int32 rotation = -(int16)HighOrder!((int64)wParam) / WHEEL_DELTA;
+					int32 rotation = (int16)HighOrder!((int64)wParam) / WHEEL_DELTA;
 
 					var event = scope MouseScrolledEvent(rotation, 0);
 					window._eventCallback(event);

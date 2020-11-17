@@ -13,7 +13,7 @@ namespace GlitchyEngine.ImGui
 
 		public override void OnAttach()
 		{
-			ImGuiImplWin32.EnableDpiAwareness();
+			//ImGuiImplWin32.EnableDpiAwareness();
 			Log.EngineLogger.Trace("Initializing ImGui...");
 
 			ImGui.CHECKVERSION();
@@ -37,8 +37,6 @@ namespace GlitchyEngine.ImGui
 				style.Colors[(int)ImGui.Col.WindowBg].w = 1.0f;
 			}
 
-			//ImGui.Dock
-
 #if GE_WINDOWS
 			// Todo: temporary, needs to be platform independent
 			ImGuiImplWin32.Init((Windows.HWnd)(int)Application.Get().Window.NativeWindow);
@@ -55,6 +53,7 @@ namespace GlitchyEngine.ImGui
 
 		public override void OnEvent(Event event)
 		{
+			/*
 			EventDispatcher dispatcher = scope EventDispatcher(event);
 
 			dispatcher.Dispatch<WindowResizeEvent>(scope (e) =>
@@ -76,36 +75,48 @@ namespace GlitchyEngine.ImGui
 
 			dispatcher.Dispatch<MouseButtonPressedEvent>(scope (e) =>
 				{
-					ref ImGui.IO io = ref ImGui.GetIO();
-
+					int button = 0;
 					switch(e.MouseButton)
 					{
 					case .LeftButton:
-						io.MouseDown[(uint)ImGui.MouseButton.Left] = true;
+						button = (uint)ImGui.MouseButton.Left;
 					case .RightButton:
-						io.MouseDown[(uint)ImGui.MouseButton.Right] = true;
+						button = (uint)ImGui.MouseButton.Right;
 					case .MiddleButton:
-						io.MouseDown[(uint)ImGui.MouseButton.Middle] = true;
+						button = (uint)ImGui.MouseButton.Middle;
+					case .XButton1:
+						button = (uint)3;
+					case .XButton2:
+						button = (uint)4;
 					default:
 					}
+
+					ref ImGui.IO io = ref ImGui.GetIO();
+					io.MouseDown[button] = true;
 
 					return false;
 				});
 
 			dispatcher.Dispatch<MouseButtonReleasedEvent>(scope (e) =>
 				{
-					ref ImGui.IO io = ref ImGui.GetIO();
-
+					int button = 0;
 					switch(e.MouseButton)
 					{
 					case .LeftButton:
-						io.MouseDown[(uint)ImGui.MouseButton.Left] = false;
+						button = (uint)ImGui.MouseButton.Left;
 					case .RightButton:
-						io.MouseDown[(uint)ImGui.MouseButton.Right] = false;
+						button = (uint)ImGui.MouseButton.Right;
 					case .MiddleButton:
-						io.MouseDown[(uint)ImGui.MouseButton.Middle] = false;
+						button = (uint)ImGui.MouseButton.Middle;
+					case .XButton1:
+						button = (uint)3;
+					case .XButton2:
+						button = (uint)4;
 					default:
 					}
+
+					ref ImGui.IO io = ref ImGui.GetIO();
+					io.MouseDown[button] = false;
 
 					return false;
 				});
@@ -121,6 +132,9 @@ namespace GlitchyEngine.ImGui
 
 			dispatcher.Dispatch<KeyPressedEvent>(scope (e) =>
 				{
+					if(e.KeyCode >= (.)256)
+						return false;
+
 					ref ImGui.IO io = ref ImGui.GetIO();
 					io.KeysDown[(int32)e.KeyCode] = true;
 					
@@ -134,6 +148,9 @@ namespace GlitchyEngine.ImGui
 
 			dispatcher.Dispatch<KeyReleasedEvent>(scope (e) =>
 				{
+					if(e.KeyCode >= (.)256)
+						return false;
+
 					ref ImGui.IO io = ref ImGui.GetIO();
 					io.KeysDown[(int32)e.KeyCode] = false;
 					
@@ -152,6 +169,7 @@ namespace GlitchyEngine.ImGui
 
 					return false;
 				});
+			*/
 		}
 
 		public void Begin()
