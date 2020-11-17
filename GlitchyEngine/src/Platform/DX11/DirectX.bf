@@ -40,8 +40,11 @@ namespace GlitchyEngine.Platform.DX11
 		 */
 		static void InitDevice()
 		{
-			IUnknown.ReleaseAndNull!(ref Device);
-			IUnknown.ReleaseAndNull!(ref ImmediateContext);
+			Device?.Release();
+			Device = null;
+
+			ImmediateContext?.Release();
+			ImmediateContext = null;
 			
 			Log.EngineLogger.Trace("Creating D3D11 Device and Context...");
 
@@ -123,13 +126,20 @@ namespace GlitchyEngine.Platform.DX11
 
 		public static void Shutdown()
 		{
-			IUnknown.ReleaseAndNull!(ref Device);
-			IUnknown.ReleaseAndNull!(ref ImmediateContext);
+			Device?.Release();
+			Device = null;
 
-			IUnknown.ReleaseAndNull!(ref DxgiDevice);
-			IUnknown.ReleaseAndNull!(ref SwapChain);
+			ImmediateContext?.Release();
+			ImmediateContext = null;
+			
+			DxgiDevice?.Release();
+			DxgiDevice = null;
 
-			IUnknown.ReleaseAndNull!(ref BackBufferTarget);
+			SwapChain?.Release();
+			SwapChain = null;
+
+			BackBufferTarget?.Release();
+			BackBufferTarget = null;
 		}
 
 		public static void Present()
