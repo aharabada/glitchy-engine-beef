@@ -7,19 +7,13 @@ using DirectX.DXGI.DXGI1_2;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 
-using GlitchyEngine.Platform.DX11;
-
 using internal GlitchyEngine.Renderer;
-//using internal GlitchyEngine.Platform.DX11.Renderer;
 
 namespace GlitchyEngine.Renderer
-//namespace GlitchyEngine.Platform.DX11.Renderer
 {
 	/// DirectX 11 specific implementation of the GraphicsContext
 	extension GraphicsContext
-	//public class Dx11Context : GraphicsContext
 	{
-		//private Dx11SwapChain _swapChain;
 		private SwapChain _swapChain;
 
 		internal Windows.HWnd nativeWindowHandle;
@@ -40,7 +34,6 @@ namespace GlitchyEngine.Renderer
 			nativeWindowHandle = windowHandle;
 
 			_swapChain = new SwapChain(this);
-			//_swapChain = new Dx11SwapChain(this);
 		}
 
 		public ~this()
@@ -94,9 +87,6 @@ namespace GlitchyEngine.Renderer
 				}
 			}
 #endif
-			
-			Dx11Cheater.Device = nativeDevice;
-			Dx11Cheater.ImmediateContext = nativeContext;
 
 			Log.EngineLogger.Trace("D3D11 Device and Context created (Feature level: {})", deviceLevel);
 		}
@@ -110,7 +100,6 @@ namespace GlitchyEngine.Renderer
 			if(renderTarget == null)
 			{
 				_renderTargets[slot] = _swapChain.nativeBackBufferTarget;
-				//_immediateContext.OutputMerger.SetRenderTargets(1, &_swapChain._backBufferTarget, null);
 			}
 			else
 			{
@@ -160,6 +149,11 @@ namespace GlitchyEngine.Renderer
 		protected override void SetRasterizerStateImpl()
 		{
 			nativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
+		}
+
+		public override void SetViewports(uint32 viewportsCount, GlitchyEngine.Renderer.Viewport* viewports)
+		{
+			nativeContext.Rasterizer.SetViewports(viewportsCount, (.)viewports);
 		}
 	}
 }

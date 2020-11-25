@@ -7,9 +7,7 @@ using DirectX.Windows.Kernel32;
 using DirectX.Windows.WindowMessages;
 using GlitchyEngine.Events;
 using System.Diagnostics;
-using GlitchyEngine.Platform.DX11;
 using GlitchyEngine.Math;
-//using GlitchyEngine.Platform.DX11.Renderer;
 using GlitchyEngine.Renderer;
 using static System.Windows;
 
@@ -198,7 +196,6 @@ namespace GlitchyEngine
 			_windowHandle = CreateWindowExW(.None, _windowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
 				CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
 			
-			//_graphicsContext = new Dx11Context(_windowHandle);
 			_graphicsContext = new GraphicsContext(_windowHandle);
 			_graphicsContext.Init();
 
@@ -208,8 +205,6 @@ namespace GlitchyEngine
 			LoadWindowRectangle();
 
 			Log.EngineLogger.Trace("Created window \"{}\" ({}, {})", Title, Width, Height);
-
-			//DirectX.Init(_windowHandle, (.)Width, (.)Height);
 		}
 
 		private bool _isResizingOrMoving;

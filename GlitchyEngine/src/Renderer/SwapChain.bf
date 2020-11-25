@@ -2,6 +2,8 @@ namespace GlitchyEngine.Renderer
 {
 	public class SwapChain
 	{
+		private Viewport _backBufferViewport;
+
 		public extern GraphicsContext Context {get;}
 
 		/**
@@ -14,6 +16,8 @@ namespace GlitchyEngine.Renderer
 		 * @remarks @ApplyChanges() needs to be called in order to apply the ganges.
 		 */
 		public extern uint32 Height {get; set;}
+
+		public Viewport BackbufferViewport => _backBufferViewport;
 
 		public extern void Init();
 

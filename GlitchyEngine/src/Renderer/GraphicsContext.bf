@@ -1,15 +1,14 @@
 using GlitchyEngine.Math;
+using System;
 
 namespace GlitchyEngine.Renderer
 {
 	public class RenderTarget;
 
-	//public abstract class GraphicsContext
 	public class GraphicsContext
 	{
 		private RasterizerState _currentRasterizerState;
 
-		//public abstract SwapChain SwapChain {get;}
 		public extern SwapChain SwapChain {get;}
 		
 		/**
@@ -17,7 +16,6 @@ namespace GlitchyEngine.Renderer
 		 */
 		//public static extern uint32 MaxRenderTargetCount();
 
-		//public abstract void Init();
 		public extern void Init();
 		
 		/**
@@ -27,7 +25,6 @@ namespace GlitchyEngine.Renderer
 		 * @remarks When @RenderTarget is null the backbuffer will be bound.
 		 * 			@BindRenderTargets has to be called in order to bind the rendertargets.
 		 */
-		//public abstract void SetRenderTarget(RenderTarget renderTarget, int slot = 0);
 		public extern void SetRenderTarget(RenderTarget renderTarget, int slot = 0);
 
 		/**
@@ -36,7 +33,6 @@ namespace GlitchyEngine.Renderer
 		 * @param slot The slot to which the rendertarget will be bound.
 		 * @remarks When @RenderTarget is null the backbuffer will be bound.
 		 */
-		//public abstract void BindRenderTargets(); // Todo: maybe do this automatically when a drawcall is issued
 		public extern void BindRenderTargets(); // Todo: maybe do this automatically when a drawcall is issued
 
 		/**
@@ -45,7 +41,6 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color to clear the render target with.
 		 * @remarks When @renderTarget is null the backbuffer will be cleared.
 		 */
-		//public abstract void ClearRenderTarget(RenderTarget renderTarget, ColorRGBA color);
 		public extern void ClearRenderTarget(RenderTarget renderTarget, ColorRGBA color);
 
 		//public abstract void SetViewport(Viewport viewport);
@@ -91,5 +86,27 @@ namespace GlitchyEngine.Renderer
 		{
 			return _currentRasterizerState;
 		}
+
+		[Inline]
+		public void SetViewport(Viewport viewport)
+		{
+			var viewport;
+			SetViewports(1, &viewport);
+		}
+		
+		[Inline]
+		public void SetViewports(Viewport[] viewports)
+		{
+			SetViewports((.)viewports.Count, viewports.CArray());
+		}
+
+		[Inline]
+		public void SetViewports<CSize>(Viewport[CSize] viewports) where CSize : const int
+		{
+			var viewports;
+			SetViewports(CSize, &viewports);
+		}
+
+		public extern void SetViewports(uint32 viewportsLength, Viewport* viewports);
 	}
 }

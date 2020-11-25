@@ -2,10 +2,6 @@ using System;
 using ImGui;
 using GlitchyEngine.Events;
 
-// Temporary
-using GlitchyEngine.Platform.DX11;
-//using GlitchyEngine.Platform.DX11.Renderer;
-
 namespace GlitchyEngine.ImGui
 {
 	public class ImGuiLayer : Layer

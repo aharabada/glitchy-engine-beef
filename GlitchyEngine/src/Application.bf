@@ -1,6 +1,5 @@
 using System;
 using GlitchyEngine.Events;
-using GlitchyEngine.Platform.DX11;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Math;
 using DirectX.D3D11;
@@ -97,7 +96,7 @@ namespace GlitchyEngine
 				Runtime.FatalError("Failed to compile Vertex Shader");
 			}
 
-			result = Dx11Cheater.Device.CreateVertexShader(vsCode.GetBufferPointer(), vsCode.GetBufferSize(), null, &_vertexShader);
+			result = Window.Context.[Friend]nativeDevice.CreateVertexShader(vsCode.GetBufferPointer(), vsCode.GetBufferSize(), null, &_vertexShader);
 
 			if(result.Failed)
 			{
@@ -112,7 +111,7 @@ namespace GlitchyEngine
 				InputElementDescription("COLOR",    0, .R8G8B8A8_UNorm,  0)
 			);
 
-			result = Dx11Cheater.Device.CreateInputLayout(&elementDescs, (.)elementDescs.Count, vsCode.GetBufferPointer(), vsCode.GetBufferSize(), &_inputLayout);
+			result = Window.Context.[Friend]nativeDevice.CreateInputLayout(&elementDescs, (.)elementDescs.Count, vsCode.GetBufferPointer(), vsCode.GetBufferSize(), &_inputLayout);
 
 			vsCode.Release();
 
@@ -137,7 +136,7 @@ namespace GlitchyEngine
 				Runtime.FatalError("Failed to compile Pixel Shader");
 			}
 
-			result = Dx11Cheater.Device.CreatePixelShader(psCode.GetBufferPointer(), psCode.GetBufferSize(), null, &_pixelShader);
+			result = Window.Context.[Friend]nativeDevice.CreatePixelShader(psCode.GetBufferPointer(), psCode.GetBufferSize(), null, &_pixelShader);
 
 			psCode.Release();
 
@@ -217,7 +216,7 @@ namespace GlitchyEngine
 				Window.Context.SetVertexBuffer(0, _vertexBuffer);
 				Window.Context.SetIndexBuffer(_indexBuffer);
 
-				var _immediateContext = Dx11Cheater.ImmediateContext;
+				var _immediateContext = Window.Context.[Friend]nativeContext;
 
 				_immediateContext.InputAssembler.SetInputLayout(_inputLayout);
 				_immediateContext.InputAssembler.SetPrimitiveTopology(.TriangleList);
@@ -226,7 +225,7 @@ namespace GlitchyEngine
 
 				Window.Context.SetRasterizerState(_rasterizerState);
 
-				_immediateContext.Rasterizer.SetViewports(1, &Dx11Cheater.BackbufferViewport);
+				Window.Context.SetViewport(Window.Context.SwapChain.BackbufferViewport);
 
 				_immediateContext.PixelShader.SetShader(_pixelShader, null, 0);
 

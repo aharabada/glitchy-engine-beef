@@ -1,6 +1,5 @@
 using DirectX.D3D11;
 using DirectX.DXGI.DXGI1_2;
-using GlitchyEngine.Platform.DX11;
 using System.Diagnostics;
 
 using internal GlitchyEngine.Renderer;
@@ -19,7 +18,6 @@ namespace GlitchyEngine.Renderer
 		internal IDXGISwapChain1* nativeSwapChain;
 
 		internal ID3D11RenderTargetView* nativeBackBufferTarget;
-		private DirectX.D3D11.Viewport _backBufferViewport;
 
 		public override uint32 Width
 		{
@@ -51,7 +49,6 @@ namespace GlitchyEngine.Renderer
 
 		public override GraphicsContext Context => _context;
 
-		//public this(Dx11Context context)
 		public this(GraphicsContext context)
 		{
 			_context = context;
@@ -129,8 +126,6 @@ namespace GlitchyEngine.Renderer
 				Debug.Assert(createResult.Succeeded, scope $"Failed to create swap chain. Message({(int32)createResult}):{createResult}");
 
 				factory.Release();
-				
-				Dx11Cheater.SwapChain = nativeSwapChain;
 			}
 
 			nativeSwapChain.GetBuffer<ID3D11Texture2D>(0, let backBuffer);
@@ -138,11 +133,7 @@ namespace GlitchyEngine.Renderer
 			RenderTargetViewDescription rtvDesc = .(backBuffer, .Texture2D, backBufferViewFormat);
 			_context.nativeDevice.CreateRenderTargetView(backBuffer, &rtvDesc, &nativeBackBufferTarget);
 
-			Dx11Cheater.BackbufferTarget = nativeBackBufferTarget;
-
-			_backBufferViewport = DirectX.D3D11.Viewport(0, 0, _width, _height, 0.0f, 1.0f);
-			
-			Dx11Cheater.BackbufferViewport = _backBufferViewport;
+			_backBufferViewport = GlitchyEngine.Renderer.Viewport(0, 0, _width, _height, 0.0f, 1.0f);
 
 			backBuffer.Release();
 		}
