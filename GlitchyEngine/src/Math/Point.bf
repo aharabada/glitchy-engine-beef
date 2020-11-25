@@ -2,6 +2,7 @@ using System;
 
 namespace GlitchyEngine.Math
 {
+	
 	/**
 	 * A 2D point represented by two 32bit integers.
 	 */
@@ -126,4 +127,5 @@ namespace GlitchyEngine.Math
 		//
 		public override void ToString(String strBuffer) => strBuffer.AppendF("X={0} Y={1}", X, Y);
 	}
+	
 }

@@ -4,6 +4,7 @@ using GlitchyEngine.Events;
 using System.Diagnostics;
 using GlitchLog;
 using GlitchyEngine.ImGui;
+using ImGui;
 
 namespace Sandbox
 {
@@ -29,9 +30,9 @@ namespace Sandbox
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
-			ImGui.ImGui.Begin("Test");
+			ImGui.Begin("Test");
 
-			ImGui.ImGui.End();
+			ImGui.End();
 
 			return false;
 		}

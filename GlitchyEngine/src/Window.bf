@@ -1,6 +1,7 @@
 using System;
 using GlitchyEngine.Events;
 using GlitchyEngine.Math;
+using GlitchyEngine.Renderer;
 
 namespace GlitchyEngine
 {
@@ -86,6 +87,11 @@ namespace GlitchyEngine
 		 * Gets or Sets whether or not the application uses VSync
 		 */
 		public extern bool IsVSync {get; set;}
+		
+		/**
+		 * Gets the windows graphics context.
+		 */
+		public extern GraphicsContext Context {get;}
 
 		/**
 		 * Gets a pointer to the platform specific window representation.

@@ -4,6 +4,7 @@ using GlitchyEngine.Events;
 
 // Temporary
 using GlitchyEngine.Platform.DX11;
+//using GlitchyEngine.Platform.DX11.Renderer;
 
 namespace GlitchyEngine.ImGui
 {
@@ -40,8 +41,12 @@ namespace GlitchyEngine.ImGui
 #if GE_WINDOWS
 			// Todo: temporary, needs to be platform independent
 			ImGuiImplWin32.Init((Windows.HWnd)(int)Application.Get().Window.NativeWindow);
-			ImGuiImplDX11.Init(Platform.DX11.DirectX.Device, Platform.DX11.DirectX.ImmediateContext);
+
+			var context = Application.Get().Window.Context;
+
+			ImGuiImplDX11.Init(context.[Friend]nativeDevice, context.[Friend]nativeContext);
 #endif
+			
 		}
 
 		public override void OnDetach()
@@ -174,8 +179,10 @@ namespace GlitchyEngine.ImGui
 
 		public void Begin()
 		{
-			var v = DirectX.ImmediateContext;
-			v.OutputMerger.SetRenderTargets(1, &DirectX.BackBufferTarget, null);
+			// Todo:
+			//var v = DirectX.ImmediateContext;
+			//v.OutputMerger.SetRenderTargets(1, &DirectX.BackBufferTarget, null);
+			Application.Get().Window.Context.SetRenderTarget(null);
 			
 			ImGuiImplDX11.NewFrame();
 			ImGuiImplWin32.NewFrame();

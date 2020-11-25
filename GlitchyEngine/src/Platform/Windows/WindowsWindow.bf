@@ -9,6 +9,8 @@ using GlitchyEngine.Events;
 using System.Diagnostics;
 using GlitchyEngine.Platform.DX11;
 using GlitchyEngine.Math;
+//using GlitchyEngine.Platform.DX11.Renderer;
+using GlitchyEngine.Renderer;
 using static System.Windows;
 
 namespace GlitchyEngine
@@ -30,6 +32,10 @@ namespace GlitchyEngine
 		private String _title ~ delete _;
 
 		private bool _isVSync = true;
+
+		private GraphicsContext _graphicsContext ~ delete _;
+
+		public override GraphicsContext Context => _graphicsContext;
 
 		public override int32 MinWidth
 		{
@@ -191,16 +197,19 @@ namespace GlitchyEngine
 
 			_windowHandle = CreateWindowExW(.None, _windowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
 				CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
+			
+			//_graphicsContext = new Dx11Context(_windowHandle);
+			_graphicsContext = new GraphicsContext(_windowHandle);
+			_graphicsContext.Init();
 
 			void* myPtr = Internal.UnsafeCastToPtr(this);
-
 			SetWindowLongPtrW(_windowHandle, GWL_USERDATA, (int)myPtr);
 
 			LoadWindowRectangle();
 
 			Log.EngineLogger.Trace("Created window \"{}\" ({}, {})", Title, Width, Height);
 
-			DirectX.Init(_windowHandle, (.)Width, (.)Height);
+			//DirectX.Init(_windowHandle, (.)Width, (.)Height);
 		}
 
 		private bool _isResizingOrMoving;
@@ -249,7 +258,11 @@ namespace GlitchyEngine
 					{
 						SplitHighAndLowOrder!(lParam, out window._clientRect.Width, out window._clientRect.Height);
 
-						DirectX.UpdateSwapchain((.)window._clientRect.Width, (.)window._clientRect.Height);
+						window._graphicsContext.SwapChain.Width = (.)window._clientRect.Width;
+						window._graphicsContext.SwapChain.Height = (.)window._clientRect.Height;
+
+						window._graphicsContext.SwapChain.ApplyChanges();
+
 						WindowResizeEvent event = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, window._isResizingOrMoving);
 						window._eventCallback(event);
 					}
