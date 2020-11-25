@@ -77,7 +77,8 @@ namespace GlitchyEngine.Renderer
 
 			FeatureLevel[] levels = scope .(.Level_11_0);
 
-			var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &nativeDevice, let deviceLevel, &nativeContext);
+			FeatureLevel deviceLevel = ?;
+			var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &nativeDevice, &deviceLevel, &nativeContext);
 			Debug.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message(0x{(int32)deviceResult}): {deviceResult}");
 
 #if DEBUG	
