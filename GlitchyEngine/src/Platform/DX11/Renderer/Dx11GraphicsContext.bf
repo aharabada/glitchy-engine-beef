@@ -155,5 +155,10 @@ namespace GlitchyEngine.Renderer
 		{
 			nativeContext.InputAssembler.SetIndexBuffer(buffer.nativeBuffer, indexFormat == .Index32Bit ? .R32_UInt : .R16_UInt, byteOffset);
 		}
+
+		protected override void SetRasterizerStateImpl()
+		{
+			nativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
+		}
 	}
 }

@@ -7,6 +7,8 @@ namespace GlitchyEngine.Renderer
 	//public abstract class GraphicsContext
 	public class GraphicsContext
 	{
+		private RasterizerState _currentRasterizerState;
+
 		//public abstract SwapChain SwapChain {get;}
 		public extern SwapChain SwapChain {get;}
 		
@@ -76,5 +78,18 @@ namespace GlitchyEngine.Renderer
 		}
 
 		public extern void SetIndexBuffer(Buffer buffer, IndexFormat indexFormat = .Index16Bit, uint32 byteOffset = 0);
+
+		public void SetRasterizerState(RasterizerState rasterizerState)
+		{
+			_currentRasterizerState = rasterizerState;
+			SetRasterizerStateImpl();
+		}
+
+		protected extern void SetRasterizerStateImpl();
+
+		public RasterizerState GetRasterizerState()
+		{
+			return _currentRasterizerState;
+		}
 	}
 }

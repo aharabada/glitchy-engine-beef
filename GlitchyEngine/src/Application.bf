@@ -72,11 +72,11 @@ namespace GlitchyEngine
 		VertexBuffer<VertexColor> _vertexBuffer ~ delete _;
 		IndexBuffer _indexBuffer ~ delete _;
 
+		RasterizerState _rasterizerState ~ delete _;
+
 		ID3D11VertexShader* _vertexShader ~ _?.Release();
 		ID3D11PixelShader* _pixelShader ~ _?.Release();
 		ID3D11InputLayout* _inputLayout ~ _?.Release();
-
-		ID3D11RasterizerState* _rasterizerState ~ _?.Release();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -179,17 +179,8 @@ namespace GlitchyEngine
 			}
 
 			// Create rasterizer state
-			RasterizerStateDescription rsDesc = .();
-			rsDesc.CullMode = .Back;
-			rsDesc.FillMode = .Solid;
-			rsDesc.FrontCounterClockwise = true;
-
-			result = Dx11Cheater.Device.CreateRasterizerState(ref rsDesc, &_rasterizerState);
-			if(result.Failed)
-			{
-				Debug.Write("ERROR: Failed to create Rasterizer State: {}", result);
-				Runtime.FatalError("Failed to create Rasterizer State");
-			}
+			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
+			_rasterizerState = new RasterizerState(Window.Context, rsDesc);
 		}
 
 		public void OnEvent(Event e)
@@ -233,8 +224,7 @@ namespace GlitchyEngine
 
 				_immediateContext.VertexShader.SetShader(_vertexShader, null, 0);
 
-				_immediateContext.Rasterizer.SetState(_rasterizerState);
-
+				Window.Context.SetRasterizerState(_rasterizerState);
 
 				_immediateContext.Rasterizer.SetViewports(1, &Dx11Cheater.BackbufferViewport);
 
