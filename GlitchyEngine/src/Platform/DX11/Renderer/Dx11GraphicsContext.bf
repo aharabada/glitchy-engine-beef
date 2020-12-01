@@ -160,5 +160,10 @@ namespace GlitchyEngine.Renderer
 		{
 			nativeContext.InputAssembler.SetInputLayout(vertexLayout.nativeLayout);
 		}
+
+		public override void SetPrimitiveTopology(GlitchyEngine.Renderer.PrimitiveTopology primitiveTopology)
+		{
+			nativeContext.InputAssembler.SetPrimitiveTopology((DirectX.Common.PrimitiveTopology)primitiveTopology);
+		}
 	}
 }

@@ -217,9 +217,9 @@ namespace GlitchyEngine
 
 				_window.Context.SetVertexLayout(_vertexLayout);
 
-				var _immediateContext = _window.Context.[Friend]nativeContext;
+				_window.Context.SetPrimitiveTopology(.TriangleList);
 
-				_immediateContext.InputAssembler.SetPrimitiveTopology(.TriangleList);
+				var _immediateContext = _window.Context.[Friend]nativeContext;
 
 				_immediateContext.VertexShader.SetShader(_vertexShader, null, 0);
 
