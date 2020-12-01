@@ -155,5 +155,10 @@ namespace GlitchyEngine.Renderer
 		{
 			nativeContext.Rasterizer.SetViewports(viewportsCount, (.)viewports);
 		}
+
+		public override void SetVertexLayout(VertexLayout vertexLayout)
+		{
+			nativeContext.InputAssembler.SetInputLayout(vertexLayout.nativeLayout);
+		}
 	}
 }

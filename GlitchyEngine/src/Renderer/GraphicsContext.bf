@@ -108,5 +108,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		public extern void SetViewports(uint32 viewportsLength, Viewport* viewports);
+
+		public extern void SetVertexLayout(VertexLayout vertexLayout);
 	}
 }
