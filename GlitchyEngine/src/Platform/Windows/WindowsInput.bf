@@ -171,7 +171,7 @@ namespace GlitchyEngine
 			if(DirectX.Windows.Winuser.GetKeyboardState((uint8*)&CurrentState.KeyStates) == 0)
 			{
 				DirectX.Common.HResult errorCode = (.)GetLastError();
-				Log.EngineLogger.Error("Failed to get keyboard state. Message({}){}:", (int32)errorCode, errorCode);
+				Log.EngineLogger.Error($"Failed to get keyboard state. Message({(int32)errorCode}){errorCode}:");
 			}
 
 			// Get the current mouse position
@@ -181,13 +181,13 @@ namespace GlitchyEngine
 				if (ScreenToClient(windowHandle, ref CurrentState.CursorPosition) == 0)
 				{
 					DirectX.Common.HResult errorCode = (.)GetLastError();
-					Log.EngineLogger.Error("Failed to convert coordinates from screen to client space. Message({}){}:", (int32)errorCode, errorCode);
+					Log.EngineLogger.Error($"Failed to convert coordinates from screen to client space. Message({(int32)errorCode}){errorCode}:");
 				}
 			}
 			else
 			{
 				DirectX.Common.HResult errorCode = (.)GetLastError();
-				Log.EngineLogger.Error("Failed to get mouse position. Message({}){}:", (int32)errorCode, errorCode);
+				Log.EngineLogger.Error($"Failed to get mouse position. Message({(int32)errorCode}){errorCode}:");
 			}
 
 			// Calculate cursor movement

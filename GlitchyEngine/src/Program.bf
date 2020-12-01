@@ -19,7 +19,7 @@ namespace GlitchyEngine
 
 			initWatch.Stop();
 
-			Log.EngineLogger.Info("Application initialized ({}ms).", initWatch.ElapsedMilliseconds);
+			Log.EngineLogger.Info($"Application initialized ({initWatch.ElapsedMilliseconds}ms).");
 			Log.EngineLogger.Info("Running App...");
 
 			app.Run();

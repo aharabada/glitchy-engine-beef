@@ -88,7 +88,7 @@ namespace GlitchyEngine.Renderer
 			}
 #endif
 
-			Log.EngineLogger.Trace("D3D11 Device and Context created (Feature level: {})", deviceLevel);
+			Log.EngineLogger.Trace($"D3D11 Device and Context created (Feature level: {deviceLevel})");
 		}
 
 		

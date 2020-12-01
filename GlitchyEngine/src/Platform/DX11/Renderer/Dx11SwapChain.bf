@@ -89,7 +89,7 @@ namespace GlitchyEngine.Renderer
 		 */
 		public void UpdateSwapchain()
 		{
-			Log.EngineLogger.Trace("Updating swap chain ({}, {})", _width, _height);
+			Log.EngineLogger.Trace($"Updating swap chain ({_width}, {_height})");
 
 			uint32 backBufferCount = 2;
 			Format backBufferFormat = .R8G8B8A8_UNorm;
@@ -100,7 +100,10 @@ namespace GlitchyEngine.Renderer
 				nativeBackBufferTarget.Release();
 
 				var resizeResult = nativeSwapChain.ResizeBuffers(backBufferCount, _width, _height, backBufferFormat, .None);
-				Debug.Assert(resizeResult.Succeeded, scope $"Failed to resize swap chain. Message({(int32)resizeResult}):{resizeResult}");
+				if(resizeResult.Failed)
+				{
+					Log.EngineLogger.Error($"Failed to resize swap chain. Message({(int)resizeResult}):{resizeResult}");
+				}
 			}
 			else
 			{
@@ -123,7 +126,10 @@ namespace GlitchyEngine.Renderer
 				fsSwapChainDesc.Windowed = true;
 
 				var createResult = factory.CreateSwapChainForHwnd((.)_context.nativeDevice, _context.nativeWindowHandle, ref swDesc, &fsSwapChainDesc, null, &nativeSwapChain);
-				Debug.Assert(createResult.Succeeded, scope $"Failed to create swap chain. Message({(int32)createResult}):{createResult}");
+				if(createResult.Failed)
+				{
+					Log.EngineLogger.Error($"Failed to create swap chain. Message({(int)createResult}):{createResult}");
+				}
 
 				factory.Release();
 			}

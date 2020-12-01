@@ -56,7 +56,7 @@ namespace GlitchyEngine.Renderer
 			var result = context.nativeDevice.CreateRasterizerState(ref nativeDescription, &nativeRasterizerState);
 			if(result.Failed)
 			{
-				Log.EngineLogger.Error("Failed to create rasterizer state. Message({}): {}", (int)result, result);
+				Log.EngineLogger.Error($"Failed to create rasterizer state. Message({(int)result}): {result}");
 			}
 		}
 	}

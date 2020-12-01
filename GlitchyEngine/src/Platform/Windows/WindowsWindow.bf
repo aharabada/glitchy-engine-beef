@@ -169,7 +169,7 @@ namespace GlitchyEngine
 
 		private void Init(WindowDescription desc)
 		{
-			Log.EngineLogger.Trace("Creating window \"{}\" ({}, {})...", desc.Title, desc.Width, desc.Height);
+			Log.EngineLogger.Trace($"Creating window \"{desc.Title}\" ({desc.Width}, {desc.Height})...");
 
 			_instanceHandle = (.)GetModuleHandleW(null);
 
@@ -189,7 +189,8 @@ namespace GlitchyEngine
 
 			if (RegisterClassExW(ref _windowClass) == 0)
 			{
-				Log.EngineLogger.Error("Failed to register window class.", (HResult)GetLastError());
+				uint32 lastError = GetLastError();
+				Log.EngineLogger.Error($"Failed to register window class. Message({(int)lastError}): {(HResult)lastError}");
 				Runtime.FatalError("Failed to register window class");
 			}
 
@@ -204,7 +205,7 @@ namespace GlitchyEngine
 
 			LoadWindowRectangle();
 
-			Log.EngineLogger.Trace("Created window \"{}\" ({}, {})", Title, Width, Height);
+			Log.EngineLogger.Trace($"Created window \"{Title}\" ({Width}, {Height})");
 		}
 
 		private bool _isResizingOrMoving;

@@ -86,7 +86,7 @@ namespace GlitchyEngine.Renderer
 			var result = _context.nativeDevice.CreateBuffer(ref nativeDescription, &srData, &nativeBuffer);
 			if(result.Failed)
 			{
-				Log.EngineLogger.Error("Failed to create buffer. Message({}):{}", (int)result, result);
+				Log.EngineLogger.Error($"Failed to create buffer. Message({(int)result}):{result}");
 				return .Err;
 			}
 
@@ -120,7 +120,7 @@ namespace GlitchyEngine.Renderer
 				Log.EngineLogger.Error("Can't set the data of an immutable resource.");
 				return .Err;
 			default:
-				Log.EngineLogger.Error("Unknown resource usage: engine={}, native={}", _description.Usage, nativeDescription.Usage);
+				Log.EngineLogger.Error($"Unknown resource usage: engine={_description.Usage}, native={nativeDescription.Usage}");
 				return .Err;
 			}
 
