@@ -73,9 +73,10 @@ namespace GlitchyEngine
 
 		RasterizerState _rasterizerState ~ delete _;
 
+		VertexLayout _vertexLayout ~ delete _;
+
 		ID3D11VertexShader* _vertexShader ~ _?.Release();
 		ID3D11PixelShader* _pixelShader ~ _?.Release();
-		ID3D11InputLayout* _inputLayout ~ _?.Release();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -106,12 +107,10 @@ namespace GlitchyEngine
 
 			// Create Input Layout
 
-			InputElementDescription[2] elementDescs = .(
-				InputElementDescription("POSITION", 0, .R32G32B32_Float, 0),
-				InputElementDescription("COLOR",    0, .R8G8B8A8_UNorm,  0)
-			);
-
-			result = Window.Context.[Friend]nativeDevice.CreateInputLayout(&elementDescs, (.)elementDescs.Count, vsCode.GetBufferPointer(), vsCode.GetBufferSize(), &_inputLayout);
+			_vertexLayout = new VertexLayout(_window.Context, new .(
+				VertexElement("POSITION", 0, .R32G32B32_Float, 0),
+				VertexElement("COLOR",    0, .R8G8B8A8_UNorm,  0)
+				), vsCode);
 
 			vsCode.Release();
 
@@ -213,27 +212,28 @@ namespace GlitchyEngine
 				_window.Context.SetRenderTarget(null);
 				_window.Context.BindRenderTargets();
 				
-				Window.Context.SetVertexBuffer(0, _vertexBuffer);
-				Window.Context.SetIndexBuffer(_indexBuffer);
+				_window.Context.SetVertexBuffer(0, _vertexBuffer);
+				_window.Context.SetIndexBuffer(_indexBuffer);
 
-				var _immediateContext = Window.Context.[Friend]nativeContext;
+				_window.Context.SetVertexLayout(_vertexLayout);
 
-				_immediateContext.InputAssembler.SetInputLayout(_inputLayout);
+				var _immediateContext = _window.Context.[Friend]nativeContext;
+
 				_immediateContext.InputAssembler.SetPrimitiveTopology(.TriangleList);
 
 				_immediateContext.VertexShader.SetShader(_vertexShader, null, 0);
 
-				Window.Context.SetRasterizerState(_rasterizerState);
+				_window.Context.SetRasterizerState(_rasterizerState);
 
-				Window.Context.SetViewport(Window.Context.SwapChain.BackbufferViewport);
+				_window.Context.SetViewport(Window.Context.SwapChain.BackbufferViewport);
 
 				_immediateContext.PixelShader.SetShader(_pixelShader, null, 0);
 
-				Window.Context.DrawIndexed(3 * 6);
+				_window.Context.DrawIndexed(3 * 6);
 
 				_imGuiLayer.ImGuiRender();
 
-				Window.Context.SwapChain.Present();
+				_window.Context.SwapChain.Present();
 			}
 		}
 
