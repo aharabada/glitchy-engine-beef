@@ -75,8 +75,9 @@ namespace GlitchyEngine
 
 		VertexLayout _vertexLayout ~ delete _;
 
+		PixelShader _pixelShader ~ delete _;
+
 		ID3D11VertexShader* _vertexShader ~ _?.Release();
-		ID3D11PixelShader* _pixelShader ~ _?.Release();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -124,27 +125,8 @@ namespace GlitchyEngine
 			// Load pixel shader
 			//
 
-			ID3DBlob* psCode = null;
-
-			result = D3DCompiler.D3DCompileFromFile("content\\basicShader.hlsl".ToScopedNativeWChar!(), null, .StandardInclude, "PS", "ps_5_0", .Debug, .None, &psCode, &errorBlob);
-
-			if(result.Failed || errorBlob != null)
-			{
-				Debug.Write("ERROR: Failed to compile Pixel Shader: {}", result);
-				//ErrorPrinter.PrintErrorBlob(errorBlob);
-				Runtime.FatalError("Failed to compile Pixel Shader");
-			}
-
-			result = Window.Context.[Friend]nativeDevice.CreatePixelShader(psCode.GetBufferPointer(), psCode.GetBufferSize(), null, &_pixelShader);
-
-			psCode.Release();
-
-			if(result.Failed)
-			{
-				Debug.Write("ERROR: Failed to create Pixel Shader: {}", result);
-				Runtime.FatalError("Failed to create Pixel Shader");
-			}
-
+			_pixelShader = Shader.FromFile!<PixelShader>(_window.Context, "content\\basicShader.hlsl", "PS");
+			
 			float pO3 = Math.PI_f / 3.0f;
 			VertexColor[?] vertices = .(
 				VertexColor(.Zero, Color(255,255,255)),
@@ -204,32 +186,35 @@ namespace GlitchyEngine
 
 				_window.Context.ClearRenderTarget(null, .(0.2f, 0.2f, 0.2f));
 
+				// Draw test geometry
+				{
+					_window.Context.SetRenderTarget(null);
+					_window.Context.BindRenderTargets();
+
+					_window.Context.SetVertexBuffer(0, _vertexBuffer);
+					_window.Context.SetIndexBuffer(_indexBuffer);
+
+					_window.Context.SetVertexLayout(_vertexLayout);
+
+					_window.Context.SetPrimitiveTopology(.TriangleList);
+
+					var _immediateContext = _window.Context.[Friend]nativeContext;
+
+					_immediateContext.VertexShader.SetShader(_vertexShader, null, 0);
+
+					_window.Context.SetRasterizerState(_rasterizerState);
+
+					_window.Context.SetViewport(Window.Context.SwapChain.BackbufferViewport);
+
+					_window.Context.SetPixelShader(_pixelShader);
+
+					_window.Context.DrawIndexed(3 * 6);
+				}
+
 				for(Layer layer in _layerStack)
 					layer.Update(_gameTime);
 				
 				_window.Update();
-				
-				_window.Context.SetRenderTarget(null);
-				_window.Context.BindRenderTargets();
-				
-				_window.Context.SetVertexBuffer(0, _vertexBuffer);
-				_window.Context.SetIndexBuffer(_indexBuffer);
-
-				_window.Context.SetVertexLayout(_vertexLayout);
-
-				_window.Context.SetPrimitiveTopology(.TriangleList);
-
-				var _immediateContext = _window.Context.[Friend]nativeContext;
-
-				_immediateContext.VertexShader.SetShader(_vertexShader, null, 0);
-
-				_window.Context.SetRasterizerState(_rasterizerState);
-
-				_window.Context.SetViewport(Window.Context.SwapChain.BackbufferViewport);
-
-				_immediateContext.PixelShader.SetShader(_pixelShader, null, 0);
-
-				_window.Context.DrawIndexed(3 * 6);
 
 				_imGuiLayer.ImGuiRender();
 

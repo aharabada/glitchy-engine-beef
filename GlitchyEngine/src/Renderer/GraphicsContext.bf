@@ -112,5 +112,7 @@ namespace GlitchyEngine.Renderer
 		public extern void SetVertexLayout(VertexLayout vertexLayout);
 
 		public extern void SetPrimitiveTopology(PrimitiveTopology primitiveTopology);
+
+		public extern void SetPixelShader(PixelShader pixelShader);
 	}
 }
