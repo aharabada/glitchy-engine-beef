@@ -179,4 +179,35 @@ namespace GlitchyEngine.Renderer
 		 */
 		protected extern Result<void> PlatformSetData(void* data, uint32 byteLength, uint32 dstByteOffset, MapType mapType);
 	}
+	
+	/**
+	 * A buffer containing an array of a struct on the GPU.
+	 * @param T The type of the struct represented by this buffer.
+	 */
+	public class Buffer<T> : Buffer where T : struct
+	{
+		public T Data;
+
+		/**
+		 * Creates a new instance of a Buffer<T>
+		 * @param context The graphics context.
+		 * @param description Describes the Buffer. Note: description.Size is ignored, as it will always be sizeof(T).
+		 */
+		public this(GraphicsContext context, BufferDescription description) : base(context)
+		{
+			_description = description;
+			_description.Size = (uint32)sizeof(T);
+		}
+
+		// Todo: perhaps add a constructor that takes all parameters from description except Size
+
+		/**
+		 * Uploads the date from @see Data to the GPU.
+		 */
+		[Inline]
+		public void Update()
+		{
+			PlatformSetData(&Data, (uint32)sizeof(T), 0, .WriteDiscard);
+		}
+	}
 }

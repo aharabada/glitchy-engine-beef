@@ -70,6 +70,7 @@ namespace GlitchyEngine
 
 		VertexBuffer<VertexColor> _vertexBuffer ~ delete _;
 		IndexBuffer _indexBuffer ~ delete _;
+		Buffer<ColorRGBA> _cBuffer ~ delete _;
 
 		RasterizerState _rasterizerState ~ delete _;
 
@@ -94,7 +95,6 @@ namespace GlitchyEngine
 			if(result.Failed || errorBlob != null)
 			{
 				Debug.Write("ERROR: Failed to compile Vertex Shader: {}", result);
-				//ErrorPrinter.PrintErrorBlob(errorBlob);
 				Runtime.FatalError("Failed to compile Vertex Shader");
 			}
 
@@ -126,7 +126,12 @@ namespace GlitchyEngine
 			//
 
 			_pixelShader = Shader.FromFile!<PixelShader>(_window.Context, "content\\basicShader.hlsl", "PS");
-			
+			_pixelShader.[Friend]_buffers = new .[1];
+
+			_cBuffer = new Buffer<ColorRGBA>(_window.Context, .(0, .Constant, .Immutable, .None));
+			_cBuffer.Data = .White;
+			_cBuffer.Update();
+
 			float pO3 = Math.PI_f / 3.0f;
 			VertexColor[?] vertices = .(
 				VertexColor(.Zero, Color(255,255,255)),
@@ -206,6 +211,7 @@ namespace GlitchyEngine
 
 					_window.Context.SetViewport(Window.Context.SwapChain.BackbufferViewport);
 
+					_immediateContext.PixelShader.SetConstantBuffers(0, 1, &_cBuffer.[Friend]nativeBuffer);
 					_window.Context.SetPixelShader(_pixelShader);
 
 					_window.Context.DrawIndexed(3 * 6);

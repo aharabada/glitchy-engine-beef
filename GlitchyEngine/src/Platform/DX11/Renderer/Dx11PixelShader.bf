@@ -56,7 +56,7 @@ namespace GlitchyEngine.Renderer
 				Log.EngineLogger.Error($"Failed to create pixel shader: Message ({(int)result}): {result}");
 			}
 
-			Reflect(shaderBlob);
+			//Reflect(shaderBlob);
 			
 			shaderBlob?.Release();
 		}
@@ -78,6 +78,7 @@ namespace GlitchyEngine.Renderer
 				var bufferReflection = reflection.GetConstantBufferByIndex(i);
 				bufferReflection.GetDescription(let bufferDesc);
 			}
+			reflection.Release();
 		}
 	}
 }

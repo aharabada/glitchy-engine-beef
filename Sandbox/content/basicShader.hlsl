@@ -1,3 +1,8 @@
+cbuffer Constants
+{
+    float4 BaseColor;
+}
+
 struct VS_IN
 {
     float3 Position : POSITION;
@@ -21,5 +26,5 @@ PS_IN VS(VS_IN input)
 
 float4 PS(PS_IN input) : SV_TARGET
 {
-    return input.Color;
+    return input.Color * BaseColor;
 }
