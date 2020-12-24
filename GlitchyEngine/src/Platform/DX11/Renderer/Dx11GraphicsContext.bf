@@ -166,6 +166,14 @@ namespace GlitchyEngine.Renderer
 			nativeContext.InputAssembler.SetPrimitiveTopology((DirectX.Common.PrimitiveTopology)primitiveTopology);
 		}
 
+		public override void SetVertexShader(VertexShader vertexShader)
+		{
+			//Todo: nativeContext.VertexShader.SetSamplers();
+			//Todo: nativeContext.VertexShader.SetConstantBuffers();
+			//Todo: nativeContext.VertexShader.SetShaderResources();
+			nativeContext.VertexShader.SetShader(vertexShader.nativeShader);
+		}
+
 		public override void SetPixelShader(PixelShader pixelShader)
 		{
 			//Todo: nativeContext.PixelShader.SetSamplers();

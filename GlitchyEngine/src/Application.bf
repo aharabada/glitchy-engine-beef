@@ -76,9 +76,10 @@ namespace GlitchyEngine
 
 		VertexLayout _vertexLayout ~ delete _;
 
+		VertexShader _vertexShader ~ delete _;
 		PixelShader _pixelShader ~ delete _;
 
-		ID3D11VertexShader* _vertexShader ~ _?.Release();
+		//ID3D11VertexShader* _vertexShader ~ _?.Release();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -87,39 +88,14 @@ namespace GlitchyEngine
 
 		private void MakeTestTriangle()
 		{
-			// Compile vertex shader
-			ID3DBlob* vsCode = null;
-			ID3DBlob* errorBlob = null;
-			var result = D3DCompiler.D3DCompileFromFile("content\\basicShader.hlsl".ToScopedNativeWChar!(), null, .StandardInclude, "VS", "vs_5_0", .Debug, .None, &vsCode, &errorBlob);
-
-			if(result.Failed || errorBlob != null)
-			{
-				Debug.Write("ERROR: Failed to compile Vertex Shader: {}", result);
-				Runtime.FatalError("Failed to compile Vertex Shader");
-			}
-
-			result = Window.Context.[Friend]nativeDevice.CreateVertexShader(vsCode.GetBufferPointer(), vsCode.GetBufferSize(), null, &_vertexShader);
-
-			if(result.Failed)
-			{
-				Debug.Write("ERROR: Failed to create Vertex Shader: {}", result);
-				Runtime.FatalError("Failed to create Vertex Shader");
-			}
-
+			_vertexShader = Shader.FromFile!<VertexShader>(_window.Context, "content\\basicShader.hlsl", "VS");
+			
 			// Create Input Layout
 
 			_vertexLayout = new VertexLayout(_window.Context, new .(
 				VertexElement("POSITION", 0, .R32G32B32_Float, 0),
 				VertexElement("COLOR",    0, .R8G8B8A8_UNorm,  0)
-				), vsCode);
-
-			vsCode.Release();
-
-			if(result.Failed)
-			{
-				Debug.Write("ERROR: Failed to create input layout: {}", result);
-				Runtime.FatalError("Failed to create input layout");
-			}
+				), _vertexShader.[Friend]nativeCode);
 
 			//
 			// Load pixel shader
@@ -156,12 +132,6 @@ namespace GlitchyEngine
 
 			_indexBuffer = new IndexBuffer(Window.Context, (.)indices.Count, .Immutable);
 			_indexBuffer.SetData(indices);
-
-			if(result.Failed)
-			{
-				Debug.Write("ERROR: Failed to create Vertex Buffer: {}", result);
-				Runtime.FatalError();
-			}
 
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
@@ -205,7 +175,7 @@ namespace GlitchyEngine
 
 					var _immediateContext = _window.Context.[Friend]nativeContext;
 
-					_immediateContext.VertexShader.SetShader(_vertexShader, null, 0);
+					_window.Context.SetVertexShader(_vertexShader);
 
 					_window.Context.SetRasterizerState(_rasterizerState);
 
