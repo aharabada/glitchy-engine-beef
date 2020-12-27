@@ -43,20 +43,4 @@ namespace GlitchyEngine.Renderer
 
 		public abstract void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null);
 	}
-
-	public class PixelShader : Shader
-	{
-		public this(GraphicsContext context, String source, String entryPoint, ShaderDefine[] macros = null)
-			 : base(context, source, entryPoint, macros) { }
-
-		public override extern void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null);
-	}
-
-	public class VertexShader : Shader
-	{
-		public this(GraphicsContext context, String source, String entryPoint, ShaderDefine[] macros = null)
-			 : base(context, source, entryPoint, macros) { }
-
-		public override extern void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null);
-	}
 }

@@ -79,8 +79,6 @@ namespace GlitchyEngine
 		VertexShader _vertexShader ~ delete _;
 		PixelShader _pixelShader ~ delete _;
 
-		//ID3D11VertexShader* _vertexShader ~ _?.Release();
-
 		private Vector3 CircleCoord(float angle)
 		{
 			return .(Math.Cos(angle), Math.Sin(angle), 0);
