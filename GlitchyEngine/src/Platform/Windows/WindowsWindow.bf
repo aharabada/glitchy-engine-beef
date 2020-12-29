@@ -424,10 +424,10 @@ namespace GlitchyEngine
 				// Window closing
 			case WM_CLOSE:
 				{
-					PostQuitMessage(0);
-
 					var event = scope WindowCloseEvent();
 					window._eventCallback(event);
+
+					return 0;
 				}
 			}
 
