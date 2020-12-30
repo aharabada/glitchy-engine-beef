@@ -158,12 +158,21 @@ namespace GlitchyEngine
 
 			Init(desc);
 		}
-		
+
+		[LinkName(.C)]
+		static extern Windows.IntBool DestroyWindow(Windows.HWnd hWnd);
+
 		[LinkName("UnregisterClassW")]
 		static extern Windows.IntBool UnregisterClass(char16* className, Windows.HInstance hInstance);
 
 		public ~this()
 		{
+			if(!DestroyWindow(_windowHandle))
+			{
+				HResult res = (.)GetLastError();
+				Log.EngineLogger.Error($"Failed to destroy window: Message ({(int)res}): {res}");
+			}
+
 			UnregisterClass(WindowClassName.ToScopedNativeWChar!(), _instanceHandle);
 		}
 
