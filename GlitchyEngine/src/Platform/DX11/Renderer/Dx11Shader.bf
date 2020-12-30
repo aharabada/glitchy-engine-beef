@@ -67,7 +67,25 @@ namespace GlitchyEngine.Renderer
 				{
 					GlitchyEngine.Renderer.BufferDescription cBufferDesc = .(bufferDesc.Size, .Constant, .Dynamic, .Write);
 
-					_buffers.Add(bindDesc.BindPoint, StringView(bufferDesc.Name), new Buffer(_context, cBufferDesc), true);
+					let buffer = new Buffer(_context, cBufferDesc);
+
+					_buffers.Add(bindDesc.BindPoint, StringView(bufferDesc.Name), buffer, true);
+
+					// Buffer for default values
+					uint8* rawData = new:ScopedAlloc! uint8[bufferDesc.Size]*;
+
+					// Get default values
+					for(uint32 variable < bufferDesc.Variables)
+					{
+						let variableReflection = bufferReflection.GetVariableByIndex(variable);
+
+						variableReflection.GetDescription(let varDesc);
+
+						if(varDesc.DefaultValue != null)
+							Internal.MemCpy(rawData + varDesc.StartOffset, varDesc.DefaultValue, varDesc.Size);
+					}
+
+					buffer.SetData(Span<uint8>(rawData, bufferDesc.Size));
 				}
 			}
 			reflection.Release();
