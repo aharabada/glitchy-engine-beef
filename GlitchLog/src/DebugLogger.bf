@@ -23,6 +23,8 @@ namespace GlitchLog
 		public abstract void Error(StringView format, params Object[] args);
 		public abstract void Critical(StringView format, params Object[] args);
 
+		public abstract void Assert(bool condition, String error = Compiler.CallerExpression[0], String filePath = Compiler.CallerFilePath, int line = Compiler.CallerLineNum);
+
 		public abstract void Log(LogLevel level, StringView format, params Object[] args);
 	}
 
@@ -98,6 +100,16 @@ namespace GlitchLog
 		public override void Log(LogLevel level, StringView format, params Object[] args)
 		{
 			InternalLog(level, format, params args);
+		}
+
+		public override void Assert(bool condition, String error = Compiler.CallerExpression[0], String filePath = Compiler.CallerFilePath, int line = Compiler.CallerLineNum)
+		{
+			if (!condition)
+			{
+				String failStr = scope .()..AppendF("Assert failed: {} at line {} in {}", error, line, filePath);
+				InternalLog(.Critical, failStr);
+				Internal.FatalError(failStr, 1);
+			}
 		}
 
 		private void InternalLog(LogLevel level, StringView format, params Object[] args)
