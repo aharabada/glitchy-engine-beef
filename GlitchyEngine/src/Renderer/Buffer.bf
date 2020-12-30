@@ -145,6 +145,17 @@ namespace GlitchyEngine.Renderer
 		}
 		
 		/**
+		 * @param data The struct containing the data that will be copied into the buffer.
+		 * @param destinationByteOffset The offset in bytes form the start of the destination buffer.
+		 * @param mapType Only relevant for dynamic buffers...
+		*/
+		public Result<void> SetData<T>(T data, uint32 destinationByteOffset = 0, MapType mapType = .Write) where T : struct
+		{
+			var data;
+			return PlatformSetData(&data, (uint32)(sizeof(T)), destinationByteOffset, mapType);
+		}
+
+		/**
 		 * @param data The span containing the data that will be copied into the buffer.
 		 * @param destinationByteOffset The offset in bytes form the start of the destination buffer.
 		 * @param mapType Only relevant for dynamic buffers...
