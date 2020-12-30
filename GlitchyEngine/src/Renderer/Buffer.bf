@@ -202,7 +202,7 @@ namespace GlitchyEngine.Renderer
 		// Todo: perhaps add a constructor that takes all parameters from description except Size
 
 		/**
-		 * Uploads the date from @see Data to the GPU.
+		 * Uploads the date to the GPU.
 		 */
 		[Inline]
 		public void Update()

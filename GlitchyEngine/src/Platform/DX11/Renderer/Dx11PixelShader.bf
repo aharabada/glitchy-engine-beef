@@ -3,6 +3,7 @@ using DirectX.D3D11;
 using DirectX.D3DCompiler;
 using DirectX.D3D11Shader;
 using DirectX.Common;
+using System.Diagnostics;
 
 using internal GlitchyEngine.Renderer;
 
@@ -30,7 +31,7 @@ namespace GlitchyEngine.Renderer
 				Log.EngineLogger.Error($"Failed to create pixel shader: Message ({(int)result}): {result}");
 			}
 
-			//Reflect(shaderBlob);
+			Reflect(shaderBlob);
 			
 			shaderBlob?.Release();
 		}
@@ -49,8 +50,19 @@ namespace GlitchyEngine.Renderer
 
 			for(uint32 i < cBufferCount)
 			{
+				reflection.GetResourceBindingDescription(i, let bindDesc);
+
 				var bufferReflection = reflection.GetConstantBufferByIndex(i);
+				
 				bufferReflection.GetDescription(let bufferDesc);
+
+				// ConstantBuffer
+				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
+				{
+					GlitchyEngine.Renderer.BufferDescription cBufferDesc = .(bufferDesc.Size, .Constant, .Dynamic, .Write);
+
+					_buffers.Add(bindDesc.BindPoint, StringView(bufferDesc.Name), new Buffer(_context, cBufferDesc), true);
+				}
 			}
 			reflection.Release();
 		}

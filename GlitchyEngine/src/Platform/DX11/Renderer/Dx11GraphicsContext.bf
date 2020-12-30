@@ -177,7 +177,8 @@ namespace GlitchyEngine.Renderer
 		public override void SetPixelShader(PixelShader pixelShader)
 		{
 			//Todo: nativeContext.PixelShader.SetSamplers();
-			//Todo: nativeContext.PixelShader.SetConstantBuffers();
+			pixelShader.Buffers.PlatformFetchNativeBuffers();
+			nativeContext.PixelShader.SetConstantBuffers(0, pixelShader.Buffers.nativeBuffers.Count, &pixelShader.Buffers.nativeBuffers);
 			//Todo: nativeContext.PixelShader.SetShaderResources();
 			nativeContext.PixelShader.SetShader(pixelShader.nativeShader);
 		}

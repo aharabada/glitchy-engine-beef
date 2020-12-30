@@ -127,9 +127,4 @@ namespace GlitchyEngine.Renderer
 			return .Ok;
 		}
 	}
-
-	public extension VertexBuffer<T>
-	{
-
-	}
 }

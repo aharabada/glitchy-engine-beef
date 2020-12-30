@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using System.Collections;
+using System.Diagnostics;
 
 namespace GlitchyEngine.Renderer
 {
@@ -21,10 +23,15 @@ namespace GlitchyEngine.Renderer
 	{
 		protected GraphicsContext _context;
 
+		protected BufferCollection _buffers ~ delete _;
+		
 		public GraphicsContext Context => _context;
+
+		public BufferCollection Buffers => _buffers;
 
 		public this(GraphicsContext context, String source, String entryPoint, ShaderDefine[] macros = null)
 		{
+			_buffers = new BufferCollection();
 			_context = context;
 			CompileFromSource(source, entryPoint);
 		}
