@@ -115,7 +115,6 @@ namespace GlitchyEngine.Renderer
 				_context.nativeContext.Map(nativeBuffer, 0, (.)mapType, .None, &map);
 				Internal.MemCpy(((uint8*)map.Data) + dstByteOffset, data, byteLength);
 				_context.nativeContext.Unmap(nativeBuffer, 0);
-				Runtime.NotImplemented();
 			case .Immutable:
 				Log.EngineLogger.Error("Can't set the data of an immutable resource.");
 				return .Err;
