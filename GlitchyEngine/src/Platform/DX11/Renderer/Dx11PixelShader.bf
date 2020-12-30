@@ -1,9 +1,6 @@
 using System;
 using DirectX.D3D11;
 using DirectX.D3DCompiler;
-using DirectX.D3D11Shader;
-using DirectX.Common;
-using System.Diagnostics;
 
 using internal GlitchyEngine.Renderer;
 
@@ -15,15 +12,7 @@ namespace GlitchyEngine.Renderer
 
 		public override void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null)
 		{
-			ShaderCompileFlags flags = .Default;
-
-#if DEBUG
-			flags |= .Debug;
-#else
-			flags |= .OptimizationLevel3;
-#endif
-
-			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "ps_5_0", flags, let shaderBlob);
+			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "ps_5_0", DefaultCompileFlags, let shaderBlob);
 
 			var result = _context.nativeDevice.CreatePixelShader(shaderBlob.GetBufferPointer(), shaderBlob.GetBufferSize(), null, &nativeShader);
 			if(result.Failed)
@@ -34,37 +23,6 @@ namespace GlitchyEngine.Renderer
 			Reflect(shaderBlob);
 			
 			shaderBlob?.Release();
-		}
-
-		internal void Reflect(ID3DBlob* shaderCode)
-		{
-			ID3D11ShaderReflection* reflection = null;
-			var result = D3DCompiler.D3DReflect(shaderCode.GetBufferPointer(), shaderCode.GetBufferSize(), &reflection);
-			if(result.Failed)
-			{
-				Log.EngineLogger.Error($"Failed to reflect pixel shader: Message ({(int)result}): {result}");
-			}
-
-			reflection.GetDescription(let desc);
-			uint32 cBufferCount = desc.ConstantBuffers;
-
-			for(uint32 i < cBufferCount)
-			{
-				reflection.GetResourceBindingDescription(i, let bindDesc);
-
-				var bufferReflection = reflection.GetConstantBufferByIndex(i);
-				
-				bufferReflection.GetDescription(let bufferDesc);
-
-				// ConstantBuffer
-				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
-				{
-					GlitchyEngine.Renderer.BufferDescription cBufferDesc = .(bufferDesc.Size, .Constant, .Dynamic, .Write);
-
-					_buffers.Add(bindDesc.BindPoint, StringView(bufferDesc.Name), new Buffer(_context, cBufferDesc), true);
-				}
-			}
-			reflection.Release();
 		}
 	}
 }

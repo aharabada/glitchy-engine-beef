@@ -169,7 +169,8 @@ namespace GlitchyEngine.Renderer
 		public override void SetVertexShader(VertexShader vertexShader)
 		{
 			//Todo: nativeContext.VertexShader.SetSamplers();
-			//Todo: nativeContext.VertexShader.SetConstantBuffers();
+			vertexShader.Buffers.PlatformFetchNativeBuffers();
+			nativeContext.VertexShader.SetConstantBuffers(0, vertexShader.Buffers.nativeBuffers.Count, &vertexShader.Buffers.nativeBuffers);
 			//Todo: nativeContext.VertexShader.SetShaderResources();
 			nativeContext.VertexShader.SetShader(vertexShader.nativeShader);
 		}

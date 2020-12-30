@@ -88,6 +88,8 @@ namespace GlitchyEngine
 		{
 			_vertexShader = Shader.FromFile!<VertexShader>(_window.Context, "content\\basicShader.hlsl", "VS");
 
+			_vertexShader.Buffers[0].SetData(Matrix.Identity);
+
 			// Create Input Layout
 
 			_vertexLayout = new VertexLayout(_window.Context, new .(
