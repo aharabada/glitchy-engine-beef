@@ -101,7 +101,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		[Inline]
-		public void SetViewports<CSize>(Viewport[CSize] viewports) where CSize : const int
+		public void SetViewports<CSize>(Viewport[CSize] viewports) where CSize : const uint32
 		{
 			var viewports;
 			SetViewports(CSize, &viewports);
