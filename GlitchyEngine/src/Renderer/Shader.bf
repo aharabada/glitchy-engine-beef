@@ -23,15 +23,18 @@ namespace GlitchyEngine.Renderer
 	{
 		protected GraphicsContext _context;
 
-		protected BufferCollection _buffers ~ delete _;
+		protected BufferCollection _buffers ~ delete:append _;
 		
 		public GraphicsContext Context => _context;
 
 		public BufferCollection Buffers => _buffers;
 
+		[AllowAppend]
 		public this(GraphicsContext context, String source, String entryPoint, ShaderDefine[] macros = null)
 		{
-			_buffers = new BufferCollection();
+			let buffers = append BufferCollection();
+			_buffers = buffers;
+
 			_context = context;
 			CompileFromSource(source, entryPoint);
 		}

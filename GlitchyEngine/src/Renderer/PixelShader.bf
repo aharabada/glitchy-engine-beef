@@ -4,6 +4,7 @@ namespace GlitchyEngine.Renderer
 {
 	public class PixelShader : Shader
 	{
+		[AllowAppend]
 		public this(GraphicsContext context, String source, String entryPoint, ShaderDefine[] macros = null)
 			 : base(context, source, entryPoint, macros) { }
 
