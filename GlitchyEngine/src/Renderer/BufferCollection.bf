@@ -7,31 +7,37 @@ namespace GlitchyEngine.Renderer
 	{
 		typealias BufferEntry = (String Name, int Index, Buffer Buffer, bool OwnsBuffer);
 
-		List<BufferEntry> _buffers ~ delete:append _;
+		List<BufferEntry> _buffers ~ DeleteBufferEntries!(_);
 
-		Dictionary<StringView, Buffer> _strToBuf ~ delete:append _;
-		Dictionary<int, Buffer> _idxToBuf ~ delete:append _;
+		Dictionary<StringView, Buffer> _strToBuf ~ delete _; //delete:append _;
+		Dictionary<int, Buffer> _idxToBuf ~ delete _; //delete:append _;
 
 		[AllowAppend]
 		public this()
 		{
-			let buffers = append List<BufferEntry>();
-			let strToBuf = append Dictionary<StringView, Buffer>();
-			let idxToBuf = append Dictionary<int, Buffer>();
+			// Todo: append allocate as soon as it's fixed
+			let buffers = new List<BufferEntry>();
+			let strToBuf = new Dictionary<StringView, Buffer>();
+			let idxToBuf = new Dictionary<int, Buffer>();
 
 			_buffers = buffers;
 			_strToBuf = strToBuf;
 			_idxToBuf = idxToBuf;
 		}
-
-		public ~this()
+		
+		mixin DeleteBufferEntries(List<BufferEntry> entries)
 		{
-			for(let entry in _buffers)
+			if(entries == null)
+				return;
+
+			for(let entry in entries)
 			{
 				delete entry.Name;
 				if(entry.OwnsBuffer)
 					delete entry.Buffer;
 			}
+
+			delete entries;
 		}
 
 		public Buffer this[int idx] => _idxToBuf[idx];
