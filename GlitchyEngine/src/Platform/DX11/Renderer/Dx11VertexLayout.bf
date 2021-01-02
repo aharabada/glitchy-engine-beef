@@ -11,11 +11,11 @@ namespace GlitchyEngine.Renderer
 	{
 		internal ID3D11InputLayout* nativeLayout ~ _?.Release();
 
-		public ID3DBlob* nativeShaderCode;
+		public ID3DBlob* nativeShaderCode ~ _?.Release();
 
-		public this(GraphicsContext context, VertexElement[] ownElements, ID3DBlob* nativeShaderCode)
+		public this(GraphicsContext context, VertexElement[] ownElements, VertexShader vertexShader)
 		{
-			this.nativeShaderCode = nativeShaderCode;
+			nativeShaderCode = vertexShader.nativeCode..AddRef();
 
 			_context = context;
 			_elements = ownElements;

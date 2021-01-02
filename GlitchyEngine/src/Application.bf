@@ -91,9 +91,9 @@ namespace GlitchyEngine
 			// Create Input Layout
 
 			_vertexLayout = new VertexLayout(_window.Context, new .(
-				VertexElement("POSITION", 0, .R32G32B32_Float, 0),
-				VertexElement("COLOR",    0, .R8G8B8A8_UNorm,  0)
-				), _vertexShader.[Friend]nativeCode);
+				VertexElement(.R32G32B32_Float, "POSITION"),
+				VertexElement(.R8G8B8A8_UNorm,  "COLOR"),
+				), _vertexShader);
 
 			//
 			// Load pixel shader

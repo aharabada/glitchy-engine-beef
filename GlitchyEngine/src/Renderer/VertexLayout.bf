@@ -56,11 +56,11 @@ namespace GlitchyEngine.Renderer
 
 		public this() => this = default;
 
-		public this(String semanticName, uint32 semanticIndex, Format format, uint32 inputSlot, uint32 offset = (.)-1, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
+		public this(Format format, String semanticName, uint32 semanticIndex = 0, uint32 inputSlot = 0, uint32 offset = (.)-1, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
 		{
+			Format = format;
 			SemanticName = semanticName;
 			SemanticIndex = semanticIndex;
-			Format = format;
 			InputSlot = inputSlot;
 			AlignedByteOffset = offset;
 			InputSlotClass = slotClass;
@@ -85,7 +85,7 @@ namespace GlitchyEngine.Renderer
 
 		// Todo: DirectX needs shader!
 		/// Takes ownership of ownElements!
-		public this(GraphicsContext context, VertexElement[] ownElements)
+		public this(GraphicsContext context, VertexElement[] ownElements, VertexShader vertexShader)
 		{
 			_context = context;
 			_elements = ownElements;
