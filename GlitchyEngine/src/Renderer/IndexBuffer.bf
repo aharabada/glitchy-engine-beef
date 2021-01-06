@@ -2,8 +2,13 @@ namespace GlitchyEngine.Renderer
 {
 	public enum IndexFormat
 	{
-		Index16Bit,
-		Index32Bit,
+		case Index16Bit;
+		case Index32Bit;
+
+		/**
+		 * Returns the size in bytes of an index of the IndexFormat.
+		 */
+		public int IndexSize => this == Index16Bit ? 2 : 4
 	}
 
 	public class IndexBuffer : Buffer
