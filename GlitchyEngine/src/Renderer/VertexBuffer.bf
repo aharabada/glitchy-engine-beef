@@ -3,11 +3,11 @@ namespace GlitchyEngine.Renderer
 {
 	public struct VertexBufferBinding
 	{
-		public Buffer Buffer;
+		public VertexBuffer Buffer;
 		public uint32 Stride;
 		public uint32 Offset;
 
-		public this(Buffer buffer, uint32 stride, uint32 offset = 0)
+		public this(VertexBuffer buffer, uint32 stride, uint32 offset = 0)
 		{
 			Buffer = buffer;
 			Stride = stride;
@@ -15,28 +15,29 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public class VertexBuffer<T> : Buffer where T: struct, IVertexData
+	public class VertexBuffer : Buffer
 	{
 		private VertexBufferBinding _defaultBinding;
 
+		private Type _vertexType;
+
+		public Type VertexDataType => _vertexType;
+
 		public VertexBufferBinding Binding => _defaultBinding;
 
-		public this(GraphicsContext context, uint32 vertexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None) : base(context)
+		public this(GraphicsContext context, Type vertexType, uint32 vertexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None) : base(context)
 		{
+			_vertexType = vertexType;
+
 			_description = .(){
-				Size = ((uint32)sizeof(T) * vertexCount),
+				Size = ((uint32)_vertexType.Size * vertexCount),
 				Usage = usage,
 				CPUAccess = cpuAccess,
 				BindFlags = .Vertex,
 				MiscFlags = .None
 			};
 
-			_defaultBinding = .(this, (.)sizeof(T), 0);
-		}
-
-		public Result<void> SetData(Span<T> data, uint32 destinationVertexOffset = 0, MapType mapType = .Write)
-		{
-			return SetData<T>(data, destinationVertexOffset * (uint32)sizeof(T));
+			_defaultBinding = .(this, (.)_vertexType.Size, 0);
 		}
 
 		[Inline]

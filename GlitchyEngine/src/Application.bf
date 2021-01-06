@@ -68,7 +68,7 @@ namespace GlitchyEngine
 			}
 		}
 
-		VertexBuffer<VertexColor> _vertexBuffer ~ delete _;
+		VertexBuffer _vertexBuffer ~ delete _;
 		IndexBuffer _indexBuffer ~ delete _;
 		Buffer<ColorRGBA> _cBuffer ~ delete _;
 
@@ -120,7 +120,7 @@ namespace GlitchyEngine
 				VertexColor(CircleCoord(-pO3), Color(255,  0,255)),
 			);
 
-			_vertexBuffer = new VertexBuffer<VertexColor>(Window.Context, (.)vertices.Count, .Immutable);
+			_vertexBuffer = new VertexBuffer(Window.Context, typeof(VertexColor), (.)vertices.Count, .Immutable);//<VertexColor>
 			_vertexBuffer.SetData(vertices);
 
 			uint16[?] indices = .(
