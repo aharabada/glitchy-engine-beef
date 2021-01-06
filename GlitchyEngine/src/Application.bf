@@ -67,17 +67,19 @@ namespace GlitchyEngine
 				//VertexLayout = new VertexLayout();
 			}
 		}
-
+		
+		VertexLayout _vertexLayout ~ delete _;
 		VertexBuffer _vertexBuffer ~ delete _;
 		IndexBuffer _indexBuffer ~ delete _;
 		Buffer<ColorRGBA> _cBuffer ~ delete _;
 
 		RasterizerState _rasterizerState ~ delete _;
 
-		VertexLayout _vertexLayout ~ delete _;
 
 		VertexShader _vertexShader ~ delete _;
 		PixelShader _pixelShader ~ delete _;
+
+		GeometryBinding _geometryBinding ~ delete _;
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -134,6 +136,12 @@ namespace GlitchyEngine
 			_indexBuffer = new IndexBuffer(Window.Context, (.)indices.Count, .Immutable);
 			_indexBuffer.SetData(indices);
 
+			_geometryBinding = new GeometryBinding();
+			_geometryBinding.SetVertexBufferSlot(_vertexBuffer, 0);
+			_geometryBinding.SetVertexLayout(_vertexLayout);
+			_geometryBinding.SetPrimitiveTopology(.TriangleList);
+			_geometryBinding.SetIndexBuffer(_indexBuffer);
+
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(Window.Context, rsDesc);
@@ -167,12 +175,7 @@ namespace GlitchyEngine
 					_window.Context.SetRenderTarget(null);
 					_window.Context.BindRenderTargets();
 
-					_window.Context.SetVertexBuffer(0, _vertexBuffer);
-					_window.Context.SetIndexBuffer(_indexBuffer);
-
-					_window.Context.SetVertexLayout(_vertexLayout);
-
-					_window.Context.SetPrimitiveTopology(.TriangleList);
+					_geometryBinding.Bind(_window.Context);
 
 					_window.Context.SetVertexShader(_vertexShader);
 
@@ -182,7 +185,7 @@ namespace GlitchyEngine
 
 					_window.Context.SetPixelShader(_pixelShader);
 
-					_window.Context.DrawIndexed(3 * 6);
+					_window.Context.DrawIndexed(_geometryBinding.IndexCount);
 				}
 
 				for(Layer layer in _layerStack)
