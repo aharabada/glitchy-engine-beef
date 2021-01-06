@@ -136,7 +136,7 @@ namespace GlitchyEngine
 			_indexBuffer = new IndexBuffer(Window.Context, (.)indices.Count, .Immutable);
 			_indexBuffer.SetData(indices);
 
-			_geometryBinding = new GeometryBinding();
+			_geometryBinding = new GeometryBinding(_window.Context);
 			_geometryBinding.SetVertexBufferSlot(_vertexBuffer, 0);
 			_geometryBinding.SetVertexLayout(_vertexLayout);
 			_geometryBinding.SetPrimitiveTopology(.TriangleList);
@@ -175,7 +175,7 @@ namespace GlitchyEngine
 					_window.Context.SetRenderTarget(null);
 					_window.Context.BindRenderTargets();
 
-					_geometryBinding.Bind(_window.Context);
+					_geometryBinding.Bind();
 
 					_window.Context.SetVertexShader(_vertexShader);
 

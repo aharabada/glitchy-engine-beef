@@ -5,12 +5,19 @@ namespace GlitchyEngine.Renderer
 {
 	public class GeometryBinding
 	{
+		internal GraphicsContext _context;
+
 		internal List<VertexBufferBinding> _vertexBuffers = new .() ~ delete _;
 		internal IndexBuffer _indexBuffer;
 		internal VertexLayout _vertexLayout;
 		internal uint32 _indexByteOffset;
 		internal uint32 _indexCount;
 		internal PrimitiveTopology _primitiveTopology;
+
+		public this(GraphicsContext context)
+		{
+			_context = context;
+		}
 
 		public VertexBufferBinding GetVertexBuffer(uint32 slot)
 		{
@@ -79,5 +86,9 @@ namespace GlitchyEngine.Renderer
 		}
 		
 		protected extern void PlatformSetIndexBuffer(IndexBuffer indexBuffer);
+
+		public extern void Bind(GraphicsContext context = null);
+
+		public extern void Unbind(GraphicsContext context = null);
 	}
 }

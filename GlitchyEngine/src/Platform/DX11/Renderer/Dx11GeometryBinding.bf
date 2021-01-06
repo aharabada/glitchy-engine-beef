@@ -73,8 +73,11 @@ namespace GlitchyEngine.Renderer
 
 		}
 
-		public void Bind(GraphicsContext context)
+		public override void Bind(GraphicsContext context = null)
 		{
+			var context;
+			context ??= _context;
+
 			context.nativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
 			context.nativeContext.InputAssembler.SetInputLayout(_vertexLayout.nativeLayout);
 			context.nativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
@@ -82,8 +85,11 @@ namespace GlitchyEngine.Renderer
 			context.nativeContext.InputAssembler.SetIndexBuffer(_indexBuffer.nativeBuffer, _indexBuffer.Format == .Index32Bit ? .R32_UInt : .R16_UInt, _indexByteOffset);
 		}
 
-		public void Unbind(GraphicsContext context)
+		public void Unbind(GraphicsContext context = null)
 		{
+			var context;
+			context ??= _context;
+
 			ID3D11Buffer*[nativeBuffers.Count] nullBuffers = .();
 			uint32[nativeBuffers.Count] zeroStrides = .();
 			uint32[nativeBuffers.Count] zeroOffsets = .();
