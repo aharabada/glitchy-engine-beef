@@ -69,17 +69,20 @@ namespace GlitchyEngine
 		}
 		
 		VertexLayout _vertexLayout ~ delete _;
+
+		GeometryBinding _geometryBinding ~ delete _;
 		VertexBuffer _vertexBuffer ~ delete _;
 		IndexBuffer _indexBuffer ~ delete _;
-		Buffer<ColorRGBA> _cBuffer ~ delete _;
+
+		GeometryBinding _quadGeometryBinding ~ delete _;
+		VertexBuffer _quadVertexBuffer ~ delete _;
+		IndexBuffer _quadIndexBuffer ~ delete _;
 
 		RasterizerState _rasterizerState ~ delete _;
 
-
 		VertexShader _vertexShader ~ delete _;
 		PixelShader _pixelShader ~ delete _;
-
-		GeometryBinding _geometryBinding ~ delete _;
+		Buffer<ColorRGBA> _cBuffer ~ delete _;
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -111,36 +114,65 @@ namespace GlitchyEngine
 
 			_pixelShader.Buffers.ReplaceBuffer("Constants", _cBuffer);
 
-			float pO3 = Math.PI_f / 3.0f;
-			VertexColor[?] vertices = .(
-				VertexColor(.Zero, Color(255,255,255)),
-				VertexColor(CircleCoord(0), Color(255,  0,  0)),
-				VertexColor(CircleCoord(pO3), Color(255,255,  0)),
-				VertexColor(CircleCoord(pO3*2), Color(  0,255,  0)),
-				VertexColor(CircleCoord(Math.PI_f), Color(  0,255,255)),
-				VertexColor(CircleCoord(-pO3*2), Color(  0,  0,255)),
-				VertexColor(CircleCoord(-pO3), Color(255,  0,255)),
-			);
+			// Create hexagon
+			{
+				_geometryBinding = new GeometryBinding(_window.Context);
+				_geometryBinding.SetPrimitiveTopology(.TriangleList);
+				_geometryBinding.SetVertexLayout(_vertexLayout);
+	
+				float pO3 = Math.PI_f / 3.0f;
+				VertexColor[?] vertices = .(
+					VertexColor(.Zero, Color(255,255,255)),
+					VertexColor(CircleCoord(0), Color(255,  0,  0)),
+					VertexColor(CircleCoord(pO3), Color(255,255,  0)),
+					VertexColor(CircleCoord(pO3*2), Color(  0,255,  0)),
+					VertexColor(CircleCoord(Math.PI_f), Color(  0,255,255)),
+					VertexColor(CircleCoord(-pO3*2), Color(  0,  0,255)),
+					VertexColor(CircleCoord(-pO3), Color(255,  0,255)),
+				);
+	
+				_vertexBuffer = new VertexBuffer(Window.Context, typeof(VertexColor), (.)vertices.Count, .Immutable);
+				_vertexBuffer.SetData(vertices);
+				_geometryBinding.SetVertexBufferSlot(_vertexBuffer, 0);
+	
+				uint16[?] indices = .(
+					0, 1, 2,
+					0, 2, 3,
+					0, 3, 4,
+					0, 4, 5,
+					0, 5, 6,
+					0, 6, 1);
+	
+				_indexBuffer = new IndexBuffer(Window.Context, (.)indices.Count, .Immutable);
+				_indexBuffer.SetData(indices);
+				_geometryBinding.SetIndexBuffer(_indexBuffer);
+			}
 
-			_vertexBuffer = new VertexBuffer(Window.Context, typeof(VertexColor), (.)vertices.Count, .Immutable);//<VertexColor>
-			_vertexBuffer.SetData(vertices);
-
-			uint16[?] indices = .(
-				0, 1, 2,
-				0, 2, 3,
-				0, 3, 4,
-				0, 4, 5,
-				0, 5, 6,
-				0, 6, 1);
-
-			_indexBuffer = new IndexBuffer(Window.Context, (.)indices.Count, .Immutable);
-			_indexBuffer.SetData(indices);
-
-			_geometryBinding = new GeometryBinding(_window.Context);
-			_geometryBinding.SetVertexBufferSlot(_vertexBuffer, 0);
-			_geometryBinding.SetVertexLayout(_vertexLayout);
-			_geometryBinding.SetPrimitiveTopology(.TriangleList);
-			_geometryBinding.SetIndexBuffer(_indexBuffer);
+			// Create Quad
+			{
+				_quadGeometryBinding = new GeometryBinding(_window.Context);
+				_quadGeometryBinding.SetPrimitiveTopology(.TriangleList);
+				_quadGeometryBinding.SetVertexLayout(_vertexLayout);
+	
+				VertexColor[?] vertices = .(
+					VertexColor(Vector3(-0.75f, 0.75f, 0), Color.Blue),
+					VertexColor(Vector3(-0.75f, -0.75f, 0), Color.Blue),
+					VertexColor(Vector3(0.75f, -0.75f, 0), Color.Blue),
+					VertexColor(Vector3(0.75f, 0.75f, 0), Color.Blue),
+				);
+	
+				_quadVertexBuffer = new VertexBuffer(Window.Context, typeof(VertexColor), (.)vertices.Count, .Immutable);
+				_quadVertexBuffer.SetData(vertices);
+				_quadGeometryBinding.SetVertexBufferSlot(_quadVertexBuffer, 0);
+	
+				uint16[?] indices = .(
+					0, 1, 2,
+					2, 3, 0);
+	
+				_quadIndexBuffer = new IndexBuffer(Window.Context, (.)indices.Count, .Immutable);
+				_quadIndexBuffer.SetData(indices);
+				_quadGeometryBinding.SetIndexBuffer(_quadIndexBuffer);
+			}
 
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
@@ -175,17 +207,19 @@ namespace GlitchyEngine
 					_window.Context.SetRenderTarget(null);
 					_window.Context.BindRenderTargets();
 
-					_geometryBinding.Bind();
-
 					_window.Context.SetVertexShader(_vertexShader);
+					
+					_window.Context.SetPixelShader(_pixelShader);
 
 					_window.Context.SetRasterizerState(_rasterizerState);
 
 					_window.Context.SetViewport(Window.Context.SwapChain.BackbufferViewport);
 
-					_window.Context.SetPixelShader(_pixelShader);
-
+					_geometryBinding.Bind();
 					_window.Context.DrawIndexed(_geometryBinding.IndexCount);
+
+					_quadGeometryBinding.Bind();
+					_window.Context.DrawIndexed(_quadGeometryBinding.IndexCount);
 				}
 
 				for(Layer layer in _layerStack)
