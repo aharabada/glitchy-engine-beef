@@ -160,6 +160,33 @@ namespace Sandbox
 
 		public override void Update(GameTime gameTime)
 		{
+			Vector2 movement = .();
+
+			if(Input.IsKeyPressed(Key.W))
+			{
+				movement.Y += 1;
+			}
+			else if(Input.IsKeyPressed(Key.S))
+			{
+				movement.Y -= 1;
+			}
+			
+			if(Input.IsKeyPressed(Key.A))
+			{
+				movement.X -= 1;
+			}
+			else if(Input.IsKeyPressed(Key.D))
+			{
+				movement.X += 1;
+			}
+
+			if(movement != .Zero)
+				movement.Normalize();
+
+			movement *= (float)(gameTime.FrameTime.TotalSeconds);
+
+			_camera.Position += .(movement, 0);
+
 			_camera.Width = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width / 256;
 			_camera.Height = Application.Get().Window.Context.SwapChain.BackbufferViewport.Height / 256;
 
@@ -174,8 +201,6 @@ namespace Sandbox
 			Application.Get().Window.Context.SetRasterizerState(_rasterizerState);
 
 			Application.Get().Window.Context.SetViewport(Application.Get().Window.Context.SwapChain.BackbufferViewport);
-
-			RenderCommand.SetViewport(Application.Get().Window.Context.SwapChain.BackbufferViewport);
 
 			Renderer.BeginScene(_camera);
 
