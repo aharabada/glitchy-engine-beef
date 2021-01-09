@@ -6,73 +6,82 @@ namespace GlitchyEngine
 	/**
 	 * A timer providing functionality to meassure frame times and game runtime.
 	*/
-	public class GameTime : Stopwatch
+	public class GameTime
 	{
+		private Stopwatch _stopwatch ~ delete:append _;
+		
 		private uint64 _frameCount;
 
 		private TimeSpan _totalTime;
 		private TimeSpan _frameTime;
 
 		/**
-		The amount of time that has passed since the timer was started.
-		*/
+		 * The amount of time that has passed from the start of the timer until the last frame that finished.
+		 */
 		public TimeSpan TotalTime => _totalTime;
 		/**
-		The amount of time that has passed since the start of the last frame.
-		*/
+		 * The duration of the last frame.
+		 */
 		public TimeSpan FrameTime => _frameTime;
 		/**
-		The number of frames that have been computed since the timer was started.
-		*/
+		 * The number of frames that have been finished since the timer was started.
+		 */
 		public uint64 FrameCount => _frameCount;
-
-		private Stopwatch _stopWatch ~ delete _;
-
-		public this() : base(){}
+		
+		/**
+		 * Initializes a new instance of a GameTime.
+		 */
+		[AllowAppend]
+		public this() : this(false) {}
 
 		/**
 		 * Initializes a new instance of a GameTime.
 		 * @param startNow If set to true, the timer will start immediately.
 		 *				   If set to false, the timer has to be started manually.
 		 */
-		public this(bool startNow) : base(startNow){}
+		[AllowAppend]
+		public this(bool startNow)
+		{
+			let sw = append Stopwatch(startNow);
+			_stopwatch = sw;
+		}
 		
 		/**
 		 * Starts or continues the internal timer.
 		 */
-		public new void Start()
+		public void Start()
 		{
-			_stopWatch.Start();
+			_stopwatch.Start();
 		}
 		
 		/**
 		 * Restarts the internal timer and resets the counters.
 		 */
-		public new void Restart()
+		public void Restart()
 		{
 			_totalTime = 0;
 			_frameTime = 0;	
 			_frameCount = 0;
-			base.Restart();
+			_stopwatch.Restart();
 		}
 
 		/**
 		 * Stops the internal timer.
 		 */
-		public new void Stop()
+		public void Stop()
 		{
-			base.Stop();
+			_stopwatch.Stop();
 		}
 
 		/**
 		 * Resets the timer.
 		 */
-		public new void Reset()
+		public void Reset()
 		{
 			_totalTime = 0;
 			_frameTime = 0;
 			_frameCount = 0;
-			base.Reset();
+			_stopwatch.Reset();
 		}
 
 		/**
@@ -81,7 +90,7 @@ namespace GlitchyEngine
 		public void NewFrame()
 		{
 			TimeSpan old = _totalTime;
-			_totalTime = Elapsed;
+			_totalTime = _stopwatch.Elapsed;
 			_frameTime = _totalTime - old;
 
 			_frameCount++;
