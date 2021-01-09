@@ -105,6 +105,39 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
+		/**
+		 * Replaces the buffer with the given name.
+		 * @param name The name of the buffer to replace.
+		 * @param buffer The new buffer.
+		 * @param If set to true, the Collection will take ownership of the buffer; if false, the ownership will remain with the caller.
+		 */
+		public bool TryReplaceBuffer(StringView name, Buffer buffer, bool passOwnership = false)
+		{
+			if(_strToBuf.TryGetValue(name, let oldBuffer))
+			{
+				int index = GetIndexOfBuffer(oldBuffer);
+
+				ref BufferEntry bufferDesc = ref _buffers[index];
+
+				Log.EngineLogger.Assert(name == bufferDesc.Name);
+
+				if(bufferDesc.OwnsBuffer)
+					delete bufferDesc.Buffer;
+
+				bufferDesc.Buffer = buffer;
+				bufferDesc.OwnsBuffer = passOwnership;
+
+				_strToBuf[bufferDesc.Name] = buffer;
+				_idxToBuf[bufferDesc.Index] = buffer;
+
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
 		public void Add(int index, StringView name, Buffer buffer, bool passOwnership = false)
 		{
 			String nameStr = new String(name);

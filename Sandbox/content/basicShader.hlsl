@@ -1,4 +1,4 @@
-cbuffer Constants : register(b0)
+cbuffer SceneConstants : register(b0)
 {
     float4x4 Transform = float4x4(1, 0, 0, 0, 
         0, 1, 0, 0, 
