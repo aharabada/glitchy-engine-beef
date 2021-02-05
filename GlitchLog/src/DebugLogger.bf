@@ -25,6 +25,11 @@ namespace GlitchLog
 
 		public abstract void Assert(bool condition, String error = Compiler.CallerExpression[0], String filePath = Compiler.CallerFilePath, int line = Compiler.CallerLineNum);
 
+#if !DEBUG
+		[SkipCall]
+#endif
+		public abstract void AssertDebug(bool condition, String error = Compiler.CallerExpression[0], String filePath = Compiler.CallerFilePath, int line = Compiler.CallerLineNum);
+
 		public abstract void Log(LogLevel level, StringView format, params Object[] args);
 	}
 
@@ -103,6 +108,16 @@ namespace GlitchLog
 		}
 
 		public override void Assert(bool condition, String error = Compiler.CallerExpression[0], String filePath = Compiler.CallerFilePath, int line = Compiler.CallerLineNum)
+		{
+			if (!condition)
+			{
+				String failStr = scope .()..AppendF("Assert failed: {} at line {} in {}", error, line, filePath);
+				InternalLog(.Critical, failStr);
+				Internal.FatalError(failStr, 1);
+			}
+		}
+
+		public override void AssertDebug(bool condition, String error = Compiler.CallerExpression[0], String filePath = Compiler.CallerFilePath, int line = Compiler.CallerLineNum)
 		{
 			if (!condition)
 			{

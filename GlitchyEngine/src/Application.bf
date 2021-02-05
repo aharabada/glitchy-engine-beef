@@ -29,7 +29,7 @@ namespace GlitchyEngine
 
 		public this()
 		{
-			Runtime.Assert(s_Instance == null, "Tried to create a second application.");
+			Log.EngineLogger.Assert(s_Instance == null, "Tried to create a second application.");
 			s_Instance = this;
 
 			_window = new Window(.Default);
