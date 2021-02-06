@@ -12,17 +12,15 @@ namespace GlitchyEngine.Renderer
 
 		public override void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null)
 		{
-			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "ps_5_0", DefaultCompileFlags, let shaderBlob);
+			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "ps_5_0", DefaultCompileFlags, out nativeCode);
 
-			var result = _context.nativeDevice.CreatePixelShader(shaderBlob.GetBufferPointer(), shaderBlob.GetBufferSize(), null, &nativeShader);
+			var result = _context.nativeDevice.CreatePixelShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
 			if(result.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to create pixel shader: Message ({(int)result}): {result}");
 			}
 
-			Reflect(shaderBlob);
-			
-			shaderBlob?.Release();
+			Reflect(nativeCode);
 		}
 	}
 }

@@ -9,15 +9,25 @@ namespace GlitchyEngine.Renderer
 			public Matrix ViewProjection;
 		}
 
+		struct ObjectConstants
+		{
+			public Matrix Transform;
+		}
+
 		static GraphicsContext _context;
 
-		static Buffer<SceneConstants> _sceneConstants ~ delete _;
+		static Buffer<SceneConstants> _sceneConstants ~ _?.ReleaseRef();
+
+		static Buffer<ObjectConstants> _objectConstants ~ _?.ReleaseRef();
 
 		public static void Init(GraphicsContext context)
 		{
 			_context = context;
 			_sceneConstants = new Buffer<SceneConstants>(_context, .(0, .Constant, .Dynamic, .Write));
 			_sceneConstants.Update();
+
+			_objectConstants = new Buffer<ObjectConstants>(_context, .(0, .Constant, .Dynamic, .Write));
+			_objectConstants.Update();
 		}
 
 		public static void BeginScene(Camera camera)
@@ -28,12 +38,18 @@ namespace GlitchyEngine.Renderer
 
 		public static void EndScene(){}
 
-		public static void Submit(GeometryBinding geometry, Effect effect)
+		public static void Submit(GeometryBinding geometry, Effect effect, Matrix transform = .Identity)
 		{
-			effect.Bind(_context);
-
 			effect.PixelShader?.Buffers.TryReplaceBuffer("SceneConstants", _sceneConstants);
 			effect.VertexShader?.Buffers.TryReplaceBuffer("SceneConstants", _sceneConstants);
+
+			_objectConstants.Data.Transform = transform;
+			_objectConstants.Update();
+			
+			effect.PixelShader?.Buffers.TryReplaceBuffer("ObjectConstants", _objectConstants);
+			effect.VertexShader?.Buffers.TryReplaceBuffer("ObjectConstants", _objectConstants);
+
+			effect.Bind(_context);
 
 			geometry.Bind();
 			RenderCommand.DrawIndexed(geometry);

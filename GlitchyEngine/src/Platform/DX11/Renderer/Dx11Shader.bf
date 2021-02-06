@@ -11,6 +11,11 @@ namespace GlitchyEngine.Renderer
 {
 	extension Shader
 	{
+		/**
+		 * Internal compiled code of the shader.
+		 */
+		internal ID3DBlob* nativeCode ~ _?.Release();
+
 		protected const ShaderCompileFlags DefaultCompileFlags =
 #if DEBUG
 			.Debug;
@@ -65,11 +70,24 @@ namespace GlitchyEngine.Renderer
 				// ConstantBuffer
 				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
 				{
+					let buffer = new ConstantBuffer(_context, bufferReflection);
+
+					_buffers.Add(bindDesc.BindPoint, buffer.Name, buffer);
+
+					buffer.ReleaseRef();
+				}
+				/*
+				bufferReflection.GetDescription(let bufferDesc);
+
+				// ConstantBuffer
+				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
+				{
 					GlitchyEngine.Renderer.BufferDescription cBufferDesc = .(bufferDesc.Size, .Constant, .Dynamic, .Write);
 
 					let buffer = new Buffer(_context, cBufferDesc);
 
-					_buffers.Add(bindDesc.BindPoint, StringView(bufferDesc.Name), buffer, true);
+					_buffers.Add(bindDesc.BindPoint, StringView(bufferDesc.Name), buffer);//, true
+					buffer.ReleaseRef();
 
 					// Buffer for default values
 					uint8* rawData = new:ScopedAlloc! uint8[bufferDesc.Size]*;
@@ -87,6 +105,7 @@ namespace GlitchyEngine.Renderer
 
 					buffer.SetData(Span<uint8>(rawData, bufferDesc.Size));
 				}
+				*/
 			}
 			reflection.Release();
 		}

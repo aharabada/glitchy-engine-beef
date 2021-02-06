@@ -5,7 +5,7 @@ namespace GlitchyEngine.Renderer
 {
 	public class BufferCollection
 	{
-		typealias BufferEntry = (String Name, int Index, Buffer Buffer, bool OwnsBuffer);
+		typealias BufferEntry = (String Name, int Index, Buffer Buffer);//, bool OwnsBuffer
 
 		List<BufferEntry> _buffers ~ DeleteBufferEntries!(_);
 
@@ -33,8 +33,7 @@ namespace GlitchyEngine.Renderer
 			for(let entry in entries)
 			{
 				delete entry.Name;
-				if(entry.OwnsBuffer)
-					delete entry.Buffer;
+				entry.Buffer.ReleaseRef();
 			}
 
 			delete entries;
@@ -49,7 +48,7 @@ namespace GlitchyEngine.Renderer
 		 * @param buffer The new buffer.
 		 * @param If set to true, the Collection will take ownership of the buffer; if false, the ownership will remain with the caller.
 		 */
-		public void ReplaceBuffer(int idx, Buffer buffer, bool passOwnership = false)
+		public void ReplaceBuffer(int idx, Buffer buffer)//, bool passOwnership = false
 		{
 			if(_idxToBuf.TryGetValue(idx, let oldBuffer))
 			{
@@ -59,11 +58,13 @@ namespace GlitchyEngine.Renderer
 
 				Log.EngineLogger.Assert(idx == bufferDesc.Index);
 
-				if(bufferDesc.OwnsBuffer)
-					delete bufferDesc.Buffer;
+				oldBuffer.ReleaseRef();
+				//if(bufferDesc.OwnsBuffer)
+				//	delete bufferDesc.Buffer;
 
+				buffer.AddRef();
 				bufferDesc.Buffer = buffer;
-				bufferDesc.OwnsBuffer = passOwnership;
+				//bufferDesc.OwnsBuffer = passOwnership;
 
 				_strToBuf[bufferDesc.Name] = buffer;
 				_idxToBuf[bufferDesc.Index] = buffer;
@@ -80,7 +81,7 @@ namespace GlitchyEngine.Renderer
 		 * @param buffer The new buffer.
 		 * @param If set to true, the Collection will take ownership of the buffer; if false, the ownership will remain with the caller.
 		 */
-		public void ReplaceBuffer(StringView name, Buffer buffer, bool passOwnership = false)
+		public void ReplaceBuffer(StringView name, Buffer buffer) // , bool passOwnership = false
 		{
 			if(_strToBuf.TryGetValue(name, let oldBuffer))
 			{
@@ -90,11 +91,13 @@ namespace GlitchyEngine.Renderer
 
 				Log.EngineLogger.Assert(name == bufferDesc.Name);
 
-				if(bufferDesc.OwnsBuffer)
-					delete bufferDesc.Buffer;
-
+				oldBuffer.ReleaseRef();
+				//if(bufferDesc.OwnsBuffer)
+				//	delete bufferDesc.Buffer;
+				
+				buffer.AddRef();
 				bufferDesc.Buffer = buffer;
-				bufferDesc.OwnsBuffer = passOwnership;
+				//bufferDesc.OwnsBuffer = passOwnership;
 
 				_strToBuf[bufferDesc.Name] = buffer;
 				_idxToBuf[bufferDesc.Index] = buffer;
@@ -111,7 +114,7 @@ namespace GlitchyEngine.Renderer
 		 * @param buffer The new buffer.
 		 * @param If set to true, the Collection will take ownership of the buffer; if false, the ownership will remain with the caller.
 		 */
-		public bool TryReplaceBuffer(StringView name, Buffer buffer, bool passOwnership = false)
+		public bool TryReplaceBuffer(StringView name, Buffer buffer) // , bool passOwnership = false
 		{
 			if(_strToBuf.TryGetValue(name, let oldBuffer))
 			{
@@ -121,11 +124,13 @@ namespace GlitchyEngine.Renderer
 
 				Log.EngineLogger.Assert(name == bufferDesc.Name);
 
-				if(bufferDesc.OwnsBuffer)
-					delete bufferDesc.Buffer;
-
+				//if(bufferDesc.OwnsBuffer)
+				//	delete bufferDesc.Buffer;
+				oldBuffer.ReleaseRef();
+				
+				buffer.AddRef();
 				bufferDesc.Buffer = buffer;
-				bufferDesc.OwnsBuffer = passOwnership;
+				//bufferDesc.OwnsBuffer = passOwnership;
 
 				_strToBuf[bufferDesc.Name] = buffer;
 				_idxToBuf[bufferDesc.Index] = buffer;
@@ -138,11 +143,12 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public void Add(int index, StringView name, Buffer buffer, bool passOwnership = false)
+		public void Add(int index, StringView name, Buffer buffer) //, bool passOwnership = false
 		{
 			String nameStr = new String(name);
-			BufferEntry entry = (nameStr, index, buffer, passOwnership);
+			BufferEntry entry = (nameStr, index, buffer); //, passOwnership
 
+			buffer.AddRef();
 			_buffers.Add(entry);
 			_strToBuf.Add(entry.Name, entry.Buffer);
 			_idxToBuf.Add(entry.Index, entry.Buffer);

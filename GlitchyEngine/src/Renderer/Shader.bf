@@ -1,7 +1,6 @@
 using System;
 using System.IO;
 using System.Collections;
-using System.Diagnostics;
 
 namespace GlitchyEngine.Renderer
 {
@@ -19,7 +18,7 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public abstract class Shader
+	public abstract class Shader : RefCounted
 	{
 		protected GraphicsContext _context;
 
@@ -33,11 +32,16 @@ namespace GlitchyEngine.Renderer
 		public this(GraphicsContext context, String source, String entryPoint, ShaderDefine[] macros = null)
 		{
 			// Todo: append as soon as it's fixed.
-			let buffers = new BufferCollection();
-			_buffers = buffers;
+			//let buffers = new BufferCollection();
+			_buffers = new BufferCollection();
 
 			_context = context;
 			CompileFromSource(source, entryPoint);
+		}
+
+		public ~this()
+		{
+
 		}
 
 		public static mixin FromFile<T>(GraphicsContext context, String fileName, String entryPoint, ShaderDefine[] macros = null) where T : Shader

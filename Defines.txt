@@ -1,0 +1,11 @@
+GE_ERROR_SHADER_MATRIX_MISMATCH:
+	If this macro is set, the engine checks at runtime whether or not the dimensions of the given value match the dimensions of the shader variable. (Applies to: BufferVariable.SetData)
+
+GE_WARN_SHADER_MATRIX_MISMATCH:
+	Same as GE_ERROR_SHADER_MATRIX_MISMATCH but instead of crashing a warning will written to the console.
+	
+GE_ERROR_SHADER_VAR_TYPE_MISMATCH:
+	If this macro is set, upon calling BufferVariable.SetData the type of the provided value will be checked against the actual value type. If they do not match, the application will crash.
+
+GE_WARN_SHADER_VAR_TYPE_MISMATCH:
+	Same as GE_ERROR_SHADER_VAR_TYPE_MISMATCH but instead of crashing a warning will be written to the console.

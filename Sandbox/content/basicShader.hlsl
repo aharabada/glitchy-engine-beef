@@ -1,12 +1,18 @@
-cbuffer SceneConstants : register(b0)
+cbuffer SceneConstants
 {
-    float4x4 Transform = float4x4(1, 0, 0, 0, 
+    float4x4 ViewProjection = float4x4(1, 0, 0, 0, 
         0, 1, 0, 0, 
         0, 0, 1, 0, 
         0, 0, 0, 1);
 }
 
-cbuffer Constants : register(b1)
+cbuffer ObjectConstants
+{
+    float4x4 Transform;
+}
+
+
+cbuffer Constants
 {
     float4 BaseColor;
 }
@@ -26,7 +32,10 @@ struct PS_IN
 PS_IN VS(VS_IN input)
 {
     PS_IN output;
-    output.Position = mul(Transform, float4(input.Position, 1));
+	
+	float4 worldPosition = mul(Transform, float4(input.Position, 1));
+	
+    output.Position = mul(ViewProjection, worldPosition);
     output.Color = input.Color;
     
     return output;

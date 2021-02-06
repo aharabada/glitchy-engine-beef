@@ -1,8 +1,6 @@
 using System;
 using GlitchyEngine.Events;
 using GlitchyEngine.ImGui;
-using GlitchyEngine.Math;
-using System.Diagnostics;
 using GlitchyEngine.Renderer;
 
 namespace GlitchyEngine

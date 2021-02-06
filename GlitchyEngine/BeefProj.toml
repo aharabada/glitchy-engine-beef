@@ -3,6 +3,7 @@ Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", ImGui = "*", ImGui
 
 [Project]
 Name = "GlitchyEngine"
+ProcessorMacros = ["GE_ERROR_SHADER_MATRIX_MISMATCH", "GE_ERROR_SHADER_VAR_TYPE_MISMATCH"]
 
 [Configs.Debug.Win32]
 PreprocessorMacros = ["DEBUG", "GE_WINDOWS"]

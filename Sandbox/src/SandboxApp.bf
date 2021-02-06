@@ -12,7 +12,7 @@ namespace Sandbox
 {
 	class ExampleLayer : Layer
 	{
-		private OrthographicCamera _camera ~ delete _;
+		private OrthographicCamera _camera ~ delete _; // PerspectiveCamera
 		
 		struct VertexColor : IVertexData
 		{
@@ -42,20 +42,19 @@ namespace Sandbox
 		VertexLayout _vertexLayout ~ delete _;
 
 		GeometryBinding _geometryBinding ~ delete _;
-		VertexBuffer _vertexBuffer ~ delete _;
-		IndexBuffer _indexBuffer ~ delete _;
+		VertexBuffer _vertexBuffer ~ _?.ReleaseRef();
+		IndexBuffer _indexBuffer ~ _?.ReleaseRef();
 
 		GeometryBinding _quadGeometryBinding ~ delete _;
-		VertexBuffer _quadVertexBuffer ~ delete _;
-		IndexBuffer _quadIndexBuffer ~ delete _;
+		VertexBuffer _quadVertexBuffer ~ _?.ReleaseRef();
+		IndexBuffer _quadIndexBuffer ~ _?.ReleaseRef();
 
 		RasterizerState _rasterizerState ~ delete _;
 
-		Effect _effect ~ delete _;
-		VertexShader _vertexShader ~ delete _;
-		PixelShader _pixelShader ~ delete _;
+		Effect _effect ~ _?.ReleaseRef();
 
-		Buffer<ColorRGBA> _cBuffer ~ delete _;
+		//Buffer<ColorRGBA> _cBuffer ~ _?.ReleaseRef();
+		ConstantBuffer _cBuffer ~ _?.ReleaseRef();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -68,11 +67,13 @@ namespace Sandbox
 			{
 				_effect = new Effect();
 
-				_vertexShader = Shader.FromFile!<VertexShader>(Application.Get().Window.Context, "content\\basicShader.hlsl", "VS");
-				_effect.VertexShader = _vertexShader;
+				let vs = Shader.FromFile!<VertexShader>(Application.Get().Window.Context, "content\\basicShader.hlsl", "VS");
+				_effect.VertexShader = vs;
+				vs.ReleaseRef();
 
-				_pixelShader = Shader.FromFile!<PixelShader>(Application.Get().Window.Context, "content\\basicShader.hlsl", "PS");
-				_effect.PixelShader = _pixelShader;
+				let ps = Shader.FromFile!<PixelShader>(Application.Get().Window.Context, "content\\basicShader.hlsl", "PS");
+				_effect.PixelShader = ps;
+				ps.ReleaseRef();
 			}
 
 			// Create Input Layout
@@ -80,13 +81,24 @@ namespace Sandbox
 			_vertexLayout = new VertexLayout(Application.Get().Window.Context, new .(
 				VertexElement(.R32G32B32_Float, "POSITION"),
 				VertexElement(.R8G8B8A8_UNorm,  "COLOR"),
-				), _vertexShader);
-
-			_cBuffer = new Buffer<ColorRGBA>(Application.Get().Window.Context, .(0, .Constant, .Immutable));
+				), _effect.VertexShader);
+			/*
+			_cBuffer = new Buffer<ColorRGBA>(Application.Get().Window.Context, .(0, .Constant, .Dynamic, .Write));
 			_cBuffer.Data = .White;
 			_cBuffer.Update();
+			*/
 
-			_pixelShader.Buffers.ReplaceBuffer("Constants", _cBuffer);
+			//_effect.PixelShader.Buffers.ReplaceBuffer("Constants", _cBuffer);
+
+			Buffer buffer = _effect.PixelShader.Buffers["Constants"];
+			_cBuffer = buffer as ConstantBuffer;
+			_cBuffer.AddRef();
+
+			if(_cBuffer != null)
+			{
+				_cBuffer["BaseColor"].SetData(ColorRGBA.Red);
+				_cBuffer.Update();
+			}
 
 			// Create hexagon
 			{
@@ -129,10 +141,10 @@ namespace Sandbox
 				_quadGeometryBinding.SetVertexLayout(_vertexLayout);
 	
 				VertexColor[?] vertices = .(
-					VertexColor(Vector3(-0.75f, 0.75f, 0), Color.Blue),
-					VertexColor(Vector3(-0.75f, -0.75f, 0), Color.Blue),
-					VertexColor(Vector3(0.75f, -0.75f, 0), Color.Blue),
-					VertexColor(Vector3(0.75f, 0.75f, 0), Color.Blue),
+					VertexColor(Vector3(-0.75f, 0.75f, 0), Color.White),
+					VertexColor(Vector3(-0.75f, -0.75f, 0), Color.White),
+					VertexColor(Vector3(0.75f, -0.75f, 0), Color.White),
+					VertexColor(Vector3(0.75f, 0.75f, 0), Color.White),
 				);
 	
 				_quadVertexBuffer = new VertexBuffer(Application.Get().Window.Context, typeof(VertexColor), (.)vertices.Count, .Immutable);
@@ -156,6 +168,13 @@ namespace Sandbox
 			_camera = new OrthographicCamera();
 			_camera.NearPlane = -1;
 			_camera.FarPlane = 1;
+			/*
+			_camera = new PerspectiveCamera();
+			_camera.NearPlane = 0.1f;
+			_camera.FarPlane = 10.0f;
+			_camera.FovY = Math.PI_f / 4;
+			_camera.Position = .(0, -1, -5);
+			*/
 		}
 
 		public override void Update(GameTime gameTime)
@@ -166,7 +185,7 @@ namespace Sandbox
 			{
 				movement.Y += 1;
 			}
-			else if(Input.IsKeyPressed(Key.S))
+			if(Input.IsKeyPressed(Key.S))
 			{
 				movement.Y -= 1;
 			}
@@ -175,7 +194,7 @@ namespace Sandbox
 			{
 				movement.X -= 1;
 			}
-			else if(Input.IsKeyPressed(Key.D))
+			if(Input.IsKeyPressed(Key.D))
 			{
 				movement.X += 1;
 			}
@@ -190,6 +209,9 @@ namespace Sandbox
 			_camera.Width = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width / 256;
 			_camera.Height = Application.Get().Window.Context.SwapChain.BackbufferViewport.Height / 256;
 
+			//_camera.AspectRatio = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
+			//						Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
+
 			_camera.Update();
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
@@ -203,9 +225,29 @@ namespace Sandbox
 			Application.Get().Window.Context.SetViewport(Application.Get().Window.Context.SwapChain.BackbufferViewport);
 
 			Renderer.BeginScene(_camera);
+			
+			//_cBuffer.Data = .White;
+			_cBuffer["BaseColor"].SetData(ColorRGBA.White);
+			_cBuffer.Update();
 
 			Renderer.Submit(_geometryBinding, _effect);
-			Renderer.Submit(_quadGeometryBinding, _effect);
+			Renderer.Submit(_quadGeometryBinding, _effect, .Translation(2, 0, 0));
+
+			for(int x < 20)
+			for(int y < 20)
+			{
+				if((x + y) % 2 == 0)
+					//_cBuffer.Data = .Red;
+					_cBuffer["BaseColor"].SetData(ColorRGBA.Red);
+				else
+					_cBuffer["BaseColor"].SetData(ColorRGBA.Blue);
+					//_cBuffer.Data = .Blue;
+
+				_cBuffer.Update();
+
+				Matrix transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
+				Renderer.Submit(_quadGeometryBinding, _effect, transform);
+			}
 
 			Renderer.EndScene();
 
@@ -213,8 +255,6 @@ namespace Sandbox
 
 		public override void OnEvent(Event event)
 		{
-			Log.ClientLogger.Trace($"{event}");
-
 			EventDispatcher dispatcher = scope EventDispatcher(event);
 
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
