@@ -53,7 +53,6 @@ namespace Sandbox
 
 		Effect _effect ~ _?.ReleaseRef();
 
-		//Buffer<ColorRGBA> _cBuffer ~ _?.ReleaseRef();
 		ConstantBuffer _cBuffer ~ _?.ReleaseRef();
 
 		private Vector3 CircleCoord(float angle)
@@ -82,23 +81,10 @@ namespace Sandbox
 				VertexElement(.R32G32B32_Float, "POSITION"),
 				VertexElement(.R8G8B8A8_UNorm,  "COLOR"),
 				), _effect.VertexShader);
-			/*
-			_cBuffer = new Buffer<ColorRGBA>(Application.Get().Window.Context, .(0, .Constant, .Dynamic, .Write));
-			_cBuffer.Data = .White;
-			_cBuffer.Update();
-			*/
 
-			//_effect.PixelShader.Buffers.ReplaceBuffer("Constants", _cBuffer);
 
-			Buffer buffer = _effect.PixelShader.Buffers["Constants"];
-			_cBuffer = buffer as ConstantBuffer;
+			_cBuffer = _effect.PixelShader.Buffers["Constants"] as ConstantBuffer;
 			_cBuffer.AddRef();
-
-			if(_cBuffer != null)
-			{
-				_cBuffer["BaseColor"].SetData(ColorRGBA.Red);
-				_cBuffer.Update();
-			}
 
 			// Create hexagon
 			{
@@ -225,8 +211,7 @@ namespace Sandbox
 			Application.Get().Window.Context.SetViewport(Application.Get().Window.Context.SwapChain.BackbufferViewport);
 
 			Renderer.BeginScene(_camera);
-			
-			//_cBuffer.Data = .White;
+
 			_cBuffer["BaseColor"].SetData(ColorRGBA.White);
 			_cBuffer.Update();
 
@@ -237,11 +222,9 @@ namespace Sandbox
 			for(int y < 20)
 			{
 				if((x + y) % 2 == 0)
-					//_cBuffer.Data = .Red;
-					_cBuffer["BaseColor"].SetData(ColorRGBA.Red);
+					_cBuffer["BaseColor"].SetData(_squareColor0);
 				else
-					_cBuffer["BaseColor"].SetData(ColorRGBA.Blue);
-					//_cBuffer.Data = .Blue;
+					_cBuffer["BaseColor"].SetData(_squareColor1);
 
 				_cBuffer.Update();
 
@@ -250,8 +233,10 @@ namespace Sandbox
 			}
 
 			Renderer.EndScene();
-
 		}
+
+		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
+		ColorRGBA _squareColor1;
 
 		public override void OnEvent(Event event)
 		{
@@ -263,6 +248,10 @@ namespace Sandbox
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
 			ImGui.Begin("Test");
+
+			ImGui.ColorEdit3("Square Color", ref _squareColor0);
+
+			_squareColor1 = ColorRGBA.White - _squareColor0;
 
 			ImGui.End();
 
