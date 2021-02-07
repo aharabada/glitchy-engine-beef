@@ -5,7 +5,7 @@ namespace GlitchyEngine.Renderer
 {
 	public class GeometryBinding
 	{
-		internal GraphicsContext _context;
+		internal GraphicsContext _context ~ _?.ReleaseRef();
 
 		internal List<VertexBufferBinding> _vertexBuffers = new .() ~ delete _;
 		internal IndexBuffer _indexBuffer;
@@ -16,7 +16,7 @@ namespace GlitchyEngine.Renderer
 
 		public this(GraphicsContext context)
 		{
-			_context = context;
+			_context = context..AddRef();
 		}
 
 		public VertexBufferBinding GetVertexBuffer(uint32 slot)

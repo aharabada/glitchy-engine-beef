@@ -20,7 +20,7 @@ namespace GlitchyEngine.Renderer
 
 	public abstract class Shader : RefCounted
 	{
-		protected GraphicsContext _context;
+		protected GraphicsContext _context ~ _?.ReleaseRef();
 
 		protected BufferCollection _buffers ~ delete _;//:append _;
 		
@@ -35,7 +35,7 @@ namespace GlitchyEngine.Renderer
 			//let buffers = new BufferCollection();
 			_buffers = new BufferCollection();
 
-			_context = context;
+			_context = context..AddRef();
 			CompileFromSource(source, entryPoint);
 		}
 

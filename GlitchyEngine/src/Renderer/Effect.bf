@@ -4,7 +4,7 @@ namespace GlitchyEngine.Renderer
 {
 	public class Effect : RefCounted
 	{
-		protected GraphicsContext _context;
+		protected GraphicsContext _context; // Todo:???
 		internal VertexShader _vs ~ _?.ReleaseRef();
 		internal PixelShader _ps ~ _?.ReleaseRef();
 

@@ -75,7 +75,7 @@ namespace GlitchyEngine.Renderer
 
 	public class VertexLayout
 	{
-		private GraphicsContext _context;
+		private GraphicsContext _context ~ _?.ReleaseRef();
 
 		private VertexElement[] _elements ~ delete _;
 		
@@ -87,7 +87,7 @@ namespace GlitchyEngine.Renderer
 		/// Takes ownership of ownElements!
 		public this(GraphicsContext context, VertexElement[] ownElements, VertexShader vertexShader)
 		{
-			_context = context;
+			_context = context..AddRef();
 			_elements = ownElements;
 
 			CreateNativeLayout();

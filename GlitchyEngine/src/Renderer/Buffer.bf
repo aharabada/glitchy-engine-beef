@@ -122,7 +122,7 @@ namespace GlitchyEngine.Renderer
 	/// Represents a buffer containing binary data on the GPU.
 	public class Buffer : RefCounted
 	{
-		internal GraphicsContext _context;
+		internal GraphicsContext _context ~ _?.ReleaseRef();
 
 		protected BufferDescription _description;
 
@@ -132,7 +132,7 @@ namespace GlitchyEngine.Renderer
 		
 		protected this(GraphicsContext context)
 		{
-			_context = context;
+			_context = context..AddRef();
 		}
 
 		/**

@@ -55,6 +55,8 @@ namespace Sandbox
 
 		ConstantBuffer _cBuffer ~ _?.ReleaseRef();
 
+		GraphicsContext _context ~ _?.ReleaseRef();
+
 		private Vector3 CircleCoord(float angle)
 		{
 			return .(Math.Cos(angle), Math.Sin(angle), 0);
@@ -63,21 +65,23 @@ namespace Sandbox
 		[AllowAppend]
 		public this() : base("Example")
 		{
+			_context = Application.Get().Window.Context..AddRef();
+
 			{
 				_effect = new Effect();
 
-				let vs = Shader.FromFile!<VertexShader>(Application.Get().Window.Context, "content\\basicShader.hlsl", "VS");
+				let vs = Shader.FromFile!<VertexShader>(_context, "content\\basicShader.hlsl", "VS");
 				_effect.VertexShader = vs;
 				vs.ReleaseRef();
 
-				let ps = Shader.FromFile!<PixelShader>(Application.Get().Window.Context, "content\\basicShader.hlsl", "PS");
+				let ps = Shader.FromFile!<PixelShader>(_context, "content\\basicShader.hlsl", "PS");
 				_effect.PixelShader = ps;
 				ps.ReleaseRef();
 			}
 
 			// Create Input Layout
 
-			_vertexLayout = new VertexLayout(Application.Get().Window.Context, new .(
+			_vertexLayout = new VertexLayout(_context, new .(
 				VertexElement(.R32G32B32_Float, "POSITION"),
 				VertexElement(.R8G8B8A8_UNorm,  "COLOR"),
 				), _effect.VertexShader);
@@ -88,7 +92,7 @@ namespace Sandbox
 
 			// Create hexagon
 			{
-				_geometryBinding = new GeometryBinding(Application.Get().Window.Context);
+				_geometryBinding = new GeometryBinding(_context);
 				_geometryBinding.SetPrimitiveTopology(.TriangleList);
 				_geometryBinding.SetVertexLayout(_vertexLayout);
 	
@@ -103,7 +107,7 @@ namespace Sandbox
 					VertexColor(CircleCoord(-pO3), Color(255,  0,255)),
 				);
 	
-				_vertexBuffer = new VertexBuffer(Application.Get().Window.Context, typeof(VertexColor), (.)vertices.Count, .Immutable);
+				_vertexBuffer = new VertexBuffer(_context, typeof(VertexColor), (.)vertices.Count, .Immutable);
 				_vertexBuffer.SetData(vertices);
 				_geometryBinding.SetVertexBufferSlot(_vertexBuffer, 0);
 	
@@ -115,14 +119,14 @@ namespace Sandbox
 					0, 5, 6,
 					0, 6, 1);
 	
-				_indexBuffer = new IndexBuffer(Application.Get().Window.Context, (.)indices.Count, .Immutable);
+				_indexBuffer = new IndexBuffer(_context, (.)indices.Count, .Immutable);
 				_indexBuffer.SetData(indices);
 				_geometryBinding.SetIndexBuffer(_indexBuffer);
 			}
 
 			// Create Quad
 			{
-				_quadGeometryBinding = new GeometryBinding(Application.Get().Window.Context);
+				_quadGeometryBinding = new GeometryBinding(_context);
 				_quadGeometryBinding.SetPrimitiveTopology(.TriangleList);
 				_quadGeometryBinding.SetVertexLayout(_vertexLayout);
 	
@@ -133,7 +137,7 @@ namespace Sandbox
 					VertexColor(Vector3(0.75f, 0.75f, 0), Color.White),
 				);
 	
-				_quadVertexBuffer = new VertexBuffer(Application.Get().Window.Context, typeof(VertexColor), (.)vertices.Count, .Immutable);
+				_quadVertexBuffer = new VertexBuffer(_context, typeof(VertexColor), (.)vertices.Count, .Immutable);
 				_quadVertexBuffer.SetData(vertices);
 				_quadGeometryBinding.SetVertexBufferSlot(_quadVertexBuffer, 0);
 	
@@ -141,14 +145,14 @@ namespace Sandbox
 					0, 1, 2,
 					2, 3, 0);
 	
-				_quadIndexBuffer = new IndexBuffer(Application.Get().Window.Context, (.)indices.Count, .Immutable);
+				_quadIndexBuffer = new IndexBuffer(_context, (.)indices.Count, .Immutable);
 				_quadIndexBuffer.SetData(indices);
 				_quadGeometryBinding.SetIndexBuffer(_quadIndexBuffer);
 			}
 
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
-			_rasterizerState = new RasterizerState(Application.Get().Window.Context, rsDesc);
+			_rasterizerState = new RasterizerState(_context, rsDesc);
 
 			// Camera
 			_camera = new OrthographicCamera();
@@ -192,8 +196,8 @@ namespace Sandbox
 
 			_camera.Position += .(movement, 0);
 
-			_camera.Width = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width / 256;
-			_camera.Height = Application.Get().Window.Context.SwapChain.BackbufferViewport.Height / 256;
+			_camera.Width = _context.SwapChain.BackbufferViewport.Width / 256;
+			_camera.Height = _context.SwapChain.BackbufferViewport.Height / 256;
 
 			//_camera.AspectRatio = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
 			//						Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
@@ -203,12 +207,12 @@ namespace Sandbox
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
 
 			// Draw test geometry
-			Application.Get().Window.Context.SetRenderTarget(null);
-			Application.Get().Window.Context.BindRenderTargets();
+			_context.SetRenderTarget(null);
+			_context.BindRenderTargets();
 
-			Application.Get().Window.Context.SetRasterizerState(_rasterizerState);
+			_context.SetRasterizerState(_rasterizerState);
 
-			Application.Get().Window.Context.SetViewport(Application.Get().Window.Context.SwapChain.BackbufferViewport);
+			_context.SetViewport(_context.SwapChain.BackbufferViewport);
 
 			Renderer.BeginScene(_camera);
 

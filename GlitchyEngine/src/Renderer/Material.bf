@@ -9,7 +9,7 @@ namespace GlitchyEngine.Renderer
 
 		public this(Effect effect)
 		{
-			_effect = effect;
+			_effect = effect..AddRef();
 		}
 
 		// public void Set(String name, VALUE)...

@@ -5,7 +5,7 @@ namespace GlitchyEngine.Renderer
 {
 	public class RenderTarget;
 
-	public class GraphicsContext
+	public class GraphicsContext : RefCounted
 	{
 		private RasterizerState _currentRasterizerState;
 

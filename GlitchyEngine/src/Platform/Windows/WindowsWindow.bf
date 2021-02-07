@@ -31,7 +31,7 @@ namespace GlitchyEngine
 
 		private bool _isVSync = true;
 
-		private GraphicsContext _graphicsContext ~ delete _;
+		private GraphicsContext _graphicsContext ~ _?.ReleaseRef();
 
 		public override GraphicsContext Context => _graphicsContext;
 

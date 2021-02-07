@@ -51,7 +51,7 @@ namespace GlitchyEngine.Renderer
 
 	public class RasterizerState
 	{
-		internal GraphicsContext _context;
+		internal GraphicsContext _context ~ _?.ReleaseRef();
 		private RasterizerStateDescription _description;
 
 		public GraphicsContext Context => _context;
@@ -59,7 +59,7 @@ namespace GlitchyEngine.Renderer
 
 		protected this(GraphicsContext context)
 		{
-			_context = context;
+			_context = context..AddRef();
 		}
 
 		public extern this(GraphicsContext context, RasterizerStateDescription description);

@@ -14,7 +14,7 @@ namespace GlitchyEngine.Renderer
 			public Matrix Transform;
 		}
 
-		static GraphicsContext _context;
+		static GraphicsContext _context ~ _?.ReleaseRef();
 
 		static Buffer<SceneConstants> _sceneConstants ~ _?.ReleaseRef();
 
@@ -22,7 +22,7 @@ namespace GlitchyEngine.Renderer
 
 		public static void Init(GraphicsContext context)
 		{
-			_context = context;
+			_context = context..AddRef();
 			_sceneConstants = new Buffer<SceneConstants>(_context, .(0, .Constant, .Dynamic, .Write));
 			_sceneConstants.Update();
 
