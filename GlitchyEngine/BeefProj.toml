@@ -1,5 +1,5 @@
 FileVersion = 1
-Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", ImGui = "*", ImGuiImplWin32 = "*", ImGuiImplDX11 = "*"}
+Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", ImGui = "*", ImGuiImplWin32 = "*", ImGuiImplDX11 = "*", DirectXTK = "*"}
 
 [Project]
 Name = "GlitchyEngine"
