@@ -13,11 +13,13 @@ namespace Sandbox
 	class ExampleLayer : Layer
 	{
 		private OrthographicCamera _camera ~ delete _; // PerspectiveCamera
-		
-		struct VertexColor : IVertexData
+
+		[Ordered]
+		struct VertexColorTexture : IVertexData
 		{
 			public Vector3 Position;
 			public Color Color;
+			public Vector2 TexCoord;
 
 			public this() => this = default;
 
@@ -25,6 +27,14 @@ namespace Sandbox
 			{
 				Position = pos;
 				Color = color;
+				TexCoord = .();
+			}
+			
+			public this(Vector3 pos, Color color, Vector2 texCoord)
+			{
+				Position = pos;
+				Color = color;
+				TexCoord = texCoord;
 			}
 
 			//public static readonly InputElementDescription[] InputLayout ~ delete _;
@@ -52,10 +62,13 @@ namespace Sandbox
 		RasterizerState _rasterizerState ~ delete _;
 
 		Effect _effect ~ _?.ReleaseRef();
+		Effect _textureEffect ~ _?.ReleaseRef();
 
 		ConstantBuffer _cBuffer ~ _?.ReleaseRef();
 
 		GraphicsContext _context ~ _?.ReleaseRef();
+
+		Texture2D _texture ~ _?.ReleaseRef();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -79,12 +92,25 @@ namespace Sandbox
 				ps.ReleaseRef();
 			}
 
+			{
+				_textureEffect = new Effect();
+
+				let vs = Shader.FromFile!<VertexShader>(_context, "content\\textureShader.hlsl", "VS");
+				_textureEffect.VertexShader = vs;
+				vs.ReleaseRef();
+
+				let ps = Shader.FromFile!<PixelShader>(_context, "content\\textureShader.hlsl", "PS");
+				_textureEffect.PixelShader = ps;
+				ps.ReleaseRef();
+			}
+
 			// Create Input Layout
 
 			_vertexLayout = new VertexLayout(_context, new .(
 				VertexElement(.R32G32B32_Float, "POSITION"),
 				VertexElement(.R8G8B8A8_UNorm,  "COLOR"),
-				), _effect.VertexShader);
+				VertexElement(.R32G32_Float,  "TEXCOORD"),
+				), _textureEffect.VertexShader);
 
 
 			_cBuffer = _effect.PixelShader.Buffers["Constants"] as ConstantBuffer;
@@ -97,17 +123,17 @@ namespace Sandbox
 				_geometryBinding.SetVertexLayout(_vertexLayout);
 	
 				float pO3 = Math.PI_f / 3.0f;
-				VertexColor[?] vertices = .(
-					VertexColor(.Zero, Color(255,255,255)),
-					VertexColor(CircleCoord(0), Color(255,  0,  0)),
-					VertexColor(CircleCoord(pO3), Color(255,255,  0)),
-					VertexColor(CircleCoord(pO3*2), Color(  0,255,  0)),
-					VertexColor(CircleCoord(Math.PI_f), Color(  0,255,255)),
-					VertexColor(CircleCoord(-pO3*2), Color(  0,  0,255)),
-					VertexColor(CircleCoord(-pO3), Color(255,  0,255)),
+				VertexColorTexture[?] vertices = .(
+					VertexColorTexture(.Zero, Color(255,255,255)),
+					VertexColorTexture(CircleCoord(0), Color(255,  0,  0)),
+					VertexColorTexture(CircleCoord(pO3), Color(255,255,  0)),
+					VertexColorTexture(CircleCoord(pO3*2), Color(  0,255,  0)),
+					VertexColorTexture(CircleCoord(Math.PI_f), Color(  0,255,255)),
+					VertexColorTexture(CircleCoord(-pO3*2), Color(  0,  0,255)),
+					VertexColorTexture(CircleCoord(-pO3), Color(255,  0,255)),
 				);
 	
-				_vertexBuffer = new VertexBuffer(_context, typeof(VertexColor), (.)vertices.Count, .Immutable);
+				_vertexBuffer = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
 				_vertexBuffer.SetData(vertices);
 				_geometryBinding.SetVertexBufferSlot(_vertexBuffer, 0);
 	
@@ -130,14 +156,14 @@ namespace Sandbox
 				_quadGeometryBinding.SetPrimitiveTopology(.TriangleList);
 				_quadGeometryBinding.SetVertexLayout(_vertexLayout);
 	
-				VertexColor[?] vertices = .(
-					VertexColor(Vector3(-0.75f, 0.75f, 0), Color.White),
-					VertexColor(Vector3(-0.75f, -0.75f, 0), Color.White),
-					VertexColor(Vector3(0.75f, -0.75f, 0), Color.White),
-					VertexColor(Vector3(0.75f, 0.75f, 0), Color.White),
+				VertexColorTexture[?] vertices = .(
+					VertexColorTexture(Vector3(-0.75f, 0.75f, 0), Color.White, .(0, 0)),
+					VertexColorTexture(Vector3(-0.75f, -0.75f, 0), Color.White, .(0, 1)),
+					VertexColorTexture(Vector3(0.75f, -0.75f, 0), Color.White, .(1, 1)),
+					VertexColorTexture(Vector3(0.75f, 0.75f, 0), Color.White, .(1, 0)),
 				);
 	
-				_quadVertexBuffer = new VertexBuffer(_context, typeof(VertexColor), (.)vertices.Count, .Immutable);
+				_quadVertexBuffer = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
 				_quadVertexBuffer.SetData(vertices);
 				_quadGeometryBinding.SetVertexBufferSlot(_quadVertexBuffer, 0);
 	
@@ -165,6 +191,8 @@ namespace Sandbox
 			_camera.FovY = Math.PI_f / 4;
 			_camera.Position = .(0, -1, -5);
 			*/
+
+			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
 		}
 
 		public override void Update(GameTime gameTime)
@@ -216,12 +244,6 @@ namespace Sandbox
 
 			Renderer.BeginScene(_camera);
 
-			_cBuffer["BaseColor"].SetData(ColorRGBA.White);
-			_cBuffer.Update();
-
-			Renderer.Submit(_geometryBinding, _effect);
-			Renderer.Submit(_quadGeometryBinding, _effect, .Translation(2, 0, 0));
-
 			for(int x < 20)
 			for(int y < 20)
 			{
@@ -235,6 +257,14 @@ namespace Sandbox
 				Matrix transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
 				Renderer.Submit(_quadGeometryBinding, _effect, transform);
 			}
+			
+			_cBuffer["BaseColor"].SetData(ColorRGBA.White);
+			_cBuffer.Update();
+			
+			_texture.Bind();
+
+			Renderer.Submit(_geometryBinding, _effect);
+			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
 
 			Renderer.EndScene();
 		}

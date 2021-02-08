@@ -1,3 +1,7 @@
+Texture2D ColorTexture;
+
+SamplerState TextureSampler;
+
 cbuffer SceneConstants
 {
     float4x4 ViewProjection = float4x4(1, 0, 0, 0, 
@@ -20,12 +24,14 @@ struct VS_IN
 {
     float3 Position : POSITION;
     float4 Color    : COLOR;
+    float2 TexCoord : TEXCOORD;
 };
 
 struct PS_IN
 {
     float4 Position : SV_POSITION;
     float4 Color    : COLOR;
+    float2 TexCoord : TEXCOORD;
 };
 
 PS_IN VS(VS_IN input)
@@ -36,11 +42,12 @@ PS_IN VS(VS_IN input)
 	
     output.Position = mul(ViewProjection, worldPosition);
     output.Color = input.Color;
+    output.TexCoord = input.TexCoord;
     
     return output;
 }
 
 float4 PS(PS_IN input) : SV_TARGET
 {
-    return input.Color * BaseColor;
+    return input.Color * ColorTexture.Sample(TextureSampler, input.TexCoord);
 }
