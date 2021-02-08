@@ -39,7 +39,7 @@ namespace GlitchyEngine.Renderer
 			nativeTexture.GetDescription(out nativeDesc);
 		}
 
-		public override void Bind(uint32 slot)
+		protected override void ImplBind(uint32 slot)
 		{
 			_context.nativeContext.VertexShader.SetShaderResources(slot, 1, &nativeView);
 			_context.nativeContext.PixelShader.SetShaderResources(slot, 1, &nativeView);

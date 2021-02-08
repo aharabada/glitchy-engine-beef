@@ -5,8 +5,24 @@ namespace GlitchyEngine.Renderer
 	public abstract class Texture : RefCounted
 	{
 		protected GraphicsContext _context ~ _?.ReleaseRef();
-		
+
+		protected SamplerState _samplerState ~ _?.ReleaseRef();
+	
 		public GraphicsContext Context => _context;
+
+		public SamplerState SamplerState
+		{
+			get => _samplerState;
+			set
+			{
+				if(_samplerState == value)
+					return;
+
+				_samplerState?.ReleaseRef();
+				_samplerState = value;
+				_samplerState?.AddRef();
+			}
+		}
 
 		public abstract uint32 Width {get;}
 		public abstract uint32 Height {get;}
@@ -14,7 +30,15 @@ namespace GlitchyEngine.Renderer
 		public abstract uint32 ArraySize {get;}
 		public abstract uint32 MipLevels {get;}
 
-		public abstract void Bind(uint32 slot = 0);
+		public void Bind(uint32 slot = 0)
+		{
+			ImplBind(slot);
+
+			if(_samplerState != null)
+				_samplerState.Bind(slot);
+		}
+
+		protected abstract void ImplBind(uint32 slot);
 
 		protected this(GraphicsContext context)
 		{
@@ -32,7 +56,7 @@ namespace GlitchyEngine.Renderer
 		public override extern uint32 ArraySize {get;}
 		public override extern uint32 MipLevels {get;}
 
-		public override extern void Bind(uint32 slot = 0);
+		protected override extern void ImplBind(uint32 slot);
 		
 		public this(GraphicsContext context, String path) : base(context)
 		{
