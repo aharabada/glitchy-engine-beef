@@ -1,8 +1,12 @@
 using System;
 using GlitchyEngine.Math;
+using System.Collections;
 
 namespace GlitchyEngine.Renderer
 {
+	/**
+	 * Defines the filter function used when sampling from a texture.
+	 */
 	public enum FilterFunction
 	{
 		/// Use point filtering (nearest neighbor) for sampling.
@@ -88,7 +92,7 @@ namespace GlitchyEngine.Renderer
 		MirrorOnce 
 	}
 
-	public struct SamplerStateDescription
+	public struct SamplerStateDescription : IHashable
 	{
 		public FilterFunction MinFilter = .Linear;
 		public FilterFunction MagFilter = .Linear;
@@ -126,12 +130,84 @@ namespace GlitchyEngine.Renderer
 		 * Clamping value used if FilterMode.Anisotropic is specified in the Filters.
 		 * Valid values are between 1 and 16.
 		*/
-		public uint32 MaxAnisotropy = 1; // TODO: we could use a smaller int
+		public uint8 MaxAnisotropy = 1; // TODO: we could use a smaller int
 
 		/**
 		 * Border color to use if TextureAddressMode.Border is specified for AddressModeU, AddressModeV, or AddressModeW.
 		 */
 		public ColorRGBA BorderColor = .White;
+
+		public int GetHashCode()
+		{
+			// Put integers into one integer
+			int intHash = ((int)MinFilter) | ((int)MagFilter << 2) | ((int)MipFilter << 4) | ((int)FilterMode << 6) | ((int)ComparisonFunction << 8) |
+				((int)AddressModeU << 12) | ((int)AddressModeU << 15) | ((int)AddressModeU << 18) | ((int)(MaxAnisotropy & 0x1F) << 21); // (26 bit)
+
+			// Put BorderColor into hash.
+			int colorHash = ((BorderColor.R.GetHashCode() * 397 ^ BorderColor.G.GetHashCode()) * 397 ^ BorderColor.B.GetHashCode()) * 397 ^ BorderColor.A.GetHashCode();
+
+			return (((colorHash * 397 ^ MipLODBias.GetHashCode()) * 397 ^ MipMinLOD.GetHashCode()) * 397 ^ MipMaxLOD.GetHashCode()) * 397 ^ intHash;
+		}
+	}
+
+	public static class SamplerStateManager
+	{
+		static GraphicsContext _context;
+
+		static Dictionary<SamplerStateDescription, SamplerState> _samplers;
+
+		public static void Init(GraphicsContext context)
+		{
+			_context = context..AddRef();
+			_samplers = new .();
+		}
+
+		public static void Uninit()
+		{
+			_context?.ReleaseRef();
+			
+			delete _samplers;
+			_samplers = null;
+		}
+
+		/**
+		 * Returns a Sampler State that has the specified settings.
+		 * @param desc The Struct containing the sampler state options.
+		 * @returns A SamplerState with the given options.
+		 * @remarks This Function increases the SamplerStates reference counter, so remember to release it.
+		 */
+		public static SamplerState GetSampler(SamplerStateDescription desc)
+		{
+			Log.EngineLogger.AssertDebug(_samplers != null, "SamplerStateManager was not initialized.");
+
+			if(_samplers.TryGetValue(desc, let sampler))
+			{
+				return sampler..AddRef();
+			}
+
+			SamplerState newState = new SamplerState(_context, desc);
+			ManageSampler(newState);
+
+			return newState;
+		}
+
+		public static void ManageSampler(SamplerState samplerState)
+		{
+			Log.EngineLogger.AssertDebug(_samplers != null, "SamplerStateManager was not initialized.");
+
+			_samplers.Add(samplerState.Description, samplerState);
+		}
+
+		/**
+		 * Removes the given SamplerState from the manager.
+		 * Only allows to remove samplerState with a reference count of 0.
+		 */
+		internal static void Remove(SamplerState samplerState)
+		{
+			Log.EngineLogger.AssertDebug(samplerState.RefCount == 0, "Tried to delete sampler with nonzero reference count.");
+
+			_samplers?.Remove(samplerState.Description);
+		}
 	}
 
 	public class SamplerState : RefCounted
@@ -148,6 +224,9 @@ namespace GlitchyEngine.Renderer
 		public FilterFunction MipFilter => _desc.MipFilter;
 		[Inline]
 		public FilterMode FilterMode => _desc.FilterMode;
+		
+		[Inline]
+		public SamplerStateDescription Description => _desc;
 
 		protected this(GraphicsContext context)
 		{
@@ -159,6 +238,11 @@ namespace GlitchyEngine.Renderer
 			_desc = desc;
 
 			PlatformCreateSamplerState();
+		}
+
+		public ~this()
+		{
+			SamplerStateManager.[Friend]Remove(this);
 		}
 
 		/// Creates the platform specific Sampler State

@@ -36,12 +36,19 @@ namespace GlitchyEngine
 			_rendererApi = new RendererAPI();
 			_rendererApi.Context = _window.Context;
 
+			SamplerStateManager.Init(_window.Context);
+
 			RenderCommand.RendererAPI = _rendererApi;
 			
 			Renderer.Init(_window.Context);
 
 			_imGuiLayer = new ImGuiLayer();
 			PushOverlay(_imGuiLayer);
+		}
+
+		public ~this()
+		{
+			SamplerStateManager.Uninit();
 		}
 
 		public void OnEvent(Event e)

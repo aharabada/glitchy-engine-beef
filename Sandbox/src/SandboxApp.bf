@@ -194,7 +194,7 @@ namespace Sandbox
 
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
 
-			let sampler = new SamplerState(_context,
+			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()
 				{
 					MagFilter = .Point
