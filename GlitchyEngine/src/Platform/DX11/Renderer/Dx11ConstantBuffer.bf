@@ -10,7 +10,7 @@ namespace GlitchyEngine.Renderer
 	{
 		internal this(ConstantBuffer constantBuffer, ID3D11ShaderReflectionVariable* variableReflection)
 		{
-			_constantBuffer = constantBuffer..AddRef();
+			_constantBuffer = constantBuffer;
 
 			HResult result = variableReflection.GetDescription(let variableDescription);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to get variable description. Error({(int)result}): {result}");

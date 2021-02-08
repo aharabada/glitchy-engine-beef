@@ -17,7 +17,7 @@ namespace GlitchyEngine.Renderer
 		{
 			nativeShaderCode = vertexShader.nativeCode..AddRef();
 
-			_context = context;
+			_context = context..AddRef();
 			_elements = ownElements;
 
 			CreateNativeLayout();

@@ -61,7 +61,7 @@ namespace GlitchyEngine.Renderer
 
 	public class BufferVariable
 	{
-		private ConstantBuffer _constantBuffer ~ _constantBuffer?.ReleaseRef();
+		private ConstantBuffer _constantBuffer;
 
 		private String _name ~ delete _;
 
