@@ -69,6 +69,7 @@ namespace Sandbox
 		GraphicsContext _context ~ _?.ReleaseRef();
 
 		Texture2D _texture ~ _?.ReleaseRef();
+		SamplerState _sampler ~ _?.ReleaseRef();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -193,6 +194,12 @@ namespace Sandbox
 			*/
 
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
+
+			_sampler = new SamplerState(_context,
+				SamplerStateDescription()
+				{
+					MagFilter = .Point
+				});
 		}
 
 		public override void Update(GameTime gameTime)
@@ -262,6 +269,7 @@ namespace Sandbox
 			_cBuffer.Update();
 			
 			_texture.Bind();
+			_sampler.Bind();
 
 			Renderer.Submit(_geometryBinding, _effect);
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
