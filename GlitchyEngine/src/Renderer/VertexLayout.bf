@@ -77,18 +77,16 @@ namespace GlitchyEngine.Renderer
 	{
 		private GraphicsContext _context ~ _?.ReleaseRef();
 
-		private VertexElement[] _elements ~ delete _;
+		private VertexElement[] _elements;
 		
 		public GraphicsContext Context => _context;
 
 		public VertexElement[] Elements => _elements;
 
-		// Todo: DirectX needs shader!
-		/// Takes ownership of ownElements!
-		public this(GraphicsContext context, VertexElement[] ownElements, VertexShader vertexShader)
+		public this(GraphicsContext context, VertexElement[] elements, VertexShader vertexShader)
 		{
 			_context = context..AddRef();
-			_elements = ownElements;
+			_elements = elements;
 
 			CreateNativeLayout();
 		}
@@ -98,6 +96,6 @@ namespace GlitchyEngine.Renderer
 
 	public interface IVertexData
 	{
-		static VertexLayout VertexLayout {get;}
+		static VertexElement[] VertexElements {get;}
 	}
 }

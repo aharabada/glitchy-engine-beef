@@ -37,15 +37,17 @@ namespace Sandbox
 				TexCoord = texCoord;
 			}
 
-			//public static readonly InputElementDescription[] InputLayout ~ delete _;
-			
-			public static readonly VertexLayout VertexLayout ~ delete _;
+			public static readonly VertexElement[] VertexElements ~ delete _;
 
-			public static VertexLayout IVertexData.VertexLayout => VertexLayout;
+			public static VertexElement[] IVertexData.VertexElements => VertexElements;
 
 			static this()
 			{
-				//VertexLayout = new VertexLayout();
+				VertexElements = new VertexElement[](
+					VertexElement(.R32G32B32_Float, "POSITION"),
+					VertexElement(.R8G8B8A8_UNorm,  "COLOR"),
+					VertexElement(.R32G32_Float,  "TEXCOORD"),
+					);
 			}
 		}
 
@@ -110,11 +112,7 @@ namespace Sandbox
 
 			// Create Input Layout
 
-			_vertexLayout = new VertexLayout(_context, new .(
-				VertexElement(.R32G32B32_Float, "POSITION"),
-				VertexElement(.R8G8B8A8_UNorm,  "COLOR"),
-				VertexElement(.R32G32_Float,  "TEXCOORD"),
-				), _textureEffect.VertexShader);
+			_vertexLayout = new VertexLayout(_context, VertexColorTexture.VertexElements, _textureEffect.VertexShader);
 
 
 			_cBuffer = _effect.PixelShader.Buffers["Constants"] as ConstantBuffer;
