@@ -43,6 +43,17 @@ namespace GlitchyEngine.Renderer
 		{
 
 		}
+		
+		public this(GraphicsContext context, String filename, String vsEntry, String psEntry)
+		{
+			let vs = Shader.FromFile!<VertexShader>(context, filename, vsEntry);
+			VertexShader = vs;
+			vs.ReleaseRef();
+
+			let ps = Shader.FromFile!<PixelShader>(context, filename, psEntry);
+			PixelShader = ps;
+			ps.ReleaseRef();
+		}
 
 		public this(String vsPath, String vsEntry, String psPath, String psEntry)
 		{

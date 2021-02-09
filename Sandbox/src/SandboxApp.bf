@@ -86,29 +86,9 @@ namespace Sandbox
 		{
 			_context = Application.Get().Window.Context..AddRef();
 
-			{
-				_effect = new Effect();
-
-				let vs = Shader.FromFile!<VertexShader>(_context, "content\\basicShader.hlsl", "VS");
-				_effect.VertexShader = vs;
-				vs.ReleaseRef();
-
-				let ps = Shader.FromFile!<PixelShader>(_context, "content\\basicShader.hlsl", "PS");
-				_effect.PixelShader = ps;
-				ps.ReleaseRef();
-			}
-
-			{
-				_textureEffect = new Effect();
-
-				let vs = Shader.FromFile!<VertexShader>(_context, "content\\textureShader.hlsl", "VS");
-				_textureEffect.VertexShader = vs;
-				vs.ReleaseRef();
-
-				let ps = Shader.FromFile!<PixelShader>(_context, "content\\textureShader.hlsl", "PS");
-				_textureEffect.PixelShader = ps;
-				ps.ReleaseRef();
-			}
+			_effect = new Effect(_context, "content\\Shaders\\basicShader.hlsl", "VS", "PS");
+			
+			_textureEffect = new Effect(_context, "content\\Shaders\\textureShader.hlsl", "VS", "PS");
 
 			// Create Input Layout
 
