@@ -12,7 +12,13 @@ namespace GlitchyEngine.Renderer
 			get => _rendererAPI;
 			set => _rendererAPI = value;
 		}
-		
+
+		[Inline]
+		public static void Init()
+		{
+			_rendererAPI.Init();
+		}
+
 		[Inline]
 		public static void Clear(RenderTarget renderTarget, ColorRGBA color)
 		{

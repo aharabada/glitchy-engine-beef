@@ -69,6 +69,10 @@ namespace Sandbox
 		GraphicsContext _context ~ _?.ReleaseRef();
 
 		Texture2D _texture ~ _?.ReleaseRef();
+		Texture2D _ge_logo ~ _?.ReleaseRef();
+
+		BlendState _alphaBlendState ~ _?.ReleaseRef();
+		BlendState _opaqueBlendState ~ _?.ReleaseRef();
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -193,6 +197,7 @@ namespace Sandbox
 			*/
 
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
+			_ge_logo = new Texture2D(_context, "content/Textures/GE_Logo.dds");
 
 			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()
@@ -201,7 +206,14 @@ namespace Sandbox
 				});
 			
 			_texture.SamplerState = sampler;
+			_ge_logo.SamplerState = sampler;
+
 			sampler.ReleaseRef();
+
+			BlendStateDescription blendDesc = .();
+			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
+			_alphaBlendState = new BlendState(_context, blendDesc);
+			_opaqueBlendState = new BlendState(_context, .Default);
 		}
 
 		public override void Update(GameTime gameTime)
@@ -252,6 +264,8 @@ namespace Sandbox
 			_context.SetViewport(_context.SwapChain.BackbufferViewport);
 
 			Renderer.BeginScene(_camera);
+			
+			_opaqueBlendState.Bind();
 
 			for(int x < 20)
 			for(int y < 20)
@@ -269,10 +283,13 @@ namespace Sandbox
 			
 			_cBuffer["BaseColor"].SetData(ColorRGBA.White);
 			_cBuffer.Update();
-			
-			_texture.Bind();
 
-			Renderer.Submit(_geometryBinding, _effect);
+			_texture.Bind();
+			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
+			
+			_alphaBlendState.Bind();
+
+			_ge_logo.Bind();
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
 
 			Renderer.EndScene();

@@ -14,6 +14,11 @@ namespace GlitchyEngine.Renderer
 
 		public static override API Api => .D3D11;
 
+		public override void Init()
+		{
+
+		}
+
 		public override void Clear(RenderTarget renderTarget, ColorRGBA clearColor)
 		{
 			_context.ClearRenderTarget(renderTarget, clearColor);

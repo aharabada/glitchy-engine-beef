@@ -28,6 +28,8 @@ namespace GlitchyEngine.Renderer
 
 			_objectConstants = new Buffer<ObjectConstants>(_context, .(0, .Constant, .Dynamic, .Write));
 			_objectConstants.Update();
+
+			RenderCommand.Init();
 		}
 
 		public static void BeginScene(Camera camera)

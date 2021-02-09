@@ -15,6 +15,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static extern API Api { get; }
 
+		public extern void Init();
+
 		public extern void Clear(RenderTarget renderTarget, ColorRGBA clearColor);
 
 		public extern void DrawIndexed(GeometryBinding geometry);
