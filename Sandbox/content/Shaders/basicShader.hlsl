@@ -44,3 +44,5 @@ float4 PS(PS_IN input) : SV_TARGET
 {
     return input.Color * BaseColor;
 }
+
+#effect[VS=VS,PS=PS]

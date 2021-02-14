@@ -51,3 +51,5 @@ float4 PS(PS_IN input) : SV_TARGET
 {
     return input.Color * ColorTexture.Sample(TextureSampler, input.TexCoord);
 }
+
+#effect[VS=VS,PS=PS]

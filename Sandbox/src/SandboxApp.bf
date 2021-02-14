@@ -86,9 +86,9 @@ namespace Sandbox
 		{
 			_context = Application.Get().Window.Context..AddRef();
 
-			_effect = new Effect(_context, "content\\Shaders\\basicShader.hlsl", "VS", "PS");
+			_effect = new Effect(_context, "content\\Shaders\\basicShader.hlsl");
 			
-			_textureEffect = new Effect(_context, "content\\Shaders\\textureShader.hlsl", "VS", "PS");
+			_textureEffect = new Effect(_context, "content\\Shaders\\textureShader.hlsl");
 
 			// Create Input Layout
 
