@@ -3,22 +3,22 @@ using System.Collections;
 
 namespace GlitchyEngine.Renderer
 {
-	public class BufferCollection
+	public class BufferCollection : IEnumerable<(String Name, int Index, Buffer Buffer)>
 	{
-		typealias BufferEntry = (String Name, int Index, Buffer Buffer);
+		public typealias BufferEntry = (String Name, int Index, Buffer Buffer);
 
 		List<BufferEntry> _buffers ~ DeleteBufferEntries!(_);
 
-		Dictionary<String, Buffer> _strToBuf ~ delete _; //delete:append _;
-		Dictionary<int, Buffer> _idxToBuf ~ delete _; //delete:append _;
+		Dictionary<String, BufferEntry*> _strToBuf ~ delete _; //delete:append _;
+		Dictionary<int, BufferEntry*> _idxToBuf ~ delete _; //delete:append _;
 
 		[AllowAppend]
 		public this()
 		{
 			// Todo: append allocate as soon as it's fixed
 			let buffers = new List<BufferEntry>();
-			let strToBuf = new Dictionary<String, Buffer>();
-			let idxToBuf = new Dictionary<int, Buffer>();
+			let strToBuf = new Dictionary<String, BufferEntry*>();
+			let idxToBuf = new Dictionary<int, BufferEntry*>();
 
 			_buffers = buffers;
 			_strToBuf = strToBuf;
@@ -39,35 +39,61 @@ namespace GlitchyEngine.Renderer
 			delete entries;
 		}
 
-		public Buffer this[int idx] => _idxToBuf[idx];
-		public Buffer this[String name] => _strToBuf[name];
+		public Buffer this[int idx] => _idxToBuf[idx].Buffer;
+		public Buffer this[String name] => _strToBuf[name].Buffer;
+		
+		public Buffer TryGetBuffer(String name)
+		{
+			return TryGetBufferEntry(name)?.Buffer;
+		}
+		
+		public Buffer TryGetBuffer(int index)
+		{
+			return TryGetBufferEntry(index)?.Buffer;
+		}
+
+		public BufferEntry* TryGetBufferEntry(String name)
+		{
+			if(_strToBuf.TryGetValue(name, let buffer))
+			{
+				return buffer;
+			}
+
+			return null;
+		}
+
+		public BufferEntry* TryGetBufferEntry(int index)
+		{
+			if(_idxToBuf.TryGetValue(index, let buffer))
+			{
+				return buffer;
+			}
+
+			return null;
+		}
 
 		/**
 		 * Replaces the buffer with the given index.
 		 * @param idx The index (shader buffer register) of the buffer to replace.
 		 * @param buffer The new buffer.
+		 * @returns True, if the buffer was replaced successfully; false, otherwise.
 		 */
-		public void ReplaceBuffer(int idx, Buffer buffer)
+		public bool TryReplaceBuffer(int idx, Buffer buffer)
 		{
-			if(_idxToBuf.TryGetValue(idx, let oldBuffer))
+			if(_idxToBuf.TryGetValue(idx, let bufferEntry))
 			{
-				int index = GetIndexOfBuffer(oldBuffer);
+				Log.EngineLogger.Assert(idx == bufferEntry.Index);
 
-				ref BufferEntry bufferDesc = ref _buffers[index];
-
-				Log.EngineLogger.Assert(idx == bufferDesc.Index);
-
-				oldBuffer.ReleaseRef();
+				bufferEntry.Buffer.ReleaseRef();
 
 				buffer.AddRef();
-				bufferDesc.Buffer = buffer;
+				bufferEntry.Buffer = buffer;
 
-				_strToBuf[bufferDesc.Name] = buffer;
-				_idxToBuf[bufferDesc.Index] = buffer;
+				return true;
 			}
 			else
 			{
-				Log.EngineLogger.Assert(false, "No buffer at the given index.");
+				return false;
 			}
 		}
 
@@ -79,22 +105,14 @@ namespace GlitchyEngine.Renderer
 		 */
 		public bool TryReplaceBuffer(String name, Buffer buffer)
 		{
-			if(_strToBuf.TryGetValue(name, let oldBuffer))
+			if(_strToBuf.TryGetValue(name, let bufferEntry))
 			{
-				int index = GetIndexOfBuffer(oldBuffer);
+				Log.EngineLogger.AssertDebug(name == bufferEntry.Name);
 
-				ref BufferEntry bufferDesc = ref _buffers[index];
-
-				// If the names don't match something went spectactularly wrong.
-				Log.EngineLogger.AssertDebug(name == bufferDesc.Name);
-
-				oldBuffer?.ReleaseRef();
+				bufferEntry.Buffer.ReleaseRef();
 				
-				buffer?.AddRef();
-				bufferDesc.Buffer = buffer;
-
-				_strToBuf[bufferDesc.Name] = buffer;
-				_idxToBuf[bufferDesc.Index] = buffer;
+				buffer.AddRef();
+				bufferEntry.Buffer = buffer;
 
 				return true;
 			}
@@ -106,19 +124,25 @@ namespace GlitchyEngine.Renderer
 
 		public void Add(int index, String name, Buffer buffer)
 		{
-			String nameStr = new String(name);
-			BufferEntry entry = (nameStr, index, buffer);
+			Add((name, index, buffer));
+		}
 
-			buffer.AddRef();
-			_buffers.Add(entry);
-			_strToBuf.Add(entry.Name, entry.Buffer);
-			_idxToBuf.Add(entry.Index, entry.Buffer);
+		public void Add(BufferEntry entry)
+		{
+			BufferEntry copy = (new String(entry.Name), entry.Index, entry.Buffer..AddRef());
+
+			_buffers.Add(copy);
+
+			BufferEntry* copyRef = &_buffers.Back;
+
+			_strToBuf.Add(copy.Name, copyRef);
+			_idxToBuf.Add(copy.Index, copyRef);
 		}
 
 		/**
 		 * Returns the index of the given Buffer in the _buffer-List.
 		 * @param The buffer to find the index of.
-		 * @returns The index of the buffer in the _buffer-List, or -1 if it isn't in the list.
+		 * @returns The index of the buffer, or null if it isn't in this collection.
 		 */
 		int GetIndexOfBuffer(Buffer buffer)
 		{
@@ -132,6 +156,30 @@ namespace GlitchyEngine.Renderer
 			}
 
 			return -1;
+		}
+
+		/**
+		 * Returns the index of the given Buffer in the _buffer-List.
+		 * @param The buffer to find the index of.
+		 * @returns The name of the buffer, or null if it isn't in this collection.
+		 */
+		String GetNameOfBuffer(Buffer buffer)
+		{
+			for(int i < _buffers.Count)
+			{
+				// Only check for reference equality.
+				if(_buffers[i].Buffer === buffer)
+				{
+					return _buffers[i].Name;
+				}
+			}
+
+			return null;
+		}
+
+		public List<BufferEntry>.Enumerator GetEnumerator()
+		{
+			return _buffers.GetEnumerator();
 		}
 	}
 }

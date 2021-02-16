@@ -66,8 +66,6 @@ namespace Sandbox
 		Effect _effect ~ _?.ReleaseRef();
 		Effect _textureEffect ~ _?.ReleaseRef();
 
-		ConstantBuffer _cBuffer ~ _?.ReleaseRef();
-
 		GraphicsContext _context ~ _?.ReleaseRef();
 
 		Texture2D _texture ~ _?.ReleaseRef();
@@ -93,10 +91,6 @@ namespace Sandbox
 			// Create Input Layout
 
 			_vertexLayout = new VertexLayout(_context, VertexColorTexture.VertexElements, _textureEffect.VertexShader);
-
-
-			_cBuffer = _effect.PixelShader.Buffers["Constants"] as ConstantBuffer;
-			_cBuffer.AddRef();
 
 			// Create hexagon
 			{
@@ -249,19 +243,16 @@ namespace Sandbox
 			for(int y < 20)
 			{
 				if((x + y) % 2 == 0)
-					_cBuffer["BaseColor"].SetData(_squareColor0);
+					_effect.Variables["BaseColor"].SetData(_squareColor0);
 				else
-					_cBuffer["BaseColor"].SetData(_squareColor1);
-
-				_cBuffer.Update();
+					_effect.Variables["BaseColor"].SetData(_squareColor1);
 
 				Matrix transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
 				Renderer.Submit(_quadGeometryBinding, _effect, transform);
 			}
 			
-			_cBuffer["BaseColor"].SetData(ColorRGBA.White);
-			_cBuffer.Update();
-
+			_effect.Variables["BaseColor"].SetData(_squareColor1);
+			
 			_texture.Bind();
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
 			

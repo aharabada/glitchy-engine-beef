@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections;
 
 namespace GlitchyEngine.Renderer
 {
@@ -8,6 +9,10 @@ namespace GlitchyEngine.Renderer
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 		internal VertexShader _vs ~ _?.ReleaseRef();
 		internal PixelShader _ps ~ _?.ReleaseRef();
+
+		BufferCollection _bufferCollection ~ delete _;
+
+		BufferVariableCollection _variables ~ delete _;
 
 		public GraphicsContext Context => _context;
 
@@ -33,8 +38,24 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
+		public BufferCollection Buffers => _bufferCollection;
+		public BufferVariableCollection Variables => _variables;
+
+		public void ApplyChanges()
+		{
+			for(let buffer in _bufferCollection)
+			{
+				if(let cbuffer = buffer.Buffer as ConstantBuffer)
+				{
+					cbuffer.Update();
+				}
+			}
+		}
+
 		public void Bind(GraphicsContext context)
 		{
+			ApplyChanges();
+
 			context.SetVertexShader(_vs);
 			context.SetPixelShader(_ps);
 		}
@@ -60,6 +81,8 @@ namespace GlitchyEngine.Renderer
 
 			ProcessFile(filename, fileContent, vsName, psName);
 			Compile(fileContent, vsName, psName);
+
+			MergeResources();
 		}
 
 		public this(String vsPath, String vsEntry, String psPath, String psEntry)
@@ -155,5 +178,81 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern void Compile(String vsPath, String vsEntry, String psPath, String psEntry);
+
+		private void MergeResources()
+		{
+			MergeConstantBuffers();
+			MergeBufferVariables();
+		}
+
+		private void MergeConstantBuffers()
+		{
+			_bufferCollection = new BufferCollection();
+
+			HashSet<String> bufferNames = scope HashSet<String>();
+
+			AddShaderBuffers(_vs, bufferNames);
+			AddShaderBuffers(_ps, bufferNames);
+
+			int internalIndex = 0;
+
+			for(String bufferName in bufferNames)
+			{
+				let vsBuffer = _vs.Buffers.TryGetBufferEntry(bufferName);
+				let psBuffer = _ps.Buffers.TryGetBufferEntry(bufferName);
+
+				if(vsBuffer != null && psBuffer != null)
+				{
+					BufferCollection.BufferEntry* fxBuffer = null;
+					// choose the larger of the two
+					if(psBuffer.Buffer.Description.Size > vsBuffer.Buffer.Description.Size)
+						fxBuffer = psBuffer;
+					else
+						fxBuffer = vsBuffer;
+
+					_bufferCollection.Add(internalIndex, bufferName, fxBuffer.Buffer);
+
+					_vs.Buffers.TryReplaceBuffer(vsBuffer.Index, fxBuffer.Buffer);
+					_ps.Buffers.TryReplaceBuffer(psBuffer.Index, fxBuffer.Buffer);
+				}
+				else if(vsBuffer != null)
+				{
+					_bufferCollection.Add(internalIndex, bufferName, vsBuffer.Buffer);
+				}
+				else if(psBuffer != null)
+				{
+					_bufferCollection.Add(internalIndex, bufferName, psBuffer.Buffer);
+				}
+
+				internalIndex++;
+			}
+		}
+
+		private void MergeBufferVariables()
+		{
+			_variables = new BufferVariableCollection(false);
+
+			for(let buffer in _bufferCollection)
+			{
+				if(let cbuffer = buffer.Buffer as ConstantBuffer)
+				{
+					for(let variable in	cbuffer.Variables)
+					{
+						_variables.TryAdd(variable);
+					}
+				}
+			}
+		}
+
+		private void AddShaderBuffers(Shader shader, HashSet<String> bufferNames)
+		{
+			if(shader != null)
+			{
+				for(let buffer in shader.Buffers)
+				{
+					bufferNames.Add(buffer.Name);
+				}
+			}
+		}
 	}
 }
