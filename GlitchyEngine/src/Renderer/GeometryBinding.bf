@@ -3,7 +3,7 @@ using System.Collections;
 
 namespace GlitchyEngine.Renderer
 {
-	public class GeometryBinding
+	public class GeometryBinding : RefCounted
 	{
 		internal GraphicsContext _context ~ _?.ReleaseRef();
 
@@ -17,6 +17,16 @@ namespace GlitchyEngine.Renderer
 		public this(GraphicsContext context)
 		{
 			_context = context..AddRef();
+		}
+
+		public ~this()
+		{
+			for(let binding in _vertexBuffers)
+			{
+				binding.Buffer?.ReleaseRef();
+			}
+
+			_indexBuffer?.ReleaseRef();
 		}
 
 		public VertexBufferBinding GetVertexBuffer(uint32 slot)
@@ -46,6 +56,7 @@ namespace GlitchyEngine.Renderer
 		public void SetVertexBufferSlot(VertexBufferBinding vertexBufferBinding, uint32 slot)
 		{
 			_vertexBuffers.Add(vertexBufferBinding);
+			vertexBufferBinding.Buffer.AddRef();
 
 			PlatformSetVertexBuffer(vertexBufferBinding, slot);
 		}
@@ -70,7 +81,10 @@ namespace GlitchyEngine.Renderer
 
 		public void SetIndexBuffer(IndexBuffer indexBuffer, uint32 byteOffset = 0, uint32 indexCount = (.)-1)
 		{
+			_indexBuffer?.ReleaseRef();
 			_indexBuffer = indexBuffer;
+			_indexBuffer.AddRef();
+
 			_indexByteOffset = byteOffset;
 
 			if(indexCount == (.)-1)

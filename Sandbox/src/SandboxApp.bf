@@ -53,13 +53,9 @@ namespace Sandbox
 
 		VertexLayout _vertexLayout ~ delete _;
 
-		GeometryBinding _geometryBinding ~ delete _;
-		VertexBuffer _vertexBuffer ~ _?.ReleaseRef();
-		IndexBuffer _indexBuffer ~ _?.ReleaseRef();
+		GeometryBinding _geometryBinding ~ _?.ReleaseRef();
 
-		GeometryBinding _quadGeometryBinding ~ delete _;
-		VertexBuffer _quadVertexBuffer ~ _?.ReleaseRef();
-		IndexBuffer _quadIndexBuffer ~ _?.ReleaseRef();
+		GeometryBinding _quadGeometryBinding ~ _?.ReleaseRef();
 
 		RasterizerState _rasterizerState ~ delete _;
 
@@ -109,9 +105,10 @@ namespace Sandbox
 					VertexColorTexture(CircleCoord(-pO3), Color(255,  0,255)),
 				);
 	
-				_vertexBuffer = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
-				_vertexBuffer.SetData(vertices);
-				_geometryBinding.SetVertexBufferSlot(_vertexBuffer, 0);
+				let vb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
+				vb.SetData(vertices);
+				_geometryBinding.SetVertexBufferSlot(vb, 0);
+				vb.ReleaseRef();
 	
 				uint16[?] indices = .(
 					0, 1, 2,
@@ -121,9 +118,10 @@ namespace Sandbox
 					0, 5, 6,
 					0, 6, 1);
 	
-				_indexBuffer = new IndexBuffer(_context, (.)indices.Count, .Immutable);
-				_indexBuffer.SetData(indices);
-				_geometryBinding.SetIndexBuffer(_indexBuffer);
+				let ib = new IndexBuffer(_context, (.)indices.Count, .Immutable);
+				ib.SetData(indices);
+				_geometryBinding.SetIndexBuffer(ib);
+				ib.ReleaseRef();
 			}
 
 			// Create Quad
@@ -139,17 +137,19 @@ namespace Sandbox
 					VertexColorTexture(Vector3(0.75f, 0.75f, 0), Color.White, .(1, 0)),
 				);
 	
-				_quadVertexBuffer = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
-				_quadVertexBuffer.SetData(vertices);
-				_quadGeometryBinding.SetVertexBufferSlot(_quadVertexBuffer, 0);
+				let qvb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
+				qvb.SetData(vertices);
+				_quadGeometryBinding.SetVertexBufferSlot(qvb, 0);
+				qvb.ReleaseRef();
 	
 				uint16[?] indices = .(
 					0, 1, 2,
 					2, 3, 0);
 	
-				_quadIndexBuffer = new IndexBuffer(_context, (.)indices.Count, .Immutable);
-				_quadIndexBuffer.SetData(indices);
-				_quadGeometryBinding.SetIndexBuffer(_quadIndexBuffer);
+				let qib = new IndexBuffer(_context, (.)indices.Count, .Immutable);
+				qib.SetData(indices);
+				_quadGeometryBinding.SetIndexBuffer(qib);
+				qib.ReleaseRef();
 			}
 
 			// Create rasterizer state
