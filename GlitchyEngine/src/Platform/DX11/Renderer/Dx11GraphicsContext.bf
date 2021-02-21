@@ -92,8 +92,14 @@ namespace GlitchyEngine.Renderer
 		}
 
 		
-
+		
+		private ID3D11DepthStencilView* _depthStencilTarget;
 		private ID3D11RenderTargetView*[MaxRTVCount] _renderTargets;
+		
+		internal void SetDepthStencilTarget(DepthStencilTarget target)
+		{
+			_depthStencilTarget = target?.nativeView;
+		}
 
 		public override void SetRenderTarget(RenderTarget renderTarget, int slot = 0)
 		{
@@ -109,7 +115,7 @@ namespace GlitchyEngine.Renderer
 
 		public override void BindRenderTargets()
 		{
-			nativeContext.OutputMerger.SetRenderTargets(MaxRTVCount, &_renderTargets, null);
+			nativeContext.OutputMerger.SetRenderTargets(MaxRTVCount, &_renderTargets, _depthStencilTarget);
 		}
 
 		public override void ClearRenderTarget(RenderTarget renderTarget, ColorRGBA color)

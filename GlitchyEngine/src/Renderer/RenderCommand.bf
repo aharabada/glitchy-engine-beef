@@ -3,6 +3,13 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
+	public enum DepthStencilClearFlag
+	{
+		None = 0,
+		Depth = 1,
+		Stencil = 2
+	}
+
 	public static class RenderCommand
 	{
 		private static RendererAPI _rendererAPI;
@@ -23,6 +30,13 @@ namespace GlitchyEngine.Renderer
 		public static void Clear(RenderTarget renderTarget, ColorRGBA color)
 		{
 			_rendererAPI.Clear(renderTarget, color);
+		}
+		
+
+		[Inline]
+		public static void Clear(DepthStencilTarget target, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		{
+			_rendererAPI.Clear(target, depthValue, stencilValue, clearFlags);
 		}
 
 		[Inline]
