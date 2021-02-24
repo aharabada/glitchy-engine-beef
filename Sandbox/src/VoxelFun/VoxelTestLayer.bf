@@ -190,17 +190,16 @@ namespace Sandbox.VoxelFun
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
 			_alphaBlendState = new BlendState(_context, blendDesc);
 			_opaqueBlendState = new BlendState(_context, .Default);
-			
-
-			_chunkManager = new ChunkManager(_context, _vertexLayout);
-			_chunkManager.Texture = _texture..AddRef();
-			_chunkManager.TextureEffect = _textureEffect..AddRef();
 
 			_world = new World();
 			if(World.CreateWorld("test", 1337, _world) case .Err(.WorldAlreadyExists))
 			{
 				World.LoadWorld("test", _world);
 			}
+			
+			_chunkManager = new ChunkManager(_context, _vertexLayout, _world);
+			_chunkManager.Texture = _texture..AddRef();
+			_chunkManager.TextureEffect = _textureEffect..AddRef();
 		}
 		/*
 		void GenerateTerrain(ref VoxelChunk vc)

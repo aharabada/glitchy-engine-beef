@@ -7,6 +7,7 @@ using System.Threading;
 using System.Collections;
 using GlitchyEngine.ImGui;
 using ImGui;
+using System.IO;
 
 namespace Sandbox.VoxelFun
 {
@@ -65,6 +66,9 @@ namespace Sandbox.VoxelFun
 		GraphicsContext _context ~ _?.ReleaseRef();
 
 		int _viewDistance = 8;
+		private World _world;
+
+		private String _chunkBasePath ~ delete _;
 
 		Dictionary<Point3, Chunk> chunks = new .() ~ DeleteDictionaryAndValues!(_);
 
@@ -84,10 +88,19 @@ namespace Sandbox.VoxelFun
 
 		Monitor chunkPosChanged = new Monitor()..Enter() ~ delete _;
 
+		public World World => _world;
 		
-		public this(GraphicsContext context, VertexLayout vertexLayout)
+		public this(GraphicsContext context, VertexLayout vertexLayout, World world)
 		{
 			_context = context..AddRef();
+			_world = world;
+
+			_chunkBasePath = Path.InternalCombine(.. new String(), _world.Directory, "chunks", "");
+
+			if(!Directory.Exists(_chunkBasePath))
+			{
+				Directory.CreateDirectory(_chunkBasePath);
+			}
 
 			voxelGeoGen.Context = _context;
 			voxelGeoGen.Layout = vertexLayout;
@@ -173,13 +186,16 @@ namespace Sandbox.VoxelFun
 				if(!chunks.ContainsKey(chunkCoordinate))
 				{
 					var chunk = new Chunk();
+					chunk.Position = chunkCoordinate * .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
+					chunk.Transform = .Translation(chunk.Position.X, chunk.Position.Y, chunk.Position.Z);
 
 					if(LoadChunkFromFile(chunkCoordinate, chunk) case .Err)
 					{
-						chunk.Position = chunkCoordinate * .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
-						chunk.Transform = .Translation(chunk.Position.X, chunk.Position.Y, chunk.Position.Z);
 						GenTestChunk(chunk);
+						SaveChunkToFile(chunkCoordinate, chunk);
 					}
+
+					GenChunkGeo(chunk);
 
 					chunkListLock.Enter();
 					chunks.Add(chunkCoordinate, chunk);
@@ -190,11 +206,36 @@ namespace Sandbox.VoxelFun
 
 		Result<void> LoadChunkFromFile(Point3 chunkCoordinate, Chunk outChunk)
 		{
-			return .Err;
+			String chunkFileName = scope String(_chunkBasePath);
+			chunkFileName.AppendF($"{chunkCoordinate.X}_{chunkCoordinate.Y}_{chunkCoordinate.Z}.cdata");
+
+			if(!File.Exists(chunkFileName))
+				return .Err;
+
+			FileStream fs = scope FileStream();
+
+			fs.Open(chunkFileName, .Read, .Read);
+
+			outChunk.Data = fs.Read<VoxelChunk>();
+
+			fs.Close();
+
+			return .Ok;
 		}
 
 		Result<void> SaveChunkToFile(Point3 chunkCoordinate, Chunk outChunk)
 		{
+			String chunkFileName = scope String(_chunkBasePath);
+			chunkFileName.AppendF($"{chunkCoordinate.X}_{chunkCoordinate.Y}_{chunkCoordinate.Z}.cdata");
+
+			FileStream fs = scope FileStream();
+
+			fs.Open(chunkFileName, FileMode.Create, .Write);
+
+			fs.Write(outChunk.Data);
+
+			fs.Close();
+
 			return .Ok;
 		}
 
@@ -328,7 +369,10 @@ namespace Sandbox.VoxelFun
 		{
 			GenerateTerrain(chunk);
 			GroundLayers(chunk);
+		}
 
+		void GenChunkGeo(Chunk chunk)
+		{
 			chunk.Geometry?.ReleaseRef();
 			chunk.Geometry = voxelGeoGen.GenerateGeometry(chunk.Data);
 		}
