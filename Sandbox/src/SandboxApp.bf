@@ -8,6 +8,8 @@ using ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 
+using Sandbox.VoxelFun;
+
 namespace Sandbox
 {
 	class ExampleLayer : Layer
@@ -292,7 +294,8 @@ namespace Sandbox
 	{
 		public this()
 		{
-			PushLayer(new ExampleLayer());
+			PushLayer(new VoxelTestLayer());
+			//PushLayer(new ExampleLayer());
 		}
 
 		[Export, LinkName("CreateApplication")]
