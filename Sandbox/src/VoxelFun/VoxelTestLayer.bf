@@ -6,6 +6,7 @@ using ImGui;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Events;
 using System.Diagnostics;
+using System.Collections;
 
 namespace Sandbox.VoxelFun
 {
@@ -52,7 +53,7 @@ namespace Sandbox.VoxelFun
 
 		VertexLayout _vertexLayout ~ delete _;
 
-		GeometryBinding _chunkGeoBinding ~ _?.ReleaseRef();
+		GeometryBinding _cubeGeo ~ _?.ReleaseRef();
 
 		GeometryBinding _geometryBinding ~ _?.ReleaseRef();
 
@@ -72,8 +73,6 @@ namespace Sandbox.VoxelFun
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
 
 		DepthStencilTarget _depthStencilTarget ~ _?.ReleaseRef();
-
-		ChunkManager _chunkManager ~ delete _;
 
 		World _world ~ delete _;
 
@@ -160,6 +159,32 @@ namespace Sandbox.VoxelFun
 				qib.ReleaseRef();
 			}
 
+			// Create Cube
+			{
+				_cubeGeo = new GeometryBinding(_context);
+				_cubeGeo.SetPrimitiveTopology(.TriangleList);
+				_cubeGeo.SetVertexLayout(_vertexLayout);
+
+				List<VertexColorTexture> vertices = new List<VertexColorTexture>();
+				defer delete vertices;
+				List<uint32> indices = new List<uint32>();
+				defer delete indices;
+
+				uint32 i = 0;
+
+				VoxelGeometryGenerator.GenerateBlockModel(0, .Zero, .All, vertices, indices, ref i);
+
+				let qvb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
+				qvb.SetData<VertexColorTexture>(vertices);
+				_cubeGeo.SetVertexBufferSlot(qvb, 0);
+				qvb.ReleaseRef();
+
+				let qib = new IndexBuffer(_context, (.)indices.Count, .Immutable, .None, .Index32Bit);
+				qib.SetData<uint32>(indices);
+				_cubeGeo.SetIndexBuffer(qib);
+				qib.ReleaseRef();
+			}
+
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			rsDesc.DepthClipEnabled = true;
@@ -196,10 +221,10 @@ namespace Sandbox.VoxelFun
 			{
 				World.LoadWorld("test", _world);
 			}
-			
-			_chunkManager = new ChunkManager(_context, _vertexLayout, _world);
-			_chunkManager.Texture = _texture..AddRef();
-			_chunkManager.TextureEffect = _textureEffect..AddRef();
+
+			_world.ChunkManager = new ChunkManager(_context, _vertexLayout, _world);
+			_world.ChunkManager.Texture = _texture..AddRef();
+			_world.ChunkManager.TextureEffect = _textureEffect..AddRef();
 		}
 		/*
 		void GenerateTerrain(ref VoxelChunk vc)
@@ -508,7 +533,7 @@ namespace Sandbox.VoxelFun
 		{
 			UpdateCamera(gameTime);
 
-			_chunkManager.Update(_camera.Position);
+			_world.ChunkManager.Update(_camera.Position);
 
 			//RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
 			RenderCommand.Clear(null, .CornflowerBlue);
@@ -549,10 +574,16 @@ namespace Sandbox.VoxelFun
 			_ge_logo.Bind();
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
 
-			_chunkManager.Draw();
+			Ray ray = .(_camera.Position, _camera.Transform.Forward);
 
-			//_texture.Bind();
-			//Renderer.Submit(_chunkGeoBinding, _textureEffect, .Identity);
+			Point3 lookedAtBlock = _world.RaycastBlock(ray, 10);
+			
+			_effect.Variables["BaseColor"].SetData(.Red);
+
+			_texture.Bind();
+			Renderer.Submit(_cubeGeo, _textureEffect, .Translation((Vector3)lookedAtBlock));
+
+			_world.ChunkManager.Draw();
 
 			Renderer.EndScene();
 		}
@@ -579,12 +610,16 @@ namespace Sandbox.VoxelFun
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
-			_chunkManager.OnImGuiRender();
+			_world.ChunkManager.OnImGuiRender();
 
 			ImGui.Begin("Test");
 
 			ImGui.DragFloat("Slow Speed", &movementSpeed, 1.0f, 0.01f, 100.0f);
 			ImGui.DragFloat("Fast Speed", &movementSpeedFast, 1.0f, 1f, 10000.0f);
+
+			Vector3 fwd = _camera.Transform.Forward;
+
+			ImGui.DragFloat3("Forward", *(float[3]*)(void*)&fwd, 1.0f, float.NegativeInfinity, float.PositiveInfinity);
 
 			Vector3 camPos = _camera.Position;
 

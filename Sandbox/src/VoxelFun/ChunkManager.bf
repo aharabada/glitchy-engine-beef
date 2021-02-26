@@ -23,6 +23,8 @@ namespace Sandbox.VoxelFun
 	{
 		public int X, Y, Z;
 
+		public this() => this = default;
+
 		public this(int x, int y, int z)
 		{
 			X = x;
@@ -47,6 +49,8 @@ namespace Sandbox.VoxelFun
 		public static Point3 operator +(Point3 left, Point3 right) => .(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
 		public static Point3 operator -(Point3 left, Point3 right) => .(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
 		public static Point3 operator *(Point3 left, Point3 right) => .(left.X * right.X, left.Y * right.Y, left.Z * right.Z);
+		public static Point3 operator /(Point3 left, Point3 right) => .(left.X / right.X, left.Y / right.Y, left.Z / right.Z);
+		public static Point3 operator %(Point3 left, Point3 right) => .(left.X % right.X, left.Y % right.Y, left.Z % right.Z);
 
 		public Point3 Abs()
 		{
@@ -70,7 +74,7 @@ namespace Sandbox.VoxelFun
 
 		private String _chunkBasePath ~ delete _;
 
-		Dictionary<Point3, Chunk> chunks = new .() ~ DeleteDictionaryAndValues!(_);
+		Dictionary<Point3, Chunk> _chunks = new .() ~ DeleteDictionaryAndValues!(_);
 
 		public Texture2D Texture ~ _?.ReleaseRef();
 		public Effect TextureEffect ~ _?.ReleaseRef();
@@ -105,7 +109,7 @@ namespace Sandbox.VoxelFun
 			voxelGeoGen.Context = _context;
 			voxelGeoGen.Layout = vertexLayout;
 
-			chunkLoader = new Thread(new => ChunkLoaderThread);
+			chunkLoader = new Thread(new => ChunkLoaderThread_Entry);
 			chunkLoader.Start();
 		}
 
@@ -116,9 +120,64 @@ namespace Sandbox.VoxelFun
 			chunkLoader.Join();
 		}
 
+		/**
+		 * Returns whether or not the chunk with the given coordinate is currently loaded.
+		 */
+		[Inline]
+		public bool IsChunkLoaded(Point3 chunkCoordinate)
+		{
+			using(chunkListLock.Enter())
+			{
+				return _chunks.ContainsKey(chunkCoordinate);
+			}
+		}
+
+		/**
+		 * Returns the chunk with the given chunk coordinate or null if the chunk isn't loaded.
+		 */
+		[Inline]
+		public Chunk GetChunk(Point3 chunkCoordinate)
+		{
+			using(chunkListLock.Enter())
+			{
+				return _chunks.TryGetValue(chunkCoordinate, let chunk) ? chunk : null;
+			}
+		}
+		
+		/**
+		 * Loads and returns the chunk with the given coordinate. If the chunk doesn't exist it will be generated.
+		 */
+		public Chunk LoadChunk(Point3 chunkCoordinate)
+		{
+			Chunk chunk = GetChunk(chunkCoordinate);
+
+			if(chunk == null)
+			{
+				chunk = new Chunk();
+				chunk.Position = chunkCoordinate * .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
+				chunk.Transform = .Translation(chunk.Position.X, chunk.Position.Y, chunk.Position.Z);
+
+				if(LoadChunkFromFile(chunkCoordinate, chunk) case .Err)
+				{
+					GenTestChunk(chunk);
+					SaveChunkToFile(chunkCoordinate, chunk);
+				}
+
+				GenChunkGeo(chunk);
+				
+				using(chunkListLock.Enter())
+				{
+					_chunks.Add(chunkCoordinate, chunk);
+				}
+			}
+
+			return chunk;
+		}
+
 		void SetChunkPos(Point3 chunkPos)
 		{
 			chunkPosLock.Enter();
+
 			chunkPosition = chunkPos;
 
 			if(oldChunkPosition != chunkPosition)
@@ -137,7 +196,10 @@ namespace Sandbox.VoxelFun
 			SetChunkPos(p);
 		}
 
-		void ChunkLoaderThread()
+		/**
+		 * Entrypoint for the chunk loader thread.
+		 */
+		void ChunkLoaderThread_Entry()
 		{
 			Point3 curChunkPosition = .(0, 0, 0);
 			Point3 oldChunkPosition = .(Int.MaxValue, Int.MaxValue, Int.MaxValue);
@@ -163,7 +225,7 @@ namespace Sandbox.VoxelFun
 
 		public void GenerateChunks(Point3 chunkPos)
 		{
-			for(var chunk in chunks)
+			for(var chunk in _chunks)
 			{
 				Point3 dist = (chunk.key - chunkPos).Abs();
 
@@ -171,7 +233,7 @@ namespace Sandbox.VoxelFun
 				{
 					chunkListLock.Enter();
 					delete chunk.value;
-					chunks.Remove(chunk.key);
+					_chunks.Remove(chunk.key);
 					chunkListLock.Exit();
 				}
 			}
@@ -183,24 +245,7 @@ namespace Sandbox.VoxelFun
 				int y = 0;
 				Point3 chunkCoordinate = (Point3)chunkPos + .(x, y, z);
 
-				if(!chunks.ContainsKey(chunkCoordinate))
-				{
-					var chunk = new Chunk();
-					chunk.Position = chunkCoordinate * .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
-					chunk.Transform = .Translation(chunk.Position.X, chunk.Position.Y, chunk.Position.Z);
-
-					if(LoadChunkFromFile(chunkCoordinate, chunk) case .Err)
-					{
-						GenTestChunk(chunk);
-						SaveChunkToFile(chunkCoordinate, chunk);
-					}
-
-					GenChunkGeo(chunk);
-
-					chunkListLock.Enter();
-					chunks.Add(chunkCoordinate, chunk);
-					chunkListLock.Exit();
-				}
+				LoadChunk(chunkCoordinate);
 			}
 		}
 
@@ -380,7 +425,7 @@ namespace Sandbox.VoxelFun
 		public void Draw()
 		{
 			chunkListLock.Enter();
-			for(let pair in chunks)
+			for(let pair in _chunks)
 			{
 				Chunk chunk = pair.value;
 

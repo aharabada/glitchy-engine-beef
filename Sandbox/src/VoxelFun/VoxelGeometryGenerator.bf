@@ -159,7 +159,7 @@ namespace Sandbox.VoxelFun
 		Random r = new Random(1337) ~ delete _;
 		float f = 0.0f;
 
-		void GenerateBlockModel(uint16 blockIndex, Vector3 blockPosition, BlockFace visibleFaces, List<VertexColorTexture> vertices, List<uint32> indices, ref uint32 lastIndex)
+		public static void GenerateBlockModel(uint16 blockIndex, Vector3 blockPosition, BlockFace visibleFaces, List<VertexColorTexture> vertices, List<uint32> indices, ref uint32 lastIndex)
 		{
 		 	Color c = .Pink;
 
@@ -238,7 +238,7 @@ namespace Sandbox.VoxelFun
 			}
 		}
 		
-		void AddQuadIndices(ref uint32 lastIndex, List<uint32> indices)
+		static void AddQuadIndices(ref uint32 lastIndex, List<uint32> indices)
 		{
 			uint32[6] inds;
 			inds[0] = lastIndex;
