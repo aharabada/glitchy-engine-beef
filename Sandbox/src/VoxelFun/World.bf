@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections;
 using GlitchyEngine.Math;
 using GlitchyEngine;
+using GlitchyEngine.Renderer;
 
 namespace Sandbox.VoxelFun
 {
@@ -111,49 +112,169 @@ namespace Sandbox.VoxelFun
 		}
 		*/
 
-		public Point3 GetChunkCoordinate(Point3 blockCoordinate)
+		/**
+		 * Returs the coordinate of the chunk that contains the given coordinate.
+		 */
+		public Vector3 GetChunkCoordinate(Vector3 blockCoordinate)
 		{
-			Point3 p = blockCoordinate;
-			if(p.X < 0)
-				p.X -= VoxelChunk.Size.X;
-			if(p.Y < 0)
-				p.Y -= VoxelChunk.Size.Y;
-			if(p.Z < 0)
-				p.Z -= VoxelChunk.Size.Z;
+			Vector3 chunkPosition = blockCoordinate / VoxelChunk.VectorSize;
 
-			return .(p.X / VoxelChunk.Size.X, 0, p.Z / VoxelChunk.Size.Z);//p.Y / VoxelChunk.Size.Y
+			return Vector3.Floor(chunkPosition);
 		}
 
-		public Point3 RaycastBlock(Ray ray, float maxDistance)
+		/**
+		 * Calculates the coordinate of the chunk that contains the given block coordinate.
+		 */
+		public Point3 ChunkCoordFromBlockCoord(Point3 blockCoordinate)
 		{
-			Vector3 rayWalker = ray.Start;
-			Vector3 direction = ray.Direction.Normalized();
+			Point3 coordinate = blockCoordinate;
 
-			for(float walkedLength = 0; walkedLength < maxDistance; rayWalker += direction, walkedLength++)
+			if(coordinate.X < 0)
+				coordinate.X -= VoxelChunk.Size.X;
+
+			if(coordinate.Y < 0)
+				coordinate.Y -= VoxelChunk.Size.Y;
+			
+			if(coordinate.Z < 0)
+				coordinate.Z -= VoxelChunk.Size.Z;
+
+			return coordinate / VoxelChunk.Size;
+		}
+		
+		/**
+		 * Calculates the block coordinate relative to its chunk.
+		 * For Example: Consider the block at the global location of (25, 17, -12)
+		 * The coordinate of this block inside its chunk would be (9, 17, 4) because the chunk starts at (16, 0, -16)
+		 */
+		public Point3 BlockCoordInChunk(Point3 blockCoordinate)
+		{
+			Point3 chunkPosition = blockCoordinate % VoxelChunk.Size;
+
+			if(chunkPosition.X < 0)
+				chunkPosition.X += VoxelChunk.Size.X;
+
+			if(chunkPosition.Y < 0)
+				chunkPosition.Y += VoxelChunk.Size.Y;
+			
+			if(chunkPosition.Z < 0)
+				chunkPosition.Z += VoxelChunk.Size.Z;
+
+			return chunkPosition;
+		}
+
+		/**
+		 * Returs the coordinate of the block relative to the chunk.
+		 */
+		public Vector3 GetPositionInChunk(Vector3 position)
+		{
+			Vector3 chunkPosition = position % VoxelChunk.VectorSize;
+
+			if(chunkPosition.X < 0)
+				chunkPosition.X += VoxelChunk.VectorSize.X;
+
+			if(chunkPosition.Y < 0)
+				chunkPosition.Y += VoxelChunk.VectorSize.Y;
+			
+			if(chunkPosition.Z < 0)
+				chunkPosition.Z += VoxelChunk.VectorSize.Z;
+
+			return Vector3.Floor(chunkPosition);
+		}
+
+		public Point3 RaycastBlock(Ray ray, float maxDistance, GeometryBinding geo, Effect effect)
+		{
+			Vector3 start = ray.Start;
+			Vector3 dir = ray.Direction.Normalized();
+
+			Vector3 unitStepSize = .((dir / dir.X).Magnitude(), (dir / dir.Y).Magnitude(), (dir / dir.Z).Magnitude());
+
+			Point3 walker = (Point3)Vector3.Floor(start);
+
+			Vector3 rayLengths = .();
+
+			Point3 step;
+
+			if(dir.X < 0)
 			{
-				Point3 blockCoordinate = (.)rayWalker;
+				step.X = -1;
+				rayLengths.X = (start.X - (float)(walker.X)) * unitStepSize.X;
+			}
+			else
+			{
+				step.X = 1;
+				rayLengths.X = ((float)(walker.X + 1) - start.X) * unitStepSize.X;
+			}
 
-				Point3 chunkCoordinate = GetChunkCoordinate(blockCoordinate);
+			if(dir.Y < 0)
+			{
+				step.Y = -1;
+				rayLengths.Y = (start.Y - (float)(walker.Y)) * unitStepSize.Y;
+			}
+			else
+			{
+				step.Y = 1;
+				rayLengths.Y = ((float)(walker.Y + 1) - start.Y) * unitStepSize.Y;
+			}
+			
+			if(dir.Z < 0)
+			{
+				step.Z = -1;
+				rayLengths.Z = (start.Z - (float)(walker.Z)) * unitStepSize.Z;
+			}
+			else
+			{
+				step.Z = 1;
+				rayLengths.Z = ((float)(walker.Z + 1) - start.Z) * unitStepSize.Z;
+			}
+
+			float distance = 0.0f;
+			while(distance < maxDistance)
+			{
+				// Walk
+				if(rayLengths.X < rayLengths.Y)
+				{
+					if(rayLengths.X < rayLengths.Z)
+					{
+						walker.X += step.X;
+						distance = rayLengths.X;
+						rayLengths.X += unitStepSize.X;
+					}
+					else
+					{
+						walker.Z += step.Z;
+						distance = rayLengths.Z;
+						rayLengths.Z += unitStepSize.Z;
+					}
+				}
+				else
+				{
+					if(rayLengths.Y < rayLengths.Z)
+					{
+						walker.Y += step.Y;
+						distance = rayLengths.Y;
+						rayLengths.Y += unitStepSize.Y;
+					}
+					else
+					{
+						walker.Z += step.Z;
+						distance = rayLengths.Z;
+						rayLengths.Z += unitStepSize.Z;
+					}
+				}
+
+				Point3 chunkCoordinate = ChunkCoordFromBlockCoord(walker);
 
 				Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
 
-				Point3 coordInChunk = blockCoordinate - chunkCoordinate * VoxelChunk.Size;
+				Point3 coordInChunk = BlockCoordInChunk(walker);
 
-				int blockData = chunk.Data.Data[coordInChunk.X][coordInChunk.Y][coordInChunk.Z];
+				uint8 blockData = chunk.Data.Data[coordInChunk.X][coordInChunk.Y][coordInChunk.Z];
 
 				if(blockData != 0)
-					return blockCoordinate;
-
-				//Point3 chunkCoordinate = GetChunkCoordinate(rayWalker);
+				{
+					return walker;
+				}
 				
-				//Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
-
-				//Point3 blockIndex = (Point3)rayWalker - chunkCoordinate * VoxelChunk.Size;
-
-				//int blockData = chunk.Data.Data[blockIndex.X][blockIndex.Y][blockIndex.Z];
-
-				//if(blockData != 0)
-				//	return blockIndex;
 			}
 
 			return .(int.MaxValue, int.MaxValue, int.MaxValue);

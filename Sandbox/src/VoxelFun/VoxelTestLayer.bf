@@ -59,6 +59,8 @@ namespace Sandbox.VoxelFun
 
 		GeometryBinding _quadGeometryBinding ~ _?.ReleaseRef();
 
+		GeometryBinding _lineGeometryBinding ~ _?.ReleaseRef();
+
 		RasterizerState _rasterizerState ~ delete _;
 
 		Effect _effect ~ _?.ReleaseRef();
@@ -184,6 +186,30 @@ namespace Sandbox.VoxelFun
 				_cubeGeo.SetIndexBuffer(qib);
 				qib.ReleaseRef();
 			}
+			
+			// Create Line
+			{
+				_lineGeometryBinding = new GeometryBinding(_context);
+				_lineGeometryBinding.SetPrimitiveTopology(.LineList);
+				_lineGeometryBinding.SetVertexLayout(_vertexLayout);
+
+				VertexColorTexture[?] vertices = .(
+					VertexColorTexture(Vector3(0, 0, 0), Color.White, .(0, 0)),
+					VertexColorTexture(Vector3(0, 0, 10), Color.White, .(0, 1)),
+				);
+
+				let qvb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
+				qvb.SetData(vertices);
+				_lineGeometryBinding.SetVertexBufferSlot(qvb, 0);
+				qvb.ReleaseRef();
+
+				uint16[?] indices = .(0, 1);
+
+				let qib = new IndexBuffer(_context, (.)indices.Count, .Immutable);
+				qib.SetData(indices);
+				_lineGeometryBinding.SetIndexBuffer(qib);
+				qib.ReleaseRef();
+			}
 
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
@@ -226,219 +252,7 @@ namespace Sandbox.VoxelFun
 			_world.ChunkManager.Texture = _texture..AddRef();
 			_world.ChunkManager.TextureEffect = _textureEffect..AddRef();
 		}
-		/*
-		void GenerateTerrain(ref VoxelChunk vc)
-		{
-			Stopwatch sw = .StartNew();
-			/*
-			float[] gradient = scope .[VoxelChunk.SizeY](?);
-			for(int y = 0; y < VoxelChunk.SizeY; y++)
-			{
-				gradient[y] = y / (float)(VoxelChunk.SizeY - 1);
-			}
-			*/
-			//Random r = scope Random();
-			let groundNoise = scope FastNoiseLite.FastNoiseLite();
-			groundNoise.SetFractalOctaves(6);
-			groundNoise.SetFractalType(.FBm);
-			groundNoise.SetFrequency(0.0075f);
 
-			let perturbNoise = scope FastNoiseLite.FastNoiseLite();
-			perturbNoise.SetFractalOctaves(6);
-			perturbNoise.SetFractalType(.FBm);
-			perturbNoise.SetFrequency(0.005f);
-
-			for(int x < VoxelChunk.SizeX)
-			for(int y < VoxelChunk.SizeY)
-			for(int z < VoxelChunk.SizeZ)
-			{
-				//(int X, int Y, int Z) coordinate = (x, y, z);
-
-				// randomize coordinate
-				//coordinate.Y += (int)(groundNoise.GetNoise(x, 0, z) * VoxelChunk.SizeY / 4);//r.Next(-VoxelChunk.SizeY / 4, VoxelChunk.SizeY / 4);
-
-
-				//float pertubation = perturbNoise.GetNoise(y * 0.5f, -y * 0.5f) * 30;
-
-				//coordinate.Y += (int)(groundNoise.GetNoise(x + pertubation, z + pertubation) * VoxelChunk.SizeY / 4);//r.Next(-VoxelChunk.SizeY / 4, VoxelChunk.SizeY / 4);
-
-				//coordinate.Y = Math.Clamp(coordinate.Y, 0, VoxelChunk.SizeY - 1);
-
-				// get Gradient for coordinate
-				//float gradientValue = gradient[coordinate.Y];
-
-				float cy = (float)y;
-				cy += groundNoise.GetNoise(x, cy * 0.5f, z) * (VoxelChunk.SizeY / 4.0f);
-
-				float gradientValue = cy / (float)(VoxelChunk.SizeY - 1);
-
-				// determine whether or not gradient value is air
-				uint8 stepValue = gradientValue < 0.5f ? 1 : 0;
-
-				vc.Data[x][y][z] = stepValue;
-			}
-
-			sw.Stop();
-
-			Debug.WriteLine($"Terrain Generation: {sw.ElapsedMilliseconds}ms");
-
-			delete sw;
-
-			/*
-			let elevationNoise = scope FastNoiseLite.FastNoiseLite();
-			//elevationNoise.
-
-			for(int x < VoxelChunk.SizeX)
-			for(int y < VoxelChunk.SizeY)
-			for(int z < VoxelChunk.SizeZ)
-			{
-				/*
-				float elevation = elevationNoise.GetNoise(x, z);
-
-				int height = (int)((elevation) * 64 + 64);
-				
-				for(int y < height)
-				{
-					vc.Data[x][y][z] = 1;
-				}
-				*/
-
-				vc.Data[x][y][z] = ((elevationNoise.GetNoise(x, y, z) * 64) + y) < 64 ? 1 : 0;
-				//vc.Data[x][y][z] = elevationNoise.GetNoise(x, y, z) > 0.0f ? 1 : 0;
-
-				//vc.Data[x][y][z] = (noise.GetNoise(x, y, z) + 0.5f) < 0 ? 0 : 1;
-			}
-			*/
-			/*
-			for(int x < VoxelChunk.SizeX)
-			for(int z < VoxelChunk.SizeZ)
-			{
-				float f = noise.GetNoise(x, z);
-
-				int yMax = (int)(f * VoxelChunk.SizeY);
-
-				for(int y < yMax)
-				{
-					vc.Data[x][y][z] = 1;
-				}
-			}
-			*/
-		}
-
-		struct GroundLayer
-		{
-			public int Depth;
-			public uint8 BlockType;
-		}
-
-		void GroundLayers(ref VoxelChunk vc)
-		{
-			GroundLayer[3] layers;
-			layers[0] = .()
-			{
-				Depth = 1,
-				BlockType = 3
-			};
-			layers[1] = .()
-			{
-				Depth = 4,
-				BlockType = 2
-			};
-			layers[2] = .()
-			{
-				Depth = 0,
-				BlockType = 1
-			};
-
-			for(int x < VoxelChunk.SizeX)
-			for(int z < VoxelChunk.SizeZ)
-			{
-				int currentLayer = 0;
-				int currentDepth = 0;
-
-				for(int y = VoxelChunk.SizeY - 1; y > 0; y--)
-				{
-					if(vc.Data[x][y][z] == 0)
-					{
-						currentDepth--;
-						
-						if(currentDepth < 0)
-						{
-							currentDepth = 0;
-
-							currentLayer--;
-
-							if(currentLayer < 0)
-								currentLayer = 0;
-						}
-					}
-					else
-					{
-						vc.Data[x][y][z] = layers[currentLayer].BlockType;
-
-						currentDepth++;
-
-						if(currentDepth >= layers[currentLayer].Depth)
-						{
-							if(currentLayer >= layers.Count - 1)
-							{
-								currentLayer = layers.Count - 1;
-							}
-							else
-							{
-								currentDepth = 0;
-								currentLayer++;
-							}
-						}
-					}
-				}
-			}
-		}
-
-		void GenTestChunk()
-		{
-			VoxelChunk* vc = new .();
-
-			GenerateTerrain(ref *vc);
-			GroundLayers(ref *vc);
-			/*
-			Random r = scope Random();
-			
-			for(int x < VoxelChunk.SizeX)
-			for(int y < VoxelChunk.SizeY)
-			for(int z < VoxelChunk.SizeZ)
-			{
-				vc.Data[x][y][z] = (.)y;//(.)r.Next(0, 2);
-			}
-
-			for(int x < VoxelChunk.SizeX)
-			for(int y < VoxelChunk.SizeY)
-			for(int z < VoxelChunk.SizeZ)
-			{
-				if(vc.Data[x][y][z] < VoxelChunk.SizeY / 2)
-					vc.Data[x][y][z] = 1;
-				else
-					vc.Data[x][y][z] = 0;
-			}
-			*/
-			/*
-			vc.Data[8][VoxelChunk.SizeY / 2][8] = 1;
-			vc.Data[8][VoxelChunk.SizeY / 2 + 1][8] = 1;
-			vc.Data[8][VoxelChunk.SizeY / 2 + 2][8] = 1;
-			vc.Data[8][VoxelChunk.SizeY / 2 + 3][8] = 1;
-			
-			for(int x = 6; x < 11; x++)
-			for(int y = VoxelChunk.SizeY / 2 + 2; y < VoxelChunk.SizeY / 2 + 5; y++)
-			for(int z = 6; z < 11; z++)
-			{
-				vc.Data[x][y][z] = 1;
-			}
-			*/
-			_chunkGeoBinding = voxelGeoGen.GenerateGeometry(*vc);
-
-			delete vc;
-		}
-		*/
 		void UpdateCamera(GameTime gameTime)
 		{
 			UpdateCameraRotation(gameTime);
@@ -529,6 +343,8 @@ namespace Sandbox.VoxelFun
 			_camera.Position += movement * speed;
 		}
 
+		Ray ray = .(.(0, 128, 0), .UnitZ);
+
 		public override void Update(GameTime gameTime)
 		{
 			UpdateCamera(gameTime);
@@ -574,13 +390,33 @@ namespace Sandbox.VoxelFun
 			_ge_logo.Bind();
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
 
-			Ray ray = .(_camera.Position, _camera.Transform.Forward);
+			//Ray ray = .(.(0.5f, 128.5f, 0.5f), .(0, -0.1f, -0.1f));
 
-			Point3 lookedAtBlock = _world.RaycastBlock(ray, 10);
-			
 			_effect.Variables["BaseColor"].SetData(.Red);
 
 			_texture.Bind();
+
+			Matrix mat = .Translation(ray.Start);
+
+			Matrix mat2 = .Identity;
+			mat2.Up = .(0, 1, 0);
+
+			mat2.Forward = ray.Direction;
+			mat2.Forward.Normalize();
+			
+			mat2.Right = Vector3.Cross(mat2.Up, mat2.Forward);
+			mat2.Right.Normalize();
+			
+			mat2.Up = Vector3.Cross(mat2.Forward, mat2.Right);
+			mat2.Up.Normalize();
+
+			Matrix mat3 = mat * mat2;
+
+			Renderer.Submit(_lineGeometryBinding, _textureEffect, mat3);
+
+			//Point3 lookedAtBlock = _world.RaycastBlock(ray, 10, _cubeGeo, _textureEffect);
+			Point3 lookedAtBlock = _world.RaycastBlock(.(_camera.Position, _camera.Transform.Forward), 10, _cubeGeo, _textureEffect);
+			
 			Renderer.Submit(_cubeGeo, _textureEffect, .Translation((Vector3)lookedAtBlock));
 
 			_world.ChunkManager.Draw();
@@ -630,6 +466,16 @@ namespace Sandbox.VoxelFun
 			ImGui.ColorEdit3("Square Color", ref _squareColor0);
 
 			_squareColor1 = ColorRGBA.White - _squareColor0;
+
+
+			ImGui.DragFloat3("Ray Position", *(float[3]*)(void*)&ray.Start, 0.1f, float.NegativeInfinity, float.PositiveInfinity);
+
+			ImGui.DragFloat3("Ray Direction", *(float[3]*)(void*)&ray.Direction, 0.001f, -1f, 1.0f);
+
+			_camera.Position = camPos;
+
+
+
 
 			ImGui.End();
 

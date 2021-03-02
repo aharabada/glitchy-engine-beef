@@ -1,3 +1,5 @@
+using GlitchyEngine.Math;
+
 namespace Sandbox.VoxelFun
 {
 	public struct VoxelChunk
@@ -7,6 +9,7 @@ namespace Sandbox.VoxelFun
 		public const int SizeZ = 16;
 
 		public const Point3 Size = .(SizeX, SizeY, SizeZ);
+		public const Vector3 VectorSize = .(SizeX, SizeY, SizeZ);
 
 		public uint8[SizeX][SizeY][SizeZ] Data;
 	}

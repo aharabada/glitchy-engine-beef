@@ -111,6 +111,7 @@ namespace Sandbox.VoxelFun
 
 			chunkLoader = new Thread(new => ChunkLoaderThread_Entry);
 			chunkLoader.Start();
+
 		}
 
 		public ~this()
@@ -209,21 +210,22 @@ namespace Sandbox.VoxelFun
 				// Wait for chunkPos to change
 				chunkPosChanged.Enter();
 				
-				chunkPosLock.Enter();
-				curChunkPosition = chunkPosition;
-				chunkPosLock.Exit();
+				using(chunkPosLock.Enter())
+				{
+					curChunkPosition = chunkPosition;
+				}
 
 				// Position didn't change -> skip
 				if(curChunkPosition == oldChunkPosition)
 					continue;
 
-				GenerateChunks(curChunkPosition);
+				ChunkLoaderThread_GenerateChunks(curChunkPosition);
 
 				oldChunkPosition = curChunkPosition;
 			}
 		}
 
-		public void GenerateChunks(Point3 chunkPos)
+		public void ChunkLoaderThread_GenerateChunks(Point3 chunkPos)
 		{
 			for(var chunk in _chunks)
 			{
@@ -231,13 +233,44 @@ namespace Sandbox.VoxelFun
 
 				if(dist.X > _viewDistance || dist.Z > _viewDistance)
 				{
-					chunkListLock.Enter();
-					delete chunk.value;
-					_chunks.Remove(chunk.key);
-					chunkListLock.Exit();
+					using(chunkListLock.Enter())
+					{
+						delete chunk.value;
+						_chunks.Remove(chunk.key);
+					}
 				}
 			}
 
+			int x = 0;
+			int z = 0;
+			for(int r = 1; r < _viewDistance; r++)
+			{
+				for(; x < r; x++)
+				{
+					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					LoadChunk(chunkCoordinate);
+				}
+
+				for(; z < r; z++)
+				{
+					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					LoadChunk(chunkCoordinate);
+				}
+
+				for(; x > -r; x--)
+				{
+					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					LoadChunk(chunkCoordinate);
+				}
+				
+				for(; z > -r; z--)
+				{
+					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					LoadChunk(chunkCoordinate);
+				}
+			}
+
+			/*
 			for(int x = -_viewDistance; x < _viewDistance; x++)
 			//for(int y = -_viewDistance; y < _viewDistance; y++)
 			for(int z = -_viewDistance; z < _viewDistance; z++)
@@ -247,6 +280,7 @@ namespace Sandbox.VoxelFun
 
 				LoadChunk(chunkCoordinate);
 			}
+			*/
 		}
 
 		Result<void> LoadChunkFromFile(Point3 chunkCoordinate, Chunk outChunk)
@@ -304,7 +338,7 @@ namespace Sandbox.VoxelFun
 
 			GeneratorSettings settings = .();
 			//settings.ElevationFrequency
-
+			
 			let groundNoise = scope FastNoiseLite.FastNoiseLite();
 			groundNoise.SetFractalType(.FBm);
 			groundNoise.SetFractalOctaves(settings.ElevationOctaves);

@@ -5,18 +5,18 @@ namespace GlitchyEngine.Math
 	[SwizzleVector(3)]
 	public struct Vector3
 	{
-		public const Vector3 Zero 	= .(0f, 0f, 0f);
-		public const Vector3 UnitX 	= .(1f, 0f, 0f);
-		public const Vector3 UnitY 	= .(0f, 1f, 0f);
-		public const Vector3 UnitZ 	= .(0f, 0f, 1f);
-		public const Vector3 One 		= .(1f, 1f, 1f);
+		public const Vector3 Zero     = .(0f, 0f, 0f);
+		public const Vector3 UnitX    = .(1f, 0f, 0f);
+		public const Vector3 UnitY    = .(0f, 1f, 0f);
+		public const Vector3 UnitZ    = .(0f, 0f, 1f);
+		public const Vector3 One      = .(1f, 1f, 1f);
 		
-		public const Vector3 Forward 	= .(0f, 0f, 1f);	
+		public const Vector3 Forward  = .(0f, 0f, 1f);	
 		public const Vector3 Backward = .(0f, 0f, -1f);	
-		public const Vector3 Left 	= .(-1f, 0f, 0f); 	
-		public const Vector3 Right 	= .(1f, 0f, 0f);  	
-		public const Vector3 Up 		= .(0f, 1f, 0f); 	
-		public const Vector3 Down 	= .(0f, -1f, 0f);
+		public const Vector3 Left     = .(-1f, 0f, 0f); 	
+		public const Vector3 Right    = .(1f, 0f, 0f);  	
+		public const Vector3 Up       = .(0f, 1f, 0f); 	
+		public const Vector3 Down     = .(0f, -1f, 0f);
 
 		public float X, Y, Z;
 
@@ -77,6 +77,9 @@ namespace GlitchyEngine.Math
 			return X * X + Y * Y + Z * Z;
 		}
 		
+		/**
+		 * Normalizes this vector.
+		 */
 		[Checked]
 		public void Normalize() mut
 		{
@@ -86,9 +89,32 @@ namespace GlitchyEngine.Math
 			this /= Magnitude();
 		}
 
+		/**
+		 * Normalizes this vector.
+		 */
 		public void Normalize() mut
 		{
 			this /= Magnitude();
+		}
+		
+		/**
+		 * Returns a copy of this Vector with a magnitude of 1.
+		 */
+		[Checked]
+		public Vector3 Normalized()
+		{
+			if(this == .Zero)
+				return .Zero;
+
+			return this / Magnitude();
+		}
+
+		/**
+		 * Returns a copy of this Vector with a magnitude of 1.
+		 */
+		public Vector3 Normalized()
+		{
+			return this / Magnitude();
 		}
 
 		public static Vector3 Normalize(Vector3 v)
@@ -123,6 +149,11 @@ namespace GlitchyEngine.Math
 		public static Vector3 Reject(Vector3 a, Vector3 b)
 		{
 			return (a - b * (Dot(a, b) / Dot(b, b)));
+		}
+
+		public static Vector3 Floor(Vector3 value)
+		{
+			return .(Math.Floor(value.X), Math.Floor(value.Y), Math.Floor(value.Z));
 		}
 
 		//
@@ -238,6 +269,14 @@ namespace GlitchyEngine.Math
 		}
 
 		public static Vector3 operator /(float scalar, Vector3 value) => Vector3(scalar / value.X, scalar / value.Y, scalar / value.Z);
+		
+		// Modulo
+
+		public static Vector3 operator %(Vector3 left, Vector3 right) => Vector3(left.X % right.X, left.Y % right.Y, left.Z % right.Z);
+
+		public static Vector3 operator %(Vector3 value, float scalar) => Vector3(value.X % scalar, value.Y % scalar, value.Z % scalar);
+
+		public static Vector3 operator %(float scalar, Vector3 value) => Vector3(scalar % value.X, scalar % value.Y, scalar % value.Z);
 
 		// Equality
 
