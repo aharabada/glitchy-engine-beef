@@ -380,7 +380,7 @@ namespace Sandbox.VoxelFun
 				Renderer.Submit(_quadGeometryBinding, _effect, transform);
 			}
 			
-			_effect.Variables["BaseColor"].SetData(_squareColor1);
+			//_effect.Variables["BaseColor"].SetData(_squareColor1);
 			
 			_texture.Bind();
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
@@ -391,8 +391,6 @@ namespace Sandbox.VoxelFun
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
 
 			//Ray ray = .(.(0.5f, 128.5f, 0.5f), .(0, -0.1f, -0.1f));
-
-			_effect.Variables["BaseColor"].SetData(.Red);
 
 			_texture.Bind();
 
@@ -415,14 +413,20 @@ namespace Sandbox.VoxelFun
 			Renderer.Submit(_lineGeometryBinding, _textureEffect, mat3);
 
 			//Point3 lookedAtBlock = _world.RaycastBlock(ray, 10, _cubeGeo, _textureEffect);
-			Point3 lookedAtBlock = _world.RaycastBlock(.(_camera.Position, _camera.Transform.Forward), 10, _cubeGeo, _textureEffect);
+			Point3 lookedAtBlock = _world.RaycastBlock(.(_camera.Position, _camera.Transform.Forward), 10, _cubeGeo, _textureEffect, let intersection, let intersectFace);
+
+			intersectFace.ToString(intersectedFaceName..Clear());
 			
 			Renderer.Submit(_cubeGeo, _textureEffect, .Translation((Vector3)lookedAtBlock));
+			
+			Renderer.Submit(_cubeGeo, _textureEffect, .Translation(intersection) * .Scaling(0.1f) * .Translation(-0.5f, -0.5f, -0.5f));
 
 			_world.ChunkManager.Draw();
 
 			Renderer.EndScene();
 		}
+
+		String intersectedFaceName = new String() ~ delete _;
 
 		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
 		ColorRGBA _squareColor1;
@@ -449,6 +453,8 @@ namespace Sandbox.VoxelFun
 			_world.ChunkManager.OnImGuiRender();
 
 			ImGui.Begin("Test");
+
+			ImGui.LabelText("Intersected Face", intersectedFaceName);
 
 			ImGui.DragFloat("Slow Speed", &movementSpeed, 1.0f, 0.01f, 100.0f);
 			ImGui.DragFloat("Fast Speed", &movementSpeedFast, 1.0f, 1f, 10000.0f);

@@ -181,7 +181,7 @@ namespace Sandbox.VoxelFun
 			return Vector3.Floor(chunkPosition);
 		}
 
-		public Point3 RaycastBlock(Ray ray, float maxDistance, GeometryBinding geo, Effect effect)
+		public Point3 RaycastBlock(Ray ray, float maxDistance, GeometryBinding geo, Effect effect, out Vector3 intersectionPosition, out BlockFace intersectionFace)
 		{
 			Vector3 start = ray.Start;
 			Vector3 dir = ray.Direction.Normalized();
@@ -194,35 +194,45 @@ namespace Sandbox.VoxelFun
 
 			Point3 step;
 
+			BlockFace xFace;
+			BlockFace yFace;
+			BlockFace zFace;
+
 			if(dir.X < 0)
 			{
+				xFace = .Right;
 				step.X = -1;
 				rayLengths.X = (start.X - (float)(walker.X)) * unitStepSize.X;
 			}
 			else
 			{
+				xFace = .Left;
 				step.X = 1;
 				rayLengths.X = ((float)(walker.X + 1) - start.X) * unitStepSize.X;
 			}
 
 			if(dir.Y < 0)
 			{
+				yFace = .Top;
 				step.Y = -1;
 				rayLengths.Y = (start.Y - (float)(walker.Y)) * unitStepSize.Y;
 			}
 			else
 			{
+				yFace = .Bottom;
 				step.Y = 1;
 				rayLengths.Y = ((float)(walker.Y + 1) - start.Y) * unitStepSize.Y;
 			}
 			
 			if(dir.Z < 0)
 			{
+				zFace = .Back;
 				step.Z = -1;
 				rayLengths.Z = (start.Z - (float)(walker.Z)) * unitStepSize.Z;
 			}
 			else
 			{
+				zFace = .Front;
 				step.Z = 1;
 				rayLengths.Z = ((float)(walker.Z + 1) - start.Z) * unitStepSize.Z;
 			}
@@ -238,12 +248,16 @@ namespace Sandbox.VoxelFun
 						walker.X += step.X;
 						distance = rayLengths.X;
 						rayLengths.X += unitStepSize.X;
+
+						intersectionFace = xFace;
 					}
 					else
 					{
 						walker.Z += step.Z;
 						distance = rayLengths.Z;
 						rayLengths.Z += unitStepSize.Z;
+
+						intersectionFace = zFace;
 					}
 				}
 				else
@@ -253,12 +267,16 @@ namespace Sandbox.VoxelFun
 						walker.Y += step.Y;
 						distance = rayLengths.Y;
 						rayLengths.Y += unitStepSize.Y;
+
+						intersectionFace = yFace;
 					}
 					else
 					{
 						walker.Z += step.Z;
 						distance = rayLengths.Z;
 						rayLengths.Z += unitStepSize.Z;
+
+						intersectionFace = zFace;
 					}
 				}
 
@@ -272,11 +290,15 @@ namespace Sandbox.VoxelFun
 
 				if(blockData != 0)
 				{
+					intersectionPosition = start + distance * dir;
+
 					return walker;
 				}
 				
 			}
 
+			intersectionFace = .None;
+			intersectionPosition = .(float.NaN);
 			return .(int.MaxValue, int.MaxValue, int.MaxValue);
 		}
 	}
