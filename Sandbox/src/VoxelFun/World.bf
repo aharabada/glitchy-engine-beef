@@ -97,11 +97,11 @@ namespace Sandbox.VoxelFun
 		}
 
 		/*
-		public Point3 GetChunkCoordinate(Vector3 blockPosition)
+		public Int32_3 GetChunkCoordinate(Vector3 blockPosition)
 		{
 			Vector3 v = blockPosition / (Vector3)VoxelChunk.Size;
 
-			Point3 p = .();
+			Int32_3 p = .();
 			p.X = (int)Math.Round(v.X);
 			p.Y = (int)Math.Round(v.Y);
 			p.Z = (int)Math.Round(v.Z);
@@ -125,9 +125,9 @@ namespace Sandbox.VoxelFun
 		/**
 		 * Calculates the coordinate of the chunk that contains the given block coordinate.
 		 */
-		public Point3 ChunkCoordFromBlockCoord(Point3 blockCoordinate)
+		public Int32_3 ChunkCoordFromBlockCoord(Int32_3 blockCoordinate)
 		{
-			Point3 coordinate = blockCoordinate;
+			Int32_3 coordinate = blockCoordinate;
 
 			if(coordinate.X < 0)
 				coordinate.X -= VoxelChunk.Size.X;
@@ -146,9 +146,9 @@ namespace Sandbox.VoxelFun
 		 * For Example: Consider the block at the global location of (25, 17, -12)
 		 * The coordinate of this block inside its chunk would be (9, 17, 4) because the chunk starts at (16, 0, -16)
 		 */
-		public Point3 BlockCoordInChunk(Point3 blockCoordinate)
+		public Int32_3 BlockCoordInChunk(Int32_3 blockCoordinate)
 		{
-			Point3 chunkPosition = blockCoordinate % VoxelChunk.Size;
+			Int32_3 chunkPosition = blockCoordinate % VoxelChunk.Size;
 
 			if(chunkPosition.X < 0)
 				chunkPosition.X += VoxelChunk.Size.X;
@@ -181,18 +181,18 @@ namespace Sandbox.VoxelFun
 			return Vector3.Floor(chunkPosition);
 		}
 
-		public Point3 RaycastBlock(Ray ray, float maxDistance, GeometryBinding geo, Effect effect, out Vector3 intersectionPosition, out BlockFace intersectionFace)
+		public Int32_3 RaycastBlock(Ray ray, float maxDistance, GeometryBinding geo, Effect effect, out Vector3 intersectionPosition, out BlockFace intersectionFace)
 		{
 			Vector3 start = ray.Start;
 			Vector3 dir = ray.Direction.Normalized();
 
 			Vector3 unitStepSize = .((dir / dir.X).Magnitude(), (dir / dir.Y).Magnitude(), (dir / dir.Z).Magnitude());
 
-			Point3 walker = (Point3)Vector3.Floor(start);
+			Int32_3 walker = (Int32_3)Vector3.Floor(start);
 
 			Vector3 rayLengths = .();
 
-			Point3 step;
+			Int32_3 step;
 
 			BlockFace xFace;
 			BlockFace yFace;
@@ -280,11 +280,11 @@ namespace Sandbox.VoxelFun
 					}
 				}
 
-				Point3 chunkCoordinate = ChunkCoordFromBlockCoord(walker);
+				Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(walker);
 
 				Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
 
-				Point3 coordInChunk = BlockCoordInChunk(walker);
+				Int32_3 coordInChunk = BlockCoordInChunk(walker);
 
 				uint8 blockData = chunk.Data.Data[coordInChunk.X][coordInChunk.Y][coordInChunk.Z];
 
@@ -299,7 +299,7 @@ namespace Sandbox.VoxelFun
 
 			intersectionFace = .None;
 			intersectionPosition = .(float.NaN);
-			return .(int.MaxValue, int.MaxValue, int.MaxValue);
+			return .(int32.MaxValue, int32.MaxValue, int32.MaxValue);
 		}
 	}
 }

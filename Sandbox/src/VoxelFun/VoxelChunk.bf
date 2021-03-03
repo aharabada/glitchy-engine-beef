@@ -8,7 +8,7 @@ namespace Sandbox.VoxelFun
 		public const int SizeY = 256;
 		public const int SizeZ = 16;
 
-		public const Point3 Size = .(SizeX, SizeY, SizeZ);
+		public const Int32_3 Size = .(SizeX, SizeY, SizeZ);
 		public const Vector3 VectorSize = .(SizeX, SizeY, SizeZ);
 
 		public uint8[SizeX][SizeY][SizeZ] Data;

@@ -16,53 +16,7 @@ namespace Sandbox.VoxelFun
 		public GeometryBinding Geometry ~ _?.ReleaseRef();
 		public VoxelChunk Data;
 		public Matrix Transform;
-		public Point3 Position;
-	}
-
-	public struct Point3 : IHashable
-	{
-		public int X, Y, Z;
-
-		public this() => this = default;
-
-		public this(int x, int y, int z)
-		{
-			X = x;
-			Y = y;
-			Z = z;
-		}
-
-		public int GetHashCode()
-		{
-			return (((X * 39) ^ Y) * 39) ^ Z;
-		}
-
-		public static int DistanceSq(Point3 value1, Point3 value2)
-		{
-			int dstX = value1.X - value2.X;
-			int dstY = value1.Y - value2.Y;
-			int dstZ = value1.Z - value2.Z;
-
-			return dstX * dstX + dstY * dstY + dstZ * dstZ;
-		}
-
-		public static Point3 operator +(Point3 left, Point3 right) => .(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
-		public static Point3 operator -(Point3 left, Point3 right) => .(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
-		public static Point3 operator *(Point3 left, Point3 right) => .(left.X * right.X, left.Y * right.Y, left.Z * right.Z);
-		public static Point3 operator /(Point3 left, Point3 right) => .(left.X / right.X, left.Y / right.Y, left.Z / right.Z);
-		public static Point3 operator %(Point3 left, Point3 right) => .(left.X % right.X, left.Y % right.Y, left.Z % right.Z);
-
-		public Point3 Abs()
-		{
-			return .(Math.Abs(X), Math.Abs(Y), Math.Abs(Z));
-		}
-
-		public static explicit operator Vector3(Point3 point) => .(point.X, point.Y, point.Z);
-
-		public static explicit operator Point3(Vector3 point) => .((int)point.X, (int)point.Y, (int)point.Z);
-
-		public static bool operator ==(Point3 left, Point3 right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z;
-		public static bool operator !=(Point3 left, Point3 right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
+		public Int32_3 Position;
 	}
 
 	public class ChunkManager
@@ -74,7 +28,7 @@ namespace Sandbox.VoxelFun
 
 		private String _chunkBasePath ~ delete _;
 
-		Dictionary<Point3, Chunk> _chunks = new .() ~ DeleteDictionaryAndValues!(_);
+		Dictionary<Int32_3, Chunk> _chunks = new .() ~ DeleteDictionaryAndValues!(_);
 
 		public Texture2D Texture ~ _?.ReleaseRef();
 		public Effect TextureEffect ~ _?.ReleaseRef();
@@ -85,8 +39,8 @@ namespace Sandbox.VoxelFun
 		bool stopChunkLoader;
 		Monitor chunkListLock = new Monitor() ~ delete _;
 
-		Point3 chunkPosition;
-		Point3 oldChunkPosition = .(Int.MaxValue, Int.MaxValue, Int.MaxValue);
+		Int32_3 chunkPosition;
+		Int32_3 oldChunkPosition = .(Int.MaxValue, Int.MaxValue, Int.MaxValue);
 
 		Monitor chunkPosLock = new Monitor() ~ delete _;
 
@@ -125,7 +79,7 @@ namespace Sandbox.VoxelFun
 		 * Returns whether or not the chunk with the given coordinate is currently loaded.
 		 */
 		[Inline]
-		public bool IsChunkLoaded(Point3 chunkCoordinate)
+		public bool IsChunkLoaded(Int32_3 chunkCoordinate)
 		{
 			using(chunkListLock.Enter())
 			{
@@ -137,7 +91,7 @@ namespace Sandbox.VoxelFun
 		 * Returns the chunk with the given chunk coordinate or null if the chunk isn't loaded.
 		 */
 		[Inline]
-		public Chunk GetChunk(Point3 chunkCoordinate)
+		public Chunk GetChunk(Int32_3 chunkCoordinate)
 		{
 			using(chunkListLock.Enter())
 			{
@@ -148,7 +102,7 @@ namespace Sandbox.VoxelFun
 		/**
 		 * Loads and returns the chunk with the given coordinate. If the chunk doesn't exist it will be generated.
 		 */
-		public Chunk LoadChunk(Point3 chunkCoordinate)
+		public Chunk LoadChunk(Int32_3 chunkCoordinate)
 		{
 			Chunk chunk = GetChunk(chunkCoordinate);
 
@@ -175,7 +129,7 @@ namespace Sandbox.VoxelFun
 			return chunk;
 		}
 
-		void SetChunkPos(Point3 chunkPos)
+		void SetChunkPos(Int32_3 chunkPos)
 		{
 			chunkPosLock.Enter();
 
@@ -191,7 +145,7 @@ namespace Sandbox.VoxelFun
 		{
 			Vector3 chunkPosition = cameraPosition / .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
 
-			Point3 p = (Point3)chunkPosition;
+			Int32_3 p = (Int32_3)chunkPosition;
 			p.Y = 0;
 
 			SetChunkPos(p);
@@ -202,8 +156,8 @@ namespace Sandbox.VoxelFun
 		 */
 		void ChunkLoaderThread_Entry()
 		{
-			Point3 curChunkPosition = .(0, 0, 0);
-			Point3 oldChunkPosition = .(Int.MaxValue, Int.MaxValue, Int.MaxValue);
+			Int32_3 curChunkPosition = .(0, 0, 0);
+			Int32_3 oldChunkPosition = .(Int.MaxValue, Int.MaxValue, Int.MaxValue);
 
 			while(!stopChunkLoader)
 			{
@@ -225,11 +179,11 @@ namespace Sandbox.VoxelFun
 			}
 		}
 
-		public void ChunkLoaderThread_GenerateChunks(Point3 chunkPos)
+		public void ChunkLoaderThread_GenerateChunks(Int32_3 chunkPos)
 		{
 			for(var chunk in _chunks)
 			{
-				Point3 dist = (chunk.key - chunkPos).Abs();
+				Int32_3 dist = (chunk.key - chunkPos).Abs();
 
 				if(dist.X > _viewDistance || dist.Z > _viewDistance)
 				{
@@ -247,25 +201,25 @@ namespace Sandbox.VoxelFun
 			{
 				for(; x < r; x++)
 				{
-					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
 					LoadChunk(chunkCoordinate);
 				}
 
 				for(; z < r; z++)
 				{
-					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
 					LoadChunk(chunkCoordinate);
 				}
 
 				for(; x > -r; x--)
 				{
-					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
 					LoadChunk(chunkCoordinate);
 				}
 				
 				for(; z > -r; z--)
 				{
-					Point3 chunkCoordinate = (Point3)chunkPos + .(x, 0, z);
+					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
 					LoadChunk(chunkCoordinate);
 				}
 			}
@@ -276,14 +230,14 @@ namespace Sandbox.VoxelFun
 			for(int z = -_viewDistance; z < _viewDistance; z++)
 			{
 				int y = 0;
-				Point3 chunkCoordinate = (Point3)chunkPos + .(x, y, z);
+				Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, y, z);
 
 				LoadChunk(chunkCoordinate);
 			}
 			*/
 		}
 
-		Result<void> LoadChunkFromFile(Point3 chunkCoordinate, Chunk outChunk)
+		Result<void> LoadChunkFromFile(Int32_3 chunkCoordinate, Chunk outChunk)
 		{
 			String chunkFileName = scope String(_chunkBasePath);
 			chunkFileName.AppendF($"{chunkCoordinate.X}_{chunkCoordinate.Y}_{chunkCoordinate.Z}.cdata");
@@ -302,7 +256,7 @@ namespace Sandbox.VoxelFun
 			return .Ok;
 		}
 
-		Result<void> SaveChunkToFile(Point3 chunkCoordinate, Chunk outChunk)
+		Result<void> SaveChunkToFile(Int32_3 chunkCoordinate, Chunk outChunk)
 		{
 			String chunkFileName = scope String(_chunkBasePath);
 			chunkFileName.AppendF($"{chunkCoordinate.X}_{chunkCoordinate.Y}_{chunkCoordinate.Z}.cdata");

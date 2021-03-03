@@ -390,43 +390,27 @@ namespace Sandbox.VoxelFun
 			_ge_logo.Bind();
 			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
 
-			//Ray ray = .(.(0.5f, 128.5f, 0.5f), .(0, -0.1f, -0.1f));
-
 			_texture.Bind();
 
-			Matrix mat = .Translation(ray.Start);
+			intersectInfo.Coordinate = _world.RaycastBlock(.(_camera.Position, _camera.Transform.Forward), 10, _cubeGeo, _textureEffect, out intersectInfo.Location, out intersectInfo.Face);
 
-			Matrix mat2 = .Identity;
-			mat2.Up = .(0, 1, 0);
-
-			mat2.Forward = ray.Direction;
-			mat2.Forward.Normalize();
+			Renderer.Submit(_cubeGeo, _textureEffect, .Translation((Vector3)intersectInfo.Coordinate));
 			
-			mat2.Right = Vector3.Cross(mat2.Up, mat2.Forward);
-			mat2.Right.Normalize();
-			
-			mat2.Up = Vector3.Cross(mat2.Forward, mat2.Right);
-			mat2.Up.Normalize();
-
-			Matrix mat3 = mat * mat2;
-
-			Renderer.Submit(_lineGeometryBinding, _textureEffect, mat3);
-
-			//Point3 lookedAtBlock = _world.RaycastBlock(ray, 10, _cubeGeo, _textureEffect);
-			Point3 lookedAtBlock = _world.RaycastBlock(.(_camera.Position, _camera.Transform.Forward), 10, _cubeGeo, _textureEffect, let intersection, let intersectFace);
-
-			intersectFace.ToString(intersectedFaceName..Clear());
-			
-			Renderer.Submit(_cubeGeo, _textureEffect, .Translation((Vector3)lookedAtBlock));
-			
-			Renderer.Submit(_cubeGeo, _textureEffect, .Translation(intersection) * .Scaling(0.1f) * .Translation(-0.5f, -0.5f, -0.5f));
+			Renderer.Submit(_cubeGeo, _textureEffect, .Translation(intersectInfo.Location) * .Scaling(0.1f) * .Translation(-0.5f.XXX));
 
 			_world.ChunkManager.Draw();
 
 			Renderer.EndScene();
 		}
 
-		String intersectedFaceName = new String() ~ delete _;
+		struct IntersectionInfo
+		{
+			public Int32_3 Coordinate;
+			public Vector3 Location;
+			public BlockFace Face;
+		}
+
+		IntersectionInfo intersectInfo;
 
 		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
 		ColorRGBA _squareColor1;
@@ -454,7 +438,7 @@ namespace Sandbox.VoxelFun
 
 			ImGui.Begin("Test");
 
-			ImGui.LabelText("Intersected Face", intersectedFaceName);
+			ImGui.LabelText("Looked at block", $"Coord: {intersectInfo.Coordinate}, Block Face: {intersectInfo.Face}, Location: {intersectInfo.Location}");
 
 			ImGui.DragFloat("Slow Speed", &movementSpeed, 1.0f, 0.01f, 100.0f);
 			ImGui.DragFloat("Fast Speed", &movementSpeedFast, 1.0f, 1f, 10000.0f);
@@ -472,11 +456,6 @@ namespace Sandbox.VoxelFun
 			ImGui.ColorEdit3("Square Color", ref _squareColor0);
 
 			_squareColor1 = ColorRGBA.White - _squareColor0;
-
-
-			ImGui.DragFloat3("Ray Position", *(float[3]*)(void*)&ray.Start, 0.1f, float.NegativeInfinity, float.PositiveInfinity);
-
-			ImGui.DragFloat3("Ray Direction", *(float[3]*)(void*)&ray.Direction, 0.001f, -1f, 1.0f);
 
 			_camera.Position = camPos;
 
