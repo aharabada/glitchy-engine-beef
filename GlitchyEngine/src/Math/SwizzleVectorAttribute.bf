@@ -12,9 +12,12 @@ namespace GlitchyEngine.Math
 
 		public int VectorSize => _vectorSize;
 
-		this(int vectorSize)
+		private String _vectorTypeName;
+
+		this(int vectorSize, String vectorTypeName)
 		{
 			_vectorSize = vectorSize;
+			_vectorTypeName = vectorTypeName;
 		}
 
 		/**
@@ -70,7 +73,7 @@ namespace GlitchyEngine.Math
 					//{(setterInvalid ? "[Error(\"Cannot assign multiple values to same component.\")]" : String.Empty)}		
 
 					String swizzleString = scope $"""
-						public Vector{swizzleCount} {swizzleName}
+						public {_vectorTypeName}{swizzleCount} {swizzleName}
 						{{
 							get => .({swizzleConstructor});
 							set mut
