@@ -8,6 +8,8 @@ using System.Collections;
 using GlitchyEngine.ImGui;
 using ImGui;
 using System.IO;
+using GlitchyEngine;
+using GlitchyEngine.Threading;
 
 namespace Sandbox.VoxelFun
 {
@@ -30,6 +32,9 @@ namespace Sandbox.VoxelFun
 
 		Dictionary<Int32_3, Chunk> _chunks = new .() ~ DeleteDictionaryAndValues!(_);
 
+		private HashSet<Int32_3> _generatingChunks = new .() ~ delete _;
+		private Monitor _generatingChunksLock = new .() ~ delete _;
+
 		public Texture2D Texture ~ _?.ReleaseRef();
 		public Effect TextureEffect ~ _?.ReleaseRef();
 		
@@ -47,6 +52,11 @@ namespace Sandbox.VoxelFun
 		Monitor chunkPosChanged = new Monitor()..Enter() ~ delete _;
 
 		public World World => _world;
+		
+		public delegate void ChunkLoadedHandler(Int32_3 chunkCoordinate);
+
+		Event<ChunkLoadedHandler> _chunkLoaded ~ _.Dispose();
+		Monitor _chunkLoadedLock = new Monitor() ~ delete _;
 		
 		public this(GraphicsContext context, VertexLayout vertexLayout, World world)
 		{
@@ -101,28 +111,91 @@ namespace Sandbox.VoxelFun
 		
 		/**
 		 * Loads and returns the chunk with the given coordinate. If the chunk doesn't exist it will be generated.
+		 * @param chunkCoordinate The coordinate of the chunk to load.
+		 * @param noBlocking If set to true this method will not wait if the chunk cannot be loaded right now (because it is currently being loaded by another thread);
+		 *					 otherwise the method will block until the chunk has been loaded.
+		 * @returns The loaded chunk. If noBlocking is set to true and the chunk cannot be obtained right now the return value will be null.
 		 */
-		public Chunk LoadChunk(Int32_3 chunkCoordinate)
+		public Chunk LoadChunk(Int32_3 chunkCoordinate, bool noBlocking = false)
 		{
 			Chunk chunk = GetChunk(chunkCoordinate);
 
 			if(chunk == null)
 			{
-				chunk = new Chunk();
-				chunk.Position = chunkCoordinate * .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
-				chunk.Transform = .Translation(chunk.Position.X, chunk.Position.Y, chunk.Position.Z);
-
-				if(LoadChunkFromFile(chunkCoordinate, chunk) case .Err)
+				// Add chunk coordinate to generating list
+				// If it could be added, we have to generate it ourselves, otherwise we have to wait for the other thread to finish.
+				bool alreadyInList = false;
+				using(_generatingChunksLock.Enter())
 				{
-					GenTestChunk(chunk);
-					SaveChunkToFile(chunkCoordinate, chunk);
+					alreadyInList = !_generatingChunks.Add(chunkCoordinate);
 				}
 
-				GenChunkGeo(chunk);
-				
-				using(chunkListLock.Enter())
+				if(!alreadyInList)
 				{
-					_chunks.Add(chunkCoordinate, chunk);
+					chunk = new Chunk();
+					chunk.Position = chunkCoordinate * .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
+					chunk.Transform = .Translation(chunk.Position.X, chunk.Position.Y, chunk.Position.Z);
+
+					if(LoadChunkFromFile(chunkCoordinate, chunk) case .Err)
+					{
+						GenTestChunk(chunk);
+						SaveChunkToFile(chunkCoordinate, chunk);
+					}
+
+					GenChunkGeo(chunk);
+
+					using(chunkListLock.Enter())
+					{
+						if(!_chunks.TryAdd(chunkCoordinate, chunk))
+						{
+							chunk = LoadChunk(chunkCoordinate);
+						}
+					}
+
+					using(_generatingChunksLock.Enter())
+					{
+						_generatingChunks.Remove(chunkCoordinate);
+					}
+
+					// Raise chunk loaded event (this will wake up all calls of LoadChunk waiting for our chunk)
+					using(_chunkLoadedLock.Enter())
+					{
+						_chunkLoaded.Invoke(chunkCoordinate);
+					}
+				}
+				else if(!noBlocking)
+				{
+					Semaphore semaphore = new Semaphore(0);
+					defer delete semaphore;
+
+					// event handler will increase semaphore as soon as our requested chunk is loaded.
+					ChunkLoadedHandler eventHandler = scope (coordinate) =>
+						{
+							if(coordinate == chunkCoordinate)
+							{
+								semaphore.Unlock();
+							}
+						};
+
+					// register event listener
+					using(_chunkLoadedLock.Enter())
+					{
+						_chunkLoaded.Add(eventHandler);
+					}
+					
+					Log.ClientLogger.Trace($"Sleeping until chunk ({chunkCoordinate}) has been generated...");
+
+					// wait for semaphore to be released (in the event handler)
+					semaphore.Lock();
+
+					// unregister event handler
+					using(_chunkLoadedLock.Enter())
+					{
+						_chunkLoaded.Remove(eventHandler);
+					}
+
+					// retry loading the chunk
+					chunk = LoadChunk(chunkCoordinate);
 				}
 			}
 
@@ -194,47 +267,31 @@ namespace Sandbox.VoxelFun
 					}
 				}
 			}
-
-			int x = 0;
-			int z = 0;
+			
+			Int32_3 chunkCoordinate = (Int32_3)chunkPos;
+			int x = 0, z = 0;
 			for(int r = 1; r < _viewDistance; r++)
 			{
-				for(; x < r; x++)
+				for(; x < r; x++, chunkCoordinate.X++)
 				{
-					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
-					LoadChunk(chunkCoordinate);
+					LoadChunk(chunkCoordinate, true);
 				}
 
-				for(; z < r; z++)
+				for(; z < r; z++, chunkCoordinate.Z++)
 				{
-					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
-					LoadChunk(chunkCoordinate);
+					LoadChunk(chunkCoordinate, true);
 				}
 
-				for(; x > -r; x--)
+				for(; x > -r; x--, chunkCoordinate.X--)
 				{
-					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
-					LoadChunk(chunkCoordinate);
+					LoadChunk(chunkCoordinate, true);
 				}
 				
-				for(; z > -r; z--)
+				for(; z > -r; z--, chunkCoordinate.Z--)
 				{
-					Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, 0, z);
-					LoadChunk(chunkCoordinate);
+					LoadChunk(chunkCoordinate, true);
 				}
 			}
-
-			/*
-			for(int x = -_viewDistance; x < _viewDistance; x++)
-			//for(int y = -_viewDistance; y < _viewDistance; y++)
-			for(int z = -_viewDistance; z < _viewDistance; z++)
-			{
-				int y = 0;
-				Int32_3 chunkCoordinate = (Int32_3)chunkPos + .(x, y, z);
-
-				LoadChunk(chunkCoordinate);
-			}
-			*/
 		}
 
 		Result<void> LoadChunkFromFile(Int32_3 chunkCoordinate, Chunk outChunk)
