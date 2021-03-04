@@ -12,12 +12,30 @@ namespace GlitchyEngine
 	/// Windows (WinApi) specific implementation of the Input-class
 	extension Input
 	{
+		internal static bool sUseRawInput = true;
+
+		public override static bool RawInput
+		{
+			get => sUseRawInput;
+			set
+			{
+				if(sUseRawInput == value)
+					return;
+
+				sUseRawInput = value;
+
+				//if(sUseRawInput)
+					// TODO: init raw input
+			}
+		}
+
 		/// Represents the state of the input devices on the windows platform (WinApi that is).
 		struct WindowsInputState
 		{
 			public int8[256] KeyStates;
 			public Point CursorPosition;
 			public Point CursorPositionDifference;
+			public Int32_2 RawMovement;
 		}
 
 		static WindowsInputState* CurrentState = new WindowsInputState() ~ delete _;
@@ -152,6 +170,19 @@ namespace GlitchyEngine
 		
 		public override static Point GetMouseMovement() => CurrentState.CursorPositionDifference;
 
+		public override static Int32_2 GetRawMouseMovement()
+		{
+			if(sUseRawInput)
+			{
+				return CurrentState.RawMovement;
+			}
+			else
+			{
+				var v = GetMouseMovement();
+
+				return *(Int32_2*)&v;
+			}
+		}
 
 		//[CLink, CallingConvention(.Stdcall)]
 		//static extern int16 GetKeyState(int32 keycode);
@@ -159,6 +190,8 @@ namespace GlitchyEngine
 		static extern IntBool GetCursorPos(out Point p);
 		[CLink, CallingConvention(.Stdcall)]
 		static extern IntBool ScreenToClient(HWnd hWnd, ref Point p);
+
+		internal static Int32_2 rawMovement;
 
 		public override static void NewFrame()
 		{
@@ -192,6 +225,8 @@ namespace GlitchyEngine
 
 			// Calculate cursor movement
 			CurrentState.CursorPositionDifference = CurrentState.CursorPosition - LastState.CursorPosition;
+			CurrentState.RawMovement = rawMovement;
+			rawMovement = .Zero;
 		}
 	}
 #endif

@@ -9,6 +9,7 @@ using GlitchyEngine.Events;
 using System.Diagnostics;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
+using DirectX.Windows.Winuser.RawInput;
 using static System.Windows;
 
 namespace GlitchyEngine
@@ -215,6 +216,41 @@ namespace GlitchyEngine
 			LoadWindowRectangle();
 
 			Log.EngineLogger.Trace($"Created window \"{Title}\" ({Width}, {Height})");
+
+			if(Input.RawInput)
+			{
+				InitRawInput();
+			}
+		}
+
+		[CLink, CallingConvention(.Stdcall)]
+		static extern IntBool RegisterRawInputDevices(RAWINPUTDEVICE* rawInputDevices, uint32 numDevices, uint32 size);
+
+		private void InitRawInput()
+		{
+			RAWINPUTDEVICE[1] Rid;
+			        
+			Rid[0].UsagePage = 0x01;          // HID_USAGE_PAGE_GENERIC
+			Rid[0].Usage = 0x02;              // HID_USAGE_GENERIC_MOUSE
+			Rid[0].Flags = 0;//RIDEV_NOLEGACY;    // adds mouse and also ignores legacy mouse messages
+			Rid[0].Target = 0;
+			/*
+			Rid[1].UsagePage = 0x01;          // HID_USAGE_PAGE_GENERIC
+			Rid[1].Usage = 0x06;              // HID_USAGE_GENERIC_KEYBOARD
+			Rid[1].Flags = RIDEV_NOLEGACY;    // adds keyboard and also ignores legacy keyboard messages
+			Rid[1].Target = 0;
+			*/
+			if (!RegisterRawInputDevices(&Rid, Rid.Count, sizeof(RAWINPUTDEVICE)))
+			{
+				DirectX.Common.HResult errorCode = (.)GetLastError();
+				Log.EngineLogger.Error($"Failed to register raw input devices. Message({(int32)errorCode}):{errorCode}");
+				// Disable raw input
+				Input.RawInput = false;
+			}
+			else
+			{
+				Log.EngineLogger.Trace($"Registered raw input devices.");
+			}
 		}
 
 		private bool _isResizingOrMoving;
@@ -438,9 +474,126 @@ namespace GlitchyEngine
 
 					return 0;
 				}
+				// Raw Input
+			case 0x00FF: //WM_INPUT
+				{
+					uint32 dataSize = ?;
+					GetRawInputData((.)lParam, RID_INPUT, null, &dataSize, sizeof(RAWINPUTHEADER));
+
+					if (dataSize > 0)
+					{
+						uint8[] rawData = scope .[dataSize];
+						if (GetRawInputData((.)lParam, RID_INPUT, rawData.CArray(), &dataSize, sizeof(RAWINPUTHEADER)) == dataSize)
+						{
+							RAWINPUT* raw = (.)rawData.CArray();
+							if (raw.Header.Type == RIM_TYPEMOUSE)
+							{
+								int32 movementX = raw.Data.Mouse.lLastX;
+								int32 movementY = raw.Data.Mouse.lLastY;
+					
+								// TODO: raw.Data.Mouse.usFlags defines whether movement is abosulte, relative, etc...
+								Input.[Friend]rawMovement += .(movementX, movementY);
+								/*
+								var event = scope MouseMovedEvent(movementX, movementY);
+								window._eventCallback(event);
+								
+								// Convert button transition flags to a more manageable type
+								var buttonTransitions = (RawMouseButtonTransition)raw.Data.Mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonFlags;
+
+								if(buttonTransitions.HasFlag(.LeftDown))
+								{
+									var buttonEvent = scope MouseButtonPressedEvent(.LeftButton);
+									window._eventCallback(buttonEvent);
+								}
+								else if(buttonTransitions.HasFlag(.LeftUp))
+								{
+									var buttonEvent = scope MouseButtonReleasedEvent(.LeftButton);
+									window._eventCallback(buttonEvent);
+								}
+
+								if(buttonTransitions.HasFlag(.RightDown))
+								{
+									var buttonEvent = scope MouseButtonPressedEvent(.RightButton);
+									window._eventCallback(buttonEvent);
+								}
+								else if(buttonTransitions.HasFlag(.RightUp))
+								{
+									var buttonEvent = scope MouseButtonReleasedEvent(.RightButton);
+									window._eventCallback(buttonEvent);
+								}
+
+								if(buttonTransitions.HasFlag(.MiddleDown))
+								{
+									var buttonEvent = scope MouseButtonPressedEvent(.MiddleButton);
+									window._eventCallback(buttonEvent);
+								}
+								else if(buttonTransitions.HasFlag(.MiddleUp))
+								{
+									var buttonEvent = scope MouseButtonReleasedEvent(.MiddleButton);
+									window._eventCallback(buttonEvent);
+								}
+
+								if(buttonTransitions.HasFlag(.XButton1Down))
+								{
+									var buttonEvent = scope MouseButtonPressedEvent(.XButton1);
+									window._eventCallback(buttonEvent);
+								}
+								else if(buttonTransitions.HasFlag(.XButton1Up))
+								{
+									var buttonEvent = scope MouseButtonReleasedEvent(.XButton1);
+									window._eventCallback(buttonEvent);
+								}
+
+								if(buttonTransitions.HasFlag(.XButton2Down))
+								{
+									var buttonEvent = scope MouseButtonPressedEvent(.XButton2);
+									window._eventCallback(buttonEvent);
+								}
+								else if(buttonTransitions.HasFlag(.XButton2Up))
+								{
+									var buttonEvent = scope MouseButtonReleasedEvent(.XButton2);
+									window._eventCallback(buttonEvent);
+								}
+
+								if(buttonTransitions.HasFlag(.MouseWheel))
+								{
+									int32 rotation = raw.Data.Mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonData / WHEEL_DELTA;
+				
+									var scrollEvent = scope MouseScrolledEvent(0, rotation);
+									window._eventCallback(scrollEvent);
+								}
+
+								if(buttonTransitions.HasFlag(.MouseHWheel))
+								{
+									int32 rotation = raw.Data.Mouse.DUMMYUNIONNAME.DUMMYSTRUCTNAME.usButtonData / WHEEL_DELTA;
+				
+									var scrollEvent = scope MouseScrolledEvent(rotation, 0);
+									window._eventCallback(scrollEvent);
+								}
+								*/
+							}
+						}
+					}
+				}
 			}
 
 			return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+		}
+
+		enum RawMouseButtonTransition
+		{
+			LeftDown = 0x0001,
+			LeftUp = 0x0002,
+			MiddleDown = 0x0010,
+			MiddleUp = 0x0020,
+			RightDown = 0x0004,
+			RightUp = 0x0008,
+			XButton1Down = 0x0040,
+			XButton1Up = 0x0080,
+			XButton2Down = 0x0100,
+			XButton2Up = 0x0200,
+			MouseWheel = 0x0400,
+			MouseHWheel = 0x0800
 		}
 
 		public override void Update()

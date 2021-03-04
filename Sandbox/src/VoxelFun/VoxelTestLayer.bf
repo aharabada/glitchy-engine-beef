@@ -280,7 +280,7 @@ namespace Sandbox.VoxelFun
 				return;
 			}
 
-			let mouseMovement = Input.GetMouseMovement();
+			let mouseMovement = Input.GetRawMouseMovement();
 
 			if(mouseMovement.X == 0 && mouseMovement.Y == 0)
 				return;
