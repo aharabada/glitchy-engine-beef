@@ -398,6 +398,38 @@ namespace Sandbox.VoxelFun
 			
 			Renderer.Submit(_cubeGeo, _textureEffect, .Translation(intersectInfo.Location) * .Scaling(0.1f) * .Translation(-0.5f.XXX));
 
+			if(intersectInfo.Face != .None)
+			{
+				if(Input.IsMouseButtonPressing(.LeftButton))
+				{
+					_world.SetBlock(intersectInfo.Coordinate, 0);
+				}
+				else if(Input.IsMouseButtonPressing(.RightButton))
+				{
+					var newBlockCoord = intersectInfo.Coordinate;
+
+					switch(intersectInfo.Face)
+					{
+					case .Front:
+						newBlockCoord.Z--;
+					case .Back:
+						newBlockCoord.Z++;
+					case .Left:
+							newBlockCoord.X--;
+					case .Right:
+							newBlockCoord.X++;
+					case .Bottom:
+						newBlockCoord.Y--;
+					case .Top:
+						newBlockCoord.Y++;
+					default:
+						Log.ClientLogger.Error("Unknown block face.");
+					}
+
+					_world.SetBlock(newBlockCoord, 1);
+				}
+			}
+
 			_world.ChunkManager.Draw();
 
 			Renderer.EndScene();

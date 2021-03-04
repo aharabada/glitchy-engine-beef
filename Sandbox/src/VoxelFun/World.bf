@@ -280,13 +280,7 @@ namespace Sandbox.VoxelFun
 					}
 				}
 
-				Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(walker);
-
-				Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
-
-				Int32_3 coordInChunk = BlockCoordInChunk(walker);
-
-				uint8 blockData = chunk.Data.Data[coordInChunk.X][coordInChunk.Y][coordInChunk.Z];
+				uint8 blockData = [Inline]GetBlock(walker);
 
 				if(blockData != 0)
 				{
@@ -294,12 +288,41 @@ namespace Sandbox.VoxelFun
 
 					return walker;
 				}
-				
 			}
 
 			intersectionFace = .None;
 			intersectionPosition = .(float.NaN);
 			return .(int32.MaxValue, int32.MaxValue, int32.MaxValue);
+		}
+		
+		/**
+		 * Gets the block at the specified coordinate.
+		 * @remarks If the blocks chunk is not loaded it will be loaded from the disk.
+		 */
+		public void SetBlock(Int32_3 blockCoordinate, uint8 blockId)
+		{
+			Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(blockCoordinate);
+
+			Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
+			
+			Int32_3 coordInChunk = BlockCoordInChunk(blockCoordinate);
+
+			chunk.SetBlock(coordInChunk, blockId);
+		}
+
+		/**
+		 * Gets the block at the specified coordinate.
+		 * @remarks If the blocks chunk is not loaded it will be loaded from the disk.
+		 */
+		public uint8 GetBlock(Int32_3 blockCoordinate)
+		{
+			Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(blockCoordinate);
+
+			Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
+			
+			Int32_3 coordInChunk = BlockCoordInChunk(blockCoordinate);
+
+			return chunk.GetBlock(coordInChunk);
 		}
 	}
 }

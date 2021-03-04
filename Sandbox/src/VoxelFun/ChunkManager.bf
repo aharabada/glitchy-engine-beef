@@ -15,10 +15,48 @@ namespace Sandbox.VoxelFun
 {
 	public class Chunk
 	{
+		public ChunkManager ChunkManager;
 		public GeometryBinding Geometry ~ _?.ReleaseRef();
+
 		public VoxelChunk Data;
 		public Matrix Transform;
 		public Int32_3 Position;
+		public Int32_3 Coordinate;
+
+		private bool _isDirty;
+		private bool _isGeometryDirty;
+
+		public bool IsDirty => _isDirty;
+
+		public bool IsGeometryDirty
+		{
+			get => _isGeometryDirty;
+			set => _isGeometryDirty = value;
+		}
+
+		public void SetBlock(Int32_3 coordinate, uint8 blockId)
+		{
+			Log.EngineLogger.AssertDebug(coordinate.X >= 0 && coordinate.Y >= 0 && coordinate.Z >= 0 && coordinate.X < VoxelChunk.Size.X && coordinate.Y < VoxelChunk.Size.Y && coordinate.Z < VoxelChunk.Size.Z, "Specified coordinate is out of range.");
+
+			Data.Data[coordinate.X][coordinate.Y][coordinate.Z] = blockId;
+
+			_isDirty = true;
+			_isGeometryDirty = true;
+			ChunkManager.[Friend]chunkPosLock.Exit();
+		}
+
+		public uint8 GetBlock(Int32_3 coordinate)
+		{
+			Log.EngineLogger.AssertDebug(coordinate.X >= 0 && coordinate.Y >= 0 && coordinate.Z >= 0 && coordinate.X < VoxelChunk.Size.X && coordinate.Y < VoxelChunk.Size.Y && coordinate.Z < VoxelChunk.Size.Z, "Specified coordinate is out of range.");
+
+			return Data.Data[coordinate.X][coordinate.Y][coordinate.Z];
+		}
+
+		public void Serialize(Stream stream)
+		{
+			stream.Write(Data);
+			_isDirty = false;
+		}
 	}
 
 	public class ChunkManager
@@ -30,7 +68,7 @@ namespace Sandbox.VoxelFun
 
 		private String _chunkBasePath ~ delete _;
 
-		Dictionary<Int32_3, Chunk> _chunks = new .() ~ DeleteDictionaryAndValues!(_);
+		Dictionary<Int32_3, Chunk> _chunks = new .() ~ delete _;
 
 		private HashSet<Int32_3> _generatingChunks = new .() ~ delete _;
 		private Monitor _generatingChunksLock = new .() ~ delete _;
@@ -83,6 +121,12 @@ namespace Sandbox.VoxelFun
 			stopChunkLoader = true;
 
 			chunkLoader.Join();
+
+			// Unload (and save) all chunks
+			for(var pair in _chunks)
+			{
+				UnloadChunk(pair.value);
+			}
 		}
 
 		/**
@@ -133,13 +177,15 @@ namespace Sandbox.VoxelFun
 				if(!alreadyInList)
 				{
 					chunk = new Chunk();
+					chunk.ChunkManager = this;
+					chunk.Coordinate = chunkCoordinate;
 					chunk.Position = chunkCoordinate * .(VoxelChunk.SizeX, VoxelChunk.SizeY, VoxelChunk.SizeZ);
 					chunk.Transform = .Translation(chunk.Position.X, chunk.Position.Y, chunk.Position.Z);
 
 					if(LoadChunkFromFile(chunkCoordinate, chunk) case .Err)
 					{
 						GenTestChunk(chunk);
-						SaveChunkToFile(chunkCoordinate, chunk);
+						SaveChunkToFile(chunk);
 					}
 
 					GenChunkGeo(chunk);
@@ -243,12 +289,26 @@ namespace Sandbox.VoxelFun
 				}
 
 				// Position didn't change -> skip
-				if(curChunkPosition == oldChunkPosition)
-					continue;
+				//if(curChunkPosition == oldChunkPosition)
+				//	continue;
 
 				ChunkLoaderThread_GenerateChunks(curChunkPosition);
 
 				oldChunkPosition = curChunkPosition;
+			}
+		}
+
+		private void UnloadChunk(Chunk chunk)
+		{
+			if(chunk.IsDirty)
+			{
+				SaveChunkToFile(chunk);
+			}
+
+			using(chunkListLock.Enter())
+			{
+				_chunks.Remove(chunk.Coordinate);
+				delete chunk;
 			}
 		}
 
@@ -260,11 +320,11 @@ namespace Sandbox.VoxelFun
 
 				if(dist.X > _viewDistance || dist.Z > _viewDistance)
 				{
-					using(chunkListLock.Enter())
-					{
-						delete chunk.value;
-						_chunks.Remove(chunk.key);
-					}
+					UnloadChunk(chunk.value);
+				}
+				else if(chunk.value.IsGeometryDirty)
+				{
+					GenChunkGeo(chunk.value);
 				}
 			}
 			
@@ -313,16 +373,16 @@ namespace Sandbox.VoxelFun
 			return .Ok;
 		}
 
-		Result<void> SaveChunkToFile(Int32_3 chunkCoordinate, Chunk outChunk)
+		Result<void> SaveChunkToFile(Chunk chunk)
 		{
 			String chunkFileName = scope String(_chunkBasePath);
-			chunkFileName.AppendF($"{chunkCoordinate.X}_{chunkCoordinate.Y}_{chunkCoordinate.Z}.cdata");
+			chunkFileName.AppendF($"{chunk.Coordinate.X}_{chunk.Coordinate.Y}_{chunk.Coordinate.Z}.cdata");
 
 			FileStream fs = scope FileStream();
 
 			fs.Open(chunkFileName, FileMode.Create, .Write);
 
-			fs.Write(outChunk.Data);
+			chunk.Serialize(fs);
 
 			fs.Close();
 
@@ -463,8 +523,14 @@ namespace Sandbox.VoxelFun
 
 		void GenChunkGeo(Chunk chunk)
 		{
-			chunk.Geometry?.ReleaseRef();
-			chunk.Geometry = voxelGeoGen.GenerateGeometry(chunk.Data);
+			var oldGeometry = chunk.Geometry;
+
+			var newGeometry = voxelGeoGen.GenerateGeometry(chunk.Data);
+
+			Interlocked.Store(ref chunk.Geometry, newGeometry);
+			chunk.IsGeometryDirty = false;
+
+			oldGeometry?.ReleaseRef();
 		}
 
 		public void Draw()
@@ -474,12 +540,16 @@ namespace Sandbox.VoxelFun
 			{
 				Chunk chunk = pair.value;
 
-				if(chunk?.Geometry == null)
+				GeometryBinding chunkGeo = Interlocked.Load(ref chunk.Geometry);
+				chunkGeo.AddRef();
+
+				if(chunkGeo == null)
 					continue;
 
 				Texture.Bind();
 
 				Renderer.Submit(chunk.Geometry, TextureEffect, chunk.Transform);
+				chunkGeo.ReleaseRef();
 			}
 			chunkListLock.Exit();
 		}
