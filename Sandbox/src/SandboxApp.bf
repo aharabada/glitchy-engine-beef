@@ -59,9 +59,6 @@ namespace Sandbox
 
 		RasterizerState _rasterizerState ~ delete _;
 
-		Effect _effect ~ _?.ReleaseRef();
-		Effect _textureEffect ~ _?.ReleaseRef();
-
 		GraphicsContext _context ~ _?.ReleaseRef();
 
 		Texture2D _texture ~ _?.ReleaseRef();
@@ -69,6 +66,8 @@ namespace Sandbox
 
 		BlendState _alphaBlendState ~ _?.ReleaseRef();
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
+
+		EffectLibrary _effectLibrary ~ delete _;
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -80,13 +79,17 @@ namespace Sandbox
 		{
 			_context = Application.Get().Window.Context..AddRef();
 
-			_effect = new Effect(_context, "content\\Shaders\\basicShader.hlsl");
+			_effectLibrary = new EffectLibrary(_context);
+
+			_effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
 			
-			_textureEffect = new Effect(_context, "content\\Shaders\\textureShader.hlsl");
+			var textureEffect = _effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
 
 			// Create Input Layout
 
-			_vertexLayout = new VertexLayout(_context, VertexColorTexture.VertexElements, _textureEffect.VertexShader);
+			_vertexLayout = new VertexLayout(_context, VertexColorTexture.VertexElements, textureEffect.VertexShader);
+
+			textureEffect.ReleaseRef();
 
 			// Create hexagon
 			{
@@ -239,29 +242,35 @@ namespace Sandbox
 			
 			_opaqueBlendState.Bind();
 
+			var basicEffect = _effectLibrary.Get("basicShader");
+			var textureEffect = _effectLibrary.Get("textureShader");
+
 			for(int x < 20)
 			for(int y < 20)
 			{
 				if((x + y) % 2 == 0)
-					_effect.Variables["BaseColor"].SetData(_squareColor0);
+					basicEffect.Variables["BaseColor"].SetData(_squareColor0);
 				else
-					_effect.Variables["BaseColor"].SetData(_squareColor1);
+					basicEffect.Variables["BaseColor"].SetData(_squareColor1);
 
 				Matrix transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
-				Renderer.Submit(_quadGeometryBinding, _effect, transform);
+				Renderer.Submit(_quadGeometryBinding, basicEffect, transform);
 			}
 			
-			_effect.Variables["BaseColor"].SetData(_squareColor1);
-			
+			basicEffect.Variables["BaseColor"].SetData(_squareColor1);
+
 			_texture.Bind();
-			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
+			Renderer.Submit(_quadGeometryBinding, textureEffect, .Scaling(1.5f));
 			
 			_alphaBlendState.Bind();
 
 			_ge_logo.Bind();
-			Renderer.Submit(_quadGeometryBinding, _textureEffect, .Scaling(1.5f));
+			Renderer.Submit(_quadGeometryBinding, textureEffect, .Scaling(1.5f));
 
 			Renderer.EndScene();
+
+			basicEffect.ReleaseRef();
+			textureEffect.ReleaseRef();
 		}
 
 		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;

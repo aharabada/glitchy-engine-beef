@@ -4,11 +4,97 @@ using System.Collections;
 
 namespace GlitchyEngine.Renderer
 {
+	public class EffectLibrary
+	{
+		private GraphicsContext _context ~ _?.ReleaseRef();
+		private Dictionary<String, Effect> _effects = new .() ~ delete _;
+
+		private List<String> _ownedStrings = new .() ~ DeleteContainerAndItems!(_);
+
+		public this(GraphicsContext context)
+		{
+			_context = context..AddRef();
+		}
+
+		public ~this()
+		{
+			for(let pair in _effects)
+			{
+				pair.value.ReleaseRef();
+			}
+		}
+
+		public void Add(Effect effect, String effectName = null)
+		{
+			String name;
+
+			if(effectName == null)
+			{
+				name = effect.Name;
+			}
+			else
+			{
+				name = new String(effectName);
+				_ownedStrings.Add(name);
+			}
+
+			Log.EngineLogger.AssertDebug(!Exists(name), "Can't add two effects with the same name to library.");
+
+			_effects.Add(name, effect..AddRef());
+		}
+
+		/**
+		 * Loads the effect with the given file name.
+		 * @param filepath The path to the effect file.
+		 * @param effectName The optional custom effect name which will be used to identify the effect.
+		 * @returns The loaded Effect. Note: This function will increment the reference counter of the effect, so the programmer must decrement it once it's not used anymore.
+		 *			If the return-value is not needed, use LoadNoRefInc instead.
+		 */
+		public Effect Load(String filepath, String effectName = null)
+		{
+			String name = effectName;
+
+			if(name == null)
+			{
+				name = scope:: String();
+				Path.GetFileNameWithoutExtension(filepath, name);
+			}
+			
+			Log.EngineLogger.AssertDebug(!Exists(name), "Can't add two effects with the same name to library.");
+
+			Effect effect = new Effect(_context, filepath, name);
+			Add(effect);
+
+			return effect;
+		}
+
+		/**
+		 * Loads the effect with the given file name.
+		 * @param filepath The path to the effect file.
+		 * @param effectName The optional custom effect name which will be used to identify the effect.
+		 */
+		public void LoadNoRefInc(String filepath, String effectName = null)
+		{
+			var v = Load(filepath, effectName);
+			v.ReleaseRef();
+		}
+
+		public Effect Get(String effectName)
+		{
+			Log.EngineLogger.AssertDebug(Exists(effectName), "Effect not found!");
+
+			return _effects.GetValue(effectName).Get()..AddRef();
+		}
+
+		public bool Exists(String effectName) => _effects.ContainsKey(effectName);
+	}
+
 	public class Effect : RefCounted
 	{
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 		internal VertexShader _vs ~ _?.ReleaseRef();
 		internal PixelShader _ps ~ _?.ReleaseRef();
+		protected String _name ~ delete _;
 
 		BufferCollection _bufferCollection ~ delete _;
 
@@ -41,6 +127,8 @@ namespace GlitchyEngine.Renderer
 		public BufferCollection Buffers => _bufferCollection;
 		public BufferVariableCollection Variables => _variables;
 
+		public String Name => _name;
+
 		public void ApplyChanges()
 		{
 			for(let buffer in _bufferCollection)
@@ -65,13 +153,23 @@ namespace GlitchyEngine.Renderer
 		{
 		}
 		
-		public this(GraphicsContext context, String filename, String vsEntry, String psEntry)
+		public this(GraphicsContext context, String filename, String vsEntry, String psEntry, String shaderName = null)
 		{
 			_context = context..AddRef();
 			CompileFromFile(filename, vsEntry, psEntry);
+
+			if(shaderName == null)
+			{
+				_name = new String(shaderName);
+			}
+			else
+			{
+				_name = new String();
+				Path.GetFileNameWithoutExtension(filename, _name);
+			}
 		}
 
-		public this(GraphicsContext context, String filename)
+		public this(GraphicsContext context, String filename, String shaderName = null)
 		{
 			_context = context..AddRef();
 			
@@ -83,13 +181,25 @@ namespace GlitchyEngine.Renderer
 			Compile(fileContent, vsName, psName);
 
 			MergeResources();
+			
+			if(shaderName == null)
+			{
+				_name = new String();
+				Path.GetFileNameWithoutExtension(filename, _name);
+			}
+			else
+			{
+				_name = new String(shaderName);
+			}
 		}
 
-		public this(String vsPath, String vsEntry, String psPath, String psEntry)
+		public this(String shaderName, String vsPath, String vsEntry, String psPath, String psEntry)
 		{
 			Compile(vsPath, vsEntry, psPath, psEntry);
+			
+			_name = new String(shaderName);
 		}
-
+		
 		private void CompileFromFile(String filename, String vsEntry, String psEntry)
 		{
 			let vs = Shader.FromFile!<VertexShader>(_context, filename, vsEntry);
