@@ -181,6 +181,12 @@ namespace Sandbox.VoxelFun
 			return Vector3.Floor(chunkPosition);
 		}
 
+		/*
+		public struct BlockIntersection
+		{
+			Int32_3 BlockCoordinate;
+		}
+		*/
 		public Int32_3 RaycastBlock(Ray ray, float maxDistance, GeometryBinding geo, Effect effect, out Vector3 intersectionPosition, out BlockFace intersectionFace)
 		{
 			Vector3 start = ray.Start;
@@ -280,9 +286,9 @@ namespace Sandbox.VoxelFun
 					}
 				}
 
-				uint8 blockData = [Inline]GetBlock(walker);
+				Block blockData = [Inline]GetBlock(walker);
 
-				if(blockData != 0)
+				if(blockData != Blocks.Air)
 				{
 					intersectionPosition = start + distance * dir;
 
@@ -299,7 +305,7 @@ namespace Sandbox.VoxelFun
 		 * Gets the block at the specified coordinate.
 		 * @remarks If the blocks chunk is not loaded it will be loaded from the disk.
 		 */
-		public void SetBlock(Int32_3 blockCoordinate, uint8 blockId)
+		public void SetBlock(Int32_3 blockCoordinate, Block block)
 		{
 			Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(blockCoordinate);
 
@@ -307,14 +313,14 @@ namespace Sandbox.VoxelFun
 			
 			Int32_3 coordInChunk = BlockCoordInChunk(blockCoordinate);
 
-			chunk.SetBlock(coordInChunk, blockId);
+			chunk.SetBlock(coordInChunk, block);
 		}
 
 		/**
 		 * Gets the block at the specified coordinate.
 		 * @remarks If the blocks chunk is not loaded it will be loaded from the disk.
 		 */
-		public uint8 GetBlock(Int32_3 blockCoordinate)
+		public Block GetBlock(Int32_3 blockCoordinate)
 		{
 			Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(blockCoordinate);
 

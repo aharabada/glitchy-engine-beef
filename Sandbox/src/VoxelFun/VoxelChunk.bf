@@ -11,6 +11,6 @@ namespace Sandbox.VoxelFun
 		public const Int32_3 Size = .(SizeX, SizeY, SizeZ);
 		public const Vector3 VectorSize = .(SizeX, SizeY, SizeZ);
 
-		public uint8[SizeX][SizeY][SizeZ] Data;
+		public Block[SizeX][SizeY][SizeZ] Data;
 	}
 }

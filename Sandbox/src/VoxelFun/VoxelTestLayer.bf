@@ -63,6 +63,8 @@ namespace Sandbox.VoxelFun
 
 		RasterizerState _rasterizerState ~ delete _;
 
+		EffectLibrary _effectLibrary ~ delete _;
+
 		Effect _effect ~ _?.ReleaseRef();
 		Effect _textureEffect ~ _?.ReleaseRef();
 
@@ -88,11 +90,13 @@ namespace Sandbox.VoxelFun
 		{
 			_context = Application.Get().Window.Context..AddRef();
 
+			_effectLibrary = new EffectLibrary(_context);
+
 			_depthStencilTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
-			_effect = new Effect(_context, "content\\Shaders\\basicShader.hlsl");
+			_effect = _effectLibrary.Load("content\\Shaders\\basicShader.hlsl");
 			
-			_textureEffect = new Effect(_context, "content\\Shaders\\textureShader.hlsl");
+			_textureEffect = _effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
 
 			// Create Input Layout
 
@@ -174,7 +178,7 @@ namespace Sandbox.VoxelFun
 
 				uint32 i = 0;
 
-				VoxelGeometryGenerator.GenerateBlockModel(0, .Zero, .All, vertices, indices, ref i);
+				VoxelGeometryGenerator.GenerateBlockModel(Blocks.Stone, .Zero, .All, vertices, indices, ref i);
 
 				let qvb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
 				qvb.SetData<VertexColorTexture>(vertices);
@@ -402,7 +406,7 @@ namespace Sandbox.VoxelFun
 			{
 				if(Input.IsMouseButtonPressing(.LeftButton))
 				{
-					_world.SetBlock(intersectInfo.Coordinate, 0);
+					_world.SetBlock(intersectInfo.Coordinate, Blocks.Air);
 				}
 				else if(Input.IsMouseButtonPressing(.RightButton))
 				{
@@ -426,7 +430,7 @@ namespace Sandbox.VoxelFun
 						Log.ClientLogger.Error("Unknown block face.");
 					}
 
-					_world.SetBlock(newBlockCoord, 1);
+					_world.SetBlock(newBlockCoord, Blocks.Stone);
 				}
 			}
 

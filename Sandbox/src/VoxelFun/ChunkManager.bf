@@ -34,7 +34,7 @@ namespace Sandbox.VoxelFun
 			set => _isGeometryDirty = value;
 		}
 
-		public void SetBlock(Int32_3 coordinate, uint8 blockId)
+		public void SetBlock(Int32_3 coordinate, Block blockId)
 		{
 			Log.EngineLogger.AssertDebug(coordinate.X >= 0 && coordinate.Y >= 0 && coordinate.Z >= 0 && coordinate.X < VoxelChunk.Size.X && coordinate.Y < VoxelChunk.Size.Y && coordinate.Z < VoxelChunk.Size.Z, "Specified coordinate is out of range.");
 
@@ -45,7 +45,7 @@ namespace Sandbox.VoxelFun
 			ChunkManager.[Friend]chunkPosLock.Exit();
 		}
 
-		public uint8 GetBlock(Int32_3 coordinate)
+		public Block GetBlock(Int32_3 coordinate)
 		{
 			Log.EngineLogger.AssertDebug(coordinate.X >= 0 && coordinate.Y >= 0 && coordinate.Z >= 0 && coordinate.X < VoxelChunk.Size.X && coordinate.Y < VoxelChunk.Size.Y && coordinate.Z < VoxelChunk.Size.Z, "Specified coordinate is out of range.");
 
@@ -54,7 +54,15 @@ namespace Sandbox.VoxelFun
 
 		public void Serialize(Stream stream)
 		{
-			stream.Write(Data);
+			uint16[VoxelChunk.SizeX][VoxelChunk.SizeY][VoxelChunk.SizeZ] rawData = ?;
+
+			for(int x = 0; x < VoxelChunk.SizeX; x++)
+			for(int y = 0; y < VoxelChunk.SizeY; y++)
+			for(int z = 0; z < VoxelChunk.SizeZ; z++)
+			{
+				rawData[x][y][z] = Data.Data[x][y][z].ID;
+			}
+			stream.Write(rawData);
 			_isDirty = false;
 		}
 	}
@@ -361,14 +369,23 @@ namespace Sandbox.VoxelFun
 
 			if(!File.Exists(chunkFileName))
 				return .Err;
+			
+			uint16[VoxelChunk.SizeX][VoxelChunk.SizeY][VoxelChunk.SizeZ] rawData;
 
 			FileStream fs = scope FileStream();
 
 			fs.Open(chunkFileName, .Read, .Read);
 
-			outChunk.Data = fs.Read<VoxelChunk>();
+			rawData = fs.Read<decltype(rawData)>();
 
 			fs.Close();
+
+			for(int x = 0; x < VoxelChunk.SizeX; x++)
+			for(int y = 0; y < VoxelChunk.SizeY; y++)
+			for(int z = 0; z < VoxelChunk.SizeZ; z++)
+			{
+				outChunk.Data.Data[x][y][z] = Blocks.GetFromId(rawData[x][y][z]);
+			}
 
 			return .Ok;
 		}
@@ -377,7 +394,7 @@ namespace Sandbox.VoxelFun
 		{
 			String chunkFileName = scope String(_chunkBasePath);
 			chunkFileName.AppendF($"{chunk.Coordinate.X}_{chunk.Coordinate.Y}_{chunk.Coordinate.Z}.cdata");
-
+			
 			FileStream fs = scope FileStream();
 
 			fs.Open(chunkFileName, FileMode.Create, .Write);
@@ -433,8 +450,9 @@ namespace Sandbox.VoxelFun
 				float gradientValue = cy / (float)(settings.TerrainFloorHeight * 2 - 1);
 
 				// determine whether or not gradient value is air
-				uint8 stepValue = gradientValue < 0.5f ? 1 : 0;
+				Block stepValue = gradientValue < 0.5f ? Blocks.Stone : Blocks.Air;
 
+				// Note these objects will be invalid
 				chunk.Data.Data[x][y][z] = stepValue;
 			}
 
@@ -448,7 +466,7 @@ namespace Sandbox.VoxelFun
 		struct GroundLayer
 		{
 			public int Depth;
-			public uint8 BlockType;
+			public Block BlockType;
 		}
 
 		void GroundLayers(Chunk chunk)
@@ -457,17 +475,17 @@ namespace Sandbox.VoxelFun
 			layers[0] = .()
 			{
 				Depth = 1,
-				BlockType = 3
+				BlockType = Blocks.Grass
 			};
 			layers[1] = .()
 			{
 				Depth = 4,
-				BlockType = 2
+				BlockType = Blocks.Dirt
 			};
 			layers[2] = .()
 			{
 				Depth = 0,
-				BlockType = 1
+				BlockType = Blocks.Stone
 			};
 
 			for(int x < VoxelChunk.SizeX)
@@ -478,7 +496,7 @@ namespace Sandbox.VoxelFun
 
 				for(int y = VoxelChunk.SizeY - 1; y > 0; y--)
 				{
-					if(chunk.Data.Data[x][y][z] == 0)
+					if(chunk.Data.Data[x][y][z] == Blocks.Air)
 					{
 						currentDepth--;
 						

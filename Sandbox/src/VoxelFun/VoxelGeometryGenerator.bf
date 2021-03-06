@@ -47,52 +47,23 @@ namespace Sandbox.VoxelFun
 		public GraphicsContext Context;
 		public VertexLayout Layout;
 
-		[Inline]
-		Color HtoRGB(float h)
-		{
-			var h;
-			h = h % 360.0f;
-
-			float x = (1 - Math.Abs((h / 60.0f) % 2 - 1));
-			
-			Vector3 cStrich;
-
-			if(h < 60)
-				cStrich = .(1, x, 0);
-			else if(h < 120)
-				cStrich = .(x, 1, 0);
-			else if(h < 180)
-				cStrich = .(0, 1, x);
-			else if(h < 240)
-				cStrich = .(0, x, 1);
-			else if(h < 300)
-				cStrich = .(x, 0, 1);
-			else
-				cStrich = .(1, 0, x);
-
-			cStrich *= 255.0f;
-
-			return .((uint8)cStrich.X, (uint8)cStrich.Y, (uint8)cStrich.Z);
-		}
-
-		//[/Inline]
 		BlockFace GetVisibleFaces(VoxelChunk chunk, int x, int y, int z)
 		{
 			BlockFace visibleFaces = .None;
 			
-			if(z == 0 || chunk.Data[x][y][z - 1] == 0)
+			if(z == 0 || chunk.Data[x][y][z - 1].VisibleNeighbors.HasFlag(.Front))
 				visibleFaces |= .Back;
-			if(z == VoxelChunk.SizeZ - 1 || chunk.Data[x][y][z + 1] == 0)
+			if(z == VoxelChunk.SizeZ - 1 || chunk.Data[x][y][z + 1].VisibleNeighbors.HasFlag(.Back))
 				visibleFaces |= .Front;
 
-			if(x == 0 || chunk.Data[x - 1][y][z] == 0)
+			if(x == 0 || chunk.Data[x - 1][y][z].VisibleNeighbors.HasFlag(.Right))
 				visibleFaces |= .Left;
-			if(x == VoxelChunk.SizeX - 1 || chunk.Data[x + 1][y][z] == 0)
+			if(x == VoxelChunk.SizeX - 1 || chunk.Data[x + 1][y][z].VisibleNeighbors.HasFlag(.Left))
 				visibleFaces |= .Right;
 
-			if(y == 0 || chunk.Data[x][y - 1][z] == 0)
+			if(y == 0 || chunk.Data[x][y - 1][z].VisibleNeighbors.HasFlag(.Top))
 				visibleFaces |= .Bottom;
-			if(y == VoxelChunk.SizeY - 1 || chunk.Data[x][y + 1][z] == 0)
+			if(y == VoxelChunk.SizeY - 1 || chunk.Data[x][y + 1][z].VisibleNeighbors.HasFlag(.Bottom))
 				visibleFaces |= .Top;
 
 			return visibleFaces;
@@ -110,16 +81,16 @@ namespace Sandbox.VoxelFun
 		   	for(int y < VoxelChunk.SizeY)
 		   	for(int z < VoxelChunk.SizeZ)
 			{
-				uint16 blockIndex = chunk.Data[x][y][z];
+				Block block = chunk.Data[x][y][z];
 
 				Vector3 blockPos = .(x, y, z);
 
-				if(blockIndex != 0)
+				if(block != Blocks.Air)
 				{
 					BlockFace visibleFaces = GetVisibleFaces(chunk, x, y, z);
 
 					if(visibleFaces != .None)
-						GenerateBlockModel(blockIndex, blockPos, visibleFaces, vertices, indices, ref lastIndex);
+						GenerateBlockModel(block, blockPos, visibleFaces, vertices, indices, ref lastIndex);
 				}
 			}
 
@@ -149,7 +120,7 @@ namespace Sandbox.VoxelFun
 
 			sw.Stop();
 
-			Debug.WriteLine($"Generation: {sw.ElapsedMilliseconds}");
+			Debug.WriteLine($"Geometry Generation: {sw.ElapsedMilliseconds}");
 
 			delete sw;
 
@@ -159,23 +130,9 @@ namespace Sandbox.VoxelFun
 		Random r = new Random(1337) ~ delete _;
 		float f = 0.0f;
 
-		public static void GenerateBlockModel(uint16 blockIndex, Vector3 blockPosition, BlockFace visibleFaces, List<VertexColorTexture> vertices, List<uint32> indices, ref uint32 lastIndex)
+		public static void GenerateBlockModel(Block block, Vector3 blockPosition, BlockFace visibleFaces, List<VertexColorTexture> vertices, List<uint32> indices, ref uint32 lastIndex)
 		{
-		 	Color c = .Pink;
-
-			if(blockIndex == 1)
-				c = .Gray;
-			else if(blockIndex == 2)
-				c = .SaddleBrown;
-			else if(blockIndex == 3)
-				c = .Green;
-
-			//Color c = .(blockIndex, blockIndex, blockIndex);
-
-			//c = HtoRGB(f += r.Next(0, 0xBEEF));
-			
-			if(blockPosition.Y == 63)
-				c = .Red;
+		 	Color c = block.Color;
 
 			if(visibleFaces.HasFlag(.Back))
 			{
