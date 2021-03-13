@@ -193,32 +193,35 @@ namespace Sandbox
 
 		public override void Update(GameTime gameTime)
 		{
-			Vector2 movement = .();
-
-			if(Input.IsKeyPressed(Key.W))
+			if(Application.Get().Window.IsActive)
 			{
-				movement.Y += 1;
-			}
-			if(Input.IsKeyPressed(Key.S))
-			{
-				movement.Y -= 1;
-			}
-			
-			if(Input.IsKeyPressed(Key.A))
-			{
-				movement.X -= 1;
-			}
-			if(Input.IsKeyPressed(Key.D))
-			{
-				movement.X += 1;
-			}
+				Vector2 movement = .();
 
-			if(movement != .Zero)
-				movement.Normalize();
+				if(Input.IsKeyPressed(Key.W))
+				{
+					movement.Y += 1;
+				}
+				if(Input.IsKeyPressed(Key.S))
+				{
+					movement.Y -= 1;
+				}
 
-			movement *= (float)(gameTime.FrameTime.TotalSeconds);
+				if(Input.IsKeyPressed(Key.A))
+				{
+					movement.X -= 1;
+				}
+				if(Input.IsKeyPressed(Key.D))
+				{
+					movement.X += 1;
+				}
 
-			_camera.Position += .(movement, 0);
+				if(movement != .Zero)
+					movement.Normalize();
+
+				movement *= (float)(gameTime.FrameTime.TotalSeconds);
+
+				_camera.Position += .(movement, 0);
+			}
 
 			_camera.Width = _context.SwapChain.BackbufferViewport.Width / 256;
 			_camera.Height = _context.SwapChain.BackbufferViewport.Height / 256;

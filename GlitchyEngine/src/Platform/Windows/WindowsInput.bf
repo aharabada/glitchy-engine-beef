@@ -20,8 +20,10 @@ namespace GlitchyEngine
 			public Point CursorPositionDifference;
 		}
 
-		static WindowsInputState* CurrentState = new WindowsInputState() ~ delete _;
-		static WindowsInputState* LastState = new WindowsInputState() ~ delete _;
+		static WindowsInputState[2] IputStates;
+
+		static WindowsInputState* CurrentState = &IputStates[0];
+		static WindowsInputState* LastState = &IputStates[1];
 
 		//
 		// Current Keyboard state
@@ -162,11 +164,8 @@ namespace GlitchyEngine
 
 		public override static void NewFrame()
 		{
-			// Switch last and current states
-			var buffer = LastState;
-			LastState = CurrentState;
-			CurrentState = buffer;
-
+			Swap!(CurrentState, LastState);
+			
 			// Get current keyboard state
 			if(DirectX.Windows.Winuser.GetKeyboardState((uint8*)&CurrentState.KeyStates) == 0)
 			{

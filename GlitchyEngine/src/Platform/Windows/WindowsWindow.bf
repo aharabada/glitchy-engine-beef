@@ -31,6 +31,8 @@ namespace GlitchyEngine
 
 		private bool _isVSync = true;
 
+		private bool _isActive;
+
 		private GraphicsContext _graphicsContext ~ _?.ReleaseRef();
 
 		public override GraphicsContext Context => _graphicsContext;
@@ -149,6 +151,8 @@ namespace GlitchyEngine
 			set => _isVSync = value;
 		}
 
+		public override bool IsActive => _isActive;
+
 		public override void* NativeWindow => (void*)(int)_windowHandle;
 
 		public override this(WindowDescription desc)
@@ -175,6 +179,9 @@ namespace GlitchyEngine
 
 			UnregisterClass(WindowClassName.ToScopedNativeWChar!(), _instanceHandle);
 		}
+
+		[LinkName(.C)]
+		static extern HWnd GetActiveWindow();
 
 		private void Init(WindowDescription desc)
 		{
@@ -215,6 +222,9 @@ namespace GlitchyEngine
 			LoadWindowRectangle();
 
 			Log.EngineLogger.Trace($"Created window \"{Title}\" ({Width}, {Height})");
+
+			// Determine whether or not the window is currently active
+			_isActive = GetActiveWindow() == _windowHandle;
 		}
 
 		private bool _isResizingOrMoving;
@@ -304,7 +314,26 @@ namespace GlitchyEngine
 					var moveEvent = scope WindowMoveEvent(window._clientRect.X, window._clientRect.Y, false);
 					window._eventCallback(moveEvent);
 				}
+				 
+			case 0x0006: //WM_ACTIVATE
+				{
+					SplitHighAndLowOrder!((int64)wParam, let lowWParam, let highWParam);
 
+					bool isActivate = lowWParam > 0;
+
+					//HWnd windowHandle = (.)lParam;
+
+					if(window._isActive != isActivate)
+					{
+						window._isActive = isActivate;
+
+						if(window._isActive)
+							window._eventCallback(scope WindowActivateEvent());
+						else
+							window._eventCallback(scope WindowDeactivateEvent());
+
+					}
+				}
 				////
 				//// Keyboard input
 				////

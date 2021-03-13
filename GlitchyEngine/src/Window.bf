@@ -98,6 +98,11 @@ namespace GlitchyEngine
 		 */
 		public extern void* NativeWindow {get;}
 
+		/**
+		 * Gets whether or not the window is active.
+		 */
+		public extern bool IsActive {get;}
+
 		public EventCallback EventCallback
 		{
 			get => _eventCallback;

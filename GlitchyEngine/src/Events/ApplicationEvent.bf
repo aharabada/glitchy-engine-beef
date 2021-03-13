@@ -89,4 +89,44 @@ namespace GlitchyEngine.Events
 			strBuffer.AppendF("WindowMovedEvent: {}, {} (is moving: {})", _x, _y, _isMoving);
 		}
 	}
+
+	public class WindowActivateEvent : Event, IEvent
+	{
+		public override EventType EventType => .WindowMoved;
+
+		public override StringView Name => "WindowActivated";
+
+		public override EventCategory Category => .Application;
+
+		public static EventType StaticType => .WindowActivated;
+
+		public this()
+		{
+		}
+
+		public override void ToString(String strBuffer)
+		{
+			strBuffer.AppendF("WindowActivatedEvent");
+		}
+	}
+
+	public class WindowDeactivateEvent : Event, IEvent
+	{
+		public override EventType EventType => .WindowMoved;
+
+		public override StringView Name => "WindowDeactivated";
+
+		public override EventCategory Category => .Application;
+
+		public static EventType StaticType => .WindowDeactivated;
+
+		public this()
+		{
+		}
+
+		public override void ToString(String strBuffer)
+		{
+			strBuffer.AppendF("WindowDeactivatedEvent");
+		}
+	}
 }

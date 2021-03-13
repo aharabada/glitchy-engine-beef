@@ -53,6 +53,9 @@ namespace GlitchyEngine
 
 		public void OnEvent(Event e)
 		{
+			if(!_running)
+				return;
+
 			EventDispatcher dispatcher = scope .(e);
 			dispatcher.Dispatch<WindowCloseEvent>(scope => OnWindowClose);
 
