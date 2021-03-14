@@ -68,6 +68,7 @@ namespace GlitchyEngine
 		case Z 				= 90;	// Z key
 		case LeftSuper		= 91;	// Left Windows key(Microsoft® Natural® keyboard)
 		case RightSuper		= 92;	// Right Windows key(Natural keyboard)
+		case ContextMenu	= 93;	// Context Menu key (VK_APPS)
 		case Numpad0 		= 96;	// Numeric keypad 0 key
 		case Numpad1 		= 97;	// Numeric keypad 1 key
 		case Numpad2 		= 98;	// Numeric keypad 2 key

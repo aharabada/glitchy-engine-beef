@@ -11,6 +11,8 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using static System.Windows;
 
+using internal GlitchyEngine;
+
 namespace GlitchyEngine
 {
 	/// The windows specific Window implementation
@@ -338,14 +340,16 @@ namespace GlitchyEngine
 				//// Keyboard input
 				////
 
-			case WM_KEYDOWN:
+			case WM_KEYDOWN, WM_SYSKEYDOWN:
 				{
-					var event = scope KeyPressedEvent((Key)wParam, (int32)lParam & 0xFFFF);
+					Key key = WindowMessageToKey(wParam, lParam);
+					var event = scope KeyPressedEvent(key, (int32)lParam & 0xFFFF);
 					window._eventCallback(event);
 				}
-			case WM_KEYUP:
+			case WM_KEYUP, WM_SYSKEYUP:
 				{
-					var event = scope KeyReleasedEvent((Key)wParam);
+					Key key = WindowMessageToKey(wParam, lParam);
+					var event = scope KeyReleasedEvent(key);
 					window._eventCallback(event);
 				}
 
@@ -470,6 +474,29 @@ namespace GlitchyEngine
 			}
 
 			return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+		}
+
+		/**
+		 * Converts the wParam and lParam of a WM_KEYDOWN or WM_KEYUP message to the corresponding engine keycode.
+		 */
+		static Key WindowMessageToKey(WPARAM wParam, LPARAM lParam)
+		{
+			Key key = Key.FromWindowsKeyCode((.)wParam);
+			
+			var scancode = (lParam & 0x00ff0000) >> 16;
+			bool isExtended = (lParam & 0x01000000) > 0;
+
+			switch(key)
+			{
+			case .Shift:
+				return Key.FromWindowsKeyCode((.)MapVirtualKeyW((.)scancode, MAPVK_VSC_TO_VK_EX));
+			case .Control:
+				return isExtended ? .RightControl : .LeftControl;
+			case .Alt:
+				return isExtended ? .RightAlt : .LeftAlt;
+			default:
+				return key;
+			}
 		}
 
 		public override void Update()
