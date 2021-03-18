@@ -33,8 +33,7 @@ namespace GlitchyEngine.Math
 		[Comptime]
 		public void ApplyToType(Type type)
 		{
-			// TODO: report bug... sized array not working
-			String[] componentNames = scope String[]("X", "Y", "Z", "W");
+			String[4] componentNames = .("X", "Y", "Z", "W");
 
 			for(int swizzleCount = 2; swizzleCount <= 4; swizzleCount++)
 			{
@@ -50,7 +49,7 @@ namespace GlitchyEngine.Math
 				{
 					String swizzleName = scope String(swizzleCount);
 					String swizzleConstructor = scope String(swizzleCount * 3);
-					String setter = scope String(128);
+					String setter = scope String();
 
 					bool setterInvalid = invalidSetter(cmp, swizzleCount);
 
@@ -64,7 +63,7 @@ namespace GlitchyEngine.Math
 						}
 						swizzleConstructor.Append(componentNames[cmp[c]]);
 
-						if(!setterInvalid && c < _vectorSize) //
+						if(!setterInvalid && c < _vectorSize)
 						{
 							setter.AppendF($"\n\t\t{componentNames[cmp[c]]} = value.{componentNames[c]};");
 						}

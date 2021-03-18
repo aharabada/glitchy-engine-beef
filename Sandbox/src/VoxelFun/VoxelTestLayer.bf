@@ -88,6 +88,9 @@ namespace Sandbox.VoxelFun
 		[AllowAppend]
 		public this() : base("VoxelTest")
 		{
+			Blocks.Init();
+			Models.Init();
+
 			_context = Application.Get().Window.Context..AddRef();
 
 			_effectLibrary = new EffectLibrary(_context);
@@ -178,7 +181,7 @@ namespace Sandbox.VoxelFun
 
 				uint32 i = 0;
 
-				VoxelGeometryGenerator.GenerateBlockModel(Blocks.Stone, .Zero, .All, vertices, indices, ref i);
+				(scope BlockModel(.HotPink)).GenerateGeometry(Blocks.Air, .Zero, .All, vertices, indices, ref i);
 
 				let qvb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
 				qvb.SetData<VertexColorTexture>(vertices);
@@ -406,31 +409,15 @@ namespace Sandbox.VoxelFun
 			{
 				if(Input.IsMouseButtonPressing(.LeftButton))
 				{
-					_world.SetBlock(intersectInfo.Coordinate, Blocks.Air);
+					_world.BreakBlock(intersectInfo.Coordinate);
 				}
 				else if(Input.IsMouseButtonPressing(.RightButton))
 				{
-					var newBlockCoord = intersectInfo.Coordinate;
-
-					switch(intersectInfo.Face)
-					{
-					case .Front:
-						newBlockCoord.Z--;
-					case .Back:
-						newBlockCoord.Z++;
-					case .Left:
-							newBlockCoord.X--;
-					case .Right:
-							newBlockCoord.X++;
-					case .Bottom:
-						newBlockCoord.Y--;
-					case .Top:
-						newBlockCoord.Y++;
-					default:
-						Log.ClientLogger.Error("Unknown block face.");
-					}
-
-					_world.SetBlock(newBlockCoord, Blocks.Stone);
+					_world.PlaceBlock(intersectInfo.Coordinate, rightHandBlock, intersectInfo.Face);
+				}
+				else if(Input.IsMouseButtonPressing(.MiddleButton))
+				{
+					rightHandBlock = _world.GetBlock(intersectInfo.Coordinate);
 				}
 			}
 
@@ -438,6 +425,8 @@ namespace Sandbox.VoxelFun
 
 			Renderer.EndScene();
 		}
+
+		Block rightHandBlock = Blocks.Stone;
 
 		struct IntersectionInfo
 		{

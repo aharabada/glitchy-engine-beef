@@ -115,7 +115,7 @@ namespace Sandbox.VoxelFun
 		/**
 		 * Returs the coordinate of the chunk that contains the given coordinate.
 		 */
-		public Vector3 GetChunkCoordinate(Vector3 blockCoordinate)
+		public static Vector3 GetChunkCoordinate(Vector3 blockCoordinate)
 		{
 			Vector3 chunkPosition = blockCoordinate / VoxelChunk.VectorSize;
 
@@ -125,18 +125,18 @@ namespace Sandbox.VoxelFun
 		/**
 		 * Calculates the coordinate of the chunk that contains the given block coordinate.
 		 */
-		public Int32_3 ChunkCoordFromBlockCoord(Int32_3 blockCoordinate)
+		public static Int32_3 ChunkCoordFromBlockCoord(Int32_3 blockCoordinate)
 		{
 			Int32_3 coordinate = blockCoordinate;
 
 			if(coordinate.X < 0)
-				coordinate.X -= VoxelChunk.Size.X;
+				coordinate.X -= VoxelChunk.Size.X - 1;
 
 			if(coordinate.Y < 0)
-				coordinate.Y -= VoxelChunk.Size.Y;
+				coordinate.Y -= VoxelChunk.Size.Y - 1;
 			
 			if(coordinate.Z < 0)
-				coordinate.Z -= VoxelChunk.Size.Z;
+				coordinate.Z -= VoxelChunk.Size.Z - 1;
 
 			return coordinate / VoxelChunk.Size;
 		}
@@ -146,7 +146,7 @@ namespace Sandbox.VoxelFun
 		 * For Example: Consider the block at the global location of (25, 17, -12)
 		 * The coordinate of this block inside its chunk would be (9, 17, 4) because the chunk starts at (16, 0, -16)
 		 */
-		public Int32_3 BlockCoordInChunk(Int32_3 blockCoordinate)
+		public static Int32_3 BlockCoordInChunk(Int32_3 blockCoordinate)
 		{
 			Int32_3 chunkPosition = blockCoordinate % VoxelChunk.Size;
 
@@ -165,7 +165,7 @@ namespace Sandbox.VoxelFun
 		/**
 		 * Returs the coordinate of the block relative to the chunk.
 		 */
-		public Vector3 GetPositionInChunk(Vector3 position)
+		public static Vector3 GetPositionInChunk(Vector3 position)
 		{
 			Vector3 chunkPosition = position % VoxelChunk.VectorSize;
 
@@ -300,7 +300,72 @@ namespace Sandbox.VoxelFun
 			intersectionPosition = .(float.NaN);
 			return .(int32.MaxValue, int32.MaxValue, int32.MaxValue);
 		}
-		
+
+		/**
+		 * Breaks the block at the given coordinates.
+		 */
+		public void BreakBlock(Int32_3 blockCoordinate)
+		{
+			Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(blockCoordinate);
+
+			Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
+
+			Int32_3 coordInChunk = BlockCoordInChunk(blockCoordinate);
+
+			Block block = chunk.GetBlock(coordInChunk);
+
+			block.OnBreaking(blockCoordinate);
+
+			chunk.SetBlock(coordInChunk, Blocks.Air);
+		}
+
+		/**
+		 * Places a block at the given coordinates.
+		 */
+		public void PlaceBlock(Int32_3 blockCoordinate, Block block)
+		{
+			Int32_3 chunkCoordinate = ChunkCoordFromBlockCoord(blockCoordinate);
+
+			Chunk chunk = _chunkManager.LoadChunk(chunkCoordinate);
+
+			Int32_3 coordInChunk = BlockCoordInChunk(blockCoordinate);
+
+			// Todo: we will also be able to place block in fluids and some other blocks.
+			Log.ClientLogger.AssertDebug(chunk.GetBlock(coordInChunk) == Blocks.Air, "A block can only be placed in air (atm)");
+
+			block.OnPlacing(blockCoordinate);
+
+			chunk.SetBlock(coordInChunk, block);
+		}
+
+		/**
+		 * Places a block on the given face of the block at the specified coordinates.
+		 */
+		public void PlaceBlock(Int32_3 blockCoordinate, Block block, BlockFace face)
+		{
+			var blockCoordinate;
+
+			switch(face)
+			{
+			case .Front:
+				blockCoordinate.Z--;
+			case .Back:
+				blockCoordinate.Z++;
+			case .Left:
+				blockCoordinate.X--;
+			case .Right:
+				blockCoordinate.X++;
+			case .Bottom:
+				blockCoordinate.Y--;
+			case .Top:
+				blockCoordinate.Y++;
+			default:
+				Log.ClientLogger.AssertDebug(false, "Unexpected block face.");
+			}
+
+			PlaceBlock(blockCoordinate, block);
+		}
+
 		/**
 		 * Gets the block at the specified coordinate.
 		 * @remarks If the blocks chunk is not loaded it will be loaded from the disk.
@@ -329,6 +394,37 @@ namespace Sandbox.VoxelFun
 			Int32_3 coordInChunk = BlockCoordInChunk(blockCoordinate);
 
 			return chunk.GetBlock(coordInChunk);
+		}
+
+		[Test]
+		static void TestWorld()
+		{
+			// ChunkCoordFromBlockCoord
+			{
+				Int32_3 block = .(0, 0, 0);
+				Int32_3 expectedChunk = .(0, 0, 0);
+				Test.Assert(expectedChunk == ChunkCoordFromBlockCoord(block));
+
+				block = .(5, 0, 0);
+				expectedChunk = .(0, 0, 0);
+				Test.Assert(expectedChunk == ChunkCoordFromBlockCoord(block));
+
+				block = .(45, 80, 12);
+				expectedChunk = .(2, 0, 0);
+				Test.Assert(expectedChunk == ChunkCoordFromBlockCoord(block));
+
+				block = .(0, 0, -1);
+				expectedChunk = .(0, 0, -1);
+				Test.Assert(expectedChunk == ChunkCoordFromBlockCoord(block));
+				
+				block = .(0, 0, -16);
+				expectedChunk = .(0, 0, -1);
+				Test.Assert(expectedChunk == ChunkCoordFromBlockCoord(block));
+
+				block = .(0, 0, -17);
+				expectedChunk = .(0, 0, -2);
+				Test.Assert(expectedChunk == ChunkCoordFromBlockCoord(block));
+			}
 		}
 	}
 }

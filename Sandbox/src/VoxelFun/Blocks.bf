@@ -8,11 +8,19 @@ namespace Sandbox.VoxelFun
 		static List<Block> _blocks = new List<Block>() ~ DeleteContainerAndItems!(_);
 
 		/// Air is a special Block. It defines the absence of a block.
-		public static Block Air = RegisterBlock(.. new Block(.White, .All));
+		public static Block Air;
 
-		public static Block Stone = RegisterBlock(.. new Block(.Gray));
-		public static Block Grass = RegisterBlock(.. new Block(.Green));
-		public static Block Dirt = RegisterBlock(.. new Block(.Brown));
+		public static Block Stone;
+		public static Block Grass;
+		public static Block Dirt;
+
+		public static void Init()
+		{
+			Air = RegisterBlock(.. new Block(.All));
+			Stone = RegisterBlock(.. new Block());
+			Grass = RegisterBlock(.. new Block());
+			Dirt = RegisterBlock(.. new Block());
+		}
 
 		private static void RegisterBlock(Block block)
 		{

@@ -90,7 +90,7 @@ namespace Sandbox.VoxelFun
 					BlockFace visibleFaces = GetVisibleFaces(chunk, x, y, z);
 
 					if(visibleFaces != .None)
-						GenerateBlockModel(block, blockPos, visibleFaces, vertices, indices, ref lastIndex);
+						block.Model.GenerateGeometry(block, blockPos, visibleFaces, vertices, indices, ref lastIndex);
 				}
 			}
 
@@ -125,89 +125,6 @@ namespace Sandbox.VoxelFun
 			delete sw;
 
 			return gb;
-		}
-
-		Random r = new Random(1337) ~ delete _;
-		float f = 0.0f;
-
-		public static void GenerateBlockModel(Block block, Vector3 blockPosition, BlockFace visibleFaces, List<VertexColorTexture> vertices, List<uint32> indices, ref uint32 lastIndex)
-		{
-		 	Color c = block.Color;
-
-			if(visibleFaces.HasFlag(.Back))
-			{
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 0, 0), c, .UnitY));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 0, 0), c, .One));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 1, 0), c, .UnitX));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 1, 0), c, .Zero));
-
-				AddQuadIndices(ref lastIndex, indices);
-			}
-
-			if(visibleFaces.HasFlag(.Top))
-			{
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 1, 0), c, .UnitY));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 1, 0), c, .One));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 1, 1), c, .UnitX));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 1, 1), c, .Zero));
-
-				AddQuadIndices(ref lastIndex, indices);
-			}
-
-			if(visibleFaces.HasFlag(.Bottom))
-			{
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 0, 1), c, .UnitY));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 0, 1), c, .One));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 0, 0), c, .UnitX));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 0, 0), c, .Zero));
-
-				AddQuadIndices(ref lastIndex, indices);
-			}
-			
-			if(visibleFaces.HasFlag(.Front))
-			{
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 0, 1), c, .UnitY));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 0, 1), c, .One));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 1, 1), c, .UnitX));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 1, 1), c, .Zero));
-
-				AddQuadIndices(ref lastIndex, indices);
-			}
-			
-			if(visibleFaces.HasFlag(.Right))
-			{
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 0, 0), c, .UnitY));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 0, 1), c, .One));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 1, 1), c, .UnitX));
-				vertices.Add(VertexColorTexture(blockPosition + .(1, 1, 0), c, .Zero));
-
-				AddQuadIndices(ref lastIndex, indices);
-			}
-			
-			if(visibleFaces.HasFlag(.Left))
-			{
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 0, 1), c, .UnitY));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 0, 0), c, .One));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 1, 0), c, .UnitX));
-				vertices.Add(VertexColorTexture(blockPosition + .(0, 1, 1), c, .Zero));
-
-				AddQuadIndices(ref lastIndex, indices);
-			}
-		}
-		
-		static void AddQuadIndices(ref uint32 lastIndex, List<uint32> indices)
-		{
-			uint32[6] inds;
-			inds[0] = lastIndex;
-			inds[1] = lastIndex + 1;
-			inds[2] = lastIndex + 2;
-
-			inds[3] = lastIndex + 2;
-			inds[4] = lastIndex + 3;
-			inds[5] = lastIndex;
-
-			indices.AddRange(inds);
-			lastIndex += 4;
 		}
 	}
 }
