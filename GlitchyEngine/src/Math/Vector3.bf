@@ -2,7 +2,7 @@ using System;
 
 namespace GlitchyEngine.Math
 {
-	[SwizzleVector(3, "Vector")]
+	//[SwizzleVector(3, "Vector")]
 	public struct Vector3
 	{
 		public const Vector3 Zero     = .(0f, 0f, 0f);

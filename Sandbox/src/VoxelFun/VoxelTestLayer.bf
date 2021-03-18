@@ -343,7 +343,8 @@ namespace Sandbox.VoxelFun
 
 			Matrix rot = .RotationY(_camera.Rotation.Y) * .RotationX(_camera.Rotation.X);
 
-			movement = ((Vector4)(rot * Vector4(movement, 1.0f))).XYZ;
+			let bla = ((Vector4)(rot * Vector4(movement, 1.0f))); //TODO .XYZ
+			movement = .(bla.X, bla.Y, bla.Z);
 			
 			float speed = Input.IsKeyPressed(Key.Shift) ? movementSpeedFast : movementSpeed;
 
