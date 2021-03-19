@@ -1,5 +1,6 @@
-using GlitchyEngine.Math;
 using GlitchyEngine;
+using GlitchyEngine.Math;
+
 namespace Sandbox.VoxelFun
 {
 	class Block
@@ -34,7 +35,7 @@ namespace Sandbox.VoxelFun
 		 */
 		public virtual void OnPlacing(Int32_3 blockCoordinate)
 		{
-			Log.ClientLogger.Info($"I broke. {{{blockCoordinate}}}");
+			Log.ClientLogger.Info($"I live! {{{blockCoordinate}}}");
 		}
 	}
 }

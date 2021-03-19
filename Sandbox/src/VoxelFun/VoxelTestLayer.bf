@@ -408,6 +408,9 @@ namespace Sandbox.VoxelFun
 
 			if(intersectInfo.Face != .None)
 			{
+				if(rightHandBlock == null)
+					rightHandBlock = Blocks.Stone;
+
 				if(Input.IsMouseButtonPressing(.LeftButton))
 				{
 					_world.BreakBlock(intersectInfo.Coordinate);
@@ -427,7 +430,7 @@ namespace Sandbox.VoxelFun
 			Renderer.EndScene();
 		}
 
-		Block rightHandBlock = Blocks.Stone;
+		Block rightHandBlock;
 
 		struct IntersectionInfo
 		{

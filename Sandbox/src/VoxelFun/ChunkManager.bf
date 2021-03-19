@@ -26,6 +26,9 @@ namespace Sandbox.VoxelFun
 		private bool _isDirty;
 		private bool _isGeometryDirty;
 
+		/// Neighbors that will trigger a regeneration of this chunks geometry
+		public BlockFace _reqiredNeighbors;
+
 		public bool IsDirty => _isDirty;
 
 		public bool IsGeometryDirty
@@ -196,7 +199,7 @@ namespace Sandbox.VoxelFun
 						SaveChunkToFile(chunk);
 					}
 
-					GenChunkGeo(chunk);
+					chunk.IsGeometryDirty = true;
 
 					using(chunkListLock.Enter())
 					{
@@ -212,10 +215,7 @@ namespace Sandbox.VoxelFun
 					}
 
 					// Raise chunk loaded event (this will wake up all calls of LoadChunk waiting for our chunk)
-					using(_chunkLoadedLock.Enter())
-					{
-						_chunkLoaded.Invoke(chunkCoordinate);
-					}
+					OnChunkLoaded(chunkCoordinate);
 				}
 				else if(!noBlocking)
 				{
@@ -254,6 +254,59 @@ namespace Sandbox.VoxelFun
 			}
 
 			return chunk;
+		}
+
+		void OnChunkLoaded(Int32_3 chunkCoordinate)
+		{
+			// Raise chunk loaded event (this will wake up all calls of LoadChunk waiting for our chunk)
+			using(_chunkLoadedLock.Enter())
+			{
+				_chunkLoaded.Invoke(chunkCoordinate);
+			}
+
+			// Left
+			{
+				var chunkCoordinate;
+		
+				chunkCoordinate.X--;
+				Chunk neighbor = GetChunk(chunkCoordinate);
+		
+				if(neighbor != null && neighbor._reqiredNeighbors.HasFlag(.Right))
+					neighbor.IsGeometryDirty = true;
+			}
+
+			// Right
+			{
+				var chunkCoordinate;
+		
+				chunkCoordinate.X++;
+				Chunk neighbor = GetChunk(chunkCoordinate);
+		
+				if(neighbor != null && neighbor._reqiredNeighbors.HasFlag(.Left))
+					neighbor.IsGeometryDirty = true;
+			}
+			
+			// Back
+			{
+				var chunkCoordinate;
+
+				chunkCoordinate.Z--;
+				Chunk neighbor = GetChunk(chunkCoordinate);
+
+				if(neighbor != null && neighbor._reqiredNeighbors.HasFlag(.Front))
+					neighbor.IsGeometryDirty = true;
+			}
+
+			// Front
+			{
+				var chunkCoordinate;
+
+				chunkCoordinate.Z++;
+				Chunk neighbor = GetChunk(chunkCoordinate);
+
+				if(neighbor != null && neighbor._reqiredNeighbors.HasFlag(.Back))
+					neighbor.IsGeometryDirty = true;
+			}
 		}
 
 		void SetChunkPos(Int32_3 chunkPos)
@@ -543,7 +596,7 @@ namespace Sandbox.VoxelFun
 		{
 			var oldGeometry = chunk.Geometry;
 
-			var newGeometry = voxelGeoGen.GenerateGeometry(chunk.Data);
+			var newGeometry = voxelGeoGen.GenerateGeometry(chunk);
 
 			Interlocked.Store(ref chunk.Geometry, newGeometry);
 			chunk.IsGeometryDirty = false;
@@ -559,10 +612,11 @@ namespace Sandbox.VoxelFun
 				Chunk chunk = pair.value;
 
 				GeometryBinding chunkGeo = Interlocked.Load(ref chunk.Geometry);
-				chunkGeo.AddRef();
-
+				
 				if(chunkGeo == null)
 					continue;
+
+				chunkGeo.AddRef();
 
 				Texture.Bind();
 

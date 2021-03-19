@@ -317,6 +317,8 @@ namespace Sandbox.VoxelFun
 			block.OnBreaking(blockCoordinate);
 
 			chunk.SetBlock(coordInChunk, Blocks.Air);
+
+			MarkNeighborGeometryDirty(chunkCoordinate, coordInChunk);
 		}
 
 		/**
@@ -336,6 +338,8 @@ namespace Sandbox.VoxelFun
 			block.OnPlacing(blockCoordinate);
 
 			chunk.SetBlock(coordInChunk, block);
+
+			MarkNeighborGeometryDirty(chunkCoordinate, coordInChunk);
 		}
 
 		/**
@@ -379,6 +383,43 @@ namespace Sandbox.VoxelFun
 			Int32_3 coordInChunk = BlockCoordInChunk(blockCoordinate);
 
 			chunk.SetBlock(coordInChunk, block);
+
+			MarkNeighborGeometryDirty(chunkCoordinate, coordInChunk);
+		}
+
+		void MarkNeighborGeometryDirty(Int32_3 chunkCoordinate, Int32_3 coordInChunk)
+		{
+			var chunkCoordinate;
+
+			Chunk chunk;
+
+			// if we are on a chunk border mark the neighbor as dirty
+
+			if(coordInChunk.X == 0)
+			{
+				chunkCoordinate.X--;
+				chunk = _chunkManager.GetChunk(chunkCoordinate);
+				chunk?.IsGeometryDirty = true;
+			}
+			else if(coordInChunk.X == VoxelChunk.Size.X - 1)
+			{
+				chunkCoordinate.X++;
+				chunk = _chunkManager.GetChunk(chunkCoordinate);
+				chunk?.IsGeometryDirty = true;
+			}
+			// TODO: implement Y
+			else if(coordInChunk.Z == 0)
+			{
+				chunkCoordinate.Z--;
+				chunk = _chunkManager.GetChunk(chunkCoordinate);
+				chunk?.IsGeometryDirty = true;
+			}
+			else if(coordInChunk.Z == VoxelChunk.Size.Z - 1)
+			{
+				chunkCoordinate.Z++;
+				chunk = _chunkManager.GetChunk(chunkCoordinate);
+				chunk?.IsGeometryDirty = true;
+			}
 		}
 
 		/**
