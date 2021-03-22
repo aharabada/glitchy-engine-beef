@@ -61,8 +61,7 @@ namespace Sandbox.VoxelFun
 
 		GeometryBinding _lineGeometryBinding ~ _?.ReleaseRef();
 
-		RasterizerState _rasterizerState ~ delete _;
-
+		RasterizerState _rasterizerState ~ _?.ReleaseRef();
 		EffectLibrary _effectLibrary ~ delete _;
 
 		Effect _effect ~ _?.ReleaseRef();
