@@ -1,5 +1,5 @@
 FileVersion = 1
-Dependencies = {GlitchyEngine = "*", corlib = "*"}
+Dependencies = {GlitchyEngine = "*", corlib = "*", LodePng = "*"}
 
 [Project]
 Name = "Sandbox"
