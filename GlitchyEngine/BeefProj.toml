@@ -10,7 +10,7 @@ PreprocessorMacros = ["DEBUG", "GE_WINDOWS"]
 
 [Configs.Debug.Win64]
 CLibType = "DynamicDebug"
-PreprocessorMacros = ["DEBUG", "GE_WINDOWS"]
+PreprocessorMacros = ["DEBUG", "GE_WINDOWS", "GE_D3D11"]
 
 [Configs.Release.Win32]
 PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
