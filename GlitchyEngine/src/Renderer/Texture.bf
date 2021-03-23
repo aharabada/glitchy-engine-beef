@@ -38,7 +38,7 @@ namespace GlitchyEngine.Renderer
 				_samplerState.Bind(slot);
 		}
 
-		protected abstract void ImplBind(uint32 slot);
+		protected extern void ImplBind(uint32 slot);
 
 		protected this(GraphicsContext context)
 		{
@@ -56,8 +56,6 @@ namespace GlitchyEngine.Renderer
 		public override extern uint32 ArraySize {get;}
 		public override extern uint32 MipLevels {get;}
 
-		protected override extern void ImplBind(uint32 slot);
-		
 		public this(GraphicsContext context, String path) : base(context)
 		{
 			this._path = new String(path);
