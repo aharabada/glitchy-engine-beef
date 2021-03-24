@@ -13,9 +13,9 @@ namespace Sandbox.VoxelFun
 
 		public static void Init()
 		{
-			Stone = RegisterModel(Blocks.Stone, .. new BlockModel(.Gray));
-			Grass = RegisterModel(Blocks.Grass, .. new BlockModel(.Green));
-			Dirt = RegisterModel(Blocks.Dirt, .. new BlockModel(.Brown));
+			Stone = RegisterModel(Blocks.Stone, .. new BlockModel(.White, BlockTextures.Stone));
+			Grass = RegisterModel(Blocks.Grass, .. new BlockModel(.White, BlockTextures.GrassTop, BlockTextures.GrassSide, BlockTextures.Dirt));
+			Dirt = RegisterModel(Blocks.Dirt, .. new BlockModel(.White, BlockTextures.Dirt));
 		}
 
 		public static void RegisterModel(Block block, Model model)

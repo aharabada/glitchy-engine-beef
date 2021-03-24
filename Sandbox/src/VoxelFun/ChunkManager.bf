@@ -84,7 +84,6 @@ namespace Sandbox.VoxelFun
 		private HashSet<Int32_3> _generatingChunks = new .() ~ delete _;
 		private Monitor _generatingChunksLock = new .() ~ delete _;
 
-		public Texture2D Texture ~ _?.ReleaseRef();
 		public Effect TextureEffect ~ _?.ReleaseRef();
 		
 		VoxelGeometryGenerator voxelGeoGen = new VoxelGeometryGenerator() ~ delete _;
@@ -618,7 +617,7 @@ namespace Sandbox.VoxelFun
 
 				chunkGeo.AddRef();
 
-				Texture.Bind();
+				BlockTextures.Atlas.Bind();
 
 				Renderer.Submit(chunk.Geometry, TextureEffect, chunk.Transform);
 				chunkGeo.ReleaseRef();

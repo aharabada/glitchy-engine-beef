@@ -88,9 +88,11 @@ namespace Sandbox.VoxelFun
 		public this() : base("VoxelTest")
 		{
 			Blocks.Init();
-			Models.Init();
 
 			_context = Application.Get().Window.Context..AddRef();
+			
+			BlockTextures.Init(_context);
+			Models.Init();
 
 			_effectLibrary = new EffectLibrary(_context);
 
@@ -255,7 +257,6 @@ namespace Sandbox.VoxelFun
 			}
 
 			_world.ChunkManager = new ChunkManager(_context, _vertexLayout, _world);
-			_world.ChunkManager.Texture = _texture..AddRef();
 			_world.ChunkManager.TextureEffect = _textureEffect..AddRef();
 		}
 
