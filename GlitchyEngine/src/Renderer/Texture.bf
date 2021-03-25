@@ -46,6 +46,15 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
+	public struct Texture2DDesc
+	{
+		public uint32 Width;
+		public uint32 Height;
+		public uint32 ArraySize;
+		public uint32 MipLevels;
+		public Format Format;
+	}
+
 	public class Texture2D : Texture
 	{
 		protected String _path ~ delete _;
@@ -55,6 +64,8 @@ namespace GlitchyEngine.Renderer
 		public override uint32 Depth => 1;
 		public override extern uint32 ArraySize {get;}
 		public override extern uint32 MipLevels {get;}
+		
+		protected this(GraphicsContext context) : base(context) {}
 
 		public this(GraphicsContext context, String path) : base(context)
 		{
@@ -63,5 +74,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern void LoadTexturePlatform();
+		
+		protected extern void CreateTexturePlatform(Texture2DDesc desc, void* data, uint32 linePitch);
 	}
 }
