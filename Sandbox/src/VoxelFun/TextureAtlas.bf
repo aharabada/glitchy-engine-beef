@@ -8,11 +8,13 @@ namespace Sandbox.VoxelFun
 {
 	class TextureAtlas : Texture2D
 	{
+		typealias TexEntry = (Color* data, uint32 width, uint32 height, BlockTexture blockTex);
+
 		public this(GraphicsContext context, List<BlockTexture> textures) : base(context)
 		{
 			// Todo: rewrite this garbage algorithm
 
-			List<(Color* data, uint32 width, uint32 height, BlockTexture blockTex)> textureDatas = new .(textures.Count);
+			List<TexEntry> textureDatas = new .(textures.Count);
 			defer
 			{
 				for(let item in textureDatas)
@@ -25,6 +27,11 @@ namespace Sandbox.VoxelFun
 
 			uint32 maxWidth = 0;
 			uint32 maxHeight = 0;
+
+			Color[4] nullColors = .(.HotPink, .Black, .Black, .HotPink);
+			BlockTexture nullBT = scope .("NULL");
+			TexEntry nullTexture = (&nullColors, 2, 2, nullBT);
+			bool nullTexWriten = false;
 
 			for(let texture in textures)
 			{
@@ -57,7 +64,8 @@ namespace Sandbox.VoxelFun
 			uint32 currentX = 0;
 			uint32 currentY = 0;
 
-			for(let texture in textureDatas)
+			/// Copies the data of the given texture into the atlas
+			void CopyTextureIntoAtlas(TexEntry texture)
 			{
 				texture.blockTex.[Friend]_atlasStart = .((float)currentX / (float)textureWidth, (float)currentY / (float)textureHeight);
 				texture.blockTex.[Friend]_atlasSize = .((float)texture.width / (float)textureWidth, (float)texture.height / (float)textureHeight);
@@ -73,6 +81,25 @@ namespace Sandbox.VoxelFun
 				{
 					currentX = 0;
 					currentY += maxHeight;
+				}
+			}
+
+			for(let texture in textureDatas)
+			{
+				if(texture.data != null)
+				{
+					CopyTextureIntoAtlas(texture);
+				}
+				else
+				{
+					if(!nullTexWriten)
+					{
+						CopyTextureIntoAtlas(nullTexture);
+						nullTexWriten = true;
+					}
+					
+					texture.blockTex.[Friend]_atlasStart = nullTexture.blockTex.[Friend]_atlasStart;
+					texture.blockTex.[Friend]_atlasSize = nullTexture.blockTex.[Friend]_atlasSize;
 				}
 			}
 
