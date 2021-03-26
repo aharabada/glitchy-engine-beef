@@ -62,7 +62,7 @@ namespace GlitchyEngine.Renderer
 
 			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(_context.nativeDevice, _path.ToScopedNativeWChar!(),
 				(.)&nativeTexture, &nativeView);
-			
+
 			if(loadResult.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to load texture \"{_path}\". Error({(int)loadResult}): {loadResult}");
@@ -72,6 +72,9 @@ namespace GlitchyEngine.Renderer
 
 				// TODO: load fallback texture
 			}
+			
+			let resType = nativeTexture.GetResourceType();
+			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture \"{_path}\" is not a 2D texture (it is {resType}).");
 
 			nativeTexture.GetDescription(out nativeDesc);
 		}
@@ -91,6 +94,44 @@ namespace GlitchyEngine.Renderer
 			result = _context.[Friend]nativeDevice.CreateShaderResourceView(nativeTexture, null, &nativeView);
 			
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture view. Error ({result.Underlying}): {result}");
+		}
+	}
+
+	extension TextureCube
+	{
+		protected internal ID3D11Texture2D* nativeTexture ~ _?.Release();
+		protected internal NativeTex2DDesc nativeDesc;
+		
+		public override uint32 Width => nativeDesc.Width;
+		public override uint32 Height => nativeDesc.Height;
+		public override uint32 ArraySize => nativeDesc.ArraySize / 6;
+		public override uint32 MipLevels => nativeDesc.MipLevels;
+
+		protected override void LoadTexturePlatform()
+		{
+			nativeTexture?.Release();
+			nativeView?.Release();
+
+			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(_context.nativeDevice, _path.ToScopedNativeWChar!(),
+				(.)&nativeTexture, &nativeView);
+
+			if(loadResult.Failed)
+			{
+				Log.EngineLogger.Error($"Failed to load texture \"{_path}\". Error({(int)loadResult}): {loadResult}");
+				
+				nativeTexture?.Release();
+				nativeView?.Release();
+
+				// TODO: load fallback texture
+			}
+
+			let resType = nativeTexture.GetResourceType();
+			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture \"{_path}\" is not a texture cube (it is {resType}).");
+
+			nativeTexture.GetDescription(out nativeDesc);
+
+			Log.EngineLogger.Assert(nativeDesc.MiscFlags.HasFlag(.TextureCube), scope $"The texture \"{_path}\" is not a texture cube.");
+			// TODO: load fallback texture
 		}
 	}
 }

@@ -77,4 +77,25 @@ namespace GlitchyEngine.Renderer
 		
 		protected extern void CreateTexturePlatform(Texture2DDesc desc, void* data, uint32 linePitch);
 	}
+
+	public class TextureCube : Texture
+	{
+		protected String _path ~ delete _;
+		
+		public override extern uint32 Width {get;}
+		public override extern uint32 Height {get;}
+		public override uint32 Depth => 1;
+		public override extern uint32 ArraySize {get;}
+		public override extern uint32 MipLevels {get;}
+
+		protected this(GraphicsContext context) : base(context) {}
+		
+		public this(GraphicsContext context, String path) : base(context)
+		{
+			this._path = new String(path);
+			LoadTexturePlatform();
+		}
+
+		protected extern void LoadTexturePlatform();
+	}
 }
