@@ -274,5 +274,8 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 		public static implicit operator Self(in DirectX.Math.Vector4 value) => *(Self*)&value;
+		
+		[Inline]
+		public static explicit operator Self(float value) => Self(value);
 	}
 }
