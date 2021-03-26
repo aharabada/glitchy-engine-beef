@@ -87,9 +87,9 @@ namespace GlitchyEngine.Renderer
 			case .LimitedReversed:
 				_projection = Matrix.ReversedPerspectiveProjection(_fovY, _aspect, _nearPlane, _farPlane);
 			case .Infinite:
-				_projection = Matrix.InfinitePerspectiveProjection(_fovY, _aspect, _nearPlane); // todo: epsilon
+				_projection = Matrix.InfinitePerspectiveProjection(_fovY, _aspect, _nearPlane, 10e-6f); // todo: epsilon
 			case .InfiniteReversed:
-				_projection = Matrix.ReversedInfinitePerspectiveProjection(_fovY, _aspect, _nearPlane); // todo: epsilon
+				_projection = Matrix.ReversedInfinitePerspectiveProjection(_fovY, _aspect, _nearPlane, 10e-6f); // todo: epsilon
 			default:
 				Log.EngineLogger.Assert(false, "Unknown projection type.");
 			}
