@@ -8,7 +8,7 @@ namespace GlitchyEngine.Math
 	/**
 	 * A Vector with four components of type int32.
 	 */
-	[SwizzleVector(4, "Int32_")]
+	//[SwizzleVector(4, "Int32_")]
 	public struct Int32_4 : IHashable
 	{
 		public const Int32_4 Zero  = .(0, 0, 0, 0);
