@@ -57,7 +57,7 @@ namespace Sandbox
 
 		GeometryBinding _quadGeometryBinding ~ _?.ReleaseRef();
 
-		RasterizerState _rasterizerState ~ delete _;
+		RasterizerState _rasterizerState ~ _?.ReleaseRef();
 
 		GraphicsContext _context ~ _?.ReleaseRef();
 
