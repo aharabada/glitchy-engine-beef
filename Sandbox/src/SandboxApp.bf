@@ -7,13 +7,12 @@ using GlitchyEngine.ImGui;
 using ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
+using GlitchyEngine.World;
 
 namespace Sandbox
 {
 	class ExampleLayer : Layer
 	{
-		private OrthographicCamera _camera ~ delete _; // PerspectiveCamera
-
 		[Ordered]
 		struct VertexColorTexture : IVertexData
 		{
@@ -68,6 +67,8 @@ namespace Sandbox
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
 
 		EffectLibrary _effectLibrary ~ delete _;
+
+		EcsWorld _world = new EcsWorld() ~ delete _;
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -159,18 +160,6 @@ namespace Sandbox
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(_context, rsDesc);
 
-			// Camera
-			_camera = new OrthographicCamera();
-			_camera.NearPlane = -1;
-			_camera.FarPlane = 1;
-			/*
-			_camera = new PerspectiveCamera();
-			_camera.NearPlane = 0.1f;
-			_camera.FarPlane = 10.0f;
-			_camera.FovY = Math.PI_f / 4;
-			_camera.Position = .(0, -1, -5);
-			*/
-
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
 			_ge_logo = new Texture2D(_context, "content/Textures/GE_Logo.dds");
 
@@ -189,10 +178,45 @@ namespace Sandbox
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
 			_alphaBlendState = new BlendState(_context, blendDesc);
 			_opaqueBlendState = new BlendState(_context, .Default);
+
+			InitEcs();
+		}
+
+		Entity _cameraEntity;
+
+		void InitEcs()
+		{
+			_world.Register<TransformComponent>();
+			_world.Register<MeshComponent>();
+			_world.Register<CameraComponent>();
+
+			// Create camera entity
+			_cameraEntity = _world.NewEntity();
+			var cameraTransform = _world.AssignComponent<TransformComponent>(_cameraEntity);
+			var camera = _world.AssignComponent<CameraComponent>(_cameraEntity);
+			*cameraTransform = TransformComponent();
+			camera.NearPlane = 0.1f;
+			camera.FarPlane = 10.0f;
+			camera.FovY = Math.PI_f / 4;
+			cameraTransform.Position = .(0, -1, -5);
+
+			for(int x < 20)
+			for(int y < 20)
+			{
+				Entity entity = _world.NewEntity();
+
+				var transform = _world.AssignComponent<TransformComponent>(entity);
+				transform.Transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
+
+				var mesh = _world.AssignComponent<MeshComponent>(entity);
+				mesh.Mesh = _quadGeometryBinding;
+			}
 		}
 
 		public override void Update(GameTime gameTime)
 		{
+			var cameraTransform = _world.GetComponent<TransformComponent>(_cameraEntity);
+
 			if(Application.Get().Window.IsActive)
 			{
 				Vector2 movement = .();
@@ -220,16 +244,13 @@ namespace Sandbox
 
 				movement *= (float)(gameTime.FrameTime.TotalSeconds);
 
-				_camera.Position += .(movement, 0);
+				cameraTransform.Position += .(movement, 0);
+				cameraTransform.Update();
 			}
 
-			_camera.Width = _context.SwapChain.BackbufferViewport.Width / 256;
-			_camera.Height = _context.SwapChain.BackbufferViewport.Height / 256;
-
-			//_camera.AspectRatio = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
-			//						Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
-
-			_camera.Update();
+			var camera = _world.GetComponent<CameraComponent>(_cameraEntity);
+			camera.Aspect = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
+									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
 
@@ -241,23 +262,33 @@ namespace Sandbox
 
 			_context.SetViewport(_context.SwapChain.BackbufferViewport);
 
-			Renderer.BeginScene(_camera);
+			Renderer.BeginScene(_world, _cameraEntity);
 			
 			_opaqueBlendState.Bind();
 
 			var basicEffect = _effectLibrary.Get("basicShader");
 			var textureEffect = _effectLibrary.Get("textureShader");
 
-			for(int x < 20)
-			for(int y < 20)
+			for(var entity in _world.Enumerate(typeof(TransformComponent)))
 			{
-				if((x + y) % 2 == 0)
+				var transform = _world.GetComponent<TransformComponent>(entity);
+				transform.Update();
+			}
+
+			int i = 0;
+			for(var entity in _world.Enumerate(typeof(TransformComponent), typeof(MeshComponent)))
+			{
+				i++;
+
+				if(i % 2 == 0)
 					basicEffect.Variables["BaseColor"].SetData(_squareColor0);
 				else
 					basicEffect.Variables["BaseColor"].SetData(_squareColor1);
 
-				Matrix transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
-				Renderer.Submit(_quadGeometryBinding, basicEffect, transform);
+				var transform = _world.GetComponent<TransformComponent>(entity);
+				var mesh = _world.GetComponent<MeshComponent>(entity);
+
+				Renderer.Submit(mesh.Mesh, basicEffect, transform.Transform);
 			}
 			
 			basicEffect.Variables["BaseColor"].SetData(_squareColor1);

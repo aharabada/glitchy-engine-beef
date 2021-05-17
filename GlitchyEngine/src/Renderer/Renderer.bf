@@ -1,4 +1,5 @@
 using GlitchyEngine.Math;
+using GlitchyEngine.World;
 
 namespace GlitchyEngine.Renderer
 {
@@ -34,6 +35,18 @@ namespace GlitchyEngine.Renderer
 			*/
 
 			RenderCommand.Init();
+		}
+
+		public static void BeginScene(EcsWorld world, Entity cameraEntity)
+		{
+			var camera = world.GetComponent<CameraComponent>(cameraEntity);
+			var transform = world.GetComponent<TransformComponent>(cameraEntity);
+
+			var trans = transform.Transform;
+			var view = trans.Invert();
+			var proj = camera.Projection;
+
+			_sceneConstants.ViewProjection = proj * view;
 		}
 
 		public static void BeginScene(Camera camera)
