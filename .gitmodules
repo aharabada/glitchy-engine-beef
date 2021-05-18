@@ -5,7 +5,7 @@
 	path = GlitchyEngine/vendor/imgui-beef
 	url = https://github.com/aharabada/imgui-beef
 [submodule "GlitchyEngine/vendor/DirectXTK"]
-	path = /GlitchyEngine/vendor/DirectXTK
+	path = GlitchyEngine/vendor/DirectXTK
 	url = https://github.com/aharabada/DirectXTK-beef.git
 [submodule "vendor/lodepng-beef"]
 	path = vendor/lodepng-beef
