@@ -31,18 +31,61 @@ namespace GlitchyEngine.Math
 		public ref float this[int index]
 		{
 			[Checked]
+			get mut
+			{
+				if(index < 0 || index >= Length)
+					Internal.ThrowIndexOutOfRange(1);
+				
+				return ref (&X)[index];
+			}
+
+			[Inline]
+			get mut => ref (&X)[index];
+		}
+		
+		public float this[int index]
+		{
+			[Checked]
 			get
 			{
 				if(index < 0 || index >= Length)
 					Internal.ThrowIndexOutOfRange(1);
 				
-#unwarn
-				return ref (&X)[index];
+				if(index == 0)
+					return X;
+				else
+					return Y;
 			}
 
 			[Inline]
-#unwarn
-			get => ref (&X)[index];
+			get
+			{
+				if(index == 0)
+					return X;
+				else
+					return Y;
+			}
+			
+			[Checked]
+			set mut
+			{
+				if(index < 0 || index >= Length)
+					Internal.ThrowIndexOutOfRange(1);
+				
+				if(index == 0)
+					X = value;
+				else
+					Y = value;
+			}
+
+			[Inline]
+			set mut
+			{
+				if(index == 0)
+					X = value;
+				else
+					Y = value;
+			}
 		}
 
 		/**

@@ -17,6 +17,8 @@ namespace GlitchyEngine.Math
 		public const Vector3 Right    = .(1f, 0f, 0f);  	
 		public const Vector3 Up       = .(0f, 1f, 0f); 	
 		public const Vector3 Down     = .(0f, -1f, 0f);
+		
+		public const int Length = 3;
 
 		public float X, Y, Z;
 
@@ -42,22 +44,45 @@ namespace GlitchyEngine.Math
 			Y = y;
 			Z = z;
 		}
-
+		
 		public ref float this[int index]
 		{
 			[Checked]
-			get
+			get mut
 			{
-				if(index < 0 || index > 2)
-					Internal.ThrowIndexOutOfRange();
+				if(index < 0 || index >= Length)
+					Internal.ThrowIndexOutOfRange(1);
 				
-#unwarn
 				return ref (&X)[index];
 			}
 
 			[Inline]
-#unwarn
-			get => ref (&X)[index];
+			get mut => ref (&X)[index];
+		}
+
+		public float this[int index]
+		{
+			get
+			{
+				switch(index)
+				{
+				case 0: return X;
+				case 1: return Y;
+				case 2: return Z;
+				default: Internal.ThrowIndexOutOfRange();
+				}
+			}
+
+			set mut
+			{
+				switch(index)
+				{
+				case 0: X = value;
+				case 1: Y = value;
+				case 2: Z = value;
+				default: Internal.ThrowIndexOutOfRange();
+				}
+			}
 		}
 
 		/**
