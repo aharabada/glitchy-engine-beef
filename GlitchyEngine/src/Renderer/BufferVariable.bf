@@ -58,6 +58,13 @@ namespace GlitchyEngine.Renderer
 	   			Log.EngineLogger.Warning($"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #endif
 		}
+		
+		public void SetData(bool value)
+		{
+			EnsureTypeMatch(1, 1, .Bool);
+
+			*(bool*)firstByte = value;
+		}
 
 		public void SetData(float value)
 		{

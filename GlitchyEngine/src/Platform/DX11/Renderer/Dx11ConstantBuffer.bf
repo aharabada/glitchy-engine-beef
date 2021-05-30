@@ -27,6 +27,8 @@ namespace GlitchyEngine.Renderer
 
 			switch(shaderTypeDescription.Type)
 			{
+			case .Bool:
+				_type = .Bool;
 			case .Float:
 				_type = .Float;
 			default:

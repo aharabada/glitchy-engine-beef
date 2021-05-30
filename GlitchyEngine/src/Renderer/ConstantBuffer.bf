@@ -99,6 +99,7 @@ namespace GlitchyEngine.Renderer
 
 	public enum ShaderVariableType
 	{
+		Bool,
 		Float,
 		// todo
 	}
