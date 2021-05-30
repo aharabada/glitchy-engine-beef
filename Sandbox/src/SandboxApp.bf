@@ -338,7 +338,9 @@ namespace Sandbox
 			PushLayer(new ExampleLayer());
 		}
 
+#if !SANDBOX_2D		
 		[Export, LinkName("CreateApplication")]
+#endif
 		public static Application CreateApplication()
 		{
 			return new SandboxApp();
