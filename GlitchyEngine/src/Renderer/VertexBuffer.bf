@@ -30,14 +30,14 @@ namespace GlitchyEngine.Renderer
 			_vertexType = vertexType;
 
 			_description = .(){
-				Size = ((uint32)_vertexType.Size * vertexCount),
+				Size = ((uint32)_vertexType.Stride * vertexCount),
 				Usage = usage,
 				CPUAccess = cpuAccess,
 				BindFlags = .Vertex,
 				MiscFlags = .None
 			};
 
-			_defaultBinding = .(this, (.)_vertexType.Size, 0);
+			_defaultBinding = .(this, (.)_vertexType.Stride, 0);
 		}
 
 		[Inline]

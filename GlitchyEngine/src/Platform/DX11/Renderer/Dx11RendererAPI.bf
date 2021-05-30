@@ -2,6 +2,8 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
+	using internal GlitchyEngine.Renderer;
+
 	extension RendererAPI
 	{
 		private GraphicsContext _context;
@@ -27,6 +29,11 @@ namespace GlitchyEngine.Renderer
 		public override void DrawIndexed(GeometryBinding geometry)
 		{
 			_context.DrawIndexed(geometry.IndexCount, geometry.IndexByteOffset, 0);
+		}
+
+		public override void DrawIndexedInstanced(GeometryBinding geometry)
+		{
+			_context.nativeContext.DrawIndexedInstanced(geometry.IndexCount, geometry.InstanceCount, geometry.IndexByteOffset, 0, 0);
 		}
 	}
 }

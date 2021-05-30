@@ -30,5 +30,11 @@ namespace GlitchyEngine.Renderer
 		{
 			_rendererAPI.DrawIndexed(geometry);
 		}
+
+		[Inline]
+		public static void DrawIndexedInstanced(GeometryBinding geometry)
+		{
+			_rendererAPI.DrawIndexedInstanced(geometry);
+		}
 	}
 }

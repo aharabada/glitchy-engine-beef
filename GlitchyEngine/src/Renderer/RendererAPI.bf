@@ -20,5 +20,9 @@ namespace GlitchyEngine.Renderer
 		public extern void Clear(RenderTarget renderTarget, ColorRGBA clearColor);
 
 		public extern void DrawIndexed(GeometryBinding geometry);
+
+		public extern void DrawInstanced(GeometryBinding geometry);
+
+		public extern void DrawIndexedInstanced(GeometryBinding geometry);
 	}
 }

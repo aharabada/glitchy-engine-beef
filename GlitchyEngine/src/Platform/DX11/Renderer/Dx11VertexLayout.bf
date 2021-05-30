@@ -28,7 +28,7 @@ namespace GlitchyEngine.Renderer
 			Debug.Assert(input.Count == output.Count);
 
 			for(int i < input.Count)
-				output[i] = .(input[i].SemanticName, input[i].SemanticIndex, input[i].Format, input[i].InputSlot, input[i].AlignedByteOffset, (.)input[i].InputSlotClass);
+				output[i] = .(input[i].SemanticName, input[i].SemanticIndex, input[i].Format, input[i].InputSlot, input[i].AlignedByteOffset, (.)input[i].InputSlotClass, input[i].InstanceDataStepRate);
 		}
 
 		protected override void CreateNativeLayout()
