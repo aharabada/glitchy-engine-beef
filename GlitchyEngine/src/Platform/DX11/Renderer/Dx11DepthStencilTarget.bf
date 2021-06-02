@@ -3,6 +3,24 @@ using internal GlitchyEngine.Renderer;
 
 namespace GlitchyEngine.Renderer
 {
+	extension DepthStencilFormat
+	{
+		public static explicit operator Format(Self self)
+		{
+			switch(self)
+			{
+			case .D16_UNorm:
+				return .D16_UNorm;
+			case .D24_UNorm_S8_UInt:
+				return .D24_UNorm_S8_UInt;
+			case .D32_Float:
+				return .D32_Float;
+			case .D32_Float_S8X24_UInt:
+				return .D32_Float_S8X24_UInt;
+			}
+		}
+	}
+
 	extension DepthStencilTarget
 	{
 		internal ID3D11DepthStencilView* nativeView ~ _?.Release();
@@ -10,7 +28,7 @@ namespace GlitchyEngine.Renderer
 		protected override void PlatformCreate()
 		{
 			Texture2DDescription desc = .();
-			desc.Format = .D32_Float;
+			desc.Format = (.)_format;
 			desc.ArraySize = 1;
 			desc.BindFlags = .DepthStencil;
 			desc.Width = _width;
