@@ -43,6 +43,7 @@ namespace Sandbox
 		RasterizerState _rasterizerState ~ _?.ReleaseRef();
 
 		GraphicsContext _context ~ _?.ReleaseRef();
+		DepthStencilTarget _depthTarget ~ _?.ReleaseRef();
 
 		Texture2D _texture ~ _?.ReleaseRef();
 		Texture2D _ge_logo ~ _?.ReleaseRef();
@@ -70,6 +71,8 @@ namespace Sandbox
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(_context, rsDesc);
+
+			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
 			_ge_logo = new Texture2D(_context, "content/Textures/GE_Logo.dds");
@@ -212,7 +215,8 @@ namespace Sandbox
 									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
-
+			
+			_depthTarget..Clear(1.0f, 0, .Depth).Bind();
 			// Draw test geometry
 			_context.SetRenderTarget(null);
 			_context.BindRenderTargets();
@@ -275,6 +279,8 @@ namespace Sandbox
 			EventDispatcher dispatcher = scope EventDispatcher(event);
 
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
+
+			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
 		}
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
@@ -286,6 +292,14 @@ namespace Sandbox
 			_squareColor1 = ColorRGBA.White - _squareColor0;
 
 			ImGui.End();
+
+			return false;
+		}
+
+		private bool OnWindowResize(WindowResizeEvent e)
+		{
+			_depthTarget.ReleaseRef();
+			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
 			return false;
 		}
