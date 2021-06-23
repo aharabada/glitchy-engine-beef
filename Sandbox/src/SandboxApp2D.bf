@@ -117,17 +117,16 @@ namespace Sandbox
 				.Blue, .White);
 			
 			_testTexture.SetData<Color>(&colors, 0, 1, 1, 1);
-			//_testTexture.SetData<Color>(&colors, 0, 0, 2, 2);
 
-			fonty = new Font(_context, "C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);//C:\\Windows\\Fonts\\seguiemj.ttf
-			emojies = new Font(_context, "C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
-			fonty.[Friend]_fallback = emojies;
+			fonty = new Font(_context, "C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
+			var emojis = new Font(_context, "C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
+			fonty.Fallback = emojis..ReleaseRefNoDelete();
 
 			fontRenderer = new FontRenderer(_context);
 		}
 
-		Font fonty ~ delete _;
-		Font emojies ~ delete _;
+		Font fonty ~ _.ReleaseRef();
+
 		FontRenderer fontRenderer ~ delete _;
 
 		VertexLayout layout ~ delete _;

@@ -7,9 +7,9 @@ using internal GlitchyEngine.Renderer.Text;
 
 namespace GlitchyEngine.Renderer.Text
 {
-	public class Font
+	public class Font : RefCounted
 	{
-		public class GlyphDescriptor
+		internal class GlyphDescriptor
 		{
 			//public FT_Face Face;
 			public Font Font;
@@ -30,7 +30,7 @@ namespace GlitchyEngine.Renderer.Text
 		private GraphicsContext _context ~ _.ReleaseRef();
 		internal FT_Face _face ~ FreeType.Done_Face(_face);
 
-		private Font _fallback;
+		private Font _fallback ~ _?.ReleaseRef();
 
 		private uint32 _fontSize;
 		private int32 _faceIndex;
@@ -45,6 +45,24 @@ namespace GlitchyEngine.Renderer.Text
 		GlyphDescriptor _missingGlyph;
 		
 		private SamplerState _sampler ~ _.ReleaseRef();
+
+		/**
+		 * Gets or sets the fallback Font for this Font.
+		 * The Fallback font will be used to render Glyphs that are not defined in the current font.
+		 * @remarks Example: "Arial" doesn't define emojis. Without a fallback font the FontRenderer would draw the null-Glyph (probably just a rectangle).
+		 * 		By defining "Segoe UI Emoji" as the Fallback the FontRenderer will use "Arial" to render letters and "Segoe UI Emoji" to render emojis.
+		 */
+		public Font Fallback
+		{
+			get => _fallback;
+			set
+			{
+				if(_fallback == value)
+					return;
+
+				_fallback = value..AddRef();
+			}
+		}
 
 		/**
 		 * Gets or sets the Sampler that will be used to sample the spritefont.
