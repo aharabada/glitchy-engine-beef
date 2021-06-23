@@ -156,16 +156,91 @@ namespace GlitchyEngine.Renderer
 
 		static Dictionary<SamplerStateDescription, SamplerState> _samplers;
 
+		public static SamplerState PointClamp;
+		public static SamplerState PointWrap;
+		public static SamplerState LinearClamp;
+		public static SamplerState LinearWrap;
+		public static SamplerState AnisotropicClamp;
+		public static SamplerState AnisotropicWrap;
+
 		public static void Init(GraphicsContext context)
 		{
 			_context = context..AddRef();
 			_samplers = new .();
+
+			// Init point samplers
+			{
+				var clampDesc = SamplerStateDescription()
+					{
+						MinFilter = .Point,
+						MagFilter = .Point,
+						MipFilter = .Point
+					};
+				PointClamp = GetSampler(clampDesc);
+				
+				var wrapDesc = SamplerStateDescription()
+					{
+						MinFilter = .Point,
+						MagFilter = .Point,
+						MipFilter = .Point,
+						AddressModeU = .Wrap,
+						AddressModeV = .Wrap,
+						AddressModeW = .Wrap
+					};
+				PointWrap = GetSampler(wrapDesc);
+			}
+
+			// Init linear samplers
+			{
+				// Default Sampler ist LinearClamp
+				var clampDesc = SamplerStateDescription();
+				LinearClamp = GetSampler(clampDesc);
+				
+				var wrapDesc = SamplerStateDescription()
+					{
+						AddressModeU = .Wrap,
+						AddressModeV = .Wrap,
+						AddressModeW = .Wrap
+					};
+				LinearWrap = GetSampler(wrapDesc);
+			}
+
+			// Init anisotropic samplers
+			{
+				var clampDesc = SamplerStateDescription()
+					{
+						MinFilter = .Anisotropic,
+						MagFilter = .Anisotropic,
+						MipFilter = .Anisotropic,
+						MaxAnisotropy = 16
+					};
+				AnisotropicClamp = GetSampler(clampDesc);
+				
+				var wrapDesc = SamplerStateDescription()
+					{
+						MinFilter = .Anisotropic,
+						MagFilter = .Anisotropic,
+						MipFilter = .Anisotropic,
+						MaxAnisotropy = 16,
+						AddressModeU = .Wrap,
+						AddressModeV = .Wrap,
+						AddressModeW = .Wrap
+					};
+				AnisotropicWrap = GetSampler(wrapDesc);
+			}
 		}
 
 		public static void Uninit()
 		{
+			PointClamp.ReleaseRef();
+			PointWrap.ReleaseRef();
+			LinearClamp.ReleaseRef();
+			LinearWrap.ReleaseRef();
+			AnisotropicClamp.ReleaseRef();
+			AnisotropicWrap.ReleaseRef();
+
 			_context?.ReleaseRef();
-			
+
 			delete _samplers;
 			_samplers = null;
 		}
