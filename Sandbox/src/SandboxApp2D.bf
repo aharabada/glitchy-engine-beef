@@ -8,6 +8,7 @@ using ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using GlitchyEngine.World;
+using GlitchyEngine.Renderer.Text;
 
 namespace Sandbox
 {
@@ -57,6 +58,8 @@ namespace Sandbox
 
 		Renderer2D Renderer2D ~ delete _;
 
+		Texture2D _testTexture ~ _?.ReleaseRef();
+
 		[AllowAppend]
 		public this() : base("Example")
 		{
@@ -97,7 +100,35 @@ namespace Sandbox
 
 			Renderer2D = new Renderer2D(_context, _effectLibrary);
 			//Init2D();
+
+			Texture2DDesc desc = .();
+			desc.Format = .R8G8B8A8_UNorm;
+			desc.Width = 2;
+			desc.Height = 2;
+			desc.ArraySize = 1;
+			desc.CpuAccess = .None;
+			desc.MipLevels = 1;
+			desc.Usage = .Default;
+
+			_testTexture = new Texture2D(_context, desc);
+
+			Color[4] colors = .(
+				.Red, .Green,
+				.Blue, .White);
+			
+			_testTexture.SetData<Color>(&colors, 0, 1, 1, 1);
+			//_testTexture.SetData<Color>(&colors, 0, 0, 2, 2);
+
+			fonty = new Font(_context, "C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);//C:\\Windows\\Fonts\\seguiemj.ttf
+			emojies = new Font(_context, "C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
+			fonty.[Friend]_fallback = emojies;
+
+			fontRenderer = new FontRenderer(_context);
 		}
+
+		Font fonty ~ delete _;
+		Font emojies ~ delete _;
+		FontRenderer fontRenderer ~ delete _;
 
 		VertexLayout layout ~ delete _;
 
@@ -225,7 +256,8 @@ namespace Sandbox
 
 			_context.SetViewport(_context.SwapChain.BackbufferViewport);
 
-			Renderer2D.Begin(.SortByTexture, .(80, 80));
+			/*
+			Renderer2D.Begin(.FrontToBack, .(80, 80));
 			
 			//_opaqueBlendState.Bind();
 			_alphaBlendState.Bind();
@@ -237,7 +269,7 @@ namespace Sandbox
 
 			//_texture.Bind(0);
 			//_ge_logo.Bind(1);
-
+			
 			for(int x < 40)
 			for(int y < 40)
 			{
@@ -253,7 +285,7 @@ namespace Sandbox
 				}
 			}
 			
-			Renderer2D.Draw(_texture, 0, 0, 20, 10, .White, 20);
+			Renderer2D.Draw(_ge_logo, 0, 0, 180, 40, .White, 20);
 
 			/*
 			Renderer2D.Draw(_texture, 10, 50, 100, 100, .White);
@@ -267,6 +299,13 @@ namespace Sandbox
 			//_alphaBlendState.Bind();
 
 			//Renderer2D.Draw(_ge_logo, 80, 50, 100, 100, .White);
+
+			Renderer2D.End();
+			*/
+			_alphaBlendState.Bind();
+			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height));
+
+			fontRenderer.DrawText(Renderer2D, fonty, "Hallo Welt, wie geht es dir? 😂😂😂\nMir geht es gut, danke der Nachfrage, wie geht es dir?\nMir geht es hervorragend: Meine Engine kann endlich Text rendern\n und es scheint ganz in ordnung zu sein.", 0, 0);
 
 			Renderer2D.End();
 		}
@@ -285,15 +324,42 @@ namespace Sandbox
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
+			return true;
+
 			ImGui.Begin("Test");
 
 			ImGui.ColorEdit3("Square Color", ref _squareColor0);
 
 			_squareColor1 = ColorRGBA.White - _squareColor0;
 
+			//ImGui.Begin
+
+			//ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeView, .(100, 200));
+			//ImGui.Scrollbar(.X);
+			//ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeView, .(fonty.[Friend]_atlas.Width, fonty.[Friend]_atlas.Height), .(0.0f, 0.0f), .(1.0f, 1.0f), .(1.0f, 1.0f, 1.0f, 1.0f), .(1.0f, 0, 0, 1));
+
 			ImGui.End();
 
+			TextureViewer();
+
 			return false;
+		}
+
+		float zoom = 1.0f;
+
+		private void TextureViewer()
+		{
+			ImGui.Begin("Texture Viewer");
+
+			ImGui.SliderFloat("Zoom", &zoom, 0.01f, 100.0f);
+
+			ImGui.BeginChild("imageChild", default, true, .HorizontalScrollbar);
+
+			ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeView, .(fonty.[Friend]_atlas.Width * zoom, fonty.[Friend]_atlas.Height * zoom), .(0.0f, 0.0f), .(1.0f, 1.0f), .(1.0f, 1.0f, 1.0f, 1.0f), .(1.0f, 0, 0, 1));
+
+			ImGui.EndChild();
+
+			ImGui.End();
 		}
 
 		private bool OnWindowResize(WindowResizeEvent e)
