@@ -41,11 +41,13 @@ namespace GlitchyEngine.Renderer
 		{
 			public Matrix Transform;
 			public Color Color;
+			public Vector4 UVTransform;
 
-			public this(Matrix transform, Color color)
+			public this(Matrix transform, Color color, Vector4 uvTransform)
 			{
 				Transform = transform;
 				Color = color;
+				UVTransform = uvTransform;
 			}
 		}
 
@@ -61,6 +63,8 @@ namespace GlitchyEngine.Renderer
 		private VertexLayout instancingLayout ~ delete _;
 		private GeometryBinding instancingBinding ~ _?.ReleaseRef();
 		private VertexBuffer instanceBuffer ~ _?.ReleaseRef();
+
+		private Texture2D whiteTexture ~ _.ReleaseRef();
 		
 		private BatchVertex[] _rawInstances = new BatchVertex[1024] ~ delete _;
 		private uint32 _setInstances = 0;
@@ -106,6 +110,19 @@ namespace GlitchyEngine.Renderer
 
 			quadVertices.ReleaseRef();
 			quadIndices.ReleaseRef();
+
+			Texture2DDesc tex2Ddesc;
+			tex2Ddesc.Format = .R8G8B8A8_UNorm;
+			tex2Ddesc.Width = 1;
+			tex2Ddesc.Height = 1;
+			tex2Ddesc.MipLevels = 1;
+			tex2Ddesc.ArraySize = 1;
+			tex2Ddesc.Usage = .Immutable;
+			tex2Ddesc.CpuAccess = .None;
+			whiteTexture = new Texture2D(_context, tex2Ddesc);
+
+			Color color = .White;
+			whiteTexture.SetData(&color);
 		}
 
 		void InitInstancing(EffectLibrary effectLibrary)
@@ -122,7 +139,8 @@ namespace GlitchyEngine.Renderer
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", 1, 1, (.)-1, .PerInstanceData, 1),
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", 2, 1, (.)-1, .PerInstanceData, 1),
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", 3, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(    .R8G8B8A8_UNorm,     "COLOR", 0, 1, (.)-1, .PerInstanceData, 1)
+				VertexElement(    .R8G8B8A8_UNorm,     "COLOR", 0, 1, (.)-1, .PerInstanceData, 1),
+				VertexElement(.R32G32B32A32_Float,  "TEXCOORD", 0, 1, (.)-1, .PerInstanceData, 1)
 			);
 
 			instancingLayout = new VertexLayout(_context, vertexElements, instancingEffect.VertexShader);
@@ -183,11 +201,11 @@ namespace GlitchyEngine.Renderer
 							-1, 1, 0, 1);
 		}
 
-		struct QueuedQuad: this(Matrix Transform, Color Color, Texture2D Texture, float Depth) { }
+		struct QueuedQuad: this(Matrix Transform, Color Color, Texture2D Texture, float Depth, Vector4 uvTransform) { }
 
 		List<QueuedQuad> _quads = new .(128) ~ delete _;
 
-		public void Draw(Texture2D texture, float x, float y, float width, float height, Color color = .White, float depth = 0.0f)
+		public void Draw(Texture2D texture, float x, float y, float width, float height, Color color = .White, float depth = 0.0f, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			Matrix transform = .(width,      0, 0, 0,
 									0, height, 0, 0,
@@ -196,6 +214,7 @@ namespace GlitchyEngine.Renderer
 
 			if(_drawOrder == .Immediate)
 			{
+				/*
 				texture.Bind();
 	
 				quadEffect.Variables["World"].SetData(transform);
@@ -205,10 +224,13 @@ namespace GlitchyEngine.Renderer
 	
 				quadBinding.Bind(_context);
 				RenderCommand.DrawIndexed(quadBinding);
+				*/
+				_quads.Add(.(transform, color, texture ?? whiteTexture, depth, uvTransform));
+				DrawDeferred();
 			}
 			else
 			{
-				_quads.Add(.(transform, color, texture, depth));
+				_quads.Add(.(transform, color, texture ?? whiteTexture, depth, uvTransform));
 			}
 		}
 
@@ -287,7 +309,7 @@ namespace GlitchyEngine.Renderer
 					texture.Bind();
 				}
 
-				_rawInstances[_setInstances++] = .(quad.Transform, quad.Color);
+				_rawInstances[_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
 			}
 			
 			FlushInstances();

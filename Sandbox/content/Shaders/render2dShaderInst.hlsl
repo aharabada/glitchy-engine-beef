@@ -3,9 +3,10 @@ SamplerState Sampler : register(s0);
 
 struct VS_Input
 {
-    float2 Position   : POSITION;
-    float4x4 Tranform : TRANSFORM;
-    float4 Color      : COLOR;
+    float2 Position    : POSITION;
+    float4x4 Tranform  : TRANSFORM;
+    float4 Color       : COLOR;
+    float4 UVTransform : TEXCOORD;
 };
 
 struct PS_Input
@@ -20,7 +21,7 @@ PS_Input VS(VS_Input input)
     PS_Input output;
 
     output.Position = mul(float4(input.Position, 0.0f, 1.0f), input.Tranform);
-    output.TexCoord = input.Position;
+    output.TexCoord = input.UVTransform.xy + input.UVTransform.zw * input.Position;
     output.Color = input.Color;
 
     return output;
