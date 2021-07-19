@@ -51,13 +51,13 @@ namespace GlitchyEngine
 		//
 		public override static bool WasKeyPressed(Key keycode)
 		{
-			int8 state = CurrentState.KeyStates[(int)keycode];
+			int8 state = LastState.KeyStates[(int)keycode];
 			return state < 0;
 		}
 		
 		public override static bool WasKeyReleased(Key keycode)
 		{
-			int8 state = CurrentState.KeyStates[(int)keycode];
+			int8 state = LastState.KeyStates[(int)keycode];
 			return state >= 0;
 		}
 		
