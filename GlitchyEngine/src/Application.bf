@@ -66,23 +66,48 @@ namespace GlitchyEngine
 					break;
 			}
 		}
+		
+#if APP_SINGLESTEP
+		bool allowFrame = false;
+		bool disableSingleFrame = false;
+#else
+		const bool allowFrame = true;
+#endif
 
 		public void Run()
 		{
 			while(_running)
 			{
-				_gameTime.NewFrame();
+				if(allowFrame)
+				{
+					_gameTime.NewFrame();
+				}
 
 				Input.NewFrame();
+				
+#if APP_SINGLESTEP
+				allowFrame = disableSingleFrame || Input.IsKeyPressing(Key.F10);
 
-				for(Layer layer in _layerStack)
-					layer.Update(_gameTime);
+				if(Input.IsKeyPressing(Key.F11))
+				{
+					disableSingleFrame = !disableSingleFrame;
+				}
+#endif
+
+				if(allowFrame)
+				{
+					for(Layer layer in _layerStack)
+						layer.Update(_gameTime);
+				}
 				
 				_window.Update();
-
-				_imGuiLayer.ImGuiRender();
-
-				_window.Context.SwapChain.Present();
+				
+				if(allowFrame)
+				{
+					_imGuiLayer.ImGuiRender();
+	
+					_window.Context.SwapChain.Present();
+				}
 			}
 		}
 
