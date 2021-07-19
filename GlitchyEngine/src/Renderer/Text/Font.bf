@@ -11,7 +11,6 @@ namespace GlitchyEngine.Renderer.Text
 	{
 		internal class GlyphDescriptor
 		{
-			//public FT_Face Face;
 			public Font Font;
 
 			public FT_UInt GlyphIndex;
@@ -32,13 +31,13 @@ namespace GlitchyEngine.Renderer.Text
 
 		private Font _fallback ~ _?.ReleaseRef();
 
-		private uint32 _fontSize;
+		internal uint32 _fontSize;
 		private int32 _faceIndex;
 		private bool _hasColor;
 		
 		private Int32_3 _penPos;
 		private int32 _lastRowHeight;
-		private Texture2D _atlas ~ _?.ReleaseRef();
+		internal Texture2D _atlas ~ _?.ReleaseRef();
 		private Int32_3 _atlasSize;
 
 		private Dictionary<char32, GlyphDescriptor> _glyphs = new .() ~ DeleteDictionaryAndValues!(_);

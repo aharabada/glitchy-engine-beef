@@ -9,6 +9,7 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using GlitchyEngine.World;
 using GlitchyEngine.Renderer.Text;
+using System.IO;
 
 namespace Sandbox
 {
@@ -59,6 +60,8 @@ namespace Sandbox
 		Renderer2D Renderer2D ~ delete _;
 
 		Texture2D _testTexture ~ _?.ReleaseRef();
+
+		String testText ~ delete _;
 
 		[AllowAppend]
 		public this() : base("Example")
@@ -119,15 +122,19 @@ namespace Sandbox
 			_testTexture.SetData<Color>(&colors, 0, 1, 1, 1);
 
 			fonty = new Font(_context, "C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
+			var japanese = new Font(_context, "C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
 			var emojis = new Font(_context, "C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
-			fonty.Fallback = emojis..ReleaseRefNoDelete();
+			var mathstuff = new Font(_context, "C:\\Windows\\Fonts\\cambria.ttc", 64, true, 'α', 1);
+			fonty.Fallback = japanese..ReleaseRefNoDelete();
+			japanese.Fallback = emojis..ReleaseRefNoDelete();
+			emojis.Fallback = mathstuff..ReleaseRefNoDelete();
 
-			fontRenderer = new FontRenderer(_context);
+			// Load test text
+			var result = File.ReadAllText("test.txt", testText = new String(), true);
+			//Log.EngineLogger.Assert(result)
 		}
 
 		Font fonty ~ _.ReleaseRef();
-
-		FontRenderer fontRenderer ~ delete _;
 
 		VertexLayout layout ~ delete _;
 
@@ -304,7 +311,8 @@ namespace Sandbox
 			_alphaBlendState.Bind();
 			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height));
 
-			fontRenderer.DrawText(Renderer2D, fonty, "Hallo Welt, wie geht es dir? 😂😂😂\nMir geht es gut, danke der Nachfrage, wie geht es dir?\nMir geht es hervorragend: Meine Engine kann endlich Text rendern\n und es scheint ganz in ordnung zu sein.", 0, 0);
+			// Hallo Welt, wie geht es dir? 😂😂😂\nMir geht es gut, danke der Nachfrage. Wie geht es dir?\nMir geht es hervorragend und besser noch: meine Engine kann endlich Text rendern!💕❤\n und es scheint ganz in ordnung zu sein.
+			FontRenderer.DrawText(Renderer2D, fonty, testText, 0, 0, .White, .White, 32);
 
 			Renderer2D.End();
 		}

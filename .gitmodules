@@ -13,3 +13,6 @@
 [submodule "GlitchyEngine\\vendor\\freetype"]
 	path = GlitchyEngine\\vendor\\freetype
 	url = https://github.com/aharabada/FreeType-beef.git
+[submodule "GlitchyEngine/vendor/freetype"]
+	path = GlitchyEngine/vendor/freetype
+	url = https://github.com/aharabada/FreeType-beef.git
