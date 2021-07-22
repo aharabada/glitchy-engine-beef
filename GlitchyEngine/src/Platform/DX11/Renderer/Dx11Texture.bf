@@ -3,6 +3,7 @@ using DirectX.D3D11;
 using DirectX.Common;
 using DirectXTK;
 using GlitchyEngine.Math;
+using System.Collections;
 
 using internal GlitchyEngine.Renderer;
 
@@ -18,6 +19,32 @@ namespace GlitchyEngine.Renderer
 		{
 			_context.nativeContext.VertexShader.SetShaderResources(slot, 1, &nativeView);
 			_context.nativeContext.PixelShader.SetShaderResources(slot, 1, &nativeView);
+		}
+
+		/** \brief Loads the texture from the specified path.
+		 * @param path The path of the texture to load.
+		 * @param texture The reference to the pointer that will hold the texture.
+		 * @returns true if the texture was loaded successfully; false otherwise.
+		 */
+		protected bool LoadResourcePlatform<T>(StringView path, ref T* texture) where T : ID3D11Resource
+		{
+			((ID3D11Resource*)texture)?.Release();
+			nativeView?.Release();
+
+			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(_context.nativeDevice, path.ToScopedNativeWChar!(),
+				(.)&texture, &nativeView);
+
+			if(loadResult.Failed)
+			{
+				Log.EngineLogger.Error($"Failed to load texture \"{path}\". Error({(int)loadResult}): {loadResult}");
+
+				ReleaseAndNullify!(texture);
+				ReleaseAndNullify!(nativeView);
+
+				return false;
+			}
+
+			return true;
 		}
 	}
 
@@ -58,22 +85,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void LoadTexturePlatform()
 		{
-			nativeTexture?.Release();
-			nativeView?.Release();
+			LoadResourcePlatform(_path, ref nativeTexture);
 
-			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(_context.nativeDevice, _path.ToScopedNativeWChar!(),
-				(.)&nativeTexture, &nativeView);
-
-			if(loadResult.Failed)
-			{
-				Log.EngineLogger.Error($"Failed to load texture \"{_path}\". Error({(int)loadResult}): {loadResult}");
-				
-				nativeTexture?.Release();
-				nativeView?.Release();
-
-				// TODO: load fallback texture
-			}
-			
 			let resType = nativeTexture.GetResourceType();
 			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture \"{_path}\" is not a 2D texture (it is {resType}).");
 
@@ -239,21 +252,7 @@ namespace GlitchyEngine.Renderer
 
 		protected override void LoadTexturePlatform()
 		{
-			nativeTexture?.Release();
-			nativeView?.Release();
-
-			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(_context.nativeDevice, _path.ToScopedNativeWChar!(),
-				(.)&nativeTexture, &nativeView);
-
-			if(loadResult.Failed)
-			{
-				Log.EngineLogger.Error($"Failed to load texture \"{_path}\". Error({(int)loadResult}): {loadResult}");
-				
-				nativeTexture?.Release();
-				nativeView?.Release();
-
-				// TODO: load fallback texture
-			}
+			LoadResourcePlatform(_path, ref nativeTexture);
 
 			let resType = nativeTexture.GetResourceType();
 			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture \"{_path}\" is not a texture cube (it is {resType}).");
