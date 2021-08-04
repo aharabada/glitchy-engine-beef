@@ -70,7 +70,8 @@ namespace Sandbox
 
 		EcsWorld _world = new EcsWorld() ~ delete _;
 
-		OrthographicCameraController _cameraController ~ delete _;
+//		OrthographicCameraController _cameraController ~ delete _;
+		PerspectiveCameraController _cameraController ~ delete _;
 
 		private Vector3 CircleCoord(float angle)
 		{
@@ -183,8 +184,12 @@ namespace Sandbox
 
 			InitEcs();
 
-			_cameraController = new OrthographicCameraController(Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
+			//_cameraController = new OrthographicCameraController(Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
+			//						Application.Get().Window.Context.SwapChain.BackbufferViewport.Height);
+
+			_cameraController = new .(Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
 									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height);
+			_cameraController.CameraPosition = .(0, 0, -5);
 		}
 
 		void InitEcs()

@@ -78,7 +78,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void UpdateProjection()
 		{
-			Log.EngineLogger.Assert(_nearPlane < _farPlane, "The near plane must be smaller than the far plane.");
+			if(_projectionType == .Limited || _projectionType == .LimitedReversed)
+				Log.EngineLogger.AssertDebug(_nearPlane < _farPlane, "The near plane must be smaller than the far plane.");
 
 			switch(_projectionType)
 			{
@@ -91,7 +92,7 @@ namespace GlitchyEngine.Renderer
 			case .InfiniteReversed:
 				_projection = Matrix.ReversedInfinitePerspectiveProjection(_fovY, _aspect, _nearPlane);
 			default:
-				Log.EngineLogger.Assert(false, "Unknown projection type.");
+				Log.EngineLogger.AssertDebug(false, "Unknown projection type.");
 			}
 		}
 
