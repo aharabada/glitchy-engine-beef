@@ -26,9 +26,9 @@ namespace GlitchyEngine.Events
 		private bool _isResizing;
 
 		/// The new width of the window.
-		public int32 Width = _width;
+		public int32 Width => _width;
 		/// The new height of the window.
-		public int32 Height = _height;
+		public int32 Height => _height;
 		/*
 		 * If true, indicates that the resizing is not finished.
 		 */
