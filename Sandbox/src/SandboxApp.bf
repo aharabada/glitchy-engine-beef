@@ -312,7 +312,7 @@ namespace Sandbox
 
 		public override void OnEvent(Event event)
 		{
-			EventDispatcher dispatcher = scope EventDispatcher(event);
+			EventDispatcher dispatcher = EventDispatcher(event);
 
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
 		}

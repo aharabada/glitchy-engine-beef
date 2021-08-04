@@ -56,7 +56,7 @@ namespace GlitchyEngine
 			if(!_running)
 				return;
 
-			EventDispatcher dispatcher = scope .(e);
+			EventDispatcher dispatcher = EventDispatcher(e);
 			dispatcher.Dispatch<WindowCloseEvent>(scope => OnWindowClose);
 
 			for(Layer layer in _layerStack)

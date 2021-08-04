@@ -50,7 +50,7 @@ namespace GlitchyEngine.Events
 		}
 	}
 
-	public class EventDispatcher
+	public struct EventDispatcher
 	{
 		private Event _event;
 
