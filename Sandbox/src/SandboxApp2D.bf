@@ -283,11 +283,11 @@ namespace Sandbox
 
 				if(i == 1)
 				{
-					Renderer2D.Draw(_texture, 2 * x, 2 * y, 1, 1, .(r.Next(0, 256), r.Next(0, 256), r.Next(0, 256)));
+					Renderer2D.Draw(_texture, 2 * x, 2 * y, 1, 1, .(r.Next(0, 256), r.Next(0, 256), r.Next(0, 256)), 10);
 				}
 				else if(i == 2)
 				{
-					Renderer2D.Draw(_ge_logo, 2 * x, 2 * y, 1, 1, .(r.Next(0, 256), r.Next(0, 256), r.Next(0, 256)));
+					Renderer2D.Draw(_ge_logo, 2 * x, 2 * y, 1, 1, .(r.Next(0, 256), r.Next(0, 256), r.Next(0, 256)), 10);
 				}
 			}
 			

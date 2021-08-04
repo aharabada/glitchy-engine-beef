@@ -70,6 +70,8 @@ namespace Sandbox
 
 		EcsWorld _world = new EcsWorld() ~ delete _;
 
+		OrthographicCameraController _cameraController ~ delete _;
+
 		private Vector3 CircleCoord(float angle)
 		{
 			return .(Math.Cos(angle), Math.Sin(angle), 0);
@@ -157,7 +159,7 @@ namespace Sandbox
 			}
 
 			// Create rasterizer state
-			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
+			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(_context, rsDesc);
 
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
@@ -180,25 +182,16 @@ namespace Sandbox
 			_opaqueBlendState = new BlendState(_context, .Default);
 
 			InitEcs();
-		}
 
-		Entity _cameraEntity;
+			_cameraController = new OrthographicCameraController(Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
+									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height);
+		}
 
 		void InitEcs()
 		{
 			_world.Register<TransformComponent>();
 			_world.Register<MeshComponent>();
 			_world.Register<CameraComponent>();
-
-			// Create camera entity
-			_cameraEntity = _world.NewEntity();
-			var cameraTransform = _world.AssignComponent<TransformComponent>(_cameraEntity);
-			var camera = _world.AssignComponent<CameraComponent>(_cameraEntity);
-			*cameraTransform = TransformComponent();
-			camera.NearPlane = 0.1f;
-			camera.FarPlane = 10.0f;
-			camera.FovY = Math.PI_f / 4;
-			cameraTransform.Position = .(0, -1, -5);
 
 			for(int x < 20)
 			for(int y < 20)
@@ -215,42 +208,8 @@ namespace Sandbox
 
 		public override void Update(GameTime gameTime)
 		{
-			var cameraTransform = _world.GetComponent<TransformComponent>(_cameraEntity);
-
-			if(Application.Get().Window.IsActive)
-			{
-				Vector2 movement = .();
-
-				if(Input.IsKeyPressed(Key.W))
-				{
-					movement.Y += 1;
-				}
-				if(Input.IsKeyPressed(Key.S))
-				{
-					movement.Y -= 1;
-				}
-
-				if(Input.IsKeyPressed(Key.A))
-				{
-					movement.X -= 1;
-				}
-				if(Input.IsKeyPressed(Key.D))
-				{
-					movement.X += 1;
-				}
-
-				if(movement != .Zero)
-					movement.Normalize();
-
-				movement *= (float)(gameTime.FrameTime.TotalSeconds);
-
-				cameraTransform.Position += .(movement, 0);
-				cameraTransform.Update();
-			}
-
-			var camera = _world.GetComponent<CameraComponent>(_cameraEntity);
-			camera.Aspect = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
-									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
+			
+			_cameraController.Update(gameTime);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
 
@@ -262,7 +221,7 @@ namespace Sandbox
 
 			_context.SetViewport(_context.SwapChain.BackbufferViewport);
 
-			Renderer.BeginScene(_world, _cameraEntity);
+			Renderer.BeginScene(_cameraController.Camera);
 			
 			_opaqueBlendState.Bind();
 
@@ -312,6 +271,8 @@ namespace Sandbox
 
 		public override void OnEvent(Event event)
 		{
+			_cameraController.OnEvent(event);
+
 			EventDispatcher dispatcher = EventDispatcher(event);
 
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
