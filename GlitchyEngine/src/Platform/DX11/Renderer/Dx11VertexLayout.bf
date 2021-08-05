@@ -13,12 +13,13 @@ namespace GlitchyEngine.Renderer
 
 		public ID3DBlob* nativeShaderCode ~ _?.Release();
 
-		public this(GraphicsContext context, VertexElement[] elements, VertexShader vertexShader)
+		public this(GraphicsContext context, VertexElement[] elements, bool ownsElements, VertexShader vertexShader)
 		{
 			nativeShaderCode = vertexShader.nativeCode..AddRef();
 
 			_context = context..AddRef();
 			_elements = elements;
+			_ownsElements = ownsElements;
 
 			CreateNativeLayout();
 		}

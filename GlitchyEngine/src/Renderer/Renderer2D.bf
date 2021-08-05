@@ -56,11 +56,9 @@ namespace GlitchyEngine.Renderer
 		private Vector2 _virtualResolution;
 
 		private Effect quadEffect ~ _?.ReleaseRef();
-		private VertexLayout layout ~ delete _;
 		private GeometryBinding quadBinding ~ _?.ReleaseRef();
 		
 		private Effect instancingEffect ~ _?.ReleaseRef();
-		private VertexLayout instancingLayout ~ delete _;
 		private GeometryBinding instancingBinding ~ _?.ReleaseRef();
 		private VertexBuffer instanceBuffer ~ _?.ReleaseRef();
 
@@ -80,7 +78,7 @@ namespace GlitchyEngine.Renderer
 		{
 			quadEffect = effectLibrary.Load("content\\Shaders\\render2dShader.hlsl", "Renderer2D");
 
-			layout = new VertexLayout(_context, RenderVertex.VertexElements, quadEffect.VertexShader);
+			VertexLayout layout = new VertexLayout(_context, RenderVertex.VertexElements, false, quadEffect.VertexShader);
 
 			VertexBuffer quadVertices = new VertexBuffer(_context, typeof(RenderVertex), 4, .Immutable);
 
@@ -103,7 +101,7 @@ namespace GlitchyEngine.Renderer
 			quadIndices.SetData(indices);
 
 			quadBinding = new GeometryBinding(_context);
-			quadBinding.SetVertexLayout(layout);
+			quadBinding.SetVertexLayout(layout..ReleaseRefNoDelete());
 			quadBinding.SetPrimitiveTopology(.TriangleList);
 			quadBinding.SetVertexBufferSlot(quadVertices, 0);
 			quadBinding.SetIndexBuffer(quadIndices);
@@ -133,20 +131,20 @@ namespace GlitchyEngine.Renderer
 			instanceBuffer.SetData(0);
 
 			VertexElement[] vertexElements = scope .(
-				VertexElement(.R32G32_Float, "POSITION", 0, 0, 0, .PerVertexData, 0),
+				VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
 				
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", 0, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", 1, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", 2, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", 3, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(    .R8G8B8A8_UNorm,     "COLOR", 0, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float,  "TEXCOORD", 0, 1, (.)-1, .PerInstanceData, 1)
+				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 0, 1, (.)-1, .PerInstanceData, 1),
+				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 1, 1, (.)-1, .PerInstanceData, 1),
+				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 2, 1, (.)-1, .PerInstanceData, 1),
+				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
+				VertexElement(    .R8G8B8A8_UNorm,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
+				VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 0, 1, (.)-1, .PerInstanceData, 1)
 			);
 
-			instancingLayout = new VertexLayout(_context, vertexElements, instancingEffect.VertexShader);
+			VertexLayout instancingLayout = new VertexLayout(_context, vertexElements, true, instancingEffect.VertexShader);
 
 			instancingBinding = new GeometryBinding(_context);
-			instancingBinding.SetVertexLayout(instancingLayout);
+			instancingBinding.SetVertexLayout(instancingLayout..ReleaseRefNoDelete());
 			instancingBinding.SetPrimitiveTopology(.TriangleList);
 			instancingBinding.SetVertexBufferSlot(quadBinding.GetVertexBuffer(0), 0);
 			instancingBinding.SetVertexBufferSlot(instanceBuffer, 1);

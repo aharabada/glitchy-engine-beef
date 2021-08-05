@@ -40,6 +40,21 @@ namespace GlitchyEngine.Renderer
 			_defaultBinding = .(this, (.)_vertexType.Stride, 0);
 		}
 
+		public this(GraphicsContext context, uint32 vertexStride, uint32 vertexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None) : base(context)
+		{
+			_vertexType = null;
+
+			_description = .(){
+				Size = (vertexStride * vertexCount),
+				Usage = usage,
+				CPUAccess = cpuAccess,
+				BindFlags = .Vertex,
+				MiscFlags = .None
+			};
+
+			_defaultBinding = .(this, vertexStride, 0);
+		}
+
 		[Inline]
 		public static implicit operator VertexBufferBinding(Self buffer) => buffer._defaultBinding;
 	}

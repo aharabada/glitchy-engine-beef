@@ -40,8 +40,8 @@ namespace GlitchyEngine.Renderer
 
 				nativeBuffers[slot] = vertexBuffer.nativeBuffer..AddRef();
 
-				bufferStrides[slot] = vertexBuffer.Binding.Stride;
-				bufferOffsets[slot] = vertexBuffer.Binding.Offset;
+				bufferStrides[slot] = binding.Stride;
+				bufferOffsets[slot] = binding.Offset;
 			}
 			else
 			{

@@ -25,6 +25,10 @@ namespace GlitchyEngine.Renderer
 		*/
 		public String SemanticName;
 		/**
+		 * If set to True, the VertexLayout will delete SemanticName once it's reference count is 0.
+		 */
+		public bool OwnsName;
+		/**
 		 * The semantic index for the element.
 		 * A semantic index modifies a semantic, with an integer index number.
 		 * A semantic index is only needed in a case where there is more than one element with the same semantic.
@@ -56,10 +60,11 @@ namespace GlitchyEngine.Renderer
 
 		public this() => this = default;
 
-		public this(Format format, String semanticName, uint32 semanticIndex = 0, uint32 inputSlot = 0, uint32 offset = (.)-1, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
+		public this(Format format, String semanticName, bool ownsName = false, uint32 semanticIndex = 0, uint32 inputSlot = 0, uint32 offset = (.)-1, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
 		{
 			Format = format;
 			SemanticName = semanticName;
+			OwnsName = ownsName;
 			SemanticIndex = semanticIndex;
 			InputSlot = inputSlot;
 			AlignedByteOffset = offset;
@@ -73,22 +78,38 @@ namespace GlitchyEngine.Renderer
 		public static readonly uint32 AppendAligned = 0xffffffff;
 	}
 
-	public class VertexLayout
+	public class VertexLayout : RefCounted
 	{
 		private GraphicsContext _context ~ _?.ReleaseRef();
 
 		private VertexElement[] _elements;
-		
+		private bool _ownsElements;
+
 		public GraphicsContext Context => _context;
 
 		public VertexElement[] Elements => _elements;
 
-		public this(GraphicsContext context, VertexElement[] elements, VertexShader vertexShader)
+		public this(GraphicsContext context, VertexElement[] elements, bool ownsElements, VertexShader vertexShader)
 		{
 			_context = context..AddRef();
 			_elements = elements;
+			_ownsElements = ownsElements;
 
 			CreateNativeLayout();
+		}
+
+		public ~this()
+		{
+			if(_ownsElements)
+			{
+				for(var element in _elements)
+				{
+					if(element.OwnsName)
+						delete element.SemanticName;
+				}
+	
+				delete _elements;
+			}
 		}
 
 		protected extern void CreateNativeLayout();

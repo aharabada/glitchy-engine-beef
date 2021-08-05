@@ -50,8 +50,6 @@ namespace Sandbox
 			}
 		}
 
-		VertexLayout _vertexLayout ~ delete _;
-
 		GeometryBinding _geometryBinding ~ _?.ReleaseRef();
 
 		GeometryBinding _quadGeometryBinding ~ _?.ReleaseRef();
@@ -91,7 +89,7 @@ namespace Sandbox
 
 			// Create Input Layout
 
-			_vertexLayout = new VertexLayout(_context, VertexColorTexture.VertexElements, textureEffect.VertexShader);
+			VertexLayout vertexLayout = new VertexLayout(_context, VertexColorTexture.VertexElements, false, textureEffect.VertexShader);
 
 			textureEffect.ReleaseRef();
 
@@ -99,7 +97,7 @@ namespace Sandbox
 			{
 				_geometryBinding = new GeometryBinding(_context);
 				_geometryBinding.SetPrimitiveTopology(.TriangleList);
-				_geometryBinding.SetVertexLayout(_vertexLayout);
+				_geometryBinding.SetVertexLayout(vertexLayout);
 	
 				float pO3 = Math.PI_f / 3.0f;
 				VertexColorTexture[?] vertices = .(
@@ -135,7 +133,7 @@ namespace Sandbox
 			{
 				_quadGeometryBinding = new GeometryBinding(_context);
 				_quadGeometryBinding.SetPrimitiveTopology(.TriangleList);
-				_quadGeometryBinding.SetVertexLayout(_vertexLayout);
+				_quadGeometryBinding.SetVertexLayout(vertexLayout);
 	
 				VertexColorTexture[?] vertices = .(
 					VertexColorTexture(Vector3(-0.75f, 0.75f, 0), Color.White, .(0, 0)),
@@ -158,6 +156,8 @@ namespace Sandbox
 				_quadGeometryBinding.SetIndexBuffer(qib);
 				qib.ReleaseRef();
 			}
+
+			vertexLayout.ReleaseRef();
 
 			// Create rasterizer state
 			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);

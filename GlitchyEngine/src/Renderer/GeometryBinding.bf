@@ -8,8 +8,8 @@ namespace GlitchyEngine.Renderer
 		internal GraphicsContext _context ~ _?.ReleaseRef();
 
 		internal List<VertexBufferBinding> _vertexBuffers = new .() ~ delete _;
-		internal IndexBuffer _indexBuffer;
-		internal VertexLayout _vertexLayout;
+		internal IndexBuffer _indexBuffer ~ _?.ReleaseRef();
+		internal VertexLayout _vertexLayout ~ _?.ReleaseRef();
 		internal uint32 _indexByteOffset;
 		internal uint32 _indexCount;
 		internal uint32 _instanceCount;
@@ -26,8 +26,6 @@ namespace GlitchyEngine.Renderer
 			{
 				binding.Buffer?.ReleaseRef();
 			}
-
-			_indexBuffer?.ReleaseRef();
 		}
 
 		public VertexBufferBinding GetVertexBuffer(uint32 slot)
@@ -74,7 +72,8 @@ namespace GlitchyEngine.Renderer
 
 		public void SetVertexLayout(VertexLayout vertexLayout)
 		{
-			_vertexLayout = vertexLayout;
+			_vertexLayout?.ReleaseRef();
+			_vertexLayout = vertexLayout..AddRef();
 			PlatformSetVertexLayout(vertexLayout);
 		}
 		
@@ -91,8 +90,7 @@ namespace GlitchyEngine.Renderer
 		public void SetIndexBuffer(IndexBuffer indexBuffer, uint32 byteOffset = 0, uint32 indexCount = (.)-1)
 		{
 			_indexBuffer?.ReleaseRef();
-			_indexBuffer = indexBuffer;
-			_indexBuffer.AddRef();
+			_indexBuffer = indexBuffer..AddRef();
 
 			_indexByteOffset = byteOffset;
 
