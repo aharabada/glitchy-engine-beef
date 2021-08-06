@@ -1,5 +1,5 @@
 FileVersion = 1
-Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}, DirectX = {Path = "GlitchyEngine/vendor/directx/DirectX"}, ImGui = {Path = "GlitchyEngine/vendor/imgui-beef/ImGui"}, ImGuiImplWin32 = {Path = "GlitchyEngine/vendor/imgui-beef/ImGuiImplWin32"}, ImGuiImplDX11 = {Path = "GlitchyEngine/vendor/imgui-beef/ImGuiImplDX11"}, DirectXTK = {Path = "GlitchyEngine/vendor/DirectXTK/DirectXTK-beef"}, LodePng = {Path = "vendor/lodepng-beef/lodepng-beef"}, FreeType = {Path = "GlitchyEngine/vendor/freetype"}}
+Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}, DirectX = {Path = "GlitchyEngine/vendor/directx/DirectX"}, ImGui = {Path = "GlitchyEngine/vendor/imgui-beef/ImGui"}, ImGuiImplWin32 = {Path = "GlitchyEngine/vendor/imgui-beef/ImGuiImplWin32"}, ImGuiImplDX11 = {Path = "GlitchyEngine/vendor/imgui-beef/ImGuiImplDX11"}, DirectXTK = {Path = "GlitchyEngine/vendor/DirectXTK/DirectXTK-beef"}, LodePng = {Path = "vendor/lodepng-beef/lodepng-beef"}, FreeType = {Path = "GlitchyEngine/vendor/freetype"}, cgltf-beef = {Path = "GlitchyEngine/vendor/gltf/cgltf-beef"}}
 
 [Workspace]
 StartupProject = "Sandbox"

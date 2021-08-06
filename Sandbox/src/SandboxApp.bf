@@ -8,6 +8,8 @@ using ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using GlitchyEngine.World;
+using System.Collections;
+using GlitchyEngine.Content;
 
 namespace Sandbox
 {
@@ -55,8 +57,10 @@ namespace Sandbox
 		GeometryBinding _quadGeometryBinding ~ _?.ReleaseRef();
 
 		RasterizerState _rasterizerState ~ _?.ReleaseRef();
+		RasterizerState _rasterizerStateClockWise ~ _?.ReleaseRef();
 
 		GraphicsContext _context ~ _?.ReleaseRef();
+		DepthStencilTarget _depthTarget ~ _?.ReleaseRef();
 
 		Texture2D _texture ~ _?.ReleaseRef();
 		Texture2D _ge_logo ~ _?.ReleaseRef();
@@ -84,8 +88,12 @@ namespace Sandbox
 			_effectLibrary = new EffectLibrary(_context);
 
 			_effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
+
+			_effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
 			
 			var textureEffect = _effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
+
+			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
 			// Create Input Layout
 
@@ -163,6 +171,9 @@ namespace Sandbox
 			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(_context, rsDesc);
 
+			rsDesc.FrontCounterClockwise = false;
+			_rasterizerStateClockWise = new RasterizerState(_context, rsDesc);
+
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
 			_ge_logo = new Texture2D(_context, "content/Textures/GE_Logo.dds");
 
@@ -190,6 +201,53 @@ namespace Sandbox
 			_cameraController = new .(Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
 									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height);
 			_cameraController.CameraPosition = .(0, 0, -5);
+
+			TestLoadModel();
+		}
+
+		//GeometryBinding _modelTest ~ _?.ReleaseRef();
+
+		List<(Matrix Transform, GeometryBinding Model)> _modelTest = new .() ~ UnloadModelTest!();
+
+		mixin UnloadModelTest()
+		{
+			for(var entry in _modelTest)
+			{
+				entry.Model?.ReleaseRef();
+			}
+
+			delete _modelTest;
+		}
+
+		void TestLoadModel()
+		{
+			var testEffect = _effectLibrary.Get("testShader");
+
+			ModelLoader.LoadModel("content\\Models\\box.gltf", _context, testEffect, _modelTest);
+			
+			testEffect.ReleaseRef();
+
+			/*
+			CGLTF.Options options = .();
+			CGLTF.Data* data;
+			CGLTF.Result result = CGLTF.ParseFile(options, "content\\Models\\box.gltf", out data);
+
+			CGLTF.LoadBuffers(options, data, "content\\Models\\box.gltf");
+
+			Log.EngineLogger.Assert(result == .Success, "Failed to load model");
+
+			var mesh = data.Meshes[0];
+			var primitive = mesh.Primitives[0];
+
+			var testEffect = _effectLibrary.Get("testShader");
+
+			_modelTest = ModelLoader.PrimitiveToGeoBinding(_context, primitive, testEffect);
+
+			testEffect.ReleaseRef();
+
+			/* TODO make awesome stuff */
+			CGLTF.Free(data);
+			*/
 		}
 
 		void InitEcs()
@@ -217,12 +275,12 @@ namespace Sandbox
 			_cameraController.Update(gameTime);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
+			_depthTarget.Clear(1.0f, 0, .Depth);
 
 			// Draw test geometry
 			_context.SetRenderTarget(null);
+			_depthTarget.Bind();
 			_context.BindRenderTargets();
-
-			_context.SetRasterizerState(_rasterizerState);
 
 			_context.SetViewport(_context.SwapChain.BackbufferViewport);
 
@@ -232,6 +290,24 @@ namespace Sandbox
 
 			var basicEffect = _effectLibrary.Get("basicShader");
 			var textureEffect = _effectLibrary.Get("textureShader");
+
+			// Model test
+			{
+				_context.SetRasterizerState(_rasterizerStateClockWise);
+
+				var testEffect = _effectLibrary.Get("testShader");
+				testEffect.Variables["BaseColor"].SetData(Color.White);
+				testEffect.Variables["LightDir"].SetData(Vector3(-1, 1, -0.5f).Normalized());
+
+				for(var entry in _modelTest)
+				{
+					Renderer.Submit(entry.Model, testEffect, entry.Transform);
+				}
+
+				testEffect.ReleaseRef();
+			}
+
+			_context.SetRasterizerState(_rasterizerState);
 
 			for(var entity in _world.Enumerate(typeof(TransformComponent)))
 			{
@@ -281,6 +357,7 @@ namespace Sandbox
 			EventDispatcher dispatcher = EventDispatcher(event);
 
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
+			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
 		}
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
@@ -292,6 +369,14 @@ namespace Sandbox
 			_squareColor1 = ColorRGBA.White - _squareColor0;
 
 			ImGui.End();
+
+			return false;
+		}
+
+		private bool OnWindowResize(WindowResizeEvent e)
+		{
+			_depthTarget.ReleaseRef();
+			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
 			return false;
 		}
