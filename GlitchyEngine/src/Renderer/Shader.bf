@@ -23,10 +23,14 @@ namespace GlitchyEngine.Renderer
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 
 		protected BufferCollection _buffers ~ delete _;//:append _;
+
+		protected ShaderTextureCollection _textures ~ delete _;
 		
 		public GraphicsContext Context => _context;
 
 		public BufferCollection Buffers => _buffers;
+
+		public ShaderTextureCollection Textures => _textures;
 
 		[AllowAppend]
 		public this(GraphicsContext context, String source, String entryPoint, ShaderDefine[] macros = null)
@@ -34,6 +38,7 @@ namespace GlitchyEngine.Renderer
 			// Todo: append as soon as it's fixed.
 			//let buffers = new BufferCollection();
 			_buffers = new BufferCollection();
+			_textures = new ShaderTextureCollection();
 
 			_context = context..AddRef();
 			CompileFromSource(source, entryPoint);

@@ -16,7 +16,7 @@ namespace GlitchyEngine.Renderer
 		 */
 		internal ID3DBlob* nativeCode ~ _?.Release();
 
-		protected const ShaderCompileFlags DefaultCompileFlags =
+		protected const ShaderCompileFlags DefaultCompileFlags = .EnableStrictness | 
 #if DEBUG
 			.Debug;
 #else
@@ -57,56 +57,43 @@ namespace GlitchyEngine.Renderer
 			}
 
 			reflection.GetDescription(let desc);
-			uint32 cBufferCount = desc.ConstantBuffers;
 
-			for(uint32 i < cBufferCount)
+			uint32 resourceCount = desc.BoundResources;
+			for (uint32 i < resourceCount)
 			{
-				reflection.GetResourceBindingDescription(i, let bindDesc);
+				var res = reflection.GetResourceBindingDescription(i, let bindDesc);
 
-				var bufferReflection = reflection.GetConstantBufferByIndex(i);
-				
-				bufferReflection.GetDescription(let bufferDesc);
-
-				// ConstantBuffer
-				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
+				if (res.Failed)
 				{
-					let buffer = new ConstantBuffer(_context, bufferReflection);
-
-					_buffers.Add(bindDesc.BindPoint, buffer.Name, buffer);
-
-					buffer.ReleaseRef();
+					Log.EngineLogger.Error($"Error({(int)res}) {res}: Failed to get resource binding desc for resource {i}");
+					continue;
 				}
-				/*
-				bufferReflection.GetDescription(let bufferDesc);
 
-				// ConstantBuffer
-				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
+				switch(bindDesc.Type)
 				{
-					GlitchyEngine.Renderer.BufferDescription cBufferDesc = .(bufferDesc.Size, .Constant, .Dynamic, .Write);
+				case .ConstantBuffer:
+					var bufferReflection = reflection.GetConstantBufferByName(bindDesc.Name);
 
-					let buffer = new Buffer(_context, cBufferDesc);
+					bufferReflection.GetDescription(let bufferDesc);
 
-					_buffers.Add(bindDesc.BindPoint, StringView(bufferDesc.Name), buffer);//, true
-					buffer.ReleaseRef();
-
-					// Buffer for default values
-					uint8* rawData = new:ScopedAlloc! uint8[bufferDesc.Size]*;
-
-					// Get default values
-					for(uint32 variable < bufferDesc.Variables)
+					// ConstantBuffer
+					if(bufferDesc.Type == .D3D11_CT_CBUFFER)
 					{
-						let variableReflection = bufferReflection.GetVariableByIndex(variable);
+						let buffer = new ConstantBuffer(_context, bufferReflection);
 
-						variableReflection.GetDescription(let varDesc);
+						_buffers.Add(bindDesc.BindPoint, buffer.Name, buffer);
 
-						if(varDesc.DefaultValue != null)
-							Internal.MemCpy(rawData + varDesc.StartOffset, varDesc.DefaultValue, varDesc.Size);
+						buffer.ReleaseRef();
 					}
-
-					buffer.SetData(Span<uint8>(rawData, bufferDesc.Size));
+				case .Texture:
+					_textures.Add(scope String(bindDesc.Name), bindDesc.BindPoint, null);
+				case .Sampler:
+					// TODO: do we have to do something for samplers?
+				default:
+					Log.EngineLogger.Warning($"Unhandled shader resource type: \"{bindDesc.Type}\"");
 				}
-				*/
 			}
+			
 			reflection.Release();
 		}
 	}

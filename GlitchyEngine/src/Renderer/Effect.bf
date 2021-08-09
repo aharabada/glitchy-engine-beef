@@ -99,8 +99,13 @@ namespace GlitchyEngine.Renderer
 		BufferCollection _bufferCollection ~ delete _;
 
 		BufferVariableCollection _variables ~ delete _;
+		
+		typealias TextureEntry = (Texture Texture, ShaderTextureCollection.ResourceEntry* VsSlot, ShaderTextureCollection.ResourceEntry* PsSlot);
+		Dictionary<String, TextureEntry> _textures ~ delete _;
 
 		public GraphicsContext Context => _context;
+
+		public Dictionary<String, TextureEntry> Textures => _textures;
 
 		public VertexShader VertexShader
 		{
@@ -128,25 +133,6 @@ namespace GlitchyEngine.Renderer
 		public BufferVariableCollection Variables => _variables;
 
 		public String Name => _name;
-
-		public void ApplyChanges()
-		{
-			for(let buffer in _bufferCollection)
-			{
-				if(let cbuffer = buffer.Buffer as ConstantBuffer)
-				{
-					cbuffer.Update();
-				}
-			}
-		}
-
-		public void Bind(GraphicsContext context)
-		{
-			ApplyChanges();
-
-			context.SetVertexShader(_vs);
-			context.SetPixelShader(_ps);
-		}
 
 		[Obsolete("Will be removed in the future", false)]
 		public this()
@@ -178,6 +164,12 @@ namespace GlitchyEngine.Renderer
 			String psName = scope String();
 
 			ProcessFile(filename, fileContent, vsName, psName);
+
+			if(filename.EndsWith("textureShader.hlsl"))
+			{
+				NOP!();
+			}
+
 			Compile(fileContent, vsName, psName);
 
 			MergeResources();
@@ -199,7 +191,60 @@ namespace GlitchyEngine.Renderer
 			
 			_name = new String(shaderName);
 		}
-		
+
+		public ~this()
+		{
+			for(let entry in _textures)
+			{
+				entry.value.Texture?.ReleaseRef();
+			}
+		}
+
+		public void SetTexture(String name, Texture texture)
+		{
+			ref TextureEntry entry = ref _textures[name];
+
+			entry.Texture?.ReleaseRef();
+			entry.Texture = texture;
+			entry.Texture?.AddRef();
+		}
+
+		private void ApplyTextures()
+		{
+			for(let (name, entry) in _textures)
+			{
+				entry.VsSlot?.Texture?.ReleaseRef();
+				entry.VsSlot?.Texture = entry.Texture;
+				entry.VsSlot?.Texture?.AddRef();
+				
+				entry.PsSlot?.Texture?.ReleaseRef();
+				entry.PsSlot?.Texture = entry.Texture;
+				entry.PsSlot?.Texture?.AddRef();
+			}
+		}
+
+		private void ApplyChanges()
+		{
+			for(let buffer in _bufferCollection)
+			{
+				if(let cbuffer = buffer.Buffer as ConstantBuffer)
+				{
+					cbuffer.Update();
+				}
+			}
+		}
+
+		public void Bind(GraphicsContext context)
+		{
+			ApplyTextures();
+			ApplyChanges();
+
+			context.SetVertexShader(_vs);
+			context.SetPixelShader(_ps);
+		}
+
+
+
 		private void CompileFromFile(String filename, String vsEntry, String psEntry)
 		{
 			let vs = Shader.FromFile!<VertexShader>(_context, filename, vsEntry);
@@ -293,6 +338,7 @@ namespace GlitchyEngine.Renderer
 		{
 			MergeConstantBuffers();
 			MergeBufferVariables();
+			MergeTextures();
 		}
 
 		private void MergeConstantBuffers()
@@ -362,6 +408,55 @@ namespace GlitchyEngine.Renderer
 				{
 					bufferNames.Add(buffer.Name);
 				}
+			}
+		}
+
+		/// Merges the texture slots of all shaders into one dictionary.
+		private void MergeTextures()
+		{
+			delete _textures;
+			_textures = new .();
+
+			EnumerateShaderTextures(_vs);
+			EnumerateShaderTextures(_ps);
+		}
+
+		/** @brief Merges all textures of the given shader into the _textures dictionary.
+		 * @param shader The shader whose textures will be merged into the dictionary.
+		 */
+		private void EnumerateShaderTextures<T>(T shader) where T : Shader
+		{
+			//for(var (name, index, texture) in shader.Resources)
+			for(var shaderEntry in ref shader.Textures)
+			{
+				TextureEntry entry;
+
+				// Get existing entry or create new
+				if(!_textures.TryGetValue(shaderEntry.Name, out entry))
+				{
+					entry = (shaderEntry.Texture, null, null);
+					entry.Texture?.AddRef();
+				}
+
+				// Set the corresponding shader resource slot
+				if(typeof(T) == typeof(VertexShader))
+				{
+					entry.VsSlot = &shaderEntry;
+				}
+				else if(typeof(T) == typeof(PixelShader))
+				{
+					entry.PsSlot = &shaderEntry;
+				}
+
+				// If the entry has no texture but the shader has one -> set texture
+				if(entry.Texture == null && shaderEntry.Texture != null)
+				{
+					entry.Texture = shaderEntry.Texture;
+					entry.Texture?.AddRef();
+				}
+
+				// save entry
+				_textures[shaderEntry.Name] = entry;
 			}
 		}
 	}

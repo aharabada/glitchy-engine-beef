@@ -174,19 +174,61 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetVertexShader(VertexShader vertexShader)
 		{
-			//Todo: nativeContext.VertexShader.SetSamplers();
+			uint32 _firstTexture = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
+			uint32 _textureCount = 0;
+
+			ID3D11ShaderResourceView*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _textures = .();
+			ID3D11SamplerState*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _samplers = .();
+
+			for(let entry in vertexShader.Textures)
+			{
+				_textures[entry.Index] = entry.Texture?.nativeView;
+				_samplers[entry.Index] = entry.Texture?.SamplerState?.nativeSamplerState;
+				
+				if(entry.Index >= _textureCount)
+					_textureCount = entry.Index + 1;
+				if(entry.Index < _firstTexture)
+					_firstTexture = entry.Index;
+			}
+
+			if(_textureCount > 0)
+			{
+				nativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+				nativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+			}
+
 			vertexShader.Buffers.PlatformFetchNativeBuffers();
 			nativeContext.VertexShader.SetConstantBuffers(0, vertexShader.Buffers.nativeBuffers.Count, &vertexShader.Buffers.nativeBuffers);
-			//Todo: nativeContext.VertexShader.SetShaderResources();
 			nativeContext.VertexShader.SetShader(vertexShader.nativeShader);
 		}
 
 		public override void SetPixelShader(PixelShader pixelShader)
 		{
-			//Todo: nativeContext.PixelShader.SetSamplers();
+			uint32 _firstTexture = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
+			uint32 _textureCount = 0;
+
+			ID3D11ShaderResourceView*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _textures = .();
+			ID3D11SamplerState*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _samplers = .();
+
+			for(let entry in pixelShader.Textures)
+			{
+				_textures[entry.Index] = entry.Texture?.nativeView;
+				_samplers[entry.Index] = entry.Texture?.SamplerState?.nativeSamplerState;
+
+				if(entry.Index >= _textureCount)
+					_textureCount = entry.Index + 1;
+				if(entry.Index < _firstTexture)
+					_firstTexture = entry.Index;
+			}
+			
+			if(_textureCount > 0)
+			{
+				nativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+				nativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+			}
+
 			pixelShader.Buffers.PlatformFetchNativeBuffers();
 			nativeContext.PixelShader.SetConstantBuffers(0, pixelShader.Buffers.nativeBuffers.Count, &pixelShader.Buffers.nativeBuffers);
-			//Todo: nativeContext.PixelShader.SetShaderResources();
 			nativeContext.PixelShader.SetShader(pixelShader.nativeShader);
 		}
 	}

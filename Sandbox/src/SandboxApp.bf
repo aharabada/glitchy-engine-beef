@@ -61,7 +61,9 @@ namespace Sandbox
 
 		GraphicsContext _context ~ _?.ReleaseRef();
 		DepthStencilTarget _depthTarget ~ _?.ReleaseRef();
-
+		
+		Material _checkerMaterial ~ _?.ReleaseRef();
+		Material _logoMaterial ~ _?.ReleaseRef();
 		Texture2D _texture ~ _?.ReleaseRef();
 		Texture2D _ge_logo ~ _?.ReleaseRef();
 
@@ -188,6 +190,12 @@ namespace Sandbox
 
 			sampler.ReleaseRef();
 
+			_logoMaterial = new Material(textureEffect);
+			_logoMaterial.SetTexture("ColorTexture", _ge_logo);
+
+			_checkerMaterial = new Material(textureEffect);
+			_checkerMaterial.SetTexture("ColorTexture", _texture);
+
 			BlendStateDescription blendDesc = .();
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
 			_alphaBlendState = new BlendState(_context, blendDesc);
@@ -289,7 +297,6 @@ namespace Sandbox
 			_opaqueBlendState.Bind();
 
 			var basicEffect = _effectLibrary.Get("basicShader");
-			var textureEffect = _effectLibrary.Get("textureShader");
 
 			// Model test
 			{
@@ -314,7 +321,7 @@ namespace Sandbox
 				var transform = _world.GetComponent<TransformComponent>(entity);
 				transform.Update();
 			}
-
+			
 			int i = 0;
 			for(var entity in _world.Enumerate(typeof(TransformComponent), typeof(MeshComponent)))
 			{
@@ -332,19 +339,20 @@ namespace Sandbox
 			}
 			
 			basicEffect.Variables["BaseColor"].SetData(_squareColor1);
+			
+			_checkerMaterial.SetVariable("BaseColor", Color.White);
 
-			_texture.Bind();
-			Renderer.Submit(_quadGeometryBinding, textureEffect, .Scaling(1.5f));
+			Renderer.Submit(_quadGeometryBinding, _checkerMaterial, .Scaling(1.5f));
 			
 			_alphaBlendState.Bind();
+			
+			_logoMaterial.SetVariable("BaseColor", Color.Pink);
 
-			_ge_logo.Bind();
-			Renderer.Submit(_quadGeometryBinding, textureEffect, .Scaling(1.5f));
+			Renderer.Submit(_quadGeometryBinding, _logoMaterial, .Scaling(2f));
 
 			Renderer.EndScene();
 
 			basicEffect.ReleaseRef();
-			textureEffect.ReleaseRef();
 		}
 
 		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;

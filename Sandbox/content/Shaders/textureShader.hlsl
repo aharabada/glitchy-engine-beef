@@ -49,7 +49,7 @@ PS_IN VS(VS_IN input)
 
 float4 PS(PS_IN input) : SV_TARGET
 {
-    return input.Color * ColorTexture.Sample(TextureSampler, input.TexCoord);
+    return input.Color * BaseColor * ColorTexture.Sample(TextureSampler, input.TexCoord);
 }
 
 #effect[VS=VS,PS=PS]

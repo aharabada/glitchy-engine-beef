@@ -77,5 +77,16 @@ namespace GlitchyEngine.Renderer
 			geometry.Bind();
 			RenderCommand.DrawIndexed(geometry);
 		}
+
+		public static void Submit(GeometryBinding geometry, Material material, Matrix transform = .Identity)
+		{
+			material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
+			material.SetVariable("Transform", transform);
+
+			material.Bind(_context);
+
+			geometry.Bind();
+			RenderCommand.DrawIndexed(geometry);
+		}
 	}
 }

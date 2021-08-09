@@ -12,10 +12,10 @@ namespace GlitchyEngine.Renderer
 
 		private ShaderVariableType _type;
 
-		private uint32 _columns;
-		private uint32 _rows;
+		internal uint32 _columns;
+		internal uint32 _rows;
 		private uint32 _offset;
-		private uint32 _sizeInBytes;
+		internal uint32 _sizeInBytes;
 
 		private bool _isUsed;
 
@@ -24,6 +24,8 @@ namespace GlitchyEngine.Renderer
 		public ShaderVariableType Type => _type;
 
 		public String Name => _name;
+
+		public bool IsUsed => _isUsed;
 
 		/**
 		 * Gets a pointer to the start of the variable in the constant buffers backing data.
@@ -57,6 +59,38 @@ namespace GlitchyEngine.Renderer
 			if (type != _type)
 	   			Log.EngineLogger.Warning($"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #endif
+		}
+
+		public void EnsureTypeMatch<T>()
+		{
+			switch(typeof(T))
+			{
+			case typeof(bool):
+				EnsureTypeMatch(1, 1, .Bool);
+
+			case typeof(float):
+				EnsureTypeMatch(1, 1, .Float);
+			case typeof(Vector2):
+				EnsureTypeMatch(1, 2, .Float);
+			case typeof(Vector3):
+				EnsureTypeMatch(1, 3, .Float);
+			case typeof(Vector4):
+				EnsureTypeMatch(1, 4, .Float);
+
+			case typeof(Matrix4x3):
+				EnsureTypeMatch(4, 3, .Float);
+			case typeof(Matrix3x3):
+				EnsureTypeMatch(3, 3, .Float);
+			case typeof(Matrix):
+				EnsureTypeMatch(4, 4, .Float);
+
+			case typeof(ColorRGB):
+				EnsureTypeMatch(1, 3, .Float);
+			case typeof(ColorRGBA):
+				EnsureTypeMatch(1, 4, .Float);
+			case typeof(Color):
+				EnsureTypeMatch(1, 4, .Float);
+			}
 		}
 		
 		public void SetData(bool value)
