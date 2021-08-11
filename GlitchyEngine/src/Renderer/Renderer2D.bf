@@ -130,7 +130,7 @@ namespace GlitchyEngine.Renderer
 			instanceBuffer = new VertexBuffer(_context, typeof(BatchVertex), 1024, .Dynamic, .Write);
 			instanceBuffer.SetData(0);
 
-			VertexElement[] vertexElements = scope .(
+			VertexElement[] vertexElements = new .(
 				VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
 				
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 0, 1, (.)-1, .PerInstanceData, 1),
@@ -290,7 +290,7 @@ namespace GlitchyEngine.Renderer
 			SortQuads();
 
 			Texture2D texture = _quads[0].Texture;
-			texture.Bind();
+			instancingEffect.SetTexture("Texture", texture);
 
 			_setInstances = 0;
 
@@ -304,7 +304,7 @@ namespace GlitchyEngine.Renderer
 					FlushInstances();
 
 					texture = quad.Texture;
-					texture.Bind();
+					instancingEffect.SetTexture("Texture", texture);
 				}
 
 				_rawInstances[_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
