@@ -136,7 +136,7 @@ namespace Sandbox
 
 		Font fonty ~ _.ReleaseRef();
 
-		VertexLayout layout ~ delete _;
+		VertexLayout layout ~ _?.ReleaseRef();
 
 		GeometryBinding quadBinding ~ _?.ReleaseRef();
 
@@ -308,6 +308,7 @@ namespace Sandbox
 
 			Renderer2D.End();
 			*/
+			
 			_alphaBlendState.Bind();
 			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height));
 

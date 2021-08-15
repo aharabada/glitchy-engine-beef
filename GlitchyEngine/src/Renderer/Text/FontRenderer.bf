@@ -61,8 +61,8 @@ namespace GlitchyEngine.Renderer.Text
 
 			List<Texture2D> atlasses = scope .();
 
-			// freetype identifies glyphs using utf32 (which makes sense), so we enumerate the text as char32
-			for(char32 char in String.UTF8Enumerator(text, 0, text.Length))
+			// enumerate through the unicode codepoints
+			for(char32 char in text.DecodedChars)
 			{
 				if(char == '\n')
 				{
