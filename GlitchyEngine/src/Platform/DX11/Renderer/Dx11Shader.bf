@@ -15,7 +15,7 @@ namespace GlitchyEngine.Renderer
 		 * Internal compiled code of the shader.
 		 */
 		internal ID3DBlob* nativeCode ~ _?.Release();
-
+		
 		protected const ShaderCompileFlags DefaultCompileFlags = .EnableStrictness | 
 #if DEBUG
 			.Debug;

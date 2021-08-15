@@ -5,7 +5,7 @@ Dependencies = {GlitchyEngine = "*", corlib = "*", LodePng = "*"}
 Name = "Sandbox"
 TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
-ProcessorMacros = ["SANDBOX_2D"]
+ProcessorMacros = ["!SANDBOX_2D"]
 
 [Configs.Debug.Win64]
 CLibType = "DynamicDebug"
