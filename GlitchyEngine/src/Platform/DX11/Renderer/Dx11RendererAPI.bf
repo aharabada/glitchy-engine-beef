@@ -32,10 +32,13 @@ namespace GlitchyEngine.Renderer
 		{
 			_context.nativeContext.ClearDepthStencilView(target.nativeView, (.)clearFlags, depthValue, stencilValue);
 		}
-
+		
 		public override void DrawIndexed(GeometryBinding geometry)
 		{
-			_context.DrawIndexed(geometry.IndexCount, geometry.IndexByteOffset, 0);
+			if(geometry.IsIndexed)
+				_context.DrawIndexed(geometry.IndexCount, geometry.IndexByteOffset, 0);
+			else
+				_context.Draw(geometry.VertexCount, 0);
 		}
 
 		public override void DrawIndexedInstanced(GeometryBinding geometry)

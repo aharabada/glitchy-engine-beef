@@ -81,8 +81,9 @@ namespace GlitchyEngine.Renderer
 			context.nativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
 			context.nativeContext.InputAssembler.SetInputLayout(_vertexLayout.nativeLayout);
 			context.nativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
-			
-			context.nativeContext.InputAssembler.SetIndexBuffer(_indexBuffer.nativeBuffer, _indexBuffer.Format == .Index32Bit ? .R32_UInt : .R16_UInt, _indexByteOffset);
+
+			if(_indexBuffer != null)
+				context.nativeContext.InputAssembler.SetIndexBuffer(_indexBuffer.nativeBuffer, _indexBuffer.Format == .Index32Bit ? .R32_UInt : .R16_UInt, _indexByteOffset);
 		}
 
 		public void Unbind(GraphicsContext context = null)

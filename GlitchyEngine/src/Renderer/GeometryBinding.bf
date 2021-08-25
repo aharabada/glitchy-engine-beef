@@ -14,6 +14,9 @@ namespace GlitchyEngine.Renderer
 		internal uint32 _indexCount;
 		internal uint32 _instanceCount;
 		internal PrimitiveTopology _primitiveTopology;
+		internal uint32 _vertexCount;
+
+		public bool IsIndexed => _indexBuffer != null;
 
 		public this(GraphicsContext context)
 		{
@@ -55,6 +58,14 @@ namespace GlitchyEngine.Renderer
 			get => _instanceCount;
 			[Inline]
 			set => _instanceCount = value;
+		}
+
+		public uint32 VertexCount
+		{
+			[Inline]
+			get => _vertexCount;
+			[Inline]
+			set => _vertexCount = value;
 		}
 
 		[Inline]
