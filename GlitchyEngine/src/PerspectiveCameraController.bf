@@ -21,12 +21,61 @@ namespace GlitchyEngine
 
 		public PerspectiveCamera Camera => _camera;
 
+		public float TranslationSpeed
+		{
+			get => _cameraTranslationSpeed;
+			set => _cameraTranslationSpeed = value;
+		}
+
+		public Vector2 RotationSpeed
+		{
+			get => .(_cameraRotationSpeedX, _cameraRotationSpeedY);
+			set
+			{
+				_cameraRotationSpeedX = value.X;
+				_cameraRotationSpeedY = value.Y;
+			}
+		}
+
 		public Vector3 CameraPosition
 		{
 			get => _cameraPosition;
 			set
 			{
 				_cameraPosition = value;
+
+				UpdateCamera();
+			}
+		}
+		
+		public Vector3 CameraRotation
+		{
+			get => _cameraRotation;
+			set
+			{
+				_cameraRotation = value;
+
+				UpdateCamera();
+			}
+		}
+
+		public float FovY
+		{
+			get => _fovY;
+			set
+			{
+				_fovY = value;
+
+				UpdateCamera();
+			}
+		}
+		
+		public float AspectRatio
+		{
+			get => _aspectRatio;
+			set
+			{
+				_aspectRatio = value;
 
 				UpdateCamera();
 			}
