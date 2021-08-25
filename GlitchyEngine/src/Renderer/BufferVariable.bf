@@ -16,6 +16,8 @@ namespace GlitchyEngine.Renderer
 		internal uint32 _rows;
 		private uint32 _offset;
 		internal uint32 _sizeInBytes;
+		// Number of elements in the array
+		internal uint32 _elements;
 
 		private bool _isUsed;
 
@@ -33,7 +35,7 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		internal uint8* firstByte => _constantBuffer.rawData.CArray() + _offset;
 
-		public this(ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, bool isUsed)
+		public this(ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 elements, bool isUsed)
 		{
 			_constantBuffer = constantBuffer..AddRef();
 			_type = type;
@@ -41,6 +43,7 @@ namespace GlitchyEngine.Renderer
 			_rows = rows;
 			_offset = offset;
 			_sizeInBytes = sizeInBytes;
+			_elements = elements;
 			_isUsed = isUsed;
 		}
 
@@ -150,6 +153,15 @@ namespace GlitchyEngine.Renderer
 			EnsureTypeMatch(4, 4, .Float);
 
 			*(Matrix*)firstByte = value;
+		}
+
+		public void SetData(Matrix[] value)
+		{
+			EnsureTypeMatch(4, 4, .Float);
+
+			// TODO: assert length
+
+			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix) * Math.Min(value.Count, _elements));
 		}
 		
 		public void SetData(ColorRGB value)

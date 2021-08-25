@@ -37,6 +37,7 @@ namespace GlitchyEngine.Renderer
 
 			_columns = shaderTypeDescription.Columns;
 			_rows = shaderTypeDescription.Rows;
+			_elements = shaderTypeDescription.Elements;
 
 			SetRawData(variableDescription.DefaultValue);
 		}
