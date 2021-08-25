@@ -166,6 +166,19 @@ namespace GlitchyEngine.Math
 			return (a - b * (Dot(a, b) / Dot(b, b)));
 		}
 
+		/**
+		 * Interpolates linearly between two given vectors.
+		 * @param a The first vector.
+		 * @param b The second vector.
+		 * @param interpolationValue The value that linearly interpolates between a and b.
+		 *        (0 means a will be returned, 1 means b will be returned.)
+		 * @returns The resulting linear interpolation.
+		 */
+		public static Vector4 Lerp(Vector4 a, Vector4 b, float interpolationValue)
+		{
+			return a + interpolationValue * (b - a);
+		}
+
 		//
 		// Assignment operators
 		//
