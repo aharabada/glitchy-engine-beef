@@ -165,11 +165,6 @@ namespace GlitchyEngine.Renderer
 
 			ProcessFile(filename, fileContent, vsName, psName);
 
-			if(filename.EndsWith("textureShader.hlsl"))
-			{
-				NOP!();
-			}
-
 			Compile(fileContent, vsName, psName);
 
 			MergeResources();
