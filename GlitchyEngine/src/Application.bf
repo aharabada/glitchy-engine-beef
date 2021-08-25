@@ -11,6 +11,8 @@ namespace GlitchyEngine
 
 		private Window _window ~ delete _;
 		private RendererAPI _rendererApi ~ delete _;
+		private EffectLibrary _effectLibrary ~ delete _;
+
 		private bool _running = true;
 
 		private LayerStack _layerStack = new LayerStack() ~ delete _;
@@ -21,6 +23,8 @@ namespace GlitchyEngine
 
 		public bool IsRunning => _running;
 		public Window Window => _window;
+
+		public EffectLibrary EffectLibrary => _effectLibrary;
 
 		[Inline]
 		public static Application Get() => s_Instance;
@@ -39,8 +43,10 @@ namespace GlitchyEngine
 			SamplerStateManager.Init(_window.Context);
 
 			RenderCommand.RendererAPI = _rendererApi;
-			
-			Renderer.Init(_window.Context);
+
+			_effectLibrary = new EffectLibrary(_window.Context);
+
+			Renderer.Init(_window.Context, _effectLibrary);
 
 			_imGuiLayer = new ImGuiLayer();
 			PushOverlay(_imGuiLayer);
