@@ -6,25 +6,41 @@ namespace DirectX.Math
 {
 	extension Matrix
 	{
-		public static Self RotationQuaternion(Quaternion quat)
+		public static Self RotationQuaternion(Quaternion rotation)
 		{
-			float xSq = quat.X * quat.X;
-			float ySq = quat.Y * quat.Y;
-			float zSq = quat.Z * quat.Z;
+			float xSq = 2 * rotation.X * rotation.X;
+			float ySq = 2 * rotation.Y * rotation.Y;
+			float zSq = 2 * rotation.Z * rotation.Z;
 
-			float xy = quat.X * quat.Y;
-			float xz = quat.X * quat.Z;
-			float xw = quat.X * quat.W;
-			float yz = quat.Y * quat.Z;
-			float yw = quat.Y * quat.W;
-			float zw = quat.Z * quat.W;
+			float xy = 2 * rotation.X * rotation.Y;
+			float xz = 2 * rotation.X * rotation.Z;
+			float xw = 2 * rotation.X * rotation.W;
+			float yz = 2 * rotation.Y * rotation.Z;
+			float yw = 2 * rotation.Y * rotation.W;
+			float zw = 2 * rotation.Z * rotation.W;
 
-			Self result = .(
-				1 - 2 * ySq - 2 * zSq, 2 * xy + 2 * zw, 2 * xz - 2 * yw, 0,
-				2 * xy - 2 * zw, 1 - 2 * xSq - 2 * zSq, 2 * yz + 2 * xw, 0,
-				2 * xz + 2 * yw, 2 * yz - 2 * xw, 1 - 2 * xSq - 2 * ySq, 0,
-				0, 0, 0, 1);
+			Self result = ?;
 
+			result.V._11 = 1 - ySq - zSq;
+			result.V._21 = xy + zw;
+			result.V._31 = xz - yw;
+			result.V._41 = 0;
+
+			result.V._12 = xy - zw;
+			result.V._22 = 1 - xSq - zSq;
+			result.V._32 = yz + xw;
+			result.V._42 = 0;
+
+			result.V._13 = xz + yw;
+			result.V._23 = yz - xw;
+			result.V._33 = 1 - xSq - ySq;
+			result.V._43 = 0;
+
+			result.V._14 = 0;
+			result.V._24 = 0;
+			result.V._34 = 0;
+			result.V._44 = 1;
+			
 			return result;
 		}
 
