@@ -3,13 +3,19 @@ using System.Collections;
 using cgltf;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
+using GlitchyEngine.Renderer.Animation;
 
 namespace GlitchyEngine.Content
 {
 	public static class ModelLoader
 	{
-		public static void LoadModel(String filename, GraphicsContext context, Effect validationEffect, List<(Matrix Transform, GeometryBinding Model)> output)
+		static readonly Matrix RightToLeftHand = .Scaling(1, 1, -1);
+
+		public static void LoadModel(String filename, GraphicsContext context, Effect validationEffect, List<(Matrix Transform, GeometryBinding Model)> output, out Skeleton skeleton, out AnimationClip clip)
 		{
+			skeleton = null;
+			clip = null;
+
 			CGLTF.Options options = .();
 			CGLTF.Data* data;
 			CGLTF.Result result = CGLTF.ParseFile(options, filename, out data);
@@ -25,7 +31,9 @@ namespace GlitchyEngine.Content
 				if(node.Mesh != null)
 				{
 					Matrix transform = ?;
-					CGLTF.NodeTransformWorld(&node, (float*)&transform);
+					CGLTF.NodeTransformLocal(&node, (float*)&transform);
+
+					transform = RightToLeftHand * transform;
 
 					for(var primitive in node.Mesh.Primitives)
 					{
@@ -33,6 +41,11 @@ namespace GlitchyEngine.Content
 
 						output.Add((transform, binding));
 					}
+				}
+
+				if(node.Skin != null)
+				{
+					(skeleton, clip) = ExtractBonestuff(node.Skin, data);
 				}
 			}
 
@@ -96,6 +109,8 @@ namespace GlitchyEngine.Content
 
 					VertexBuffer vertexBuffer = null;
 
+					binding.VertexCount = (uint32)attribute.Data.Count;
+
 					// Get vertex buffer
 					{
 						CGLTF.BufferView* bufferView = attribute.Data.BufferView;
@@ -130,7 +145,14 @@ namespace GlitchyEngine.Content
 						binding.SetVertexBufferSlot(bufferBinding, (.)bindingSlot);
 					}
 
-					VertexElement element = .(format, new String(attribute.Name), true, (.)attribute.Index, (.)bindingSlot);
+					StringView strView = .(attribute.Name);
+
+					while((*(strView.EndPtr - 1)).IsDigit)
+					{
+						strView.Length--;
+					}
+
+					VertexElement element = .(format, new String(strView), true, (.)attribute.Index, (.)bindingSlot);
 					elements.Add(element);
 				}
 
@@ -146,7 +168,176 @@ namespace GlitchyEngine.Content
 				binding.SetVertexLayout(layout..ReleaseRefNoDelete());
 			}
 
+			// TODO: calculate normals if missing
+			// TODO: calculate tangents if missing (MikkTSpace algorithm)
+			// Note: Bitangent = cross(normal, tangent.xyz) * tangent.w
+
 			return binding;
+		}
+
+		static (Skeleton, AnimationClip) ExtractBonestuff(CGLTF.Skin* skin, CGLTF.Data* data)
+		{
+			Skeleton skeleton = new Skeleton();
+			skeleton.Joints = new Joint[skin.Joints.Length];
+
+			AnimationClip testClip = new AnimationClip();
+			testClip.Skeleton = skeleton;
+			testClip.FramesPerSecond = 0;
+			testClip.JointAnimations = new JointAnimation[skeleton.Joints.Count];
+			//testClip.Samples = new AnimationSample[1];
+			//testClip.Samples[0].JointPose = new JointPose[skeleton.Joints.Count];
+			testClip.IsLooping = true;
+
+			for(int i < skin.Joints.Length)
+			{
+				ref Joint joint = ref skeleton.Joints[i];
+
+
+
+				joint.InverseBindPose = GetEntry<Matrix>(skin.InverseBindMatrices, i);
+
+				joint.Name = new String(skin.Joints[i].Name);
+
+				int parentId = skin.Joints.IndexOf(skin.Joints[i].Parent);
+
+				Log.EngineLogger.AssertDebug(parentId < uint8.MaxValue, scope $"A skeleton must not have more than {uint8.MaxValue - 1} bones.");
+
+				if(parentId == -1)
+					joint.ParentID = uint8.MaxValue;
+				else
+					joint.ParentID = (uint8)parentId;
+			}
+
+			for(var channel in data.Animations[0].Channels)
+			{
+				int nodeIndex = skin.Joints.IndexOf(channel.TargetNode);
+
+				Log.EngineLogger.AssertDebug(nodeIndex != -1);
+
+				ref JointAnimation jointAnimation = ref testClip.JointAnimations[nodeIndex];
+
+				Log.EngineLogger.AssertDebug(channel.Sampler.Input.Count == channel.Sampler.Output.Count);
+
+				int samples = (int)channel.Sampler.Input.Count;
+
+				Log.EngineLogger.AssertDebug(channel.Sampler.Input.ComponentType == .R_32f);
+				Log.EngineLogger.AssertDebug(channel.Sampler.Input.Type == .Scalar);
+
+				InterpolationMode interpolationMode;
+
+				switch(channel.Sampler.Interpolation)
+				{
+				case .Step:
+					interpolationMode = .Step;
+				case .Linear:
+					interpolationMode = .Linear;
+				case .CubicSpline:
+					interpolationMode = .CubicSpline;
+				}
+
+				switch(channel.TargetPath)
+				{
+				case .Translation:
+					jointAnimation.TranslationChannel = new .(samples, interpolationMode);
+
+					Log.EngineLogger.AssertDebug(channel.Sampler.Output.ComponentType == .R_32f);
+					Log.EngineLogger.AssertDebug(channel.Sampler.Output.Type == .Vec3);
+
+					for(int i < samples)
+					{
+						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
+						Vector3 sample = GetEntry<Vector3>(channel.Sampler.Output, i);
+						/*
+						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
+						float timeStamp2 = ?;
+						CGLTF.AccessorReadFloat(channel.Sampler.Input, (uint)i, (float*)&timeStamp2, 1);
+
+						Log.EngineLogger.Assert(timeStamp == timeStamp2);
+
+						Vector3 sample2 = ?;
+						CGLTF.AccessorReadFloat(channel.Sampler.Output, (uint)i, (float*)&sample2, 3);
+						
+						Log.EngineLogger.Assert(sample == sample2);
+						*/
+						jointAnimation.TranslationChannel.TimeStamps[i] = timeStamp;
+						jointAnimation.TranslationChannel.Values[i] = sample;
+					}
+				case .Rotation:
+					jointAnimation.RotationChannel = new .(samples, interpolationMode);
+
+					Log.EngineLogger.AssertDebug(channel.Sampler.Output.ComponentType == .R_32f);
+					Log.EngineLogger.AssertDebug(channel.Sampler.Output.Type == .Vec4);
+
+					for(int i < samples)
+					{
+						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
+						Quaternion sample = GetEntry<Quaternion>(channel.Sampler.Output, i);
+
+						jointAnimation.RotationChannel.TimeStamps[i] = timeStamp;
+						jointAnimation.RotationChannel.Values[i] = sample;
+					}
+				case .Scale:
+					jointAnimation.ScaleChannel = new .(samples, interpolationMode);
+
+					Log.EngineLogger.AssertDebug(channel.Sampler.Output.ComponentType == .R_32f);
+					Log.EngineLogger.AssertDebug(channel.Sampler.Output.Type == .Vec3);
+
+					for(int i < samples)
+					{
+						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
+						Vector3 sample = GetEntry<Vector3>(channel.Sampler.Output, i);
+
+						jointAnimation.ScaleChannel.TimeStamps[i] = timeStamp;
+						jointAnimation.ScaleChannel.Values[i] = sample;
+					}
+				default:
+					Log.EngineLogger.Error($"Unknown channel target path \"{channel.TargetPath}\"");
+				}
+
+				//channel.
+
+				//
+
+				//testClip.JointAnimations[i].
+				testClip.Duration = Math.Max(testClip.Duration, jointAnimation.Duration);
+			}
+
+			return (skeleton, testClip);
+		}
+
+		static T GetEntry<T>(CGLTF.Accessor* accessor, int index)
+		{
+			Log.EngineLogger.AssertDebug((uint)index < accessor.Count);
+			
+			T result = ?;
+			
+			switch(typeof(T))
+			{
+			case typeof(float):
+				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 1);
+			case typeof(Vector2):
+				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 2);
+			case typeof(Vector3):
+				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 3);
+			case typeof(Vector4), typeof(Quaternion):
+				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 4);
+			case typeof(Matrix):
+				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 16);
+			}
+
+			return result;
+			
+			/*
+			uint8* data = (uint8*)accessor.BufferView.Buffer.Data;
+
+			data += accessor.BufferView.Offset;
+
+			data += accessor.Offset;
+
+			data += accessor.Stride * (uint)index;
+			
+			return *(T*)data;
+			*/
 		}
 
 		/**

@@ -139,6 +139,15 @@ namespace GlitchyEngine.Renderer
 			*(Matrix4x3*)firstByte = value;
 		}
 
+		public void SetData(Matrix4x3[] value)
+		{
+			EnsureTypeMatch(4, 3, .Float);
+
+			// TODO: assert length
+
+			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix4x3) * Math.Min(value.Count, _elements));
+		}
+
 		public void SetData(Matrix3x3 value)
 		{
 			EnsureTypeMatch(3, 3, .Float);
@@ -146,6 +155,18 @@ namespace GlitchyEngine.Renderer
 			*(Matrix4x3*)firstByte = Matrix4x3(value);
 			
 			// Todo: maybe manual copy
+		}
+
+		public void SetData(Matrix3x3[] value)
+		{
+			EnsureTypeMatch(3, 3, .Float);
+
+			// TODO: assert length
+
+			for(int i < Math.Min(value.Count, _elements))
+			{
+				((Matrix4x3*)firstByte)[i] = Matrix4x3(value[i]);
+			}
 		}
 		
 		public void SetData(Matrix value)

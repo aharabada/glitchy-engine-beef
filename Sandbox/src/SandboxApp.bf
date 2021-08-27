@@ -10,6 +10,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.World;
 using System.Collections;
 using GlitchyEngine.Content;
+using GlitchyEngine.Renderer.Animation;
 
 namespace Sandbox
 {
@@ -70,8 +71,6 @@ namespace Sandbox
 		BlendState _alphaBlendState ~ _?.ReleaseRef();
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
 
-		EffectLibrary _effectLibrary ~ delete _;
-
 		EcsWorld _world = new EcsWorld() ~ delete _;
 
 //		OrthographicCameraController _cameraController ~ delete _;
@@ -87,13 +86,13 @@ namespace Sandbox
 		{
 			_context = Application.Get().Window.Context..AddRef();
 
-			_effectLibrary = new EffectLibrary(_context);
+			var effectLibrary = Application.Get().EffectLibrary;
 
-			_effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
+			effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
 
-			_effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
+			effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
 			
-			var textureEffect = _effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
+			var textureEffect = effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
 
 			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
@@ -209,6 +208,7 @@ namespace Sandbox
 			_cameraController = new .(Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
 									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height);
 			_cameraController.CameraPosition = .(0, 0, -5);
+			_cameraController.TranslationSpeed = 10;
 
 			TestLoadModel();
 		}
@@ -216,6 +216,10 @@ namespace Sandbox
 		//GeometryBinding _modelTest ~ _?.ReleaseRef();
 
 		List<(Matrix Transform, GeometryBinding Model)> _modelTest = new .() ~ UnloadModelTest!();
+
+		Skeleton Skeleton ~ delete _;
+		AnimationClip Clip ~ delete _;
+		AnimationPlayer AnimationPlayer ~ delete _;
 
 		mixin UnloadModelTest()
 		{
@@ -229,11 +233,19 @@ namespace Sandbox
 
 		void TestLoadModel()
 		{
-			var testEffect = _effectLibrary.Get("testShader");
+			var testEffect = Application.Get().EffectLibrary.Get("testShader");
 
-			ModelLoader.LoadModel("content\\Models\\box.gltf", _context, testEffect, _modelTest);
-			
+			//ModelLoader.LoadModel("content\\Models\\Test\\axisTest.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\RiggedSimple\\RiggedSimple.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox_2.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\DancingCylinder\\DancingCylinder.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\Figure\\Figure.gltf", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+
 			testEffect.ReleaseRef();
+
+			if(Skeleton != null && Clip != null)
+				AnimationPlayer = new AnimationPlayer(Skeleton, Clip);
 
 			/*
 			CGLTF.Options options = .();
@@ -277,9 +289,15 @@ namespace Sandbox
 			}
 		}
 
+		float f = 0.0f;
+
+		bool playAnimation = false;
+		bool drawModel = false;
+
 		public override void Update(GameTime gameTime)
 		{
-			
+			f += (float)gameTime.FrameTime.TotalSeconds;
+
 			_cameraController.Update(gameTime);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
@@ -296,24 +314,104 @@ namespace Sandbox
 			
 			_opaqueBlendState.Bind();
 
-			var basicEffect = _effectLibrary.Get("basicShader");
-
+			var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
+			
 			// Model test
 			{
-				_context.SetRasterizerState(_rasterizerStateClockWise);
+				//AnimationPlayer.CurrentClip.Samples[0].JointPose[1].Rotation = .(1, 0, 0, 1)..Normalize();
 
-				var testEffect = _effectLibrary.Get("testShader");
-				testEffect.Variables["BaseColor"].SetData(Color.White);
-				testEffect.Variables["LightDir"].SetData(Vector3(-1, 1, -0.5f).Normalized());
+				Matrix scaling = .Scaling(1f, 1.0f, -1.0f);
 
-				for(var entry in _modelTest)
+				var testEffect = Application.Get().EffectLibrary.Get("testShader");
+
+				if(AnimationPlayer != null)
 				{
-					Renderer.Submit(entry.Model, testEffect, entry.Transform);
+					if(playAnimation)
+						AnimationPlayer.Update(gameTime);
+					else
+					{
+						GameTime gt = new GameTime();
+						AnimationPlayer.Update(gt);
+						delete gt;
+					}
+
+					//_context.SetRasterizerState(_rasterizerStateClockWise);
+
+					int i = 0;
+					for(var globalPose in AnimationPlayer.Pose.GlobalPose)
+					{
+						Joint currentJoint = AnimationPlayer.Skeleton.Joints[i];
+
+						Matrix bindPose = currentJoint.InverseBindPose.Invert();
+
+						// Draw skeleton
+						Matrix mat = AnimationPlayer.SkinningMatricies[i] * bindPose;
+
+						uint8 parentId = currentJoint.ParentID;
+
+						if(parentId != uint8.MaxValue)
+						{
+							Vector3 start = mat.Translation;
+
+							Joint parent = AnimationPlayer.Skeleton.Joints[parentId];
+
+							Matrix parentBindPose = parent.InverseBindPose.Invert();
+
+							Matrix parentMatrix = AnimationPlayer.SkinningMatricies[parentId] * parentBindPose;
+
+							Vector3 end = parentMatrix.Translation;
+
+							Renderer.DrawLine(start, end, .Black, scaling);
+						}
+
+						Renderer.DrawLine(.Zero, Vector3(0.1f, 0, 0), .Red,  scaling * mat);
+						Renderer.DrawLine(.Zero, Vector3(0, 0.1f, 0), .Lime, scaling * mat);
+						Renderer.DrawLine(.Zero, Vector3(0, 0, 0.1f), .Blue, scaling * mat);
+
+						i++;
+					}
+	
+					testEffect.Variables["SkinningMatrices"].SetData(AnimationPlayer.SkinningMatricies);
+					testEffect.Variables["InvTransSkinningMatrices"].SetData(AnimationPlayer.InvTransSkinningMatricies);
+	
+					testEffect.Variables["BaseColor"].SetData(Color.White);
+					testEffect.Variables["LightDir"].SetData(Vector3(1, 1, -0.5f).Normalized());
+	
 				}
 
+				if(drawModel)
+				{
+					for(var entry in _modelTest)
+					{
+						Renderer.Submit(entry.Model, testEffect, .Identity * scaling);//entry.Transform
+					}
+				}
+
+				/*
+				// Draw bind pose
+				for(Joint joint in Skeleton.Joints)
+				{
+					Matrix bindPose = joint.InverseBindPose.Invert();
+
+					if(joint.ParentID != uint8.MaxValue)
+					{
+						Vector3 start = bindPose.Translation;
+
+						Matrix parentBindPose = Skeleton.Joints[joint.ParentID].InverseBindPose.Invert();
+
+						Vector3 end = parentBindPose.Translation;
+
+						Renderer.DrawLine(start, end, .White);
+					}
+
+					Renderer.DrawLine(.Zero, Vector3(0.1f, 0, 0), .Red, bindPose);
+					Renderer.DrawLine(.Zero, Vector3(0, 0.1f, 0), .Lime, bindPose);
+					Renderer.DrawLine(.Zero, Vector3(0, 0, 0.1f), .Blue, bindPose);
+				}
+				*/
 				testEffect.ReleaseRef();
 			}
-
+			
 			_context.SetRasterizerState(_rasterizerState);
 
 			for(var entity in _world.Enumerate(typeof(TransformComponent)))
@@ -342,13 +440,13 @@ namespace Sandbox
 			
 			_checkerMaterial.SetVariable("BaseColor", Color.White);
 
-			Renderer.Submit(_quadGeometryBinding, _checkerMaterial, .Scaling(1.5f));
+			Renderer.Submit(_quadGeometryBinding, _checkerMaterial, Matrix.RotationZ(f) * .Scaling(1.5f));
 			
 			_alphaBlendState.Bind();
 			
 			_logoMaterial.SetVariable("BaseColor", Color.Pink);
 
-			Renderer.Submit(_quadGeometryBinding, _logoMaterial, .Scaling(2f));
+			Renderer.Submit(_quadGeometryBinding, _logoMaterial, .Translation(0, 0, -1) * .Scaling(2f));
 
 			Renderer.EndScene();
 
@@ -370,6 +468,24 @@ namespace Sandbox
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
+			ImGui.Begin("Animation");
+
+			if(AnimationPlayer != null)
+			{
+				ImGui.DragFloat("Timestamp", &AnimationPlayer.TimeStamp, 0.01f, -Clip.Duration, Clip.Duration);
+	
+				while(AnimationPlayer.TimeStamp < 0)
+				{
+					AnimationPlayer.TimeStamp += Clip.Duration;
+				}
+	
+				ImGui.Checkbox("Play", &playAnimation);
+			}
+
+			ImGui.Checkbox("Draw Model", &drawModel);
+
+			ImGui.End();
+
 			ImGui.Begin("Test");
 
 			ImGui.ColorEdit3("Square Color", ref _squareColor0);
