@@ -244,7 +244,8 @@ namespace Sandbox
 				movement *= (float)(gameTime.FrameTime.TotalSeconds);
 
 				cameraTransform.Position += .(movement, 0);
-				cameraTransform.Update();
+				Runtime.NotImplemented();
+				//cameraTransform.Update();
 			}
 
 			var camera = _world.GetComponent<CameraComponent>(_cameraEntity);

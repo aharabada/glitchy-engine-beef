@@ -72,7 +72,7 @@ namespace GlitchyEngine.Renderer
 			var camera = world.GetComponent<CameraComponent>(cameraEntity);
 			var transform = world.GetComponent<TransformComponent>(cameraEntity);
 
-			var trans = transform.Transform;
+			var trans = transform.WorldTransform;
 			var view = trans.Invert();
 			var proj = camera.Projection;
 

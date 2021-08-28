@@ -270,22 +270,53 @@ namespace Sandbox
 			*/
 		}
 
+		Entity evenCrazierParent;
+		Entity crazyParent;
+
 		void InitEcs()
 		{
 			_world.Register<TransformComponent>();
+			_world.Register<ParentComponent>();
 			_world.Register<MeshComponent>();
 			_world.Register<CameraComponent>();
+
+			Entity[20][20] entities;
 
 			for(int x < 20)
 			for(int y < 20)
 			{
 				Entity entity = _world.NewEntity();
 
+				entities[x][y] = entity;
+
 				var transform = _world.AssignComponent<TransformComponent>(entity);
-				transform.Transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
+				transform.LocalTransform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
 
 				var mesh = _world.AssignComponent<MeshComponent>(entity);
 				mesh.Mesh = _quadGeometryBinding;
+			}
+			
+			crazyParent = _world.NewEntity();
+			evenCrazierParent = _world.NewEntity();
+
+			var crazyTransform = _world.AssignComponent<TransformComponent>(evenCrazierParent);
+			crazyTransform.Position = .Zero;
+			crazyTransform.Scale = .One;
+			crazyTransform.Rotation = .Zero;
+
+			var pp = _world.AssignComponent<ParentComponent>(crazyParent);
+			pp.Entity = evenCrazierParent;
+
+			crazyTransform = _world.AssignComponent<TransformComponent>(crazyParent);
+			crazyTransform.Position = .Zero;
+			crazyTransform.Scale = .(2.0f, 2.0f, 2.0f);
+			crazyTransform.Rotation = .Zero;
+
+			for(int x < 20)
+			for(int y < 20)
+			{
+				var parent = _world.AssignComponent<ParentComponent>(entities[x][y]);
+				parent.Entity = crazyParent;
 			}
 		}
 
@@ -387,39 +418,19 @@ namespace Sandbox
 					}
 				}
 
-				/*
-				// Draw bind pose
-				for(Joint joint in Skeleton.Joints)
-				{
-					Matrix bindPose = joint.InverseBindPose.Invert();
-
-					if(joint.ParentID != uint8.MaxValue)
-					{
-						Vector3 start = bindPose.Translation;
-
-						Matrix parentBindPose = Skeleton.Joints[joint.ParentID].InverseBindPose.Invert();
-
-						Vector3 end = parentBindPose.Translation;
-
-						Renderer.DrawLine(start, end, .White);
-					}
-
-					Renderer.DrawLine(.Zero, Vector3(0.1f, 0, 0), .Red, bindPose);
-					Renderer.DrawLine(.Zero, Vector3(0, 0.1f, 0), .Lime, bindPose);
-					Renderer.DrawLine(.Zero, Vector3(0, 0, 0.1f), .Blue, bindPose);
-				}
-				*/
 				testEffect.ReleaseRef();
 			}
 			
 			_context.SetRasterizerState(_rasterizerState);
-
-			for(var entity in _world.Enumerate(typeof(TransformComponent)))
-			{
-				var transform = _world.GetComponent<TransformComponent>(entity);
-				transform.Update();
-			}
 			
+			var crazyTransform = _world.GetComponent<TransformComponent>(evenCrazierParent);
+			crazyTransform.Rotation += .((float)gameTime.FrameTime.TotalSeconds / 2, 0, 0);
+
+		crazyTransform = _world.GetComponent<TransformComponent>(crazyParent);
+			crazyTransform.Rotation += .(0, (float)gameTime.FrameTime.TotalSeconds, 0);
+
+			TransformSystem.Update(_world);
+
 			int i = 0;
 			for(var entity in _world.Enumerate(typeof(TransformComponent), typeof(MeshComponent)))
 			{
@@ -433,7 +444,7 @@ namespace Sandbox
 				var transform = _world.GetComponent<TransformComponent>(entity);
 				var mesh = _world.GetComponent<MeshComponent>(entity);
 
-				Renderer.Submit(mesh.Mesh, basicEffect, transform.Transform);
+				Renderer.Submit(mesh.Mesh, basicEffect, transform.WorldTransform);
 			}
 			
 			basicEffect.Variables["BaseColor"].SetData(_squareColor1);

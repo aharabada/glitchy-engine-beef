@@ -221,8 +221,9 @@ namespace GlitchyEngine.World
 			Entity entity = world.NewEntity();
 
 			TransformComponent* myComp = world.AssignComponent<TransformComponent>(entity);
-			myComp.Transform = Matrix.Identity;
+			myComp.LocalTransform = Matrix.Identity;
 
+			#unwarn
 			TransformComponent gotComp = *world.GetComponent<TransformComponent>(entity);
 
 			world.RemoveComponent<TransformComponent>(entity);

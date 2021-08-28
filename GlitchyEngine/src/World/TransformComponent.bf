@@ -8,17 +8,20 @@ namespace GlitchyEngine.World
 		Vector3 _rotation = .Zero;
 		Vector3 _scale = .One;
 
-		Matrix _transform;
-		bool _dirty;
+		Matrix _localTransform;
+		public bool IsDirty;
 
-		public Matrix Transform
+		public Matrix WorldTransform;
+
+		/// The frame when the transform was recalculated
+		public uint Frame;
+
+		public Matrix LocalTransform
 		{
-			get mut
-			{
-				return _transform;
-			}
-			set mut => _transform = value;
+			get => _localTransform;
+			set mut => _localTransform = value;
 		}
+
 		public Vector3 Position
 		{
 			get => _position;
@@ -28,7 +31,7 @@ namespace GlitchyEngine.World
 					return;
 
 				_position = value;
-				_dirty = true;
+				IsDirty = true;
 			}
 		}
 
@@ -41,7 +44,7 @@ namespace GlitchyEngine.World
 					return;
 
 				_rotation = value;
-				_dirty = true;
+				IsDirty = true;
 			}
 		}
 
@@ -54,17 +57,8 @@ namespace GlitchyEngine.World
 					return;
 
 				_scale = value;
-				_dirty = true;
+				IsDirty = true;
 			}
-		}
-
-		public void Update() mut
-		{
-			if(!_dirty)
-				return;
-			_transform = .Translation(_position) * .RotationX(_rotation.X) *
-				.RotationY(_rotation.Y) * .RotationZ(_rotation.Z) * .Scaling(_scale);
-			_dirty = false;
 		}
 	}
 }
