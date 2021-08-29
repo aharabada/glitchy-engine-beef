@@ -15,8 +15,13 @@ namespace GlitchyEngine.World
 
 		List<uint32> _freeIndices = new List<uint32>() ~ delete _;
 
-		typealias ComponentPoolEntry = (uint32 Id, ComponentPool Pool);
+		typealias DisposeFunction = function void(void* component);
+
+		typealias ComponentPoolEntry = (uint32 Id, ComponentPool Pool, DisposeFunction DisposeFunction);
 		Dictionary<Type, ComponentPoolEntry> _componentPools = new .();
+
+		/// A list containing all pools whose components need to be disposed before removal.
+		List<ComponentPoolEntry*> _disposingPools = new .() ~ delete _;
 		
 		public ~this()
 		{
@@ -35,13 +40,32 @@ namespace GlitchyEngine.World
 			delete _entities;
 		}
 		
-		
 		/**
 		 * Registers a new Component.
 		 */
 		public void Register<T>() where T: struct
 		{
-			_componentPools.Add(typeof(T), ((uint32)_componentPools.Count, new ComponentPool(sizeof(T), MaxEntities)));
+			uint32 id = (uint32)_componentPools.Count;
+			ComponentPool componentPool = new ComponentPool(sizeof(T), MaxEntities);
+
+			_componentPools.Add(typeof(T), (id, componentPool, null));
+		}
+		
+		/**
+		 * Registers a new Component.
+		 */
+		public void Register<T>() where T: struct, IDisposableComponent
+		{
+			uint32 id = (uint32)_componentPools.Count;
+			ComponentPool componentPool = new ComponentPool(sizeof(T), MaxEntities);
+			DisposeFunction disposeFunction = => T.DisposeComponent;
+
+			_componentPools.Add(typeof(T), (id, componentPool, disposeFunction));
+
+			// We have to get the component from the dictionary so we get the reference
+			var poolInDictionary = ref _componentPools[typeof(T)];
+			// Add to list of components that need disposing
+			_disposingPools.Add(&poolInDictionary);
 		}
 
 		/**
@@ -79,12 +103,31 @@ namespace GlitchyEngine.World
 			if(entity != listEntity.ID)
 				return;
 
+			DisposeComponents(listEntity);
+
+			// Invalidate entry and increment version
 			listEntity.ID = Entity.CreateEntityID(Entity.InvalidEntity.Index, entity.Version + 1);
-			
+
 			_entities[entity.Index].ComponentMask.Clear();
 			_freeIndices.Add(entity.Index);
+		}
 
-			// TODO: add "destructor" for components
+		/// Disposes all components of the given entity.
+		private void DisposeComponents(BitmaskEntry listEntity)
+		{
+			var componentMask = listEntity.ComponentMask;
+
+			for(let poolEntry in _disposingPools)
+			{
+				// Check if the entity has this component type
+				if(componentMask[poolEntry.Id])
+				{
+					// Get pointer to component
+					void* component = poolEntry.Pool.Get(listEntity.ID.Index);
+					// Dispose component
+					poolEntry.DisposeFunction(component);
+				}
+			}
 		}
 
 		/**
@@ -103,9 +146,11 @@ namespace GlitchyEngine.World
 			ComponentPoolEntry entry;
 			if(!_componentPools.TryGetValue(typeof(T), out entry))
 			{
-				entry = ((uint32)_componentPools.Count, new ComponentPool(sizeof(T), MaxEntities));
+				Log.EngineLogger.Error($"Tried to assign unregistered component type {typeof(T)}");
+				return null;
+				//entry = ((uint32)_componentPools.Count, new ComponentPool(sizeof(T), MaxEntities));
 
-				_componentPools.Add(typeof(T), entry);
+				//_componentPools.Add(typeof(T), entry);
 			}
 			
 			// TODO: maybe assert?
@@ -138,6 +183,29 @@ namespace GlitchyEngine.World
 				return;
 			
 			listEntity.ComponentMask[entry.Id] = false;
+		}
+		
+		public void RemoveComponent<T>(Entity entity) where T : struct, IDisposableComponent
+		{
+			if(entity.Index > _entities.Count)
+				return;
+
+			var listEntity = ref _entities[entity.Index];
+			if(entity != listEntity.ID)
+				return;
+			
+			ComponentPoolEntry entry;
+			if(!_componentPools.TryGetValue(typeof(T), out entry))
+				return;
+			
+			// TODO: maybe assert?
+			if(!listEntity.ComponentMask[entry.Id])
+				return;
+			
+			listEntity.ComponentMask[entry.Id] = false;
+
+			// Get component and call dispose
+			T.DisposeComponent(entry.Pool.Get(entity.Index));
 		}
 
 		public T* GetComponent<T>(Entity entity) where T : struct
@@ -246,6 +314,50 @@ namespace GlitchyEngine.World
 			}
 
 			delete world;
+		}
+
+		/// A component to test automatic disposing of components.
+		private struct TestDisposingComponent : IDisposableComponent
+		{
+			public bool IsDisposed;
+
+			public static void DisposeComponent(void* component)
+			{
+				Self* testComponent = (Self*)component;
+				testComponent.IsDisposed = true;
+			}
+		}
+
+		/// Tets if disposing of components works correctly.
+		[Test]
+		public static void TestDisposing()
+		{
+			EcsWorld world = scope EcsWorld();
+			world.Register<TestDisposingComponent>();
+
+			// Test dispose on component removal
+			{
+				// Create entity with disposable component.
+				Entity entity = world.NewEntity();
+				var component = world.AssignComponent<TestDisposingComponent>(entity);
+				component.IsDisposed = false;
+	
+				world.RemoveComponent<TestDisposingComponent>(entity);
+
+				Test.Assert(component.IsDisposed == true, "The component was not disposed when the component was removed!");
+			}
+			
+			// Test dispose on entity removal
+			{
+				// Create entity with disposable component.
+				Entity entity = world.NewEntity();
+				var component = world.AssignComponent<TestDisposingComponent>(entity);
+				component.IsDisposed = false;
+	
+				world.RemoveEntity(entity);
+				
+				Test.Assert(component.IsDisposed == true, "The component was not disposed when the entity was removed!");
+			}
 		}
 	}
 }
