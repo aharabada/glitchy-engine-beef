@@ -102,47 +102,47 @@ namespace GlitchyEngine.Renderer
 			*(T*)(&_rawVariables[offset])
 		}
 
-		public void SetVariable(String name, float value)
+		[Inline]
+		private void SetVariable<T>(String name, T value) where T : struct
 		{
 			if(_variables.TryGetValue(name, let entry))
 			{
-				entry.Variable.EnsureTypeMatch(1, 1, .Float);
+				entry.Variable.EnsureTypeMatch<T>();
 
-				RawPointer!<float>(entry.Offset) = value;
+				RawPointer!<T>(entry.Offset) = value;
 			}
 			else
 			{
 				Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
 			}
 		}
+
+		public void SetVariable(String name, float value) => SetVariable<float>(name, value);
+		public void SetVariable(String name, Vector2 value) => SetVariable<Vector2>(name, value);
+		public void SetVariable(String name, Vector3 value) => SetVariable<Vector3>(name, value);
+		public void SetVariable(String name, Vector4 value) => SetVariable<Vector4>(name, value);
 		
-		public void SetVariable(String name, Color value)
-		{
-			if(_variables.TryGetValue(name, let entry))
-			{
-				entry.Variable.EnsureTypeMatch<Color>();
+		public void SetVariable(String name, Color value) => SetVariable<ColorRGBA>(name, value);
+		public void SetVariable(String name, ColorRGB value) => SetVariable<ColorRGB>(name, value);
+		public void SetVariable(String name, ColorRGBA value) => SetVariable<ColorRGBA>(name, value);
 
-				RawPointer!<ColorRGBA>(entry.Offset) = (ColorRGBA)value;
-			}
-			else
-			{
-				Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
-			}
-		}
 		
-		public void SetVariable(String name, Matrix value)
+		private void SetVariable(String name, Matrix3x3 value)
 		{
 			if(_variables.TryGetValue(name, let entry))
 			{
-				entry.Variable.EnsureTypeMatch<Matrix>();
+				entry.Variable.EnsureTypeMatch<Matrix3x3>();
 
-				RawPointer!<Matrix>(entry.Offset) = value;
+				RawPointer!<Matrix4x3>(entry.Offset) = Matrix4x3(value);
 			}
 			else
 			{
 				Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
 			}
 		}
+
+		public void SetVariable(String name, Matrix4x3 value) => SetVariable<Matrix4x3>(name, value);
+		public void SetVariable(String name, Matrix value) => SetVariable<Matrix>(name, value);
 
 		/**
 		 * Sets the raw data of the variable.
