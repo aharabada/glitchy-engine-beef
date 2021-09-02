@@ -50,7 +50,7 @@ namespace GlitchLog
 
 		public this()
 		{
-			Debug.Assert(Debug.IsDebuggerPresent, "The DebugLogger requires a debugger to be present.");
+			//Debug.Assert(Debug.IsDebuggerPresent, "The DebugLogger requires a debugger to be present.");
 		}
 		
 #if GL_NOLOG || GL_NOTRACE
