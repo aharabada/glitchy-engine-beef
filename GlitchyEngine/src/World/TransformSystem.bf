@@ -8,13 +8,9 @@ namespace GlitchyEngine.World
 		{
 			_frame++;
 
-			for(var entity in world.Enumerate(typeof(TransformComponent)))
 			for(var (entity, transform) in world.Enumerate<TransformComponent>())
 			{
 				UpdateEntity(entity, transform, world);
-			}
-			{
-				UpdateEntity(entity, world);
 			}
 		}
 
