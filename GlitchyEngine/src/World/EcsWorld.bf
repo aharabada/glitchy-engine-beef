@@ -10,15 +10,15 @@ namespace GlitchyEngine.World
 	{
 		const int MaxEntities = 1024;
 		
-		typealias BitmaskEntry = (Entity ID, BitArray ComponentMask);
-		List<BitmaskEntry> _entities = new .();
+		internal typealias BitmaskEntry = (Entity ID, BitArray ComponentMask);
+		internal List<BitmaskEntry> _entities = new .();
 
 		List<uint32> _freeIndices = new List<uint32>() ~ delete _;
 
 		typealias DisposeFunction = function void(void* component);
 
-		typealias ComponentPoolEntry = (uint32 Id, ComponentPool Pool, DisposeFunction DisposeFunction);
-		Dictionary<Type, ComponentPoolEntry> _componentPools = new .();
+		internal typealias ComponentPoolEntry = (uint32 Id, ComponentPool Pool, DisposeFunction DisposeFunction);
+		internal Dictionary<Type, ComponentPoolEntry> _componentPools = new .();
 
 		/// A list containing all pools whose components need to be disposed before removal.
 		List<ComponentPoolEntry*> _disposingPools = new .() ~ delete _;
@@ -66,6 +66,16 @@ namespace GlitchyEngine.World
 			var poolInDictionary = ref _componentPools[typeof(T)];
 			// Add to list of components that need disposing
 			_disposingPools.Add(&poolInDictionary);
+		}
+
+		/** @brief Returns the component pool for the given component type.
+		 * @param TComponent The type of the component whose component pool will be returned.
+		 * @returns A reference to the component pool.
+		 */
+		[Inline]
+		internal ref ComponentPoolEntry GetComponentPool<TComponent>()
+		{
+			return ref _componentPools[typeof(TComponent)];
 		}
 
 		/**
@@ -230,54 +240,21 @@ namespace GlitchyEngine.World
 			return WorldEnumerator(this, componentTypes);
 		}
 
-		public struct WorldEnumerator : IEnumerator<Entity>, IDisposable
+		public WorldEnumerator<TComponent> Enumerate<TComponent>() where TComponent : struct
 		{
-			private EcsWorld _world;
-			private BitArray _bitMask;
-			private BitmaskEntry* _currentEntry;
-			private BitmaskEntry* _endEntry;
+			return WorldEnumerator<TComponent>(this);
+		}
 
-			public this(EcsWorld world, Type[] componentTypes)
-			{
-				_world = world;
-				_currentEntry = _world._entities.Ptr;
-				_endEntry = _world._entities.Ptr + _world._entities.Count;
-
-				_bitMask = new BitArray(_world._componentPools.Count);
-				for(var type in componentTypes)
-				{
-					Log.EngineLogger.AssertDebug(type.IsStruct, "Components can only be structs.");
-
-					var result = _world._componentPools.GetValue(type);
-
-					if(result case .Ok(let entry))
-					{
-						_bitMask[entry.Id] = true;
-					}
-					else
-					{
-						Log.EngineLogger.AssertDebug(false, "Queried component is not registered for this world. This is invalid because the query would never return any results.");
-					}
-				}
-			}
-
-			public Result<Entity> GetNext() mut
-			{
-				while(_currentEntry < _endEntry)
-				{
-					BitmaskEntry* entry = _currentEntry++;
-					// Check whether or not mask matches
-					if(entry.ComponentMask.MaskMatch(_bitMask))
-						return entry.ID;
-				}
-
-				return .Err;
-			}
-
-			public void Dispose()
-			{
-				delete _bitMask;
-			}
+		public WorldEnumerator<TComponent0, TComponent1> Enumerate<TComponent0, TComponent1>() where TComponent0 : struct
+			where TComponent1 : struct
+		{
+			return WorldEnumerator<TComponent0, TComponent1>(this);
+		}
+		
+		public WorldEnumerator<TComponent0, TComponent1, TComponent2> Enumerate<TComponent0, TComponent1, TComponent2>()
+			where TComponent0 : struct where TComponent1 : struct where TComponent2 : struct
+		{
+			return WorldEnumerator<TComponent0, TComponent1, TComponent2>(this);
 		}
 
 		public static void Test()
