@@ -9,20 +9,24 @@ namespace GlitchyEngine.World
 			_frame++;
 
 			for(var entity in world.Enumerate(typeof(TransformComponent)))
+			for(var (entity, transform) in world.Enumerate<TransformComponent>())
+			{
+				UpdateEntity(entity, transform, world);
+			}
 			{
 				UpdateEntity(entity, world);
 			}
 		}
 
-		private static TransformComponent* UpdateEntity(Entity entity, EcsWorld world)
+		private static void UpdateEntity(Entity entity, TransformComponent* transform, EcsWorld world)
 		{
 			// Todo: this probably needs a rewrite as it may scale poorly with deep hierarchies!
 
-			var transform = world.GetComponent<TransformComponent>(entity);
-
-			// If tranform was updated this frame -> skip
+			// transform was updated this frame -> skip
 			if(transform.Frame == _frame)
-				return transform;
+				return;
+			
+			transform.Frame = _frame;
 
 			var parent = world.GetComponent<ParentComponent>(entity);
 
@@ -30,7 +34,7 @@ namespace GlitchyEngine.World
 			{
 				transform.LocalTransform = .Translation(transform.Position) * .RotationX(transform.Rotation.X) *
 					.RotationY(transform.Rotation.Y) * .RotationZ(transform.Rotation.Z) * .Scaling(transform.Scale);
-				transform.Frame = _frame;
+
 				transform.IsDirty = false;
 
 				if(parent == null)
@@ -41,17 +45,18 @@ namespace GlitchyEngine.World
 
 			if(parent != null)
 			{
-				var parentTransform = UpdateEntity(parent.Entity, world);
+				var parentEntity = parent.Entity;
 
+				var parentTransform = world.GetComponent<TransformComponent>(parentEntity);
+				UpdateEntity(parentEntity, parentTransform, world);
+
+				// TODO: I think we unnecessarily recalculate world transform every frame
 				// Parent transform is newer than our transform or was updated this frame
 				if(parentTransform.Frame >= transform.Frame)
 				{
 					transform.WorldTransform = parentTransform.WorldTransform * transform.LocalTransform;
-					transform.Frame = parentTransform.Frame;
 				}
 			}
-
-			return transform;
 		}
 	}
 }
