@@ -8,7 +8,6 @@ namespace GlitchyEngine.Math
 		public const Quaternion One = .(1.0f, 1.0f, 1.0f, 1.0f);
 		public const Quaternion Identity = .(0.0f, 0.0f, 0.0f, 1.0f);
 
-		// qv: (X, Y, Z), sv: W
 		public float X, Y, Z, W;
 
 		public this() => this = default;
@@ -45,8 +44,22 @@ namespace GlitchyEngine.Math
 			W = vector.W;
 		}
 
-		public Vector3 Axis => .(X, Y, Z);
-		public float Scalar => W;
+		public Vector3 Vector
+		{
+			get => .(X, Y, Z);
+			set mut
+			{
+				X = value.X;
+				Y = value.Y;
+				Z = value.Z;
+			}
+		}
+		
+		public float Scalar
+		{
+			get => W;
+			set mut => W = value;
+		}
 
 		public void Normalize() mut
 		{
@@ -173,20 +186,25 @@ namespace GlitchyEngine.Math
 		public static Self operator -(Self l, Self r) => Self(l.X - r.X, l.Y - r.Y, l.Z - r.Z, l.W - r.W);
 
 		public static Self operator *(float l, Self r) => Self(l * r.X, l * r.Y, l * r.Z, l * r.W);
+		
+		public static Self operator /(Self l, float r) => Self(l.X * r, l.Y * r, l.Z * r, l.W * r);
 
+		public static Self operator *(Self l, Self r)
+		{
+			Quaternion result;
 
-		[Inline]
-		public static implicit operator Vector4(in Self value) => *(Vector4*)&value;
+			Vector3 v = l.Vector * r.Vector + (l.W * r.Vector) + (r.W * l.Vector);
+			result.X = v.X;
+			result.Y = v.Y;
+			result.Z = v.Z;
+			result.W = (l.W * r.W) - Vector3.Dot(l.Vector, r.Vector);
 
-		[Inline]
-		public static implicit operator Quaternion(in Vector4 value) => *(Quaternion*)&value;
-
-		//public static Quaternion operator +(Self left, Self right) => return .();
-
-		/*
+			return result;
+		}
+		
 		public static Quaternion Conjugate(Quaternion q)
 		{
-			return Quaternion(-q.Axis, q.Scalar);
+			return Quaternion(-q.Vector, q.Scalar);
 		}
 
 		public static Quaternion Inverse(Quaternion q)
@@ -195,16 +213,134 @@ namespace GlitchyEngine.Math
 
 			float magSquared = LengthSquared(q);
 
-			return Quaternion(conjugate / magSquared);
+			return conjugate / magSquared;
 		}
 
-		public static Quaternion operator *(Quaternion left, Quaternion right)
+		[Inline]
+		public static implicit operator Vector4(in Self value) => *(Vector4*)&value;
+
+		[Inline]
+		public static implicit operator Quaternion(in Vector4 value) => *(Quaternion*)&value;
+
+		public static bool operator ==(Quaternion l, Quaternion r)
 		{
-			return Quaternion(left.Scalar * right.Axis + right.Scalar * left.Axis + Vector3.Cross(left.Axis, right.Axis),
-				left.Scalar * right.Scalar - Vector3.Dot(left.Axis, right.Axis));
+			return l.X == r.X && l.Y == r.Y && l.Z == r.Z && l.W == r.W;
 		}
-		*/
 
-		//public static Quaternion operator /(Quaternion left, float right) => Quaternion(left.X / right, left.Y / right, left.Z / right, left.W / right);
+		public static bool operator !=(Quaternion l, Quaternion r)
+		{
+			return l.X != r.X && l.Y != r.Y && l.Z != r.Z && l.W != r.W;
+		}
+
+		public (Vector3 Axis, float Angle) ToAxisAngle()
+		{
+			// scalar part = cos(θ/2)
+			// So, we can extract the angle directly.
+			float angle = 2.0f * Math.Acos(W);
+
+			// vector part = axis * sin(θ/2)
+			// In other words, the vector part is the axis, but with length of sin(θ/2).
+			// We assume quaternion is unit length, so subtracting w^2 gives us length of just vector part (aka sin(θ/2)).
+			float length = Math.Sqrt(1.0f - (W * W));
+
+			Vector3 axis;
+
+			// Normalize vector part to get the axis!
+			if(length == 0)
+			{
+			    axis = Vector3.Zero;
+			}
+			else
+			{
+			    length = 1.0f / length;
+			    axis.X = X * length;
+			    axis.Y = Y * length;
+			    axis.Z = Z * length;
+			}
+
+			return (axis, angle);
+		}
+
+		public static Quaternion FromAxisAngle(Vector3 axis, float angle)
+		{
+			float lengthSq = axis.MagnitudeSquared();
+
+			if(lengthSq == 0)
+			{
+				return .Identity;
+			}
+
+			float halfAngle = angle * 0.5f;
+
+			float sin = Math.Sin(halfAngle) / Math.Sqrt(lengthSq);
+
+			Quaternion result;
+			result.X = axis.X * sin;
+			result.Y = axis.Y * sin;
+			result.Z = axis.Z * sin;
+			result.W = Math.Cos(halfAngle);
+
+			return result;
+		}
+
+		// Assumes YZX-Order meaning Y applied first, Z second and x last
+		public static Quaternion FromEulerAngles(float yaw, float pitch, float roll)
+		{
+			float halfYaw = yaw / 2.0f;
+			float halfPitch = pitch / 2.0f;
+			float halfRoll = roll / 2.0f;
+
+			float cosYaw = Math.Cos(halfYaw);//heading
+			float sinYaw = Math.Sin(halfYaw);
+			float cosRoll = Math.Cos(halfRoll);//attitude
+			float sinRoll = Math.Sin(halfRoll);
+			float cosPitch = Math.Cos(halfPitch);//bank
+			float sinPitch = Math.Sin(halfPitch);
+
+			float cosYawCosRoll = cosYaw * cosRoll;
+			float sinYawSinRoll = sinYaw * sinRoll;
+			float cosYawSinRoll = cosYaw * sinRoll;
+			float sinYawCosRoll = sinYaw * cosRoll;
+
+			Quaternion result;
+
+			result.W = cosYawCosRoll * cosPitch - sinYawSinRoll * sinPitch;
+			result.X = cosYawCosRoll * sinPitch + sinYawSinRoll * cosPitch;
+			result.Y = sinYawCosRoll * cosPitch + cosYawSinRoll * sinPitch;
+			result.Z = cosYawSinRoll * cosPitch - sinYawCosRoll * sinPitch;
+			
+			return result;
+		}
+
+		public static Vector3 ToEulerAngles(Quaternion q1)
+		{
+			// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+
+			Vector3 result;
+
+		    float sqw = q1.W*q1.W;
+		    float sqx = q1.X*q1.X;
+		    float sqy = q1.Y*q1.Y;
+		    float sqz = q1.Z*q1.Z;
+			float unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
+			float test = q1.X*q1.Y + q1.Z*q1.W;
+			if (test > 0.499f*unit) { // singularity at north pole
+				result.Y = 2.0f * Math.Atan2(q1.X,q1.W);
+				result.Z = Math.PI_f / 2.0f;
+				result.X = 0.0f;
+				return result;
+			}
+			if (test < -0.499f*unit) { // singularity at south pole
+				result.Y = -2.0f * Math.Atan2(q1.X,q1.W);
+				result.Z = -Math.PI_f / 2.0f;
+				result.X = 0.0f;
+				return result;
+			}
+		    result.Y = Math.Atan2(2*q1.Y*q1.W-2*q1.X*q1.Z , sqx - sqy - sqz + sqw);
+			result.Z = Math.Asin(2*test/unit);
+			result.X = Math.Atan2(2*q1.X*q1.W-2*q1.Y*q1.Z , -sqx + sqy - sqz + sqw);
+
+			return result;
+		}
 	}
 }
