@@ -193,7 +193,7 @@ namespace GlitchyEngine.ImGui
 			var event = scope ImGuiRenderEvent();
 			Application.Get().OnEvent(event);
 
-			ImGui.ShowDemoWindow(&showDemo);
+			//ImGui.ShowDemoWindow(&showDemo);
 
 			End();
 		}
