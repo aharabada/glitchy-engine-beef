@@ -98,7 +98,7 @@ namespace GlitchyEngine.Content
 			// vertices
 			{
 				List<VertexElement> elements = scope .(primitive.Attributes.Length);
-				Dictionary<CGLTF.BufferView*, VertexBuffer> buffers = scope .();
+				Dictionary<void*, VertexBuffer> buffers = scope .();
 				List<VertexBufferBinding> bindings = scope .();
 
 				for(var attribute in primitive.Attributes)
