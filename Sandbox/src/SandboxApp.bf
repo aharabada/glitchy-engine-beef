@@ -273,14 +273,29 @@ namespace Sandbox
 		Entity evenCrazierParent;
 		Entity crazyParent;
 
+		Material testMaterial1 ~ _?.ReleaseRef();
+		Material testMaterial2 ~ _?.ReleaseRef();
+
 		void InitEcs()
 		{
 			_world.Register<TransformComponent>();
 			_world.Register<ParentComponent>();
 			_world.Register<MeshComponent>();
+			_world.Register<MeshRendererComponent>();
 			_world.Register<CameraComponent>();
+			
+			var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
+
+			testMaterial1 = new Material(basicEffect);
+			testMaterial1.SetVariable("BaseColor", _squareColor0);
+			testMaterial2 = new Material(basicEffect);
+			testMaterial2.SetVariable("BaseColor", _squareColor1);
+
+			basicEffect.ReleaseRef();
 
 			Entity[20][20] entities;
+
+			int i = 0;
 
 			for(int x < 20)
 			for(int y < 20)
@@ -294,6 +309,15 @@ namespace Sandbox
 
 				var mesh = _world.AssignComponent<MeshComponent>(entity);
 				mesh.Mesh = _quadGeometryBinding;
+				
+				i++;
+
+				var meshRenderer = _world.AssignComponent<MeshRendererComponent>(entity);
+
+				if(i % 2 == 0)
+					meshRenderer.Material = testMaterial1;
+				else
+					meshRenderer.Material = testMaterial2;
 			}
 			
 			crazyParent = _world.NewEntity();
@@ -427,26 +451,18 @@ namespace Sandbox
 			crazyTransform.Rotation += .((float)gameTime.FrameTime.TotalSeconds / 2, 0, 0);
 
 		crazyTransform = _world.GetComponent<TransformComponent>(crazyParent);
+			//crazyTransform.Rotation += .((float)gameTime.FrameTime.TotalSeconds / 2, 0, 0);
+	
+			crazyTransform = _world.GetComponent<TransformComponent>(crazyParent);
 			crazyTransform.Rotation += .(0, (float)gameTime.FrameTime.TotalSeconds, 0);
 
 			TransformSystem.Update(_world);
-
-			int i = 0;
-			for(var entity in _world.Enumerate(typeof(TransformComponent), typeof(MeshComponent)))
-			{
-				i++;
-
-				if(i % 2 == 0)
-					basicEffect.Variables["BaseColor"].SetData(_squareColor0);
-				else
-					basicEffect.Variables["BaseColor"].SetData(_squareColor1);
-
-				var transform = _world.GetComponent<TransformComponent>(entity);
-				var mesh = _world.GetComponent<MeshComponent>(entity);
-
-				Renderer.Submit(mesh.Mesh, basicEffect, transform.WorldTransform);
-			}
 			
+			for(var (entity, transform, mesh, meshRenderer) in _world.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
+			{
+				Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
+			}
+
 			basicEffect.Variables["BaseColor"].SetData(_squareColor1);
 			
 			_checkerMaterial.SetVariable("BaseColor", Color.White);
@@ -499,9 +515,13 @@ namespace Sandbox
 
 			ImGui.Begin("Test");
 
-			ImGui.ColorEdit3("Square Color", ref _squareColor0);
+			var v = ImGui.ColorEdit3("Square Color", ref _squareColor0);
 
-			_squareColor1 = ColorRGBA.White - _squareColor0;
+			if(v)
+			{
+				testMaterial1.SetVariable("BaseColor", _squareColor0);
+				testMaterial2.SetVariable("BaseColor", ColorRGBA.White - _squareColor0);
+			}
 
 			ImGui.End();
 
