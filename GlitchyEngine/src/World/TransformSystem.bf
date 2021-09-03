@@ -16,7 +16,7 @@ namespace GlitchyEngine.World
 
 		private static void UpdateEntity(Entity entity, TransformComponent* transform, EcsWorld world)
 		{
-			// Todo: this probably needs a rewrite as it may scale poorly with deep hierarchies!
+			// Todo: test scaling with deep hierarchies!
 
 			// transform was updated this frame -> skip
 			if(transform.Frame == _frame)
@@ -28,8 +28,7 @@ namespace GlitchyEngine.World
 
 			if(transform.IsDirty)
 			{
-				transform.LocalTransform = .Translation(transform.Position) * .RotationX(transform.Rotation.X) *
-					.RotationY(transform.Rotation.Y) * .RotationZ(transform.Rotation.Z) * .Scaling(transform.Scale);
+				transform.LocalTransform = .Translation(transform.Position) * .RotationQuaternion(transform.Rotation) * .Scaling(transform.Scale);
 
 				transform.IsDirty = false;
 

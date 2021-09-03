@@ -305,6 +305,7 @@ namespace Sandbox
 				entities[x][y] = entity;
 
 				var transform = _world.AssignComponent<TransformComponent>(entity);
+				*transform = TransformComponent();
 				transform.LocalTransform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
 
 				var mesh = _world.AssignComponent<MeshComponent>(entity);
@@ -326,7 +327,7 @@ namespace Sandbox
 			var crazyTransform = _world.AssignComponent<TransformComponent>(evenCrazierParent);
 			crazyTransform.Position = .Zero;
 			crazyTransform.Scale = .One;
-			crazyTransform.Rotation = .Zero;
+			crazyTransform.Rotation = .Identity;
 
 			var pp = _world.AssignComponent<ParentComponent>(crazyParent);
 			pp.Entity = evenCrazierParent;
@@ -334,7 +335,7 @@ namespace Sandbox
 			crazyTransform = _world.AssignComponent<TransformComponent>(crazyParent);
 			crazyTransform.Position = .Zero;
 			crazyTransform.Scale = .(2.0f, 2.0f, 2.0f);
-			crazyTransform.Rotation = .Zero;
+			crazyTransform.Rotation = .Identity;
 
 			for(int x < 20)
 			for(int y < 20)
@@ -447,15 +448,30 @@ namespace Sandbox
 			
 			_context.SetRasterizerState(_rasterizerState);
 			
-			var crazyTransform = _world.GetComponent<TransformComponent>(evenCrazierParent);
-			crazyTransform.Rotation += .((float)gameTime.FrameTime.TotalSeconds / 2, 0, 0);
-
-		crazyTransform = _world.GetComponent<TransformComponent>(crazyParent);
+			//var crazyTransform = _world.GetComponent<TransformComponent>(evenCrazierParent);
 			//crazyTransform.Rotation += .((float)gameTime.FrameTime.TotalSeconds / 2, 0, 0);
-	
-			crazyTransform = _world.GetComponent<TransformComponent>(crazyParent);
-			crazyTransform.Rotation += .(0, (float)gameTime.FrameTime.TotalSeconds, 0);
-
+			
+			
+			var crazyTransform = _world.GetComponent<TransformComponent>(crazyParent);
+			if(Input.IsKeyPressed(Key.Six))
+			{
+				crazyTransform.RotationEuler += .((float)gameTime.FrameTime.TotalSeconds, 0, 0);
+			}
+			if(Input.IsKeyPressed(Key.Seven))
+			{
+				crazyTransform.RotationEuler += .(0, (float)gameTime.FrameTime.TotalSeconds, 0);
+			}
+			if(Input.IsKeyPressed(Key.Eight))
+			{
+				Vector3 vec = crazyTransform.RotationEuler;
+				vec += .(0, 0, (float)gameTime.FrameTime.TotalSeconds);
+				crazyTransform.RotationEuler = vec;
+			}
+			if(Input.IsKeyPressed(Key.Nine))
+			{
+				crazyTransform.RotationEuler = .(0, 0, 0);
+			}
+			
 			TransformSystem.Update(_world);
 			
 			for(var (entity, transform, mesh, meshRenderer) in _world.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
