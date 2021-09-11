@@ -464,9 +464,7 @@ namespace Sandbox
 							Renderer.DrawLine(start, end, .Black, transform.WorldTransform);
 						}
 
-						Renderer.DrawLine(.Zero, Vector3(0.1f, 0, 0), .Red,  transform.WorldTransform * mat);
-						Renderer.DrawLine(.Zero, Vector3(0, 0.1f, 0), .Lime, transform.WorldTransform * mat);
-						Renderer.DrawLine(.Zero, Vector3(0, 0, 0.1f), .Blue, transform.WorldTransform * mat);
+						DebugRenderer.DrawCoordinateCross(transform.WorldTransform * mat, 2.0f);
 
 						i++;
 					}

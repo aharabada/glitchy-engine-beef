@@ -7,6 +7,8 @@ namespace GlitchyEngine.Renderer
 	public static class DebugRenderer
 	{
 		private static GeometryBinding CoordinateCross;
+		
+		public static bool DrawEntityTransforms = true;
 
 		public static void Init(GraphicsContext context)
 		{
@@ -24,7 +26,27 @@ namespace GlitchyEngine.Renderer
 			CoordinateCross.ReleaseRef();
 		}
 
-		public static bool DrawEntityTransforms = true;
+		/**
+		 * Draws a coordinate cross for the given matrix.
+		 * @param transform The transform matrix.
+		 * @param length Can be used to set a fixed length for the rendered lines that represent the axes.
+		 * 		 Set to 0 if you want transform to affect the length of the lines.
+		 */
+		public static void DrawCoordinateCross(Matrix transform, float length = 0.0f)
+		{
+			var transform;
+
+			if(length != 0.0f)
+			{
+				transform.Columns[0]..Normalize() *= length;
+				transform.Columns[1]..Normalize() *= length;
+				transform.Columns[2]..Normalize() *= length;
+			}
+
+			Renderer.DrawLine(.Zero, .Right,   .Red,  transform);
+			Renderer.DrawLine(.Zero, .Up,      .Lime, transform);
+			Renderer.DrawLine(.Zero, .Forward, .Blue, transform);
+		}
 
 		public static void Render(EcsWorld world)
 		{
@@ -32,9 +54,7 @@ namespace GlitchyEngine.Renderer
 			{
 				for(var (entity, transform) in world.Enumerate<TransformComponent>())
 				{
-					Renderer.DrawLine(.Zero, Vector3(1f, 0, 0), .Red,  transform.WorldTransform);
-					Renderer.DrawLine(.Zero, Vector3(0, 1f, 0), .Lime, transform.WorldTransform);
-					Renderer.DrawLine(.Zero, Vector3(0, 0, 1f), .Blue, transform.WorldTransform);
+					DrawCoordinateCross(transform.WorldTransform);
 				}
 			}
 		}
