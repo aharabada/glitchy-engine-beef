@@ -6,6 +6,8 @@ namespace DirectX.Math
 {
 	extension Matrix
 	{
+		typealias Vec3 = GlitchyEngine.Math.Vector3;
+
 		public static Self RotationQuaternion(Quaternion rotation)
 		{
 			float xSq = 2 * rotation.X * rotation.X;
@@ -42,6 +44,36 @@ namespace DirectX.Math
 			result.V._44 = 1;
 			
 			return result;
+		}
+
+		public static void Decompose(Self matrix, out Vec3 position, out Quaternion rotation, out Vec3 scale)
+		{
+			var matrix;
+
+			// Translation -> get last column
+			position = matrix.Translation;
+			// Zero translation for next step
+			matrix.Translation = .Zero;
+
+			// TODO: this doesn't detect mirroring
+
+			// Extract scaling from matrix
+			scale.X = (*(Vec3*)&matrix.Columns[0]).Magnitude();
+			scale.Y = (*(Vec3*)&matrix.Columns[1]).Magnitude();
+			scale.Z = (*(Vec3*)&matrix.Columns[2]).Magnitude();
+
+			if(MathHelper.IsZero(scale.X) || MathHelper.IsZero(scale.Y) || MathHelper.IsZero(scale.Z))
+			{
+				rotation = .Identity;
+				return;
+			}
+
+			// Remove scale from matrix (normalize the columns)
+			matrix.Columns[0] /= scale.X;
+			matrix.Columns[1] /= scale.Y;
+			matrix.Columns[2] /= scale.Z;
+
+			rotation = Quaternion.FromMatrix(matrix);
 		}
 
 		/*[Test]
