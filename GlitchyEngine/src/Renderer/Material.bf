@@ -126,8 +126,7 @@ namespace GlitchyEngine.Renderer
 		public void SetVariable(String name, ColorRGB value) => SetVariable<ColorRGB>(name, value);
 		public void SetVariable(String name, ColorRGBA value) => SetVariable<ColorRGBA>(name, value);
 
-		
-		private void SetVariable(String name, Matrix3x3 value)
+		public void SetVariable(String name, Matrix3x3 value)
 		{
 			if(_variables.TryGetValue(name, let entry))
 			{
@@ -140,9 +139,42 @@ namespace GlitchyEngine.Renderer
 				Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
 			}
 		}
+		
+		public void SetVariable(String name, Matrix3x3[] values)
+		{
+			if(_variables.TryGetValue(name, let entry))
+			{
+				entry.Variable.EnsureTypeMatch<Matrix3x3>();
+
+				int count = Math.Min(values.Count, entry.Variable._elements);
+
+				for(int i < count)
+				{
+					(&RawPointer!<Matrix4x3>(entry.Offset))[i] = Matrix4x3(values[i]);
+				}
+			}
+			else
+			{
+				Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
+			}
+		}
 
 		public void SetVariable(String name, Matrix4x3 value) => SetVariable<Matrix4x3>(name, value);
 		public void SetVariable(String name, Matrix value) => SetVariable<Matrix>(name, value);
+
+		public void SetVariable(String name, Matrix[] values)
+		{
+			if(_variables.TryGetValue(name, let entry))
+			{
+				entry.Variable.EnsureTypeMatch<Matrix>();
+
+				Internal.MemCpy(&RawPointer!<Matrix>(entry.Offset), values.Ptr, Math.Min(values.Count, entry.Variable._elements));
+			}
+			else
+			{
+				Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
+			}
+		}
 
 		/**
 		 * Sets the raw data of the variable.
