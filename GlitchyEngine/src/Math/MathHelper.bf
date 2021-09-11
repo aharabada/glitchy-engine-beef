@@ -1,12 +1,21 @@
+using System;
+
 namespace GlitchyEngine.Math
 {
 	public static class MathHelper
 	{
-		public const float Pi = 3.14159265359f;
-		public const float TwoPi = 6.28318530718f;
-		public const float PiOverTwo = 1.57079632679f;
-		public const float PiOverThree = 1.0471975511965f;
-		public const float PiOverFour =  0.7853981633974f;
+		/// An optimal representation of π.
+		public const float Pi = 3.141592654f;
+		/// An optimal representation of 2*π.
+		public const float TwoPi = 6.283185307f;
+		/// An optimal representation of 1/π.
+		public const float OneOverPi = 0.318309886f;
+		/// An optimal representation of 2/π.
+		public const float OneOverTwoPi = 0.159154943f;
+		/// An optimal representation of π/2.
+		public const float PiOverTwo = 1.570796327f;
+		/// An optimal representation of π/4.
+		public const float PiOverFour = 0.785398163f;
 
 		/// Converts radians to degrees
 		const float RadToDeg = 180.0f / Pi;
@@ -60,6 +69,13 @@ namespace GlitchyEngine.Math
 		public static Vector4 ToRadians(Vector4 degrees)
 		{
 			return degrees * DegToRad;
+		}
+
+		const float epsilon = 0.0000001f;
+
+		public static bool IsZero(float value)
+		{
+			return Math.Abs(value) < epsilon;
 		}
 	}
 }
