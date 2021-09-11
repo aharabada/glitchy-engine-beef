@@ -168,7 +168,7 @@ namespace GlitchyEngine.Renderer
 			{
 				entry.Variable.EnsureTypeMatch<Matrix>();
 
-				Internal.MemCpy(&RawPointer!<Matrix>(entry.Offset), values.Ptr, Math.Min(values.Count, entry.Variable._elements));
+				Internal.MemCpy(&RawPointer!<Matrix>(entry.Offset), values.Ptr, sizeof(Matrix) * Math.Min(values.Count, entry.Variable._elements));
 			}
 			else
 			{
