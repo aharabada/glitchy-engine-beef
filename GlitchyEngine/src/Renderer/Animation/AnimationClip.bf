@@ -67,25 +67,24 @@ namespace GlitchyEngine.Renderer.Animation
 	class AnimationClip : RefCounted
 	{
 		private Skeleton _skeleton ~ _.ReleaseRef();
-		public float FramesPerSecond;
+		//public float FramesPerSecond;
 		public JointAnimation[] JointAnimations;
 		public bool IsLooping;
 		public float Duration;
 
-		public Skeleton Skeleton
-		{
-			get => _skeleton;
-			set
-			{
-				if(_skeleton == value)
-					return;
+		public Skeleton Skeleton => _skeleton;
 
-				_skeleton?.ReleaseRef();
-				_skeleton = value;
-				_skeleton?.AddRef();
-			}
+		[AllowAppend]
+		public this(Skeleton skeleton)
+		{
+			var jointAnimations = append JointAnimation[skeleton.Joints.Count];
+
+			Log.EngineLogger.AssertDebug(skeleton != null);
+
+			_skeleton = skeleton..AddRef();
+			JointAnimations = jointAnimations;
 		}
-		
+
 		// TODO: check
 		public ~this()
 		{
@@ -93,8 +92,6 @@ namespace GlitchyEngine.Renderer.Animation
 			{
 				jointAnimation.Dispose();
 			}
-
-			delete JointAnimations;
 		}
 	}
 	

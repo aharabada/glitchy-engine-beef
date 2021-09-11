@@ -84,6 +84,8 @@ namespace Sandbox
 		[AllowAppend]
 		public this() : base("Example")
 		{
+			Application.Get().Window.IsVSync = false;
+
 			_context = Application.Get().Window.Context..AddRef();
 
 			var effectLibrary = Application.Get().EffectLibrary;
@@ -217,9 +219,11 @@ namespace Sandbox
 
 		List<(Matrix Transform, GeometryBinding Model)> _modelTest = new .() ~ UnloadModelTest!();
 
-		Skeleton Skeleton ~ delete _;
-		AnimationClip Clip ~ delete _;
+		Skeleton Skeleton;
+		List<AnimationClip> Clips ~ delete _;
+
 		AnimationPlayer AnimationPlayer ~ delete _;
+		Material animationMat;
 
 		mixin UnloadModelTest()
 		{
@@ -234,18 +238,44 @@ namespace Sandbox
 		void TestLoadModel()
 		{
 			var testEffect = Application.Get().EffectLibrary.Get("testShader");
+			var materialTestMaterial = new Material(testEffect);
+			animationMat = materialTestMaterial;
+
+			Matrix[] matrices = scope Matrix[255];
+			Matrix3x3[] matrices2 = scope Matrix3x3[255];
+
+			for(int i < 255)
+			{
+				matrices[i] = .Identity;
+				matrices2[i] = .Identity;
+			}
+
+			materialTestMaterial.SetVariable("SkinningMatrices", matrices);
+			materialTestMaterial.SetVariable("InvTransSkinningMatrices", matrices2);
+
+			materialTestMaterial.SetVariable("BaseColor", Color.White);
+			materialTestMaterial.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
 
 			//ModelLoader.LoadModel("content\\Models\\Test\\axisTest.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
 			//ModelLoader.LoadModel("content\\Models\\RiggedSimple\\RiggedSimple.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox_2.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox_2.glb", _context, testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
 			//ModelLoader.LoadModel("content\\Models\\DancingCylinder\\DancingCylinder.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\Figure\\Figure.gltf", _context, testEffect, _modelTest, out Skeleton, out Clip);
-			ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
+			ModelLoader.LoadModel("content\\Models\\Figure\\Figure.gltf", _context, testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
+			//ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", _context, testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
 
+			materialTestMaterial.ReleaseRef();
 			testEffect.ReleaseRef();
 
-			if(Skeleton != null && Clip != null)
-				AnimationPlayer = new AnimationPlayer(Skeleton, Clip);
+			if(Clips != null && Clips.Count > 0)
+				AnimationPlayer = new AnimationPlayer(Skeleton, Clips.Back);
+
+			for(var (entity, transform, mesh, meshRenderer) in _world.Enumerate<TransformComponent, MeshComponent, SkinnedMeshRendererComponent>())
+			{
+				var animation = _world.AssignComponent<AnimationComponent>(entity);
+
+				animation.AnimationClip = Clips[0];
+			}
 
 			/*
 			CGLTF.Options options = .();
@@ -282,7 +312,9 @@ namespace Sandbox
 			_world.Register<ParentComponent>();
 			_world.Register<MeshComponent>();
 			_world.Register<MeshRendererComponent>();
+			_world.Register<SkinnedMeshRendererComponent>();
 			_world.Register<CameraComponent>();
+			_world.Register<AnimationComponent>();
 			
 			var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
 
@@ -292,7 +324,7 @@ namespace Sandbox
 			testMaterial2.SetVariable("BaseColor", _squareColor1);
 
 			basicEffect.ReleaseRef();
-
+			/*
 			Entity[20][20] entities;
 
 			int i = 0;
@@ -343,12 +375,12 @@ namespace Sandbox
 				var parent = _world.AssignComponent<ParentComponent>(entities[x][y]);
 				parent.Entity = crazyParent;
 			}
+			*/
 		}
 
 		float f = 0.0f;
 
 		bool playAnimation = false;
-		bool drawModel = false;
 
 		public override void Update(GameTime gameTime)
 		{
@@ -371,14 +403,26 @@ namespace Sandbox
 			_opaqueBlendState.Bind();
 
 			var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
+
+			_context.SetRasterizerState(_rasterizerState);
 			
-			// Model test
+			TransformSystem.Update(_world);
+			
+			for(var (entity, transform, mesh, meshRenderer) in _world.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
 			{
-				//AnimationPlayer.CurrentClip.Samples[0].JointPose[1].Rotation = .(1, 0, 0, 1)..Normalize();
+				Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
+			}
+			
+			for(var (entity, transform, mesh, meshRenderer, animation) in _world.Enumerate<TransformComponent, MeshComponent, SkinnedMeshRendererComponent, AnimationComponent>())
+			{
+				var material = meshRenderer.Material;
 
-				Matrix scaling = .Scaling(1f, 1.0f, -1.0f);
+				//var testEffect = Application.Get().EffectLibrary.Get("testShader");
 
-				var testEffect = Application.Get().EffectLibrary.Get("testShader");
+				if(AnimationPlayer == null)
+				{
+					AnimationPlayer = new AnimationPlayer(meshRenderer.Skeleton, Clips[0]);
+				}
 
 				if(AnimationPlayer != null)
 				{
@@ -417,68 +461,27 @@ namespace Sandbox
 
 							Vector3 end = parentMatrix.Translation;
 
-							Renderer.DrawLine(start, end, .Black, scaling);
+							Renderer.DrawLine(start, end, .Black, transform.WorldTransform);
 						}
 
-						Renderer.DrawLine(.Zero, Vector3(0.1f, 0, 0), .Red,  scaling * mat);
-						Renderer.DrawLine(.Zero, Vector3(0, 0.1f, 0), .Lime, scaling * mat);
-						Renderer.DrawLine(.Zero, Vector3(0, 0, 0.1f), .Blue, scaling * mat);
+						Renderer.DrawLine(.Zero, Vector3(0.1f, 0, 0), .Red,  transform.WorldTransform * mat);
+						Renderer.DrawLine(.Zero, Vector3(0, 0.1f, 0), .Lime, transform.WorldTransform * mat);
+						Renderer.DrawLine(.Zero, Vector3(0, 0, 0.1f), .Blue, transform.WorldTransform * mat);
 
 						i++;
 					}
-	
-					testEffect.Variables["SkinningMatrices"].SetData(AnimationPlayer.SkinningMatricies);
-					testEffect.Variables["InvTransSkinningMatrices"].SetData(AnimationPlayer.InvTransSkinningMatricies);
-	
-					testEffect.Variables["BaseColor"].SetData(Color.White);
-					testEffect.Variables["LightDir"].SetData(Vector3(1, 1, -0.5f).Normalized());
-	
+
+					material.SetVariable("SkinningMatrices", AnimationPlayer.SkinningMatricies);
+					material.SetVariable("InvTransSkinningMatrices", AnimationPlayer.InvTransSkinningMatricies);
+
+					// TODO: non engine
+					material.SetVariable("BaseColor", Color.White);
+					material.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
 				}
 
-				if(drawModel)
-				{
-					for(var entry in _modelTest)
-					{
-						Renderer.Submit(entry.Model, testEffect, .Identity * scaling);//entry.Transform
-					}
-				}
-
-				testEffect.ReleaseRef();
+				Renderer.Submit(mesh.Mesh, material, transform.WorldTransform);
 			}
 			
-			_context.SetRasterizerState(_rasterizerState);
-			
-			//var crazyTransform = _world.GetComponent<TransformComponent>(evenCrazierParent);
-			//crazyTransform.Rotation += .((float)gameTime.FrameTime.TotalSeconds / 2, 0, 0);
-			
-			
-			var crazyTransform = _world.GetComponent<TransformComponent>(crazyParent);
-			if(Input.IsKeyPressed(Key.Six))
-			{
-				crazyTransform.RotationEuler += .((float)gameTime.FrameTime.TotalSeconds, 0, 0);
-			}
-			if(Input.IsKeyPressed(Key.Seven))
-			{
-				crazyTransform.RotationEuler += .(0, (float)gameTime.FrameTime.TotalSeconds, 0);
-			}
-			if(Input.IsKeyPressed(Key.Eight))
-			{
-				Vector3 vec = crazyTransform.RotationEuler;
-				vec += .(0, 0, (float)gameTime.FrameTime.TotalSeconds);
-				crazyTransform.RotationEuler = vec;
-			}
-			if(Input.IsKeyPressed(Key.Nine))
-			{
-				crazyTransform.RotationEuler = .(0, 0, 0);
-			}
-			
-			TransformSystem.Update(_world);
-			
-			for(var (entity, transform, mesh, meshRenderer) in _world.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
-			{
-				Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
-			}
-
 			basicEffect.Variables["BaseColor"].SetData(_squareColor1);
 			
 			_checkerMaterial.SetVariable("BaseColor", Color.White);
@@ -517,17 +520,15 @@ namespace Sandbox
 
 			if(AnimationPlayer != null)
 			{
-				ImGui.DragFloat("Timestamp", &AnimationPlayer.TimeStamp, 0.01f, -Clip.Duration, Clip.Duration);
+				ImGui.DragFloat("Timestamp", &AnimationPlayer.TimeStamp, 0.01f, -AnimationPlayer.CurrentClip.Duration, AnimationPlayer.CurrentClip.Duration);
 	
 				while(AnimationPlayer.TimeStamp < 0)
 				{
-					AnimationPlayer.TimeStamp += Clip.Duration;
+					AnimationPlayer.TimeStamp += AnimationPlayer.CurrentClip.Duration;
 				}
 	
 				ImGui.Checkbox("Play", &playAnimation);
 			}
-
-			ImGui.Checkbox("Draw Model", &drawModel);
 
 			ImGui.End();
 
