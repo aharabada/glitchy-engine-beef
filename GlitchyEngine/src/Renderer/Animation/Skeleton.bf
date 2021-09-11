@@ -1,8 +1,9 @@
+using System;
 using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer.Animation
 {
-	public class Skeleton
+	public class Skeleton : RefCounted
 	{
 		public Joint[] Joints ~ delete _;
 
@@ -25,7 +26,7 @@ namespace GlitchyEngine.Renderer.Animation
 
 	public class SkeletonPose
 	{
-		public Skeleton Skeleton;
+		public Skeleton Skeleton ~ _.ReleaseRef();
 		public JointPose[] LocalPose ~ delete _;
 		public Matrix[] GlobalPose ~ delete _;
 

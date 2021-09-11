@@ -5,8 +5,8 @@ namespace GlitchyEngine.Renderer.Animation
 {
 	class AnimationPlayer
 	{
-		public Skeleton Skeleton;
-		public AnimationClip CurrentClip;
+		public Skeleton Skeleton ~ _.ReleaseRef();
+		public AnimationClip CurrentClip ~ _.ReleaseRef();
 		public float TimeStamp;
 
 		public SkeletonPose Pose ~ delete _;
@@ -64,9 +64,9 @@ namespace GlitchyEngine.Renderer.Animation
 		}
 	}
 
-	class AnimationClip
+	class AnimationClip : RefCounted
 	{
-		public Skeleton Skeleton;
+		public Skeleton Skeleton ~ _.ReleaseRef();
 		public float FramesPerSecond;
 		public JointAnimation[] JointAnimations;
 		public bool IsLooping;
