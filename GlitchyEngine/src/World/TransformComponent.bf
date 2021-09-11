@@ -9,7 +9,7 @@ namespace GlitchyEngine.World
 		Vector3 _scale = .One;
 
 		Matrix _localTransform = .Identity;
-		public bool IsDirty = false;;
+		public bool IsDirty = false;
 
 		public Matrix WorldTransform = .Identity;
 
@@ -19,7 +19,16 @@ namespace GlitchyEngine.World
 		public Matrix LocalTransform
 		{
 			get => _localTransform;
-			set mut => _localTransform = value;
+			set mut
+			{
+				if(_localTransform == value)
+					return;
+
+				_localTransform = value;
+
+				Matrix.Decompose(_localTransform, out _position, out _rotation, out _scale);
+				IsDirty = true;
+			}
 		}
 
 		public Vector3 Position
