@@ -26,15 +26,17 @@ namespace GlitchyEngine.Renderer.Animation
 
 	public class SkeletonPose
 	{
-		public Skeleton Skeleton ~ _.ReleaseRef();
+		private Skeleton _skeleton ~ _.ReleaseRef();
 		public JointPose[] LocalPose ~ delete _;
 		public Matrix[] GlobalPose ~ delete _;
 
+		public Skeleton Skeleton => _skeleton;
+
 		public this(Skeleton skeleton)
 		{
-			Skeleton = skeleton;
+			_skeleton = skeleton..AddRef();
 
-			int jointCount = Skeleton.Joints.Count;
+			int jointCount = _skeleton.Joints.Count;
 
 			LocalPose = new JointPose[jointCount];
 			GlobalPose = new Matrix[jointCount];

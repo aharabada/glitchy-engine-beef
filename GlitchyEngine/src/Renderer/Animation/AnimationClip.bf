@@ -66,14 +66,27 @@ namespace GlitchyEngine.Renderer.Animation
 
 	class AnimationClip : RefCounted
 	{
-		public Skeleton Skeleton ~ _.ReleaseRef();
+		private Skeleton _skeleton ~ _.ReleaseRef();
 		public float FramesPerSecond;
 		public JointAnimation[] JointAnimations;
 		public bool IsLooping;
 		public float Duration;
 
-		// TODO: check
+		public Skeleton Skeleton
+		{
+			get => _skeleton;
+			set
+			{
+				if(_skeleton == value)
+					return;
 
+				_skeleton?.ReleaseRef();
+				_skeleton = value;
+				_skeleton?.AddRef();
+			}
+		}
+		
+		// TODO: check
 		public ~this()
 		{
 			for(var jointAnimation in JointAnimations)
@@ -87,8 +100,18 @@ namespace GlitchyEngine.Renderer.Animation
 	
 	public enum InterpolationMode
 	{
+		/**
+		 * No keyframe interpolation.
+		 * The keyframe with the greates timestamp that is smaller than the current time will be used.
+		 */
 		Step,
+		/**
+		 * Linear interpolation between the two keyframes that are closest to the current time.
+		 */
 		Linear,
+		/**
+		 * Cubic spline interpolation between the two keyframes that are closest to the current time.
+		 */
 		CubicSpline
 	}
 
