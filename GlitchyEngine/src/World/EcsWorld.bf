@@ -156,11 +156,8 @@ namespace GlitchyEngine.World
 			ComponentPoolEntry entry;
 			if(!_componentPools.TryGetValue(typeof(T), out entry))
 			{
-				Log.EngineLogger.Error($"Tried to assign unregistered component type {typeof(T)}");
+				Log.EngineLogger.AssertDebug(false, scope $"Tried to assign unregistered component type {typeof(T)}");
 				return null;
-				//entry = ((uint32)_componentPools.Count, new ComponentPool(sizeof(T), MaxEntities));
-
-				//_componentPools.Add(typeof(T), entry);
 			}
 			
 			// TODO: maybe assert?
