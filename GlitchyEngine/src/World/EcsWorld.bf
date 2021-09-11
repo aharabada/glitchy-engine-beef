@@ -257,6 +257,12 @@ namespace GlitchyEngine.World
 			return WorldEnumerator<TComponent0, TComponent1, TComponent2>(this);
 		}
 
+		public WorldEnumerator<TComponent0, TComponent1, TComponent2, TComponent3> Enumerate<TComponent0, TComponent1, TComponent2, TComponent3>()
+			where TComponent0 : struct where TComponent1 : struct where TComponent2 : struct where TComponent3 : struct
+		{
+			return WorldEnumerator<TComponent0, TComponent1, TComponent2, TComponent3>(this);
+		}
+
 		public static void Test()
 		{
 			EcsWorld world = new .();

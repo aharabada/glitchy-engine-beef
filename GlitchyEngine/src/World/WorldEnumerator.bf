@@ -134,4 +134,37 @@ namespace GlitchyEngine.World
 			return .Ok((entity.Value, component0, component1, component2));
 		}
 	}
+
+	public struct WorldEnumerator<TComponent0, TComponent1, TComponent2, TComponent3> : WorldEnumerator,
+		IEnumerator<(Entity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2, TComponent3* Component3)>
+		where TComponent0 : struct where TComponent1 : struct where TComponent2 : struct where TComponent3 : struct
+	{
+		internal EcsWorld.ComponentPoolEntry* _componentPool0;
+		internal EcsWorld.ComponentPoolEntry* _componentPool1;
+		internal EcsWorld.ComponentPoolEntry* _componentPool2;
+		internal EcsWorld.ComponentPoolEntry* _componentPool3;
+
+		public this(EcsWorld world) : base(world, scope Type[](typeof(TComponent0), typeof(TComponent1), typeof(TComponent2), typeof(TComponent3)))
+		{
+			_componentPool0 = &world.GetComponentPool<TComponent0>();
+			_componentPool1 = &world.GetComponentPool<TComponent1>();
+			_componentPool2 = &world.GetComponentPool<TComponent2>();
+			_componentPool3 = &world.GetComponentPool<TComponent3>();
+		}
+
+		public new Result<(Entity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2, TComponent3* Component3)> GetNext() mut
+		{
+			Result<Entity> entity = base.GetNext();
+
+			if(entity case .Err)
+				return .Err;
+			
+			TComponent0* component0 = (.)_componentPool0.Pool.Get(entity.Value.Index);
+			TComponent1* component1 = (.)_componentPool1.Pool.Get(entity.Value.Index);
+			TComponent2* component2 = (.)_componentPool2.Pool.Get(entity.Value.Index);
+			TComponent3* component3 = (.)_componentPool3.Pool.Get(entity.Value.Index);
+
+			return .Ok((entity.Value, component0, component1, component2, component3));
+		}
+	}
 }
