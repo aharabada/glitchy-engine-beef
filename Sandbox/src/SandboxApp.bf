@@ -491,6 +491,8 @@ namespace Sandbox
 
 			Renderer.Submit(_quadGeometryBinding, _logoMaterial, .Translation(0, 0, -1) * .Scaling(2f));
 
+			DebugRenderer.Render(_world);
+
 			Renderer.EndScene();
 
 			basicEffect.ReleaseRef();
