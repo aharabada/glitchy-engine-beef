@@ -29,6 +29,9 @@ namespace GlitchyEngine.Renderer.Animation
 		private Skeleton _skeleton ~ _.ReleaseRef();
 		public JointPose[] LocalPose ~ delete _;
 		public Matrix[] GlobalPose ~ delete _;
+		
+		public Matrix[] SkinningMatricies ~ delete _;
+		public Matrix3x3[] InvTransSkinningMatricies ~ delete _;
 
 		public Skeleton Skeleton => _skeleton;
 
@@ -40,6 +43,9 @@ namespace GlitchyEngine.Renderer.Animation
 
 			LocalPose = new JointPose[jointCount];
 			GlobalPose = new Matrix[jointCount];
+
+			SkinningMatricies = new Matrix[jointCount];
+			InvTransSkinningMatricies = new Matrix3x3[jointCount];
 		}
 	}
 }

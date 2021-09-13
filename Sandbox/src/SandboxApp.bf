@@ -222,7 +222,6 @@ namespace Sandbox
 		Skeleton Skeleton;
 		List<AnimationClip> Clips ~ delete _;
 
-		AnimationPlayer AnimationPlayer ~ delete _;
 		Material animationMat;
 
 		mixin UnloadModelTest()
@@ -267,14 +266,14 @@ namespace Sandbox
 			materialTestMaterial.ReleaseRef();
 			testEffect.ReleaseRef();
 
-			if(Clips != null && Clips.Count > 0)
-				AnimationPlayer = new AnimationPlayer(Skeleton, Clips.Back);
-
 			for(var (entity, transform, mesh, meshRenderer) in _world.Enumerate<TransformComponent, MeshComponent, SkinnedMeshRendererComponent>())
 			{
 				var animation = _world.AssignComponent<AnimationComponent>(entity);
 
 				animation.AnimationClip = Clips[0];
+				animation.TimeScale = 1.0f;
+				animation.IsPlaying = true;
+				animation.[Friend]_pose = new SkeletonPose(meshRenderer.Skeleton);
 			}
 
 			/*
@@ -417,65 +416,92 @@ namespace Sandbox
 			{
 				var material = meshRenderer.Material;
 
-				//var testEffect = Application.Get().EffectLibrary.Get("testShader");
+				var timeIndex = ref animation.TimeIndex;
+				var currentClip = animation.AnimationClip;
+				var pose = animation.Pose;
 
-				if(AnimationPlayer == null)
+				// Only advance time index if animation is playing
+				if(animation.IsPlaying)
 				{
-					AnimationPlayer = new AnimationPlayer(meshRenderer.Skeleton, Clips[0]);
+					timeIndex += (float)gameTime.FrameTime.TotalSeconds * animation.TimeScale;
+					
+					if(currentClip.IsLooping && currentClip.Duration != 0)
+					{
+						timeIndex %= currentClip.Duration;
+
+						// modulo can result in negative numbers
+						if(timeIndex < 0)
+							timeIndex += currentClip.Duration;
+					}
 				}
 
-				if(AnimationPlayer != null)
+				// Update joints
+				for(int i < Skeleton.Joints.Count)
 				{
-					if(playAnimation)
-						AnimationPlayer.Update(gameTime);
+					ref JointPose localPose = ref pose.LocalPose[i];
+
+					localPose = currentClip.JointAnimations[i].GetCurrentPose(timeIndex);
+
+					Matrix jointToParent =
+						Matrix.Translation(localPose.Translation) *
+						Matrix.RotationQuaternion(localPose.Rotation) *
+						Matrix.Scaling(localPose.Scale);
+
+					uint8 parentIndex = Skeleton.Joints[i].ParentID;
+					
+					ref Matrix globalPose = ref pose.GlobalPose[i];
+
+					if(parentIndex == uint8.MaxValue)
+					{
+						globalPose = jointToParent;
+					}
 					else
 					{
-						GameTime gt = new GameTime();
-						AnimationPlayer.Update(gt);
-						delete gt;
+						globalPose = pose.GlobalPose[parentIndex] * jointToParent;
 					}
 
-					//_context.SetRasterizerState(_rasterizerStateClockWise);
-
-					int i = 0;
-					for(var globalPose in AnimationPlayer.Pose.GlobalPose)
-					{
-						Joint currentJoint = AnimationPlayer.Skeleton.Joints[i];
-
-						Matrix bindPose = currentJoint.InverseBindPose.Invert();
-
-						// Draw skeleton
-						Matrix mat = AnimationPlayer.SkinningMatricies[i] * bindPose;
-
-						uint8 parentId = currentJoint.ParentID;
-
-						if(parentId != uint8.MaxValue)
-						{
-							Vector3 start = mat.Translation;
-
-							Joint parent = AnimationPlayer.Skeleton.Joints[parentId];
-
-							Matrix parentBindPose = parent.InverseBindPose.Invert();
-
-							Matrix parentMatrix = AnimationPlayer.SkinningMatricies[parentId] * parentBindPose;
-
-							Vector3 end = parentMatrix.Translation;
-
-							Renderer.DrawLine(start, end, .Black, transform.WorldTransform);
-						}
-
-						DebugRenderer.DrawCoordinateCross(transform.WorldTransform * mat, 2.0f);
-
-						i++;
-					}
-
-					material.SetVariable("SkinningMatrices", AnimationPlayer.SkinningMatricies);
-					material.SetVariable("InvTransSkinningMatrices", AnimationPlayer.InvTransSkinningMatricies);
-
-					// TODO: non engine
-					material.SetVariable("BaseColor", Color.White);
-					material.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
+					pose.SkinningMatricies[i] = globalPose * Skeleton.Joints[i].InverseBindPose;
+					pose.InvTransSkinningMatricies[i] = ((Matrix3x3)pose.SkinningMatricies[i]).Inverse().Transpose();
 				}
+				
+				int i = 0;
+				for(var globalPose in pose.GlobalPose)
+				{
+					Joint currentJoint = meshRenderer.Skeleton.Joints[i];
+
+					Matrix bindPose = currentJoint.InverseBindPose.Invert();
+
+					// Draw skeleton
+					Matrix mat = pose.SkinningMatricies[i] * bindPose;
+
+					uint8 parentId = currentJoint.ParentID;
+
+					if(parentId != uint8.MaxValue)
+					{
+						Vector3 start = mat.Translation;
+
+						Joint parent = meshRenderer.Skeleton.Joints[parentId];
+
+						Matrix parentBindPose = parent.InverseBindPose.Invert();
+
+						Matrix parentMatrix = pose.SkinningMatricies[parentId] * parentBindPose;
+
+						Vector3 end = parentMatrix.Translation;
+
+						Renderer.DrawLine(start, end, .Black, transform.WorldTransform);
+					}
+
+					DebugRenderer.DrawCoordinateCross(transform.WorldTransform * mat, 0.5f);
+
+					i++;
+				}
+				
+				material.SetVariable("SkinningMatrices", pose.SkinningMatricies);
+				material.SetVariable("InvTransSkinningMatrices", pose.InvTransSkinningMatricies);
+
+				// non engine
+				material.SetVariable("BaseColor", Color.White);
+				material.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
 
 				Renderer.Submit(mesh.Mesh, material, transform.WorldTransform);
 			}
@@ -515,7 +541,7 @@ namespace Sandbox
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
 			ImGui.Begin("Animation");
-
+			/*
 			if(AnimationPlayer != null)
 			{
 				ImGui.DragFloat("Timestamp", &AnimationPlayer.TimeStamp, 0.01f, -AnimationPlayer.CurrentClip.Duration, AnimationPlayer.CurrentClip.Duration);
@@ -527,7 +553,7 @@ namespace Sandbox
 	
 				ImGui.Checkbox("Play", &playAnimation);
 			}
-
+			*/
 			ImGui.End();
 
 			ImGui.Begin("Test");

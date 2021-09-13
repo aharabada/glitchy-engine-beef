@@ -6,6 +6,8 @@ namespace GlitchyEngine.World
 	{
 		private AnimationClip _animationClip;
 
+		private SkeletonPose _pose;
+
 		public AnimationClip AnimationClip
 		{
 			get => _animationClip;
@@ -20,11 +22,20 @@ namespace GlitchyEngine.World
 			}
 		}
 
+		public float TimeIndex;
+
+		public float TimeScale;
+
+		public bool IsPlaying;
+
+		public SkeletonPose Pose => _pose;
+
 		public static void DisposeComponent(void* component)
 		{
 			Self* animationComponent = (Self*)component;
 
 			animationComponent._animationClip?.ReleaseRef();
+			delete animationComponent._pose;
 		}
 	}
 }
