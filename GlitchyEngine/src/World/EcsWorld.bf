@@ -160,9 +160,9 @@ namespace GlitchyEngine.World
 				return null;
 			}
 			
-			// TODO: maybe assert?
-			if(listEntity.ComponentMask[entry.Id])
-				return null;
+			// TODO: is it a problem to assign a component again?
+			//if(listEntity.ComponentMask[entry.Id])
+			//	return null;
 			
 			listEntity.ComponentMask[entry.Id] = true;
 			
