@@ -42,6 +42,11 @@ namespace GlitchyEngine.World
 			while(_currentEntry < _endEntry)
 			{
 				EcsWorld.BitmaskEntry* entry = _currentEntry++;
+
+				// Skip deleted entities
+				if(entry.ID.Index == Entity.InvalidEntity.Index)
+					continue;
+
 				// Check whether or not mask matches
 				if(entry.ComponentMask.MaskMatch(_bitMask))
 					return entry.ID;
