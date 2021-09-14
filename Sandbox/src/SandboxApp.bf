@@ -307,6 +307,7 @@ namespace Sandbox
 
 		void InitEcs()
 		{
+			_world.Register<DebugNameComponent>();
 			_world.Register<TransformComponent>();
 			_world.Register<ParentComponent>();
 			_world.Register<MeshComponent>();

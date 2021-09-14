@@ -71,6 +71,11 @@ namespace GlitchyEngine.Content
 		{
 			Entity entity = world.NewEntity();
 
+#if DEBUG
+			var nameComponent = world.AssignComponent<DebugNameComponent>(entity);
+			nameComponent.SetName(StringView(node.Name));
+#endif
+
 			if(parentEntity.HasValue)
 			{
 				var childParent = world.AssignComponent<ParentComponent>(entity);
@@ -101,6 +106,7 @@ namespace GlitchyEngine.Content
 					childTransform.Scale = .(1, 1, 1);
 			}
 
+			// Invert the Z-Axis of the root Node to convert the coordinate system from right-handed to left-handed
 			if(parentEntity == null)
 				childTransform.Scale *= .(1, 1, -1);
 
