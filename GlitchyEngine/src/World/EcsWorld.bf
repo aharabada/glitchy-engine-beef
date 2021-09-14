@@ -21,7 +21,7 @@ namespace GlitchyEngine.World
 		internal Dictionary<Type, ComponentPoolEntry> _componentPools = new .();
 
 		/// A list containing all pools whose components need to be disposed before removal.
-		List<ComponentPoolEntry*> _disposingPools = new .() ~ delete _;
+		List<Type> _disposingPools = new .() ~ delete _;
 		
 		public ~this()
 		{
@@ -62,10 +62,8 @@ namespace GlitchyEngine.World
 
 			_componentPools.Add(typeof(T), (id, componentPool, disposeFunction));
 
-			// We have to get the component from the dictionary so we get the reference
-			var poolInDictionary = ref _componentPools[typeof(T)];
 			// Add to list of components that need disposing
-			_disposingPools.Add(&poolInDictionary);
+			_disposingPools.Add(typeof(T));
 		}
 
 		/** @brief Returns the component pool for the given component type.
@@ -127,15 +125,17 @@ namespace GlitchyEngine.World
 		{
 			var componentMask = listEntity.ComponentMask;
 
-			for(let poolEntry in _disposingPools)
+			for(let poolType in _disposingPools)
 			{
+				var pool = _componentPools[poolType];
+
 				// Check if the entity has this component type
-				if(componentMask[poolEntry.Id])
+				if(componentMask[pool.Id])
 				{
 					// Get pointer to component
-					void* component = poolEntry.Pool.Get(listEntity.ID.Index);
+					void* component = pool.Pool.Get(listEntity.ID.Index);
 					// Dispose component
-					poolEntry.DisposeFunction(component);
+					pool.DisposeFunction(component);
 				}
 			}
 		}
