@@ -1,3 +1,5 @@
+using System;
+
 namespace GlitchyEngine.World
 {
 	public static class TransformSystem
@@ -28,7 +30,8 @@ namespace GlitchyEngine.World
 
 			if(transform.IsDirty)
 			{
-				transform.LocalTransform = .Translation(transform.Position) * .RotationQuaternion(transform.Rotation) * .Scaling(transform.Scale);
+				//transform.LocalTransform = .Translation(transform.Position) * .RotationQuaternion(transform.Rotation) * .Scaling(transform.Scale);
+				transform.[Friend]_localTransform = .Translation(transform.Position) * .RotationQuaternion(transform.Rotation) * .Scaling(transform.Scale);
 
 				transform.IsDirty = false;
 
