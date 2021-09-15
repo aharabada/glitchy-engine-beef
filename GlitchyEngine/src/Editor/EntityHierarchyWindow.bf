@@ -14,7 +14,7 @@ namespace GlitchyEngine.Editor
 		private Editor _editor;
 		
 		/// Buffer for the entity search string.
-		private char8[] _entitySearchChars = new char8[64] ~ delete _;
+		private char8[64] _entitySearchChars;
 
 		private bool _show = true;
 
@@ -33,6 +33,9 @@ namespace GlitchyEngine.Editor
 		
 		public void Show()
 		{
+			if(!_show)
+				return;
+
 			if(!ImGui.Begin("Entity Hierarchy", null, .MenuBar))
 			{
 				ImGui.End();
@@ -112,7 +115,7 @@ namespace GlitchyEngine.Editor
 
 				ImGui.Text("Search:");
 
-				ImGui.InputText(String.Empty, _entitySearchChars.Ptr, (.)_entitySearchChars.Count);
+				ImGui.InputText(String.Empty, &_entitySearchChars, (.)_entitySearchChars.Count);
 
 				ImGui.EndMenuBar();
 			}
@@ -130,7 +133,7 @@ namespace GlitchyEngine.Editor
 			}
 			else
 			{
-				name = scope:: $"Entity {((uint64)tree.Value.[Friend]Index)}";
+				name = scope:: $"Entity {(tree.Value.[Friend]Index)}";
 			}
 
 			ImGui.TreeNodeFlags flags = .OpenOnArrow;
@@ -231,7 +234,7 @@ namespace GlitchyEngine.Editor
 
 		private void ShowEntityHierarchy()
 		{
-			StringView searchString = StringView(_entitySearchChars.Ptr);
+			StringView searchString = StringView(&_entitySearchChars);
 
 			if(searchString.Length == 0)
 			{

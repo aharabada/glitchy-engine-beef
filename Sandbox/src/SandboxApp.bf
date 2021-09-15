@@ -545,23 +545,7 @@ namespace Sandbox
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
 			_editor.Update();
-
-			ImGui.Begin("Animation");
 			/*
-			if(AnimationPlayer != null)
-			{
-				ImGui.DragFloat("Timestamp", &AnimationPlayer.TimeStamp, 0.01f, -AnimationPlayer.CurrentClip.Duration, AnimationPlayer.CurrentClip.Duration);
-	
-				while(AnimationPlayer.TimeStamp < 0)
-				{
-					AnimationPlayer.TimeStamp += AnimationPlayer.CurrentClip.Duration;
-				}
-	
-				ImGui.Checkbox("Play", &playAnimation);
-			}
-			*/
-			ImGui.End();
-
 			ImGui.Begin("Test");
 
 			var v = ImGui.ColorEdit3("Square Color", ref _squareColor0);
@@ -573,7 +557,7 @@ namespace Sandbox
 			}
 
 			ImGui.End();
-
+			*/
 			return false;
 		}
 
