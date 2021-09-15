@@ -11,6 +11,7 @@ namespace GlitchyEngine.Editor
 		private EcsWorld _world;
 		
 		private EntityHierarchyWindow _entityHierarchyWindow = new .(this) ~ delete _;
+		private ComponentEditWindow _componentEditWindow = new .(this) ~ delete _;
 
 		private List<Entity> _selectedEntities = new .() ~ delete _;
 
@@ -27,6 +28,7 @@ namespace GlitchyEngine.Editor
 		public void Update()
 		{
 			_entityHierarchyWindow.Show();
+			_componentEditWindow.Show();
 		}
 
 		/// Creates a new entity with a transform component.
