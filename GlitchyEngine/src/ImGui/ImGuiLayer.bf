@@ -17,7 +17,7 @@ namespace GlitchyEngine.ImGui
 			ImGui.CreateContext();
 			ImGui.StyleColorsDark();
 
-			ref ImGui.IO io = ref ImGui.GetIO();
+			ImGui.IO* io = ImGui.GetIO();
 			io.ConfigFlags |= .NavEnableKeyboard;
 			io.ConfigFlags |= .DockingEnable;
 			io.ConfigFlags |= .ViewportsEnable;
@@ -27,7 +27,7 @@ namespace GlitchyEngine.ImGui
 			//io.ConfigFlags |= .DpiEnableScaleViewports;
 
 			// When viewports are enabled we tweak WindowRounding/WindowBg so platform windows can look identical to regular ones.
-			ref ImGui.Style style = ref ImGui.GetStyle();
+			ImGui.Style* style = ImGui.GetStyle();
 			if(io.ConfigFlags.HasFlag(.ViewportsEnable))
 			{
 				style.WindowRounding = 0.0f;
@@ -36,13 +36,12 @@ namespace GlitchyEngine.ImGui
 
 #if GE_WINDOWS
 			// Todo: temporary, needs to be platform independent
-			ImGuiImplWin32.Init((Windows.HWnd)(int)Application.Get().Window.NativeWindow);
+			ImGuiImplWin32.Init((void*)(uint)(Windows.HWnd)(int)Application.Get().Window.NativeWindow);
 
 			var context = Application.Get().Window.Context;
 
 			ImGuiImplDX11.Init(context.[Friend]nativeDevice, context.[Friend]nativeContext);
 #endif
-			
 		}
 
 		public override void OnDetach()
@@ -200,13 +199,13 @@ namespace GlitchyEngine.ImGui
 
 		public void End()
 		{
-			ref ImGui.IO io = ref ImGui.GetIO();
+			ImGui.IO* io = ImGui.GetIO();
 
 			let window = Application.Get().Window;
 			io.DisplaySize = .(window.Width, window.Height);
 
 			ImGui.Render();
-			ImGuiImplDX11.RenderDrawData(ref ImGui.GetDrawData());
+			ImGuiImplDX11.RenderDrawData(ImGui.GetDrawData());
 
 			if(io.ConfigFlags.HasFlag(.ViewportsEnable))
 			{
