@@ -271,7 +271,7 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.BeginDragDropTarget())
 					{
-						ImGui.Payload* payload = &ImGui.AcceptDragDropPayload("DND_Entity");
+						ImGui.Payload* payload = ImGui.AcceptDragDropPayload("DND_Entity");
 
 						if(payload != null)
 						{
