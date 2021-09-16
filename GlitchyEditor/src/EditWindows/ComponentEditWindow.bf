@@ -3,7 +3,7 @@ using GlitchyEngine.World;
 using System;
 using GlitchyEngine.Math;
 
-namespace GlitchyEngine.Editor
+namespace GlitchyEditor.EditWindows
 {
 	class ComponentEditWindow
 	{

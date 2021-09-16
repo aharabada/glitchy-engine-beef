@@ -3,10 +3,11 @@ using GlitchyEngine.World;
 using ImGui;
 using System;
 using System.Collections;
+using GlitchyEngine;
 
-namespace GlitchyEngine.Editor
+namespace GlitchyEditor.EditWindows
 {
-	using internal GlitchyEngine.Editor;
+	using internal GlitchyEditor;
 
 	/// A window for viewing and editing the scene hierarchy
 	class EntityHierarchyWindow

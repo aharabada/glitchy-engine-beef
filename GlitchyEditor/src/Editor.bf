@@ -3,8 +3,9 @@ using ImGui;
 using System;
 using System.Collections;
 using GlitchyEngine.Collections;
+using GlitchyEditor.EditWindows;
 
-namespace GlitchyEngine.Editor
+namespace GlitchyEditor
 {
 	class Editor
 	{

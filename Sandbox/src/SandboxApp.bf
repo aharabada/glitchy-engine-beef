@@ -11,7 +11,6 @@ using GlitchyEngine.World;
 using System.Collections;
 using GlitchyEngine.Content;
 using GlitchyEngine.Renderer.Animation;
-using GlitchyEngine.Editor;
 
 namespace Sandbox
 {
@@ -73,8 +72,6 @@ namespace Sandbox
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
 
 		EcsWorld _world = new EcsWorld() ~ delete _;
-
-		Editor _editor = new Editor(_world) ~ delete _;
 
 //		OrthographicCameraController _cameraController ~ delete _;
 		PerspectiveCameraController _cameraController ~ delete _;
@@ -544,7 +541,6 @@ namespace Sandbox
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
-			_editor.Update();
 			/*
 			ImGui.Begin("Test");
 
