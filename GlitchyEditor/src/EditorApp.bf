@@ -3,7 +3,7 @@ using GlitchyEngine;
 
 namespace GlitchyEditor
 {
-	class SandboxApp : Application
+	class EditorApp : Application
 	{
 		public this()
 		{
@@ -13,7 +13,7 @@ namespace GlitchyEditor
 		[Export, LinkName("CreateApplication")]
 		public static Application CreateApplication()
 		{
-			return new SandboxApp();
+			return new EditorApp();
 		}
 	}
 }
