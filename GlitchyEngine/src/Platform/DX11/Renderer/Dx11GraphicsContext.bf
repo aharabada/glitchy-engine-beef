@@ -102,7 +102,7 @@ namespace GlitchyEngine.Renderer
 			_depthStencilTarget = target?.nativeView;
 		}
 
-		public override void SetRenderTarget(RenderTarget renderTarget, int slot = 0)
+		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0)
 		{
 			if(renderTarget == null)
 			{
@@ -110,7 +110,7 @@ namespace GlitchyEngine.Renderer
 			}
 			else
 			{
-				Runtime.NotImplemented();
+				_renderTargets[slot] = renderTarget.nativeRenderTargetView;
 			}
 		}
 
@@ -119,7 +119,7 @@ namespace GlitchyEngine.Renderer
 			nativeContext.OutputMerger.SetRenderTargets(MaxRTVCount, &_renderTargets, _depthStencilTarget);
 		}
 
-		public override void ClearRenderTarget(RenderTarget renderTarget, ColorRGBA color)
+		public override void ClearRenderTarget(RenderTarget2D renderTarget, ColorRGBA color)
 		{
 			if(renderTarget == null)
 			{
@@ -127,7 +127,7 @@ namespace GlitchyEngine.Renderer
 			}
 			else
 			{
-				Runtime.NotImplemented();
+				nativeContext.ClearRenderTargetView(renderTarget.nativeRenderTargetView, color);
 			}
 		}
 
@@ -187,7 +187,7 @@ namespace GlitchyEngine.Renderer
 
 			for(let entry in shader.Textures)
 			{
-				_textures[entry.Index] = entry.Texture?.nativeView;
+				_textures[entry.Index] = entry.Texture?.nativeResourceView;
 				_samplers[entry.Index] = entry.Texture?.SamplerState?.nativeSamplerState;
 				
 				if(entry.Index >= _textureCount)

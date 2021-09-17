@@ -3,8 +3,6 @@ using System;
 
 namespace GlitchyEngine.Renderer
 {
-	public class RenderTarget;
-
 	public class GraphicsContext : RefCounted
 	{
 		private RasterizerState _currentRasterizerState;
@@ -25,7 +23,7 @@ namespace GlitchyEngine.Renderer
 		 * @remarks When @RenderTarget is null the backbuffer will be bound.
 		 * 			@BindRenderTargets has to be called in order to bind the rendertargets.
 		 */
-		public extern void SetRenderTarget(RenderTarget renderTarget, int slot = 0);
+		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0);
 
 		/**
 		 * Binds all.
@@ -41,7 +39,7 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color to clear the render target with.
 		 * @remarks When @renderTarget is null the backbuffer will be cleared.
 		 */
-		public extern void ClearRenderTarget(RenderTarget renderTarget, ColorRGBA color);
+		public extern void ClearRenderTarget(RenderTarget2D renderTarget, ColorRGBA color);
 
 		//public abstract void SetViewport(Viewport viewport);
 

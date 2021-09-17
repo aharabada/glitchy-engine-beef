@@ -23,7 +23,7 @@ namespace GlitchyEngine.Renderer
 
 		}
 
-		public override void Clear(RenderTarget renderTarget, ColorRGBA clearColor)
+		public override void Clear(RenderTarget2D renderTarget, ColorRGBA clearColor)
 		{
 			_context.ClearRenderTarget(renderTarget, clearColor);
 		}

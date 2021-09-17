@@ -78,7 +78,7 @@ namespace GlitchyEngine.Renderer
 
 		public this(GraphicsContext context, Texture2DDesc desc) : base(context)
 		{
-			PrepareTexturePlatform(desc);
+			PrepareTexturePlatform(desc, false);
 		}
 
 		public void SetData<T>(T* data, uint32 arraySlice = 0, uint32 mipSlice = 0)
@@ -98,12 +98,12 @@ namespace GlitchyEngine.Renderer
 
 		protected extern void LoadTexturePlatform();
 		
-		protected extern void CreateTexturePlatform(Texture2DDesc desc, void* data, uint32 linePitch);
+		protected extern void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch);
 
 		/**
 		 * Prepares the texture so that a call to SetData can successfully upload the data to the gpu.
 		 */
-		protected extern void PrepareTexturePlatform(Texture2DDesc desc);
+		protected extern void PrepareTexturePlatform(Texture2DDesc desc, bool isRenderTarget);
 
 		protected extern Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
 			uint32 destY, uint32 destWidth, uint32 destHeight, uint32 arraySlice, uint32 mipLevel, GlitchyEngine.Renderer.MapType mapType);
