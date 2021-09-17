@@ -364,7 +364,7 @@ namespace Sandbox
 
 			ImGui.BeginChild("imageChild", default, true, .HorizontalScrollbar);
 
-			ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeView, .(fonty.[Friend]_atlas.Width * zoom, fonty.[Friend]_atlas.Height * zoom), .(0.0f, 0.0f), .(1.0f, 1.0f), .(1.0f, 1.0f, 1.0f, 1.0f), .(1.0f, 0, 0, 1));
+			ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeResourceView, .(fonty.[Friend]_atlas.Width * zoom, fonty.[Friend]_atlas.Height * zoom), .(0.0f, 0.0f), .(1.0f, 1.0f), .(1.0f, 1.0f, 1.0f, 1.0f), .(1.0f, 0, 0, 1));
 
 			ImGui.EndChild();
 
