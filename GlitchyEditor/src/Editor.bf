@@ -13,12 +13,17 @@ namespace GlitchyEditor
 		
 		private EntityHierarchyWindow _entityHierarchyWindow = new .(this) ~ delete _;
 		private ComponentEditWindow _componentEditWindow = new .(this) ~ delete _;
+		private SceneViewportWindow _sceneViewportWindow = new .() ~ delete _;
 
 		private List<Entity> _selectedEntities = new .() ~ delete _;
 
 		public EcsWorld World => _world;
 
 		public List<Entity> SelectedEntities => _selectedEntities;
+
+		public EntityHierarchyWindow EntityHierarchyWindow => _entityHierarchyWindow;
+		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
+		public SceneViewportWindow SceneViewportWindow => _sceneViewportWindow;
 
 		/// Creates a new editor for the given world
 		public this(EcsWorld world)
@@ -30,6 +35,7 @@ namespace GlitchyEditor
 		{
 			_entityHierarchyWindow.Show();
 			_componentEditWindow.Show();
+			_sceneViewportWindow.Show();
 		}
 
 		/// Creates a new entity with a transform component.
