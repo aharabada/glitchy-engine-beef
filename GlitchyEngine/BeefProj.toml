@@ -9,7 +9,6 @@ ProcessorMacros = ["GE_ERROR_SHADER_MATRIX_MISMATCH", "GE_ERROR_SHADER_VAR_TYPE_
 PreprocessorMacros = ["DEBUG", "GE_WINDOWS"]
 
 [Configs.Debug.Win64]
-CLibType = "DynamicDebug"
 PreprocessorMacros = ["DEBUG", "GE_WINDOWS", "GE_D3D11"]
 
 [Configs.Release.Win32]

@@ -1,11 +1,8 @@
 FileVersion = 1
-Dependencies = {GlitchyEngine = "*", corlib = "*", LodePng = "*", msdfgen-beef = "*"}
+Dependencies = {GlitchyEngine = "*", corlib = "*", msdfgen-beef = "*", LodePng = "*"}
 
 [Project]
 Name = "Sandbox"
 TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
 ProcessorMacros = ["SANDBOX_2D"]
-
-[Configs.Debug.Win64]
-CLibType = "DynamicDebug"
