@@ -19,3 +19,6 @@
 [submodule "GlitchyEngine/vendor/gltf"]
 	path = GlitchyEngine/vendor/gltf
 	url = https://github.com/aharabada/cgltf-beef.git
+[submodule "GlitchyEngine\\vendor\\msdfgen"]
+	path = GlitchyEngine\\vendor\\msdfgen
+	url = https://github.com/aharabada/msdfgen-beef.git
