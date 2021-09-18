@@ -67,6 +67,9 @@ namespace GlitchyEngine.Renderer
 		private BatchVertex[] _rawInstances = new BatchVertex[1024] ~ delete _;
 		private uint32 _setInstances = 0;
 
+		/// The effect that is currently being used to draw the sprites.
+		private Effect _currentEffect ~ _?.ReleaseRef();
+
 		public this(GraphicsContext context, EffectLibrary effectLibrary)
 		{
 			_context = context..AddRef();
@@ -182,7 +185,7 @@ namespace GlitchyEngine.Renderer
 		 * @param virtualResolution The virtual resolution used for rendering.
 		 *			Can be used to draw resolution independent stuff. // TODO: find a better explanation
 		 */ // TODO: RenderMode (Immediate, Deferred)
-		public void Begin(DrawOrder drawOrder = .SortByTexture, Vector2 virtualResolution = .Zero, float maxDepth = 100)
+		public void Begin(DrawOrder drawOrder = .SortByTexture, Vector2 virtualResolution = .Zero, float maxDepth = 100, Effect effect = null)
 		{
 			_drawOrder = drawOrder;
 
@@ -197,6 +200,16 @@ namespace GlitchyEngine.Renderer
 							0, -2.0f / _virtualResolution.Y, 0, 0,
 							0, 0, 1.0f / maxDepth, 0,
 							-1, 1, 0, 1);
+
+			if(effect != null)
+			{
+				_currentEffect?.ReleaseRef();
+				_currentEffect = effect..AddRef();
+			}
+			else
+			{
+				_currentEffect = instancingEffect..AddRef();
+			}
 		}
 
 		struct QueuedQuad: this(Matrix Transform, Color Color, Texture2D Texture, float Depth, Vector4 uvTransform) { }
@@ -247,7 +260,7 @@ namespace GlitchyEngine.Renderer
 
 			instanceBuffer.SetData<BatchVertex>(_rawInstances.Ptr, _setInstances, 0, .WriteDiscard);
 			
-			instancingEffect.Bind(_context);
+			_currentEffect.Bind(_context);
 			instancingBinding.InstanceCount = _setInstances;
 			instancingBinding.Bind(_context);
 			RenderCommand.DrawIndexedInstanced(instancingBinding);
@@ -290,7 +303,7 @@ namespace GlitchyEngine.Renderer
 			SortQuads();
 
 			Texture2D texture = _quads[0].Texture;
-			instancingEffect.SetTexture("Texture", texture);
+			_currentEffect.SetTexture("Texture", texture);
 
 			_setInstances = 0;
 
@@ -304,7 +317,7 @@ namespace GlitchyEngine.Renderer
 					FlushInstances();
 
 					texture = quad.Texture;
-					instancingEffect.SetTexture("Texture", texture);
+					_currentEffect.SetTexture("Texture", texture);
 				}
 
 				_rawInstances[_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
