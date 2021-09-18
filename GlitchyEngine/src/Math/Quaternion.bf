@@ -217,9 +217,11 @@ namespace GlitchyEngine.Math
 		}
 
 		[Inline]
+#unwarn
 		public static implicit operator Vector4(in Self value) => *(Vector4*)&value;
 
 		[Inline]
+#unwarn
 		public static implicit operator Quaternion(in Vector4 value) => *(Quaternion*)&value;
 
 		public static bool operator ==(Quaternion l, Quaternion r)

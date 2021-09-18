@@ -272,13 +272,6 @@ namespace GlitchyEngine.Math
 
 		public override void ToString(String strBuffer) => strBuffer.AppendF("X:{0} Y:{1}", X, Y);
 
-		// Todo: move to extension
-		[Inline]
-		public static implicit operator DirectX.Math.Vector2(in Self value) => *(DirectX.Math.Vector2*)&value;
-
-		[Inline]
-		public static implicit operator Self(in DirectX.Math.Vector2 value) => *(Self*)&value;
-
 		[Inline]
 		public static explicit operator Self(float value) => Self(value);
 	}

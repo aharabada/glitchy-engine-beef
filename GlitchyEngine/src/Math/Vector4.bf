@@ -308,14 +308,6 @@ namespace GlitchyEngine.Math
 
 		public override void ToString(String strBuffer) => strBuffer.AppendF("X:{0} Y:{1} Z:{2} W:{3}", X, Y, Z, W);
 
-		// Todo: move to extension
-		
-		[Inline]
-		public static implicit operator DirectX.Math.Vector4(in Self value) => *(DirectX.Math.Vector4*)&value;
-
-		[Inline]
-		public static implicit operator Self(in DirectX.Math.Vector4 value) => *(Self*)&value;
-		
 		[Inline]
 		public static explicit operator Self(float value) => Self(value);
 	}

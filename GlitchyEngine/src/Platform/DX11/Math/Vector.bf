@@ -1,9 +1,10 @@
+// Disable warning when taking pointer of in-Parameter
 #pragma warning disable 4204
+
 using System;
 
 namespace GlitchyEngine.Math
 {
-	/*
 	extension Vector2
 	{
 		[Inline]
@@ -30,5 +31,4 @@ namespace GlitchyEngine.Math
 		[Inline]
 		public static implicit operator Self(in DirectX.Math.Vector4 value) => *(Self*)&value;
 	}
-	*/
 }
