@@ -66,6 +66,8 @@ namespace Sandbox
 
 		Effect _msdfEffect ~ _.ReleaseRef();
 
+		TextureViewer _textureViewer ~ delete _;
+
 		[AllowAppend]
 		public this() : base("Example")
 		{
@@ -77,7 +79,6 @@ namespace Sandbox
 
 			_effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
 
-			
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(_context, rsDesc);
@@ -139,7 +140,7 @@ namespace Sandbox
 
 			_msdfEffect = _effectLibrary.Load("content\\Shaders\\msdfShader.hlsl");
 
-			DoTheThing(fonty.[Friend]_face, 64);
+			_textureViewer = new TextureViewer(_context, Renderer2D, _effectLibrary);
 		}
 
 		double F26Dot6ToDouble(uint16 value)
@@ -529,6 +530,7 @@ namespace Sandbox
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
+			/*
 			ImGui.Begin("SDF Test");
 
 			ImGui.InputInt("Size", &size);
@@ -538,6 +540,9 @@ namespace Sandbox
 			ImGui.Text($"SPR: {f}");
 
 			ImGui.End();
+			*/
+			//return true;
+
 			/*
 			return true;
 
@@ -555,7 +560,12 @@ namespace Sandbox
 
 			ImGui.End();
 			*/
-			TextureViewer();
+
+			_textureViewer.ViewTexture(fonty.[Friend]_atlas);
+
+			_context.SetRenderTarget(null);
+			_depthTarget.Bind();
+			_context.BindRenderTargets();
 
 			return false;
 		}
