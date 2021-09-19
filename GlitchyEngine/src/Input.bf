@@ -38,7 +38,7 @@ namespace GlitchyEngine
 		public static extern int32 GetLastMouseY();
 		
 		public static extern bool IsMouseButtonPressing(MouseButton button);
-		public static extern bool IsMouseButtonReleasiong(MouseButton button);
+		public static extern bool IsMouseButtonReleasing(MouseButton button);
 		public static extern Point GetMouseMovement();
 
 		public static extern void NewFrame();

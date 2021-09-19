@@ -150,10 +150,9 @@ namespace GlitchyEngine
 		//
 		public override static bool IsMouseButtonPressing(MouseButton button) => IsMouseButtonPressed(button) && WasMouseButtonReleased(button);
 		
-		public override static bool IsMouseButtonReleasiong(MouseButton button) => IsMouseButtonReleased(button) && WasMouseButtonPressed(button);
+		public override static bool IsMouseButtonReleasing(MouseButton button) => IsMouseButtonReleased(button) && WasMouseButtonPressed(button);
 		
 		public override static Point GetMouseMovement() => CurrentState.CursorPositionDifference;
-
 
 		//[CLink, CallingConvention(.Stdcall)]
 		//static extern int16 GetKeyState(int32 keycode);
