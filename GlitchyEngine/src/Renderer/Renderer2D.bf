@@ -124,6 +124,12 @@ namespace GlitchyEngine.Renderer
 
 			Color color = .White;
 			whiteTexture.SetData(&color);
+
+			SamplerState sampler = SamplerStateManager.GetSampler(SamplerStateDescription());
+
+			whiteTexture.SamplerState = sampler;
+
+			sampler..ReleaseRef();
 		}
 
 		void InitInstancing(EffectLibrary effectLibrary)
