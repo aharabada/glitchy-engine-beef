@@ -135,185 +135,12 @@ namespace Sandbox
 			emojis.Fallback = mathstuff..ReleaseRefNoDelete();
 
 			// Load test text
-			var result = File.ReadAllText("test.txt", testText = new String(), true);
-			//Log.EngineLogger.Assert(result)
+			File.ReadAllText("test.txt", testText = new String(), true);
 
 			_msdfEffect = _effectLibrary.Load("content\\Shaders\\msdfShader.hlsl");
 
 			_textureViewer = new TextureViewer(_context, Renderer2D, _effectLibrary);
 		}
-
-		double F26Dot6ToDouble(uint16 value)
-		{
-			return (double(value) / 64.0);
-		}
-
-		void DoTheThing(FreeType.FT_Face fontFace, double pixelSizeY)
-		{
-			double unitsPerEm = F26Dot6ToDouble(fontFace.units_per_EM);
-
-			// How much we have to scale the geometry to fit it into our desired pixels
-			double geometryScaler = pixelSizeY / unitsPerEm;
-
-			// prepare shape
-			
-			double advance = 0;
-
-			var glyphIndex = FreeType.FreeType.Get_Char_Index(fonty.[Friend]_face, 'ß');
-
-			Shape shape;
-			msdfgen.LoadGlyph(out shape, &fonty.[Friend]_face, glyphIndex, out advance);
-
-			shape.Normalize();
-
-			var bounds = shape.GetBounds();
-			
-			msdfgen.EdgeColoringSimple(shape, 3.0);
-
-			// prepare projection
-
-			double scale = geometryScaler;
-			double range = 4.0 / geometryScaler;
-
-			int width;
-			int height;
-			
-			double translationX;
-			double translationY;
-
-			if(bounds.Left < bounds.Right && bounds.Bottom < bounds.Top)
-			{
-				double l = bounds.Left;
-				double r = bounds.Right;
-				double b = bounds.Bottom;
-				double t = bounds.Top;
-
-				l -= 0.5 * range;
-				b -= 0.5 * range;
-				r += 0.5 * range;
-				t += 0.5 * range;
-
-				// TODO: miter?!
-
-				double w = scale * (r - l);
-				double h = scale * (t - b);
-
-				width = (int)Math.Ceiling(w) + 1;
-				height = (int)Math.Ceiling(h) + 1;
-
-				translationX = -l + 0.5 * (width - w) / scale;
-				translationY = -b + 0.5 * (height - h) / scale;
-			}
-			else
-			{
-				width = 0;
-				height = 0;
-				translationX = 0;
-				translationY = 0;
-			}
-
-			msdfgen.Projection projection = .();
-			projection.ScaleX = scale;
-			projection.ScaleY = scale;
-
-			projection.TranslationX = translationX;
-			projection.TranslationY = translationY;
-
-			/*
-
-			void GlyphGeometry::wrapBox(double scale, double range, double miterLimit) {
-			    scale *= geometryScale;
-			    range /= geometryScale;
-			    box.range = range;
-			    box.scale = scale;
-			    if (bounds.l < bounds.r && bounds.b < bounds.t) {
-			        double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
-			        l -= .5*range, b -= .5*range;
-			        r += .5*range, t += .5*range;
-			        if (miterLimit > 0)
-			            shape.boundMiters(l, b, r, t, .5*range, miterLimit, 1);
-			        double w = scale*(r-l);
-			        double h = scale*(t-b);
-			        box.rect.w = (int) ceil(w)+1;
-			        box.rect.h = (int) ceil(h)+1;
-			        box.translate.x = -l+.5*(box.rect.w-w)/scale;
-			        box.translate.y = -b+.5*(box.rect.h-h)/scale;
-			    } else {
-			        box.rect.w = 0, box.rect.h = 0;
-			        box.translate = msdfgen::Vector2();
-			    }
-			}
-
-			*/
-
-			int x = (int)pixelSizeY;
-			int y = (int)pixelSizeY;
-
-			Bitmap<ColorRGB, const 1> bitmap = .((.)x, (.)y);
-
-			MSDFGeneratorConfig config = .();
-
-			msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, range, config);
-			
-			// Save png
-			/*
-			uint8[] data = new uint8[x * y * 3];
-
-			for(int i = 0; i < x * y * 3; i++)
-			{
-				float f = bitmap.Pixels[i / 3].Red / 2f + 0.5f;
-				float f2 = bitmap.Pixels[i / 3].Green / 2f + 0.5f;
-				float f3 = bitmap.Pixels[i / 3].Blue / 2f + 0.5f;
-
-				data[i++] = (uint8)Math.Clamp(256.0f * f, 0, 255);
-				data[i++] = (uint8)Math.Clamp(256.0f * f2, 0, 255);
-				data[i] = (uint8)Math.Clamp(256.0f * f3, 0, 255);
-			}
-
-			// TODO: free shape
-
-			LodePng.LodePng.EncodeFile("test.png", data.Ptr, (.)x, (.)y, .RGB, 8);
-			*/
-			Texture2DDesc desc;
-			desc.Width = (.)x;
-			desc.Height = (.)y;
-			desc.Format = .R8G8B8A8_SNorm;
-			desc.MipLevels = 1;
-			desc.Usage = .Immutable;
-			desc.CpuAccess = .None;
-			desc.ArraySize = 1;
-
-			_dasTestA = new Texture2D(_context, desc);
-
-			int8[] pixels = new int8[x * y * 4];
-			
-			int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
-
-			//for(int i = 0; i < x * y; i++)
-			for(int iy = 0; iy < y; iy++)
-			for(int ix = 0; ix < x; ix++)
-			{
-				ColorRGB pixel = bitmap.Pixels[iy * y + ix];
-
-				float f = pixel.Red;// / 2f + 0.5f;
-				float f2 = pixel.Green;// / 2f + 0.5f;
-				float f3 = pixel.Blue;// / 2f + 0.5f;
-
-				int index = ((y - iy - 1) * y + ix) * 4;
-
-				pixels[index + 0] = ToInt8(f);
-				pixels[index + 1] = ToInt8(f2);
-				pixels[index + 2] = ToInt8(f3);
-				pixels[index + 3] = 0;
-
-				//pixels[(y - iy - 1) * y + ix] = Color(f, f2, f3);
-			}
-
-			_dasTestA.SetData<Color>((.)pixels.Ptr, 0, 0, (.)x, (.)y);
-			//_dasTestA.SetData<uint8>(pixelData.Ptr, 0, 0, (.)x, (.)y);
-		}
-
-		Texture2D _dasTestA ~ _.ReleaseRef();
 
 		Font fonty ~ _.ReleaseRef();
 
@@ -395,6 +222,11 @@ namespace Sandbox
 
 		public override void Update(GameTime gameTime)
 		{
+			if(Input.IsKeyPressing(Key.P))
+			{
+				fonty.RedrawAtlas();
+			}
+
 			var cameraTransform = _world.GetComponent<TransformComponent>(_cameraEntity);
 
 			if(Application.Get().Window.IsActive)
@@ -496,20 +328,19 @@ namespace Sandbox
 			_alphaBlendState.Bind();
 			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height));
 			
-			Renderer2D.Draw(null, 0, 0, 502, 502, .Black, 5);
-			
+			//Renderer2D.Draw(null, 0, 0, fonty.[Friend]_atlas.Width * 10, fonty.[Friend]_atlas.Height * 10, .Red, 5);
+
 			// Hallo Welt, wie geht es dir? 😂😂😂\nMir geht es gut, danke der Nachfrage. Wie geht es dir?\nMir geht es hervorragend und besser noch: meine Engine kann endlich Text rendern!💕❤\n und es scheint ganz in ordnung zu sein.
 			//FontRenderer.DrawText(Renderer2D, fonty, testText, 0, 0, .White, .White, 32);
 
 			Renderer2D.End();
-
+			
+			_msdfEffect.Variables["screenPixelRange"].SetData(size / 64f * 4.0f);
+			
+			_alphaBlendState.Bind();
 			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height), 100, _msdfEffect);
 
-			_msdfEffect.Variables["screenPixelRange"].SetData(size / 64f * 4.0f);
-
-			Renderer2D.Draw(_dasTestA, 1, 1, size, size);
-
-			// TODO: SDFs in Font Atlas packen
+			FontRenderer.DrawText(Renderer2D, fonty, "Hallo", 0, 0, .White, .White, 256);
 
 			Renderer2D.End();
 		}
@@ -568,23 +399,6 @@ namespace Sandbox
 			_context.BindRenderTargets();
 
 			return false;
-		}
-
-		float zoom = 1.0f;
-
-		private void TextureViewer()
-		{
-			ImGui.Begin("Texture Viewer");
-
-			ImGui.SliderFloat("Zoom", &zoom, 0.01f, 100.0f);
-
-			ImGui.BeginChild("imageChild", default, true, .HorizontalScrollbar);
-
-			ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeResourceView, .(fonty.[Friend]_atlas.Width * zoom, fonty.[Friend]_atlas.Height * zoom), .(0.0f, 0.0f), .(1.0f, 1.0f), .(1.0f, 1.0f, 1.0f, 1.0f), .(1.0f, 0, 0, 1));
-
-			ImGui.EndChild();
-
-			ImGui.End();
 		}
 
 		private bool OnWindowResize(WindowResizeEvent e)

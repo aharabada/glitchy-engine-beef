@@ -61,6 +61,15 @@ namespace GlitchyEngine.Renderer.Text
 
 			List<Texture2D> atlasses = scope .();
 
+			// We render every char with a slightly greater depth, so that the chars don't cull each other.
+			// In order to do that we increment an integer for each glyph and use it as the depth for the next one.
+			// Whenn passing the depth to the renderer we treat the integer as the binary representation of a float.
+			// Therefore every increment will increment the mantissa of the float and is therefore equivalent to the
+			// smallest possible increase a float can represent.
+			// Note: This might do funky stuff when objects are very close to each other. But realistically whe have to do
+			// about 8 million (2^23) increments to reach a depth of 1 so I think it's safe enough.
+			int32 depthInt = 0;
+
 			// enumerate through the unicode codepoints
 			for(char32 char in text.DecodedChars)
 			{
@@ -99,10 +108,21 @@ namespace GlitchyEngine.Renderer.Text
 
 				Vector2 atlasSize = .(atlas.Width, atlas.Height);
 
+				float geoToTex = (float)glyphDesc.Font.[Friend]_geometryScaler;
+
+				float adjustToPenX = - 4.0f / geoToTex + (glyphDesc.Metrics.horiBearingX / 64);
+				adjustToPenX *= (float)fontSize / glyphDesc.Font._fontSize;
+
+				float adjustToBaseline = glyphDesc.Font._fontSize - 4.0f / geoToTex -
+					(glyphDesc.Metrics.height / 64) * geoToTex +
+					(glyphDesc.Metrics.horiBearingY / 64) * geoToTex;
+
+				adjustToBaseline *= (float)fontSize / glyphDesc.Font._fontSize;
+				
 				// Rectangle on the screen
 				Vector4 viewportRect = .(
-					penPosition + (glyphDesc.Metrics.horiBearingX / 64) * scale,
-					baseline - (glyphDesc.Metrics.horiBearingY / 64) * scale,
+					penPosition + adjustToPenX,
+					baseline - adjustToBaseline,
 					glyphDesc.SizeX * scale,
 					glyphDesc.SizeY * scale);
 
@@ -113,9 +133,12 @@ namespace GlitchyEngine.Renderer.Text
 
 				texRect /= Vector4(atlasSize, atlasSize);
 
-				renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, 0.0f, texRect);
+				renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
 
 				penPosition += (glyphDesc.Metrics.horiAdvance / 64) * scale;
+
+				// Increase depth for the next glyph
+				depthInt++;
 			}
 
 			renderer.End();
