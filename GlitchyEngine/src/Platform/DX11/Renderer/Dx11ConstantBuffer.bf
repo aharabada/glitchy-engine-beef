@@ -31,6 +31,8 @@ namespace GlitchyEngine.Renderer
 				_type = .Bool;
 			case .Float:
 				_type = .Float;
+			case .Int:
+				_type = .Int;
 			default:
 				Log.EngineLogger.Assert(false, scope $"Unhandled shader variable type: {shaderTypeDescription.Type}");
 			}

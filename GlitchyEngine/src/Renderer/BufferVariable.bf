@@ -79,6 +79,15 @@ namespace GlitchyEngine.Renderer
 				EnsureTypeMatch(1, 3, .Float);
 			case typeof(Vector4):
 				EnsureTypeMatch(1, 4, .Float);
+				
+			case typeof(int32):
+					EnsureTypeMatch(1, 1, .Int);
+			case typeof(Int32_2):
+					EnsureTypeMatch(1, 2, .Int);
+			case typeof(Int32_3):
+					EnsureTypeMatch(1, 3, .Int);
+			case typeof(Int32_4):
+					EnsureTypeMatch(1, 4, .Int);
 
 			case typeof(Matrix4x3):
 				EnsureTypeMatch(4, 3, .Float);
@@ -95,53 +104,37 @@ namespace GlitchyEngine.Renderer
 				EnsureTypeMatch(1, 4, .Float);
 			}
 		}
+
+		[Inline]
+		private void SetData<T>(T value)
+		{
+			EnsureTypeMatch<T>();
+
+			*(T*)firstByte = value;
+		}
 		
-		public void SetData(bool value)
-		{
-			EnsureTypeMatch(1, 1, .Bool);
+		public void SetData(bool value) => SetData<bool>(value);
 
-			*(bool*)firstByte = value;
-		}
+		public void SetData(float value) => SetData<float>(value);
+		public void SetData(Vector2 value) => SetData<Vector2>(value);
+		public void SetData(Vector3 value) => SetData<Vector3>(value);
+		public void SetData(Vector4 value) => SetData<Vector4>(value);
 
-		public void SetData(float value)
-		{
-			EnsureTypeMatch(1, 1, .Float);
+		public void SetData(int32 value) => SetData<int32>(value);
+		public void SetData(Int32_2 value) => SetData<Int32_2>(value);
+		public void SetData(Int32_3 value) => SetData<Int32_3>(value);
+		public void SetData(Int32_4 value) => SetData<Int32_4>(value);
+		
+		public void SetData(ColorRGB value) => SetData<ColorRGB>(value);
+		public void SetData(ColorRGBA value) => SetData<ColorRGBA>(value);
+		public void SetData(Color value) => SetData<ColorRGBA>((ColorRGBA)value);
 
-			*(float*)firstByte = value;
-		}
 
-		public void SetData(Vector2 value)
-		{
-			EnsureTypeMatch(1, 2, .Float);
-			
-			*(Vector2*)firstByte = value;
-		}
-
-		public void SetData(Vector3 value)
-		{
-			EnsureTypeMatch(1, 3, .Float);
-			
-			*(Vector3*)firstByte = value;
-		}
-
-		public void SetData(Vector4 value)
-		{
-			EnsureTypeMatch(1, 4, .Float);
-			
-			*(Vector4*)firstByte = value;
-		}
-
-		public void SetData(Matrix4x3 value)
-		{
-			// I think this is right
-			EnsureTypeMatch(4, 3, .Float);
-
-			*(Matrix4x3*)firstByte = value;
-		}
+		public void SetData(Matrix4x3 value) => SetData<Matrix4x3>(value);
 
 		public void SetData(Matrix4x3[] value)
 		{
-			EnsureTypeMatch(4, 3, .Float);
+			EnsureTypeMatch<Matrix4x3>();
 
 			// TODO: assert length
 
@@ -150,7 +143,7 @@ namespace GlitchyEngine.Renderer
 
 		public void SetData(Matrix3x3 value)
 		{
-			EnsureTypeMatch(3, 3, .Float);
+			EnsureTypeMatch<Matrix3x3>();
 
 			*(Matrix4x3*)firstByte = Matrix4x3(value);
 			
@@ -159,7 +152,7 @@ namespace GlitchyEngine.Renderer
 
 		public void SetData(Matrix3x3[] value)
 		{
-			EnsureTypeMatch(3, 3, .Float);
+			EnsureTypeMatch<Matrix3x3>();
 
 			// TODO: assert length
 
@@ -169,41 +162,15 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 		
-		public void SetData(Matrix value)
-		{
-			EnsureTypeMatch(4, 4, .Float);
-
-			*(Matrix*)firstByte = value;
-		}
+		public void SetData(Matrix value) => SetData<Matrix>(value);
 
 		public void SetData(Matrix[] value)
 		{
-			EnsureTypeMatch(4, 4, .Float);
+			EnsureTypeMatch<Matrix>();
 
 			// TODO: assert length
 
 			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix) * Math.Min(value.Count, _elements));
-		}
-		
-		public void SetData(ColorRGB value)
-		{
-			EnsureTypeMatch(1, 3, .Float);
-
-			*(ColorRGB*)firstByte = value;
-		}
-
-		public void SetData(ColorRGBA value)
-		{
-			EnsureTypeMatch(1, 4, .Float);
-
-			*(ColorRGBA*)firstByte = value;
-		}
-
-		public void SetData(Color value)
-		{
-			EnsureTypeMatch(1, 4, .Float);
-
-			*(ColorRGBA*)firstByte = (ColorRGBA)value;
 		}
 
 		// Todo: add all the other SetData-Methods

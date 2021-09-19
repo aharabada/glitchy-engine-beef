@@ -101,6 +101,7 @@ namespace GlitchyEngine.Renderer
 	{
 		Bool,
 		Float,
+		Int,
 		// todo
 	}
 }
