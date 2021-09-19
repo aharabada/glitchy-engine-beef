@@ -327,6 +327,11 @@ namespace GlitchyEngine.Renderer
 				}
 
 				_rawInstances[_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
+				
+				if(_setInstances == _rawInstances.Count)
+				{
+					FlushInstances();
+				}
 			}
 			
 			FlushInstances();
