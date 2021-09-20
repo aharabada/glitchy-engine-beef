@@ -42,8 +42,7 @@ float4 PS(PS_Input input) : SV_Target0
     float sd = median(msd.r, msd.g, msd.b);
     float screenPxDistance = screenPixelRange * (sd - 0.5);
     float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
-    //color = mix(bgColor, fgColor, opacity);
-    //float4 color = lerp(float4(0, 0, 0, 0), input.Color, opacity);
+    //float4 color = lerp(float4(1, 0, 0, 1), input.Color, opacity);
     //return color;
 
     return float4(input.Color.rgb, opacity * input.Color.a);

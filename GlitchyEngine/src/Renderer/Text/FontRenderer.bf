@@ -21,9 +21,25 @@ namespace GlitchyEngine.Renderer.Text
 			}
 		}
 
+		public static Effect _msdfEffect;
+
 		static this()
 		{
 			FontRenderer.InitLibrary();
+		}
+
+		public static void Init(EffectLibrary effectLibrary)
+		{
+			if(effectLibrary.Exists("msdfShader"))
+				_msdfEffect = effectLibrary.Get("msdfShader");
+			else
+				_msdfEffect = effectLibrary.Load("content\\Shaders\\msdfShader.hlsl");
+		}
+
+		public static void DeInit()
+		{
+			_msdfEffect?.ReleaseRef();
+			_msdfEffect = null;
 		}
 
 		/** @brief Draws a given text using a specified font stack and renderer.
@@ -31,28 +47,32 @@ namespace GlitchyEngine.Renderer.Text
 		 * @param font the Fontstack that will be used to draw the text.
 		 * @param x The horizontal position of the text (i.e. distance between left side of viewport and the left side of the left-most character, well not really but close enough).
 		 * @param y The vertical position of the text (i.e. distance between top side of viewport and the top side of the top-most character, well not really but close enough).
+		 * @param fontSize The font size in pixels. Note: due to technical reasons the actual size might deviate from the specified size.
 		 * @param fontColor The (default) color used for glyphs that don't have color (e.g. letters or emojies if the font doesn't use bitmaps for them).
 		 * @param bitmapColor The (default) color used for glyphs that are bitmaps (e.g. emojies, if the font provies them as bitmap).
-		 * @param fontSize The font size in pixels. If set to 0 the default size of the font will be used. Note: due to technical reasons the actual size might deviate from the specified size.
 		 * @param lineGapOffset Can be used to manually increase or decrease the gap between lines.
 		 */
-		public static void DrawText(Renderer2D renderer, Font font, String text, float x, float y, Color fontColor = .White, Color bitmapColor = .White, float fontSize = 0, float lineGapOffset = 0)
+		public static void DrawText(Renderer2D renderer, Font font, String text, float x, float y, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineGapOffset = 0)
 		{
 			if(text.IsWhiteSpace)
 				return;
-
-			float scale = 1.0f;
-
-			if(fontSize != 0)
-			{
-				scale = (float)fontSize / (float)font._fontSize;
-			}
+			
+			renderer.End();
+			var lastEffect = renderer.[Friend]_currentEffect;
+			renderer.[Friend]_currentEffect = _msdfEffect..AddRef();
+			
+			float scale = (float)fontSize / (float)font._fontSize;
+			
+			_msdfEffect.Variables["screenPixelRange"].SetData(scale * 4.0f);
 
 			// Space between two baselines
 			float linespace = (((font._face.size.metrics.ascender - font._face.size.metrics.descender) / 64) + lineGapOffset) * scale;
 			
 			// The line we are writing on
 			float baseline = y + linespace;
+
+			//renderer.Draw(null, x, baseline, 10000, 1, .Blue);
+
 		    // Position of the next character on the line
 			float penPosition = x;
 
@@ -68,7 +88,8 @@ namespace GlitchyEngine.Renderer.Text
 			// smallest possible increase a float can represent.
 			// Note: This might do funky stuff when objects are very close to each other. But realistically whe have to do
 			// about 8 million (2^23) increments to reach a depth of 1 so I think it's safe enough.
-			int32 depthInt = 0;
+			float f = 1.0f;
+			int32 depthInt = *(int32*)&f;
 
 			// enumerate through the unicode codepoints
 			for(char32 char in text.DecodedChars)
@@ -91,6 +112,8 @@ namespace GlitchyEngine.Renderer.Text
 
 					movedLines = 0;
 				}
+				
+				//renderer.Draw(null, penPosition, baseline - fontSize, 1, fontSize, .Lime);
 
 				// Get glyph from Font
 				var glyphDesc = font.GetGlyph(char);
@@ -98,7 +121,11 @@ namespace GlitchyEngine.Renderer.Text
 				// This never happens
 				Debug.Assert(glyphDesc != null);
 
-				Texture2D atlas = glyphDesc.Font._atlas;
+				// The glyph might belong to a fallback font
+				var glyphFont = glyphDesc.Font;
+				float glyphFontScale = (float)fontSize / glyphFont._fontSize;
+
+				Texture2D atlas = glyphFont._atlas;
 
 				// Add reference to atlas in case it is recreated during rendering
 				if(!atlasses.Contains(atlas))
@@ -108,26 +135,21 @@ namespace GlitchyEngine.Renderer.Text
 
 				Vector2 atlasSize = .(atlas.Width, atlas.Height);
 
-				float geoToTex = (float)glyphDesc.Font.[Friend]_geometryScaler;
+				float adjustToPenX = glyphDesc.AdjustToPen;
+				adjustToPenX *= glyphFontScale;
 
-				float adjustToPenX = - 4.0f / geoToTex + (glyphDesc.Metrics.horiBearingX / 64);
-				adjustToPenX *= (float)fontSize / glyphDesc.Font._fontSize;
-
-				float adjustToBaseline = glyphDesc.Font._fontSize - 4.0f / geoToTex -
-					(glyphDesc.Metrics.height / 64) * geoToTex +
-					(glyphDesc.Metrics.horiBearingY / 64) * geoToTex;
-
-				adjustToBaseline *= (float)fontSize / glyphDesc.Font._fontSize;
+				float adjustToBaseline = glyphDesc.AdjustToBaseLine;
+				adjustToBaseline *= glyphFontScale;
 				
 				// Rectangle on the screen
 				Vector4 viewportRect = .(
 					penPosition + adjustToPenX,
-					baseline - adjustToBaseline,
-					glyphDesc.SizeX * scale,
-					glyphDesc.SizeY * scale);
+					baseline + adjustToBaseline,
+					glyphDesc.Width * glyphFontScale,
+					glyphDesc.Height * glyphFontScale);
 
 				// Rectangle on the font atlas
-				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.SizeX, glyphDesc.SizeY);
+				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
 
 				Color glyphColor = glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
@@ -135,13 +157,16 @@ namespace GlitchyEngine.Renderer.Text
 
 				renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
 
-				penPosition += (glyphDesc.Metrics.horiAdvance / 64) * scale;
+				penPosition += glyphDesc.Advance * glyphFontScale;
 
 				// Increase depth for the next glyph
-				depthInt++;
+				depthInt--;
 			}
 
 			renderer.End();
+
+			_msdfEffect.ReleaseRef();
+			renderer.[Friend]_currentEffect = lastEffect;
 			
 			// release all atlas textures
 			for(int i < atlasses.Count)

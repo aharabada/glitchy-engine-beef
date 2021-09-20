@@ -9,6 +9,27 @@ namespace GlitchyEngine.Renderer
 
 	public class Renderer2D
 	{
+		enum DrawOrder
+		{
+			/// Immediately draw the sprites.
+			Immediate,
+			/**
+			 * Deferres rendering until the call of End().
+			 * Sorts the sprites by their texture.
+			 */
+			SortByTexture,
+			/**
+			 * Deferres rendering until the call of End().
+			 * Sorts the sprites so that the backmost will be drawn first and the frontmost last.
+			 */
+			BackToFront,
+			/**
+			 * Deferres rendering until the call of End().
+			 * Sorts the sprites so that the frontmost will be drawn first and the backmost last.
+			 */
+			FrontToBack
+		}
+
 		struct RenderVertex : IVertexData
 		{
 			public Vector2 Position;
@@ -66,6 +87,10 @@ namespace GlitchyEngine.Renderer
 		
 		private BatchVertex[] _rawInstances = new BatchVertex[1024] ~ delete _;
 		private uint32 _setInstances = 0;
+		
+		Matrix _projection;
+
+		DrawOrder _drawOrder;
 
 		/// The effect that is currently being used to draw the sprites.
 		private Effect _currentEffect ~ _?.ReleaseRef();
@@ -158,31 +183,6 @@ namespace GlitchyEngine.Renderer
 			instancingBinding.SetVertexBufferSlot(quadBinding.GetVertexBuffer(0), 0);
 			instancingBinding.SetVertexBufferSlot(instanceBuffer, 1);
 			instancingBinding.SetIndexBuffer(quadBinding.GetIndexBuffer(), 0);
-		}
-
-		Matrix _projection;
-
-		DrawOrder _drawOrder;
-
-		enum DrawOrder
-		{
-			/// Immediately draw the sprites.
-			Immediate,
-			/**
-			 * Deferres rendering until the call of End().
-			 * Sorts the sprites by their texture.
-			 */
-			SortByTexture,
-			/**
-			 * Deferres rendering until the call of End().
-			 * Sorts the sprites so that the backmost will be drawn first and the frontmost last.
-			 */
-			BackToFront,
-			/**
-			 * Deferres rendering until the call of End().
-			 * Sorts the sprites so that the frontmost will be drawn first and the backmost last.
-			 */
-			FrontToBack
 		}
 
 		/**

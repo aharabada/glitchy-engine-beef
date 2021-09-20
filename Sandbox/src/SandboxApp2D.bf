@@ -64,8 +64,6 @@ namespace Sandbox
 
 		String testText ~ delete _;
 
-		Effect _msdfEffect ~ _.ReleaseRef();
-
 		TextureViewer _textureViewer ~ delete _;
 
 		[AllowAppend]
@@ -137,9 +135,14 @@ namespace Sandbox
 			// Load test text
 			File.ReadAllText("test.txt", testText = new String(), true);
 
-			_msdfEffect = _effectLibrary.Load("content\\Shaders\\msdfShader.hlsl");
-
 			_textureViewer = new TextureViewer(_context, Renderer2D, _effectLibrary);
+
+			FontRenderer.Init(_effectLibrary);
+		}
+
+		public ~this()
+		{
+			FontRenderer.DeInit();
 		}
 
 		Font fonty ~ _.ReleaseRef();
@@ -222,11 +225,6 @@ namespace Sandbox
 
 		public override void Update(GameTime gameTime)
 		{
-			if(Input.IsKeyPressing(Key.P))
-			{
-				fonty.RedrawAtlas();
-			}
-
 			var cameraTransform = _world.GetComponent<TransformComponent>(_cameraEntity);
 
 			if(Application.Get().Window.IsActive)
@@ -328,19 +326,12 @@ namespace Sandbox
 			_alphaBlendState.Bind();
 			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height));
 			
-			//Renderer2D.Draw(null, 0, 0, fonty.[Friend]_atlas.Width * 10, fonty.[Friend]_atlas.Height * 10, .Red, 5);
-
-			// Hallo Welt, wie geht es dir? 😂😂😂\nMir geht es gut, danke der Nachfrage. Wie geht es dir?\nMir geht es hervorragend und besser noch: meine Engine kann endlich Text rendern!💕❤\n und es scheint ganz in ordnung zu sein.
-			//FontRenderer.DrawText(Renderer2D, fonty, testText, 0, 0, .White, .White, 32);
-
 			Renderer2D.End();
 			
-			_msdfEffect.Variables["screenPixelRange"].SetData(size / 64f * 4.0f);
-			
 			_alphaBlendState.Bind();
-			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height), 100, _msdfEffect);
+			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height), 100);
 
-			FontRenderer.DrawText(Renderer2D, fonty, "Hallo", 0, 0, .White, .White, 256);
+			FontRenderer.DrawText(Renderer2D, fonty, "Hallo! gjy", 0, 0, 512, .White, .White);
 
 			Renderer2D.End();
 		}

@@ -16,11 +16,20 @@ namespace GlitchyEngine.Renderer.Text
 
 			public FT_UInt GlyphIndex;
 
+			// TODO: Consider using floats
 			public Int32_3 MapCoord;
-			public int32 SizeX, SizeY;
+			public int32 Width, Height;
 
-			public FT_Glyph_Metrics Metrics;
+			public double TranslationX, TranslationY;
 
+			/// How many pixels we have to move the pen after drawing this glyph.
+			public float Advance;
+
+			// Aligns the image of the glyph with the baseline
+			public float AdjustToBaseLine;
+			// Aligns the image of the glyph with the pen
+			public float AdjustToPen;
+			
 			public bool IsBitmap;
 
 			public bool IsCalculated = false;
@@ -49,7 +58,7 @@ namespace GlitchyEngine.Renderer.Text
 		/// How much we have to scale the geometry to fit it into our desired pixels
 		private double _geometryScaler;
 
-		private double _range = 4.0;
+		internal double _range = 4.0;
 
 		/**
 		 * Gets or sets the fallback Font for this Font.
@@ -189,7 +198,7 @@ namespace GlitchyEngine.Renderer.Text
 		}
 
 		/// Debug only
-		public void RedrawAtlas()
+		private void RedrawAtlas()
 		{
 			for(let (char, desc) in _glyphs)
 			{
@@ -200,6 +209,10 @@ namespace GlitchyEngine.Renderer.Text
 			_penPos = .Zero;
 			_lastRowHeight = 0;
 
+			int8[] data = new int8[_atlas.Width * _atlas.Height * 4];
+
+			_atlas.SetData<Color>((Color*)data.Ptr);
+
 			UpdateAtlas();
 		}
 
@@ -209,92 +222,71 @@ namespace GlitchyEngine.Renderer.Text
 			const uint32 maxArray = 2048; // D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION
 			
 			ref Int32_3 pen = ref _penPos;
-			ref int32 penLeft = ref _penPos.X;
-			ref int32 penTop = ref _penPos.Y;
-			ref int32 penArray = ref _penPos.Z;
 			ref int32 rowHeight = ref _lastRowHeight;
 
 			int32 atlasWidth = _atlasSize.X;
 			int32 atlasHeight = _atlasSize.Y;
 			int32 atlasArray = _atlasSize.Z;
 
-			for(let (char, desc) in _glyphs)
+			for(var (char, desc) in _glyphs)
 			{
 				if(desc == null || desc.IsCalculated)
 				{
 					continue;
 				}
 
-				let loadResult = FreeType.Load_Glyph(_face, desc.GlyphIndex, .Color | .TargetNormal);
-				if(loadResult.Error)
+				if(!Calculate(ref desc))
+					continue;
+
+				const int32 border = 1;
+
+				if(desc.Width != 0 && desc.Height != 0)
 				{
-					Log.EngineLogger.Error($"Failed to load glyph for '{char}'(Char Code:{(uint32)char} | Error {(int)loadResult}): {loadResult}");
-				}
-
-				desc.Metrics = _face.glyph.metrics;
-
-				int32 border = 2;
-
-				// TODO: adjust size to glyph
-				int32 glyphWidth = (.)_fontSize + border;
-				//int32 glyphWidth = (desc.Metrics.width / 64) + 1;
-				int32 glyphHeight = (.)_fontSize + border;
-				//int32 glyphHeight = (desc.Metrics.height / 64) + 1;
-
-				// when size is 0 (1 because we added 1) the glyph has no image
-				if(glyphWidth != border || glyphHeight != border)
-				{
-					//int32 glyphRight = penLeft + glyphWidth;
-
-					int32 glyphRight = penLeft + glyphWidth + border;
+					int32 glyphRight = pen.X + desc.Width + border;
 
 					if(glyphRight > maxRes)
 					{
-						penLeft = 0;
-						penTop += rowHeight;
+						pen.X = 0;
+						pen.Y += rowHeight + border;
 						rowHeight = 0;
 					}
 
-					int32 glyphBottom = penTop + glyphHeight + border;
+					int32 glyphBottom = pen.Y + desc.Height + border;
 
 					if(glyphBottom > maxRes)
 					{
-						penLeft = 0;
-						penTop = 0;
+						pen.X = 0;
+						pen.Y = 0;
 						rowHeight = 0;
 
-						penArray++;
-					}
-
-					if(penArray >= maxArray)
-					{
-						Log.EngineLogger.Error("Spritefont exceeds maximum texture size.");
+						pen.Z++;
+						
+						if(pen.Z >= maxArray)
+						{
+							Log.EngineLogger.Error("Sprite font exceeded maximum texture size.");
+						}
 					}
 				}
 
 				desc.MapCoord = pen;
-				//desc.SizeX = glyphWidth - 1;
-				//desc.SizeY = glyphHeight - 1;
-				desc.SizeX = (.)_fontSize;
-				desc.SizeY = (.)_fontSize;
-
+				
 				if(desc.GlyphIndex == 0 && _missingGlyph == null)
 				{
 					_missingGlyph = desc;
 				}
-				
-				penLeft += glyphWidth;
 
-				if (penLeft > atlasWidth)
-				    atlasWidth = penLeft;
+				pen.X += desc.Width + border;
 
-				if (glyphHeight > rowHeight)
-				    rowHeight = glyphHeight;
+				if (pen.X > atlasWidth)
+				    atlasWidth = pen.X;
 
-				if (penTop + glyphHeight > atlasHeight)
-				    atlasHeight = penTop + glyphHeight;
+				if (desc.Height > rowHeight)
+				    rowHeight = desc.Height;
 
-				if (penArray == atlasArray)
+				if (pen.Y + desc.Height > atlasHeight)
+				    atlasHeight = pen.Y + desc.Height;
+
+				if (pen.Z == atlasArray)
 				    atlasArray++;
 
 				desc.IsCalculated = true;
@@ -340,37 +332,40 @@ namespace GlitchyEngine.Renderer.Text
 
 				var glyphIndex = desc.GlyphIndex;
 
-				if(desc.IsRendered || glyphIndex == 0 || desc.SizeX == 0 || desc.SizeY == 0)
+				if(desc.IsRendered || glyphIndex == 0 || desc.Width == 0 || desc.Height == 0)
 				{
 					continue;
 				}
 
-				DoTheThing(desc);
+				GenerateMSDF(desc);
 
 				desc.IsRendered = true;
 			}
 		}
 
-		void DoTheThing(GlyphDescriptor desc)
+		bool Calculate(ref GlyphDescriptor desc)
 		{
 			// prepare shape
-			
+
 			double advance = 0;
 
 			Shape shape;
-			msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance);
+			if(!msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance) || !shape.Validate())
+			{
+				return false;
+			}
+
+			desc.Advance = (float)(advance * _geometryScaler);
 
 			shape.Normalize();
 
 			var bounds = shape.GetBounds();
-			
-			msdfgen.EdgeColoringSimple(shape, 3.0);
 
 			// prepare projection
 
-			int width;
-			int height;
-			
+			double width;
+			double height;
+
 			double translationX;
 			double translationY;
 
@@ -385,14 +380,16 @@ namespace GlitchyEngine.Renderer.Text
 				b -= 0.5 * _range;
 				r += 0.5 * _range;
 				t += 0.5 * _range;
-
-				// TODO: miter?!
+				
+				// TODO: miter?
+				//if (miterLimit > 0)
+				//    shape.boundMiters(l, b, r, t, .5*range, miterLimit, 1);
 
 				double w = _geometryScaler * (r - l);
 				double h = _geometryScaler * (t - b);
 
-				width = (int)Math.Ceiling(w) + 1;
-				height = (int)Math.Ceiling(h) + 1;
+				width = Math.Ceiling(w) + 1;
+				height = Math.Ceiling(h) + 1;
 
 				translationX = -l + 0.5 * (width - w) / _geometryScaler;
 				translationY = -b + 0.5 * (height - h) / _geometryScaler;
@@ -405,59 +402,66 @@ namespace GlitchyEngine.Renderer.Text
 				translationY = 0;
 			}
 
+			desc.Width = (.)width;
+			desc.Height = (.)height;
+
+			desc.TranslationX = translationX;
+			desc.TranslationY = translationY;
+
+			//desc.AdjustToBaseLine = (float)(- height + _range + (_face.glyph.metrics.height / 64 - _face.glyph.metrics.horiBearingY / 64) * _geometryScaler);
+			                        //(float)(- height + translationY * _geometryScaler + (_face.glyph.metrics.height / 64 - _face.glyph.metrics.horiBearingY / 64) * _geometryScaler);
+			desc.AdjustToBaseLine = (float)(-height + translationY * _geometryScaler);
+
+			//desc.AdjustToPen = (float)(- _range + (_face.glyph.metrics.horiBearingX / 64) * _geometryScaler);
+			desc.AdjustToPen = (float)(-translationX);
+
+			return true;
+		}
+
+		void GenerateMSDF(GlyphDescriptor desc)
+		{
+			// prepare shape
+			
+			double advance = 0;
+
+			Shape shape;
+			msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance);
+
+			shape.Normalize();
+
+			var bounds = shape.GetBounds();
+			
+			shape.ReverseIfNeeded(bounds);
+
+			msdfgen.EdgeColoringSimple(shape, 3.0);
+
+			// prepare projection
 			msdfgen.Projection projection = .();
 			projection.ScaleX = _geometryScaler;
 			projection.ScaleY = _geometryScaler;
 
-			projection.TranslationX = translationX;
-			projection.TranslationY = translationY;
+			projection.TranslationX = desc.TranslationX;
+			projection.TranslationY = desc.TranslationY;
 
-			/*
+			int bufferX = desc.Width;
+			int bufferY = desc.Height;
 
-			void GlyphGeometry::wrapBox(double scale, double range, double miterLimit) {
-			    scale *= geometryScale;
-			    range /= geometryScale;
-			    box.range = range;
-			    box.scale = scale;
-			    if (bounds.l < bounds.r && bounds.b < bounds.t) {
-			        double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
-			        l -= .5*range, b -= .5*range;
-			        r += .5*range, t += .5*range;
-			        if (miterLimit > 0)
-			            shape.boundMiters(l, b, r, t, .5*range, miterLimit, 1);
-			        double w = scale*(r-l);
-			        double h = scale*(t-b);
-			        box.rect.w = (int) ceil(w)+1;
-			        box.rect.h = (int) ceil(h)+1;
-			        box.translate.x = -l+.5*(box.rect.w-w)/scale;
-			        box.translate.y = -b+.5*(box.rect.h-h)/scale;
-			    } else {
-			        box.rect.w = 0, box.rect.h = 0;
-			        box.translate = msdfgen::Vector2();
-			    }
-			}
-
-			*/
-
-			int x = _fontSize;
-			int y = _fontSize;
-
-			Bitmap<ColorRGB, const 1> bitmap = .((.)x, (.)y);
+			Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY);
 
 			MSDFGeneratorConfig config = .();
 
 			msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, _range, config);
 			
-			int8[] pixels = new int8[x * y * 4];
+			int8[] pixels = new int8[desc.Width * desc.Height * 4];
 			
 			int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
 
-			for(int iy = 0; iy < y; iy++)
-			for(int ix = 0; ix < x; ix++)
+			for(int y = 0; y < desc.Height; y++)
+			for(int x = 0; x < desc.Width; x++)
 			{
-				ColorRGB pixel = bitmap.Pixels[iy * x + ix];
+				ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
 
-				int index = ((y - iy - 1) * x + ix) * 4;
+				int index = ((desc.Height - y - 1) * desc.Width + x) * 4;
 
 				pixels[index + 0] = ToInt8(pixel.Red);
 				pixels[index + 1] = ToInt8(pixel.Green);
@@ -467,7 +471,7 @@ namespace GlitchyEngine.Renderer.Text
 			}
 
 			_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
-				(.)desc.SizeX, (.)desc.SizeY, (.)desc.MapCoord.Z);
+				(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
 		}
 	}
 }
