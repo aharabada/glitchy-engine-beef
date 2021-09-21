@@ -109,7 +109,7 @@ namespace GlitchyEditor
 			_depthTarget.Bind();
 			_context.BindRenderTargets();
 
-			_context.SetViewport(Viewport(0, 0, _renderTarget2D.Width, _renderTarget2D.Height));
+			RenderCommand.SetViewport(Viewport(0, 0, _renderTarget2D.Width, _renderTarget2D.Height));
 
 			_opaqueBlendState.Bind();
 
@@ -126,7 +126,7 @@ namespace GlitchyEditor
 			_swapchainDepthBuffer.Bind();
 			_context.BindRenderTargets();
 
-			_context.SetViewport(_context.SwapChain.BackbufferViewport);
+			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 		}
 
 		public override void OnEvent(Event event)

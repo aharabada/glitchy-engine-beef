@@ -85,8 +85,7 @@ namespace GlitchyEngine.Renderer
 			return _currentRasterizerState;
 		}
 
-		[Inline]
-		public void SetViewport(Viewport viewport)
+		internal void SetViewport(Viewport viewport)
 		{
 			var viewport;
 			SetViewports(1, &viewport);

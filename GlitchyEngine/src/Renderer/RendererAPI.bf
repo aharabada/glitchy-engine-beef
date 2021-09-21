@@ -26,5 +26,7 @@ namespace GlitchyEngine.Renderer
 		public extern void DrawInstanced(GeometryBinding geometry);
 
 		public extern void DrawIndexedInstanced(GeometryBinding geometry);
+
+		public extern void SetViewport(Viewport viewport);
 	}
 }

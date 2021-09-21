@@ -9,7 +9,7 @@ namespace GlitchyEngine.Renderer
 		Depth = 1,
 		Stencil = 2
 	}
-
+	
 	public static class RenderCommand
 	{
 		private static RendererAPI _rendererAPI;
@@ -49,6 +49,16 @@ namespace GlitchyEngine.Renderer
 		public static void DrawIndexedInstanced(GeometryBinding geometry)
 		{
 			_rendererAPI.DrawIndexedInstanced(geometry);
+		}
+
+		public static void SetViewport(Viewport viewport)
+		{
+			_rendererAPI.SetViewport(viewport);
+		}
+
+		public static void SetViewport(float left, float top, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f)
+		{
+			SetViewport(.(left, top, width, height, minDepth, maxDepth));
 		}
 	}
 }

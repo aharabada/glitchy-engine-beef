@@ -177,7 +177,7 @@ namespace Sandbox
 		private void RenderTexture(Texture2D viewedTexture)
 		{
 			Viewport vp = .(0, 0, _target.Width, _target.Height);
-			_context.SetViewport(vp);
+			RenderCommand.SetViewport(vp);
 
 			// TODO: don't clear pink!
 			_context.ClearRenderTarget(_target, .Pink);

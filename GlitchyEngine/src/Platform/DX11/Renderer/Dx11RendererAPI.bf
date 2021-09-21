@@ -45,5 +45,10 @@ namespace GlitchyEngine.Renderer
 		{
 			_context.nativeContext.DrawIndexedInstanced(geometry.IndexCount, geometry.InstanceCount, geometry.IndexByteOffset, 0, 0);
 		}
+
+		public override void SetViewport(Viewport viewport)
+		{
+			_context.SetViewport(viewport);
+		}
 	}
 }

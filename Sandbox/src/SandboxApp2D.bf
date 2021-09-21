@@ -274,7 +274,7 @@ namespace Sandbox
 
 			_context.SetRasterizerState(_rasterizerState);
 
-			_context.SetViewport(_context.SwapChain.BackbufferViewport);
+			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
 			/*
 			Renderer2D.Begin(.FrontToBack, .(80, 80));

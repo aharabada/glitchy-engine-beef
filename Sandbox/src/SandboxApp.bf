@@ -396,7 +396,7 @@ namespace Sandbox
 			_depthTarget.Bind();
 			_context.BindRenderTargets();
 
-			_context.SetViewport(_context.SwapChain.BackbufferViewport);
+			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
 			Renderer.BeginScene(_cameraController.Camera);
 			
