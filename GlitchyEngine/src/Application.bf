@@ -14,6 +14,7 @@ namespace GlitchyEngine
 		private EffectLibrary _effectLibrary ~ delete _;
 
 		private bool _running = true;
+		private bool _isMinimized = false;
 
 		private LayerStack _layerStack = new LayerStack() ~ delete _;
 
@@ -25,6 +26,8 @@ namespace GlitchyEngine
 		public Window Window => _window;
 
 		public EffectLibrary EffectLibrary => _effectLibrary;
+
+		public bool IsMinimized => _isMinimized;
 
 		[Inline]
 		public static Application Get() => s_Instance;
@@ -65,6 +68,8 @@ namespace GlitchyEngine
 			EventDispatcher dispatcher = EventDispatcher(e);
 			dispatcher.Dispatch<WindowCloseEvent>(scope => OnWindowClose);
 
+			dispatcher.Dispatch<WindowResizeEvent>(scope => OnWindowResize);
+
 			for(Layer layer in _layerStack)
 			{
 				layer.OnEvent(e);
@@ -100,7 +105,7 @@ namespace GlitchyEngine
 				}
 #endif
 
-				if(allowFrame)
+				if(allowFrame && !_isMinimized)
 				{
 					for(Layer layer in _layerStack)
 						layer.Update(_gameTime);
@@ -125,6 +130,19 @@ namespace GlitchyEngine
 		{
 			_running = false;
 			return true;
+		}
+
+		public bool OnWindowResize(WindowResizeEvent e)
+		{
+			if(e.Width == 0 || e.Height == 0)
+			{
+				_isMinimized = true;
+				return false;
+			}
+
+			_isMinimized = false;
+
+			return false;
 		}
 	}
 }

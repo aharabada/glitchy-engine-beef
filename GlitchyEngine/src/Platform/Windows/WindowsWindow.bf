@@ -263,26 +263,21 @@ namespace GlitchyEngine
 				// Window size changed
 			case WM_SIZE:
 				{
-					if (wParam == (.)ResizingType.Minimized)
-					{
-						window._isMinimized = true;
-					}
-					else if (window._isMinimized)
-					{
-						window._isMinimized = false;
-					}
-					else
-					{
-						SplitHighAndLowOrder!(lParam, out window._clientRect.Width, out window._clientRect.Height);
+					window._isMinimized = wParam == (.)ResizingType.Minimized;
 
+
+					SplitHighAndLowOrder!(lParam, out window._clientRect.Width, out window._clientRect.Height);
+
+					if(window._clientRect.Width != 0 && window._clientRect.Height != 0)
+					{
 						window._graphicsContext.SwapChain.Width = (.)window._clientRect.Width;
 						window._graphicsContext.SwapChain.Height = (.)window._clientRect.Height;
-
+	
 						window._graphicsContext.SwapChain.ApplyChanges();
-
-						WindowResizeEvent event = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, window._isResizingOrMoving);
-						window._eventCallback(event);
 					}
+
+					WindowResizeEvent event = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, window._isResizingOrMoving);
+					window._eventCallback(event);
 				}
 				// Window position changed
 			case WM_MOVE:
