@@ -9,7 +9,7 @@ namespace GlitchyEngine.Renderer
 		Depth = 1,
 		Stencil = 2
 	}
-	
+
 	public static class RenderCommand
 	{
 		private static RendererAPI _rendererAPI;
@@ -31,12 +31,15 @@ namespace GlitchyEngine.Renderer
 		{
 			_rendererAPI.Clear(renderTarget, color);
 		}
-		
 
-		[Inline]
-		public static void Clear(DepthStencilTarget target, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		public static void Clear(DepthStencilTarget depthTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
 		{
-			_rendererAPI.Clear(target, depthValue, stencilValue, clearFlags);
+			_rendererAPI.Clear(depthTarget, depthValue, stencilValue, clearFlags);
+		}
+
+		public static void Clear(RenderTarget2D renderTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		{
+			_rendererAPI.Clear(renderTarget, depthValue, stencilValue, clearFlags);
 		}
 
 		[Inline]

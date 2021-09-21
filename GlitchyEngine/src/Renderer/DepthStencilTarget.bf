@@ -6,7 +6,8 @@ namespace GlitchyEngine.Renderer
 		D16_UNorm,
 		D24_UNorm_S8_UInt,
 		D32_Float,
-		D32_Float_S8X24_UInt
+		D32_Float_S8X24_UInt,
+		None
 	}
 
 	// TODO: add all features.
@@ -23,6 +24,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(GraphicsContext context, uint32 width, uint32 height, DepthStencilFormat format = .D32_Float)
 		{
+			Log.EngineLogger.Assert(format != .None, "DepthStencilFormat None is only valid for RenderTarget");
+
 			_context = context..AddRef();
 			_width = width;
 			_height = height;

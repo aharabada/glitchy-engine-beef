@@ -104,13 +104,18 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0)
 		{
-			if(renderTarget == null)
+			if(renderTarget == null || renderTarget.Description.IsSwapchainTarget)
 			{
 				_renderTargets[slot] = _swapChain.nativeBackBufferTarget;
 			}
 			else
 			{
-				_renderTargets[slot] = renderTarget.nativeRenderTargetView;
+				_renderTargets[slot] = renderTarget._nativeRenderTargetView;
+			}
+
+			if(slot == 0)
+			{
+				SetDepthStencilTarget(renderTarget?.DepthStencilTarget);
 			}
 		}
 
@@ -127,7 +132,7 @@ namespace GlitchyEngine.Renderer
 			}
 			else
 			{
-				nativeContext.ClearRenderTargetView(renderTarget.nativeRenderTargetView, color);
+				nativeContext.ClearRenderTargetView(renderTarget._nativeRenderTargetView, color);
 			}
 		}
 

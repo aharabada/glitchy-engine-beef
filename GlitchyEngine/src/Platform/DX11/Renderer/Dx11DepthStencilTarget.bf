@@ -17,10 +17,14 @@ namespace GlitchyEngine.Renderer
 				return .D32_Float;
 			case .D32_Float_S8X24_UInt:
 				return .D32_Float_S8X24_UInt;
+			case .None:
+				Log.EngineLogger.Assert(false, "None is not a valid depth stencil format");
+				return .Unknown;
 			}
 		}
 	}
 
+	// TODO: Depth stencil target is technically just a RenderTarget
 	extension DepthStencilTarget
 	{
 		internal ID3D11DepthStencilView* nativeView ~ _?.Release();

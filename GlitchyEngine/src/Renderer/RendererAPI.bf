@@ -20,6 +20,8 @@ namespace GlitchyEngine.Renderer
 		public extern void Clear(RenderTarget2D renderTarget, ColorRGBA clearColor);
 
 		public extern void Clear(DepthStencilTarget target, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags);
+		
+		public extern void Clear(RenderTarget2D renderTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags);
 
 		public extern void DrawIndexed(GeometryBinding geometry);
 

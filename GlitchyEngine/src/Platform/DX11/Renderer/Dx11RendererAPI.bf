@@ -32,6 +32,11 @@ namespace GlitchyEngine.Renderer
 		{
 			_context.nativeContext.ClearDepthStencilView(target.nativeView, (.)clearFlags, depthValue, stencilValue);
 		}
+
+		public override void Clear(RenderTarget2D renderTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		{
+			_context.nativeContext.ClearDepthStencilView(renderTarget._depthStenilTarget.nativeView, (.)clearFlags, depthValue, stencilValue);
+		}
 		
 		public override void DrawIndexed(GeometryBinding geometry)
 		{

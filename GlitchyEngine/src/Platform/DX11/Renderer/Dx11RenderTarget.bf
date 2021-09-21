@@ -1,3 +1,4 @@
+using DirectX.Common;
 using DirectX.D3D11;
 
 namespace GlitchyEngine.Renderer
@@ -6,17 +7,73 @@ namespace GlitchyEngine.Renderer
 
 	extension RenderTarget2D
 	{
-		protected internal ID3D11RenderTargetView* nativeRenderTargetView ~ _?.Release();
+		protected internal ID3D11Texture2D* _nativeTexture ~ _?.Release();
+		protected internal ID3D11ShaderResourceView* _nativeResourceView ~ _?.Release();
+		protected internal ID3D11RenderTargetView* _nativeRenderTargetView ~ _?.Release();
 
-		protected override void CreateRenderTargetPlatform(Texture2DDesc desc)
+		private void ReleaseAndNullify()
 		{
-			nativeRenderTargetView?.Release();
-			nativeRenderTargetView = null;
+			ReleaseAndNullify!(_nativeTexture);
+			ReleaseAndNullify!(_nativeResourceView);
+			ReleaseAndNullify!(_nativeRenderTargetView);
 
-			CreateTexturePlatform(desc, true, null, 0);
+			ReleaseRefAndNullify!(_depthStenilTarget);
+		}
 
-			var result = _context.nativeDevice.CreateRenderTargetView(nativeTexture, null, &nativeRenderTargetView);
-			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create render target view. Error ({result.Underlying}): {result}");
+		public override void Resize(uint32 width, uint32 height)
+		{
+			ReleaseAndNullify();
+
+			_description.Width = width;
+			_description.Height = height;
+
+			ApplyChanges();
+		}
+
+		protected override void PlatformApplyChanges()
+		{
+			ReleaseAndNullify();
+
+			PlatformCreateTexture();
+
+			if(_description.DepthStencilFormat != .None)
+			{
+				_depthStenilTarget = new DepthStencilTarget(_context, _description.Width, _description.Height, _description.DepthStencilFormat);
+			}
+		}
+
+		private void PlatformCreateTexture()
+		{
+			Texture2DDescription desc = .()
+			{
+				Width = _description.Width,
+				Height = _description.Height,
+				ArraySize = _description.ArraySize,
+				MipLevels = _description.MipLevels,
+				Format = _description.PixelFormat,
+				// Always bindable as ShaderResource and RenderTarget
+				BindFlags = .ShaderResource | .RenderTarget,
+				CpuAccessFlags = (.)_description.CpuAccess,
+				// 2D RenderTarget never has misc flags
+				MiscFlags = .None,
+				SampleDesc = .(_description.SampleCount, _description.SampleQuality),
+				// RenderTarget has always Default usage
+				Usage = .Default
+			};
+
+			var result = _context.nativeDevice.CreateTexture2D(ref desc, null, &_nativeTexture);
+			Log.EngineLogger.Assert(result.Succeeded, "Failed to create RenderTarget2D");
+
+			CreateViews();
+		}
+
+		private void CreateViews()
+		{
+			var result = _context.nativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
+			Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
+
+			result = _context.nativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
+			Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
 		}
 	}
 }

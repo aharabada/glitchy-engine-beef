@@ -16,12 +16,10 @@ namespace GlitchyEngine.Renderer
 
 		public extern void Init();
 		
-		/**
-		 * Sets a rendertarget.
-		 * @param renderTarget The render target.
-		 * @param slot The slot to which the rendertarget will be bound.
-		 * @remarks When @RenderTarget is null the backbuffer will be bound.
-		 * 			@BindRenderTargets has to be called in order to bind the rendertargets.
+		/** @brief Sets a rendertarget to the given slot.
+		 * @BindRenderTargets has to be called in order to bind the rendertargets.
+		 * @param renderTarget The render target to set. If null, the backbuffer will be set.
+		 * @param slot The slot to which the rendertarget will be bound. If 0 the depth buffer of the current render target will be set. If it has no depthbuffer the current will be unset.
 		 */
 		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0);
 

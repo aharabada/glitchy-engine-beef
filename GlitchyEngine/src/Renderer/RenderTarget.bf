@@ -1,25 +1,83 @@
 using System;
 namespace GlitchyEngine.Renderer
 {
-	public class RenderTarget2D : Texture2D
+	public struct RenderTarget2DDescription
 	{
-		public this(GraphicsContext context, uint32 width, uint32 height, Format format, uint32 arraySize = 1, uint32 mipLevels = 1, CPUAccessFlags cpuAccess = .None)
-			 : base(context)
+		public uint32 Width;
+		public uint32 Height;
+		public uint32 ArraySize;
+		public uint32 MipLevels;
+		public Format PixelFormat;
+		public CPUAccessFlags CpuAccess;
+		public uint32 SampleCount;
+		public uint32 SampleQuality;
+		public DepthStencilFormat DepthStencilFormat;
+		public bool IsSwapchainTarget;
+
+		public this(Format pixelFormat, uint32 width, uint32 height, uint32 arraySize = 1, uint32 mipLevels = 1,
+			DepthStencilFormat depthStencilFormat = .None, CPUAccessFlags cpuAccess = .None, uint32 sampleCount = 1, uint32 sampleQuality = 0, bool isSwapchainTarget = false)
 		{
-			Texture2DDesc desc;
+			PixelFormat = pixelFormat;
+			Width = width;
+			Height = height;
+			ArraySize = arraySize;
+			MipLevels = mipLevels;
+			CpuAccess = cpuAccess;
+			DepthStencilFormat = depthStencilFormat;
 
-			desc.Width = width;
-			desc.Height = height;
-			desc.Format = format;
-			desc.ArraySize = arraySize;
-			desc.MipLevels = mipLevels;
-			// RenderTargets only can do default (I think)
-			desc.Usage = .Default;
-			desc.CpuAccess = cpuAccess;
+			SampleCount = sampleCount;
+			SampleQuality = sampleQuality;
 
-			CreateRenderTargetPlatform(desc);
+			IsSwapchainTarget = isSwapchainTarget;
 		}
+	}
+
+	public class RenderTarget2D : RefCounted
+	{
+		internal GraphicsContext _context;
+
+		private RenderTarget2DDescription _description;
+
+		public RenderTarget2DDescription Description => _description;
+
+		public uint32 Width => _description.Width;
+		public uint32 Height => _description.Height;
+
+		protected internal DepthStencilTarget _depthStenilTarget ~ _?.ReleaseRef();
 		
-		protected extern void CreateRenderTargetPlatform(Texture2DDesc desc);
+		// TODO: DepthStencilTarget is just a renderTarget
+		public DepthStencilTarget DepthStencilTarget => _depthStenilTarget;
+
+		protected SamplerState _samplerState ~ _?.ReleaseRef();
+
+		public SamplerState SamplerState
+		{
+			get => _samplerState;
+			set
+			{
+				if(_samplerState == value)
+					return;
+
+				SetReference!(_samplerState, value);
+			}
+		}
+
+		public this(GraphicsContext context, RenderTarget2DDescription description)
+		{
+			_context = context;
+			_description = description;
+
+			ApplyChanges();
+		}
+
+		/// Recreates the render target using the current description
+		public void ApplyChanges()
+		{
+			PlatformApplyChanges();
+		}
+
+		public extern void Resize(uint32 width, uint32 height);
+
+		protected extern void PlatformApplyChanges();
 	}
 }
