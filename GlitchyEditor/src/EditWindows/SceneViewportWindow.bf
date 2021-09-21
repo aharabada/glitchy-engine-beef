@@ -71,13 +71,6 @@ namespace GlitchyEditor.EditWindows
 			_hasFocus = ImGui.IsWindowFocused();
 
 			var viewportSize = ImGui.GetContentRegionAvail();
-			
-			if(oldViewportSize != viewportSize)
-			{
-				ViewportSizeChangedEvent.Invoke(this, *(Vector2*)&oldViewportSize);
-				viewPortChanged = true;
-				oldViewportSize = viewportSize;
-			}
 
 			if(_renderTarget != null)
 			{
@@ -85,6 +78,13 @@ namespace GlitchyEditor.EditWindows
 			}
 			
 			ImGui.End();
+
+			if(oldViewportSize != viewportSize)
+			{
+				ViewportSizeChangedEvent.Invoke(this, *(Vector2*)&oldViewportSize);
+				viewPortChanged = true;
+				oldViewportSize = viewportSize;
+			}
 		}
 	}
 }

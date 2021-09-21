@@ -2,6 +2,8 @@ using System;
 using ImGui;
 using GlitchyEngine.Events;
 
+using internal ImGui;
+
 namespace GlitchyEngine.ImGui
 {
 	public class ImGuiLayer : Layer
@@ -206,6 +208,8 @@ namespace GlitchyEngine.ImGui
 
 			ImGui.Render();
 			ImGuiImplDX11.RenderDrawData(ImGui.GetDrawData());
+
+			ImGui.CleanupFrame();
 
 			if(io.ConfigFlags.HasFlag(.ViewportsEnable))
 			{
