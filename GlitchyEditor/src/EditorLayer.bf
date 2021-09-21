@@ -29,7 +29,6 @@ namespace GlitchyEditor
 		PerspectiveCameraController _cameraController ~ delete _;
 		
 		RenderTarget2D _renderTarget2D ~ _?.ReleaseRef();
-		DepthStencilTarget _depthTarget ~ _?.ReleaseRef();
 
 		public this() : base("Example")
 		{
@@ -57,8 +56,7 @@ namespace GlitchyEditor
 			_alphaBlendState = new BlendState(_context, blendDesc);
 			_opaqueBlendState = new BlendState(_context, .Default);
 
-			_renderTarget2D = new RenderTarget2D(_context, 100, 100, .R8G8B8A8_UNorm);
-			_depthTarget = new DepthStencilTarget(_context, 100, 100, .D32_Float);
+			_renderTarget2D = new RenderTarget2D(_context, RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
 
 			SamplerStateDescription desc = .();
 
@@ -103,10 +101,9 @@ namespace GlitchyEditor
 			TransformSystem.Update(_world);
 
 			RenderCommand.Clear(_renderTarget2D, .(0.2f, 0.2f, 0.2f));
-			_depthTarget.Clear(1.0f, 0, .Depth);
+			RenderCommand.Clear(_renderTarget2D, 1.0f, 0, .Depth);
 
 			_context.SetRenderTarget(_renderTarget2D);
-			_depthTarget.Bind();
 			_context.BindRenderTargets();
 
 			RenderCommand.SetViewport(Viewport(0, 0, _renderTarget2D.Width, _renderTarget2D.Height));
@@ -148,7 +145,7 @@ namespace GlitchyEditor
 
 			DrawMainMenuBar();
 
-			_editor.SceneViewportWindow.Texture = _renderTarget2D;
+			_editor.SceneViewportWindow.RenderTarget = _renderTarget2D;
 
 			_editor.Update();
 
@@ -204,20 +201,9 @@ namespace GlitchyEditor
 			if(sizeX == 0 || sizeY == 0)
 				return;
 
-			var sampler = _renderTarget2D.SamplerState;
-
-			_renderTarget2D.ReleaseRef();
-			_depthTarget.ReleaseRef();
-
-			_renderTarget2D = new RenderTarget2D(_context, sizeX, sizeY, .R8G8B8A8_UNorm);
-			_editor.SceneViewportWindow.Texture = _renderTarget2D;
-
-			_depthTarget = new DepthStencilTarget(_context, sizeX, sizeY, .D32_Float);
+			_renderTarget2D.Resize(sizeX, sizeY);
 
 			_cameraController.AspectRatio = (float)sizeX / (float)sizeY;
-
-			
-			_renderTarget2D.SamplerState = sampler;
 		}
 	}
 }

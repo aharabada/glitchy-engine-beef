@@ -113,7 +113,7 @@ namespace Sandbox
 			if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
 			{
 				_target?.ReleaseRef();
-				_target = new RenderTarget2D(_context, (.)viewportSize.x, (.)viewportSize.y, .R8G8B8A8_UNorm);
+				_target = new RenderTarget2D(_context, .(.R8G8B8A8_UNorm, (.)viewportSize.x, (.)viewportSize.y));
 				_depth?.ReleaseRef();
 				_depth = new DepthStencilTarget(_context, (.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
 			}

@@ -12,7 +12,7 @@ namespace GlitchyEditor.EditWindows
 
 		private bool _open = true;
 
-		private Texture2D _texture ~ _?.ReleaseRef();
+		private RenderTarget2D _renderTarget ~ _?.ReleaseRef();
 
 		private bool _hasFocus;
 
@@ -29,17 +29,15 @@ namespace GlitchyEditor.EditWindows
 			get => _hasFocus;
 		}
 
-		public Texture2D Texture
+		public RenderTarget2D RenderTarget
 		{
-			get => _texture;
+			get => _renderTarget;
 			set
 			{
-				if(_texture == value)
+				if(_renderTarget == value)
 					return;
 
-				_texture?.ReleaseRef();
-				_texture = value;
-				_texture?.AddRef();
+				SetReference!(_renderTarget, value);
 			}
 		}
 
@@ -48,17 +46,10 @@ namespace GlitchyEditor.EditWindows
 		}
 
 		private ImGui.Vec2 oldViewportSize;
-
-		Texture2D _lastTexture;
+		private bool viewPortChanged;
 
 		public void Show()
 		{
-			// Hold a reference to the texture until the next frame.
-			// This is a workaround for the issue that changing the window size will release the texture
-			_lastTexture?.ReleaseRef();
-			_lastTexture = _texture;
-			_lastTexture.AddRef();
-
 			if(!_open)
 				return;
 			
@@ -80,20 +71,20 @@ namespace GlitchyEditor.EditWindows
 			_hasFocus = ImGui.IsWindowFocused();
 
 			var viewportSize = ImGui.GetContentRegionAvail();
-
-			if(_lastTexture != null)
-			{
-				ImGui.Image(_lastTexture, viewportSize);
-			}
-			
-			ImGui.End();
 			
 			if(oldViewportSize != viewportSize)
 			{
-				ViewportSizeChangedEvent.Invoke(this, *(Vector2*)&viewportSize);
-
+				ViewportSizeChangedEvent.Invoke(this, *(Vector2*)&oldViewportSize);
+				viewPortChanged = true;
 				oldViewportSize = viewportSize;
 			}
+
+			if(_renderTarget != null)
+			{
+				ImGui.Image(_renderTarget, viewportSize);
+			}
+			
+			ImGui.End();
 		}
 	}
 }
