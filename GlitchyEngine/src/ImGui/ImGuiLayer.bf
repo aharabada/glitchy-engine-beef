@@ -1,6 +1,7 @@
 using System;
 using ImGui;
 using GlitchyEngine.Events;
+using ImGuizmo;
 
 using internal ImGui;
 
@@ -184,6 +185,7 @@ namespace GlitchyEngine.ImGui
 			ImGuiImplDX11.NewFrame();
 			ImGuiImplWin32.NewFrame();
 			ImGui.NewFrame();
+			ImGuizmo.BeginFrame();
 		}
 
 		bool showDemo = true;

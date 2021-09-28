@@ -1,13 +1,12 @@
-using GlitchyEditor.EditWindows;
+using System;
+using ImGui;
 using GlitchyEngine;
+using GlitchyEditor.EditWindows;
 using GlitchyEngine.Events;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.World;
-using ImGui;
-using System;
-using GlitchyEngine.Renderer.Text;
 
 namespace GlitchyEditor
 {
@@ -88,9 +87,10 @@ namespace GlitchyEditor
 									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height);
 			_cameraController.CameraPosition = .(0, 0, -5);
 			_cameraController.TranslationSpeed = 10;
-			
 
 			_editor.[Friend]CreateEntityWithTransform();
+
+			_editor.SceneViewportWindow._camera = _cameraController.Camera;
 		}
 		
 		public override void Update(GameTime gameTime)

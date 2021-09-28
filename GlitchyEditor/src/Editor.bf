@@ -13,7 +13,7 @@ namespace GlitchyEditor
 		
 		private EntityHierarchyWindow _entityHierarchyWindow = new .(this) ~ delete _;
 		private ComponentEditWindow _componentEditWindow = new .(this) ~ delete _;
-		private SceneViewportWindow _sceneViewportWindow = new .() ~ delete _;
+		private SceneViewportWindow _sceneViewportWindow = new .(this) ~ delete _;
 
 		private List<Entity> _selectedEntities = new .() ~ delete _;
 

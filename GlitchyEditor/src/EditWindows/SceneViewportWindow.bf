@@ -3,11 +3,16 @@ using ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using GlitchyEngine;
+using GlitchyEngine.World;
+using ImGuizmo;
 
 namespace GlitchyEditor.EditWindows
 {
 	class SceneViewportWindow
 	{
+		private Editor _editor;
+		public Camera _camera;
+
 		public const String s_WindowTitle = "Scene";
 
 		private bool _open = true;
@@ -41,8 +46,9 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		public this()
+		public this(Editor editor)
 		{
+			_editor = editor;
 		}
 
 		private ImGui.Vec2 oldViewportSize;
@@ -75,6 +81,40 @@ namespace GlitchyEditor.EditWindows
 			if(_renderTarget != null)
 			{
 				ImGui.Image(_renderTarget, viewportSize);
+			}
+
+			if(_editor.SelectedEntities.Count > 0)
+			{
+				ImGuizmo.SetDrawlist();
+
+				var entity = _editor.SelectedEntities.Back;
+
+				var transformCmp = _editor.World.GetComponent<TransformComponent>(entity);
+
+				var transform = transformCmp.LocalTransform;
+
+				var view = _camera.View;
+				var projection = _camera.Projection;
+
+				var v = ImGui.GetWindowPos();
+				var cntMin = ImGui.GetWindowContentRegionMin();
+
+				v.x += cntMin.x;
+				v.y += cntMin.y;
+				
+				ImGuizmo.SetRect(v.x, v.y, viewportSize.x, viewportSize.y);
+
+				Color c = .(0,0,0,255);
+				
+				//ImGuizmo.DrawCubes((.)&view, (.)&projection, (.)&transform, 1);
+				ImGuizmo.Manipulate((.)&view, (.)&projection, .TRANSLATE, .LOCAL, (.)&transform);
+
+				Matrix mat = .Identity;
+
+				ImGuizmo.DrawGrid((.)&view, (.)&projection, (.)&mat, 10);
+
+				transformCmp.LocalTransform = transform;
+				//ImGuizmo.ViewManipulate((.)&view, , .TRANSLATE, .LOCAL, (.)&transform);
 			}
 			
 			ImGui.End();
