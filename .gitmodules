@@ -1,9 +1,6 @@
 [submodule "GlitchyEngine/vendor/directx"]
 	path = GlitchyEngine/vendor/directx
 	url = https://github.com/aharabada/directx-beef.git
-[submodule "GlitchyEngine/vendor/imgui-beef"]
-	path = GlitchyEngine/vendor/imgui-beef
-	url = https://github.com/aharabada/imgui-beef
 [submodule "GlitchyEngine/vendor/DirectXTK"]
 	path = GlitchyEngine/vendor/DirectXTK
 	url = https://github.com/aharabada/DirectXTK-beef.git
@@ -19,6 +16,9 @@
 [submodule "GlitchyEngine/vendor/gltf"]
 	path = GlitchyEngine/vendor/gltf
 	url = https://github.com/aharabada/cgltf-beef.git
-[submodule "GlitchyEngine\\vendor\\msdfgen"]
-	path = GlitchyEngine\\vendor\\msdfgen
+[submodule "GlitchyEngine/vendor/msdfgen"]
+	path = GlitchyEngine/vendor/msdfgen
 	url = https://github.com/aharabada/msdfgen-beef.git
+[submodule "GlitchyEngine/vendor/imgui"]
+	path = GlitchyEngine/vendor/imgui
+	url = https://github.com/aharabada/ImGui_GlitchyEngine.git
