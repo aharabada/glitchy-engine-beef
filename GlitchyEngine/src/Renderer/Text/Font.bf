@@ -107,12 +107,13 @@ namespace GlitchyEngine.Renderer.Text
 
 		public this(GraphicsContext context, String fontPath, uint32 fontSize, bool hasColor = true, char32 firstChar = '\0', uint32 charCount = 128, int32 faceIndex = 0)
 		{
+			// Make sure the fontrenderer is initialized (Font only cares about freetype)
+			FontRenderer.Init();
+
 			_context = context..AddRef();
 			
 			// Set default sampler
 			Sampler = null;
-
-			FontRenderer.InitLibrary();
 
 			_glyphs.Add('\0', new GlyphDescriptor(){Font = this});
 
@@ -120,7 +121,7 @@ namespace GlitchyEngine.Renderer.Text
 			_faceIndex = faceIndex;
 			_hasColor = hasColor;
 
-			var res = FreeType.New_Face(FontRenderer.Library, fontPath, faceIndex, &_face);
+			var res = FreeType.New_Face(FontRenderer.s_Library, fontPath, faceIndex, &_face);
 			Log.EngineLogger.Assert(res.Success, scope $"New_Face failed({(int)res}): {res}");
 
 			res = FreeType.Set_Pixel_Sizes(_face, 0, _fontSize);
@@ -408,11 +409,8 @@ namespace GlitchyEngine.Renderer.Text
 			desc.TranslationX = translationX;
 			desc.TranslationY = translationY;
 
-			//desc.AdjustToBaseLine = (float)(- height + _range + (_face.glyph.metrics.height / 64 - _face.glyph.metrics.horiBearingY / 64) * _geometryScaler);
-			                        //(float)(- height + translationY * _geometryScaler + (_face.glyph.metrics.height / 64 - _face.glyph.metrics.horiBearingY / 64) * _geometryScaler);
-			desc.AdjustToBaseLine = (float)(-height + translationY * _geometryScaler);
+			desc.AdjustToBaseLine = (float)(-translationY * _geometryScaler);
 
-			//desc.AdjustToPen = (float)(- _range + (_face.glyph.metrics.horiBearingX / 64) * _geometryScaler);
 			desc.AdjustToPen = (float)(-translationX);
 
 			return true;

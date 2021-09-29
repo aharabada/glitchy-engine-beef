@@ -5,41 +5,51 @@ using GlitchyEngine.Math;
 using System.Collections;
 
 using internal GlitchyEngine.Renderer.Text;
+using internal GlitchyEngine.Renderer;
 
 namespace GlitchyEngine.Renderer.Text
 {
 	public static class FontRenderer
 	{
-		internal static FT_Library Library ~ FreeType.Done_FreeType(_);
-
-		internal static void InitLibrary()
-		{
-			if(Library == null)
-			{
-				var res = FreeType.Init_FreeType(&Library);
-				Log.EngineLogger.Assert(res.Success, scope $"Init_FreeType failed({(int)res}): {res}");
-			}
-		}
+		internal static FT_Library s_Library;
 
 		public static Effect _msdfEffect;
 
-		static this()
+		internal static bool s_isInitialized;
+
+		internal static void Init()
 		{
-			FontRenderer.InitLibrary();
+			if(s_isInitialized)
+				return;
+
+			InitFreetype();
+
+			_msdfEffect = new Effect(Renderer._context, "content\\Shaders\\msdfShader.hlsl");
+
+			s_isInitialized = true;
 		}
 
-		public static void Init(EffectLibrary effectLibrary)
+		internal static void Deinit()
 		{
-			if(effectLibrary.Exists("msdfShader"))
-				_msdfEffect = effectLibrary.Get("msdfShader");
-			else
-				_msdfEffect = effectLibrary.Load("content\\Shaders\\msdfShader.hlsl");
+			_msdfEffect.ReleaseRef();
+
+			DeinitFreetype();
+			
+			s_isInitialized = false;
+		}
+		
+		private static void InitFreetype()
+		{
+			if(s_Library == null)
+			{
+				var res = FreeType.Init_FreeType(&s_Library);
+				Log.EngineLogger.Assert(res.Success, scope $"Failed to initialize freetype ({(int)res}): {res}");
+			}
 		}
 
-		public static void DeInit()
+		private static void DeinitFreetype()
 		{
-			_msdfEffect?.ReleaseRef();
-			_msdfEffect = null;
+			FreeType.Done_FreeType(s_Library);
 		}
 
 		/** @brief Draws a given text using a specified font stack and renderer.
@@ -52,24 +62,33 @@ namespace GlitchyEngine.Renderer.Text
 		 * @param bitmapColor The (default) color used for glyphs that are bitmaps (e.g. emojies, if the font provies them as bitmap).
 		 * @param lineGapOffset Can be used to manually increase or decrease the gap between lines.
 		 */
-		public static void DrawText(Renderer2D renderer, Font font, String text, float x, float y, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineGapOffset = 0)
+		public static void DrawText(Font font, String text, float x, float y, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineGapOffset = 0)
 		{
 			if(text.IsWhiteSpace)
 				return;
 			
-			renderer.End();
-			var lastEffect = renderer.[Friend]_currentEffect;
-			renderer.[Friend]_currentEffect = _msdfEffect..AddRef();
-			
+			Renderer2D.Flush();
+
+			// TODO: this is very not good!
+			var lastEffect = Renderer2D.[Friend]s_currentEffect;
+			Renderer2D.[Friend]s_currentEffect = _msdfEffect..AddRef();
+			// TODO: oh no....
+			// Copy viewProjection from current effect
+			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
+			_msdfEffect.Variables["ViewProjection"].SetData(viewProjection);
+
 			float scale = (float)fontSize / (float)font._fontSize;
-			
+
 			_msdfEffect.Variables["screenPixelRange"].SetData(scale * 4.0f);
+			
+			Vector2 unitRange = Vector2((float)font._range) / Vector2(font._atlas.Width, font._atlas.Height);
+			_msdfEffect.Variables["UnitRange"].SetData(unitRange);
 
 			// Space between two baselines
 			float linespace = (((font._face.size.metrics.ascender - font._face.size.metrics.descender) / 64) + lineGapOffset) * scale;
 			
 			// The line we are writing on
-			float baseline = y + linespace;
+			float baseline = y;// + linespace;
 
 			//renderer.Draw(null, x, baseline, 10000, 1, .Blue);
 
@@ -80,7 +99,6 @@ namespace GlitchyEngine.Renderer.Text
 			int movedLines = 0;
 
 			List<Texture2D> atlasses = scope .();
-
 			// We render every char with a slightly greater depth, so that the chars don't cull each other.
 			// In order to do that we increment an integer for each glyph and use it as the depth for the next one.
 			// Whenn passing the depth to the renderer we treat the integer as the binary representation of a float.
@@ -88,8 +106,8 @@ namespace GlitchyEngine.Renderer.Text
 			// smallest possible increase a float can represent.
 			// Note: This might do funky stuff when objects are very close to each other. But realistically whe have to do
 			// about 8 million (2^23) increments to reach a depth of 1 so I think it's safe enough.
-			float f = 1.0f;
-			int32 depthInt = *(int32*)&f;
+			//float f = 1.0f;
+			//int32 depthInt = *(int32*)&f;
 
 			// enumerate through the unicode codepoints
 			for(char32 char in text.DecodedChars)
@@ -104,7 +122,7 @@ namespace GlitchyEngine.Renderer.Text
 				if(movedLines != 0)
 				{
 					// move baseline
-					baseline += linespace * movedLines;
+					baseline -= linespace * movedLines;
 
 					// TODO: make carriage return optional?
 					// return pen to start of line
@@ -155,18 +173,22 @@ namespace GlitchyEngine.Renderer.Text
 
 				texRect /= Vector4(atlasSize, atlasSize);
 
-				renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
+				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+
+				//renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
 
 				penPosition += glyphDesc.Advance * glyphFontScale;
 
 				// Increase depth for the next glyph
-				depthInt--;
+				//depthInt--;
 			}
 
-			renderer.End();
+			Renderer2D.Flush();
 
+			// TODO: not good!
+			// Change back effect
 			_msdfEffect.ReleaseRef();
-			renderer.[Friend]_currentEffect = lastEffect;
+			Renderer2D.[Friend]s_currentEffect = lastEffect;
 			
 			// release all atlas textures
 			for(int i < atlasses.Count)

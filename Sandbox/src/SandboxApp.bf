@@ -570,12 +570,14 @@ namespace Sandbox
 	{
 		public this()
 		{
+#if SANDBOX_2D
+			PushLayer(new ExampleLayer2D());
+#else
 			PushLayer(new ExampleLayer());
+#endif
 		}
 
-#if !SANDBOX_2D		
 		[Export, LinkName("CreateApplication")]
-#endif
 		public static Application CreateApplication()
 		{
 			return new SandboxApp();

@@ -16,11 +16,11 @@ namespace GlitchyEngine
 		private bool _running = true;
 		private bool _isMinimized = false;
 
-		private LayerStack _layerStack = new LayerStack() ~ delete _;
+		private LayerStack _layerStack = new LayerStack();
 
 		private ImGuiLayer _imGuiLayer;
 
-		private GameTime _gameTime = new GameTime(true) ~ delete _;
+		private GameTime _gameTime = new GameTime(true);
 
 		public bool IsRunning => _running;
 		public Window Window => _window;
@@ -57,7 +57,10 @@ namespace GlitchyEngine
 
 		public ~this()
 		{
+			delete _layerStack;
 			SamplerStateManager.Uninit();
+			Renderer.Deinit();
+			delete _gameTime;
 		}
 
 		public void OnEvent(Event e)

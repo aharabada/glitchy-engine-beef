@@ -24,8 +24,6 @@ namespace Sandbox
 
 		Effect _effect ~ _.ReleaseRef();
 
-		Renderer2D _renderer;
-
 		float _zoom = 1.0f;
 		
 		BackgroundMode _backgroundMode = .Checkerboard;
@@ -39,29 +37,18 @@ namespace Sandbox
 		SamplerState _samplerPoint ~ _.ReleaseRef();
 		SamplerState _samplerLinear ~ _.ReleaseRef();
 
-		public this(GraphicsContext context, Renderer2D renderer2D, EffectLibrary effectLibrary = null)
+		public this()
 		{
-			Log.EngineLogger.AssertDebug(context != null);
+			_context = Renderer.[Friend]_context..AddRef();
 
-			_context = context;
-			_renderer = renderer2D;
-
-			InitEffect(effectLibrary);
+			InitEffect();
 			InitState();
 			// TODO: rasterizerstate and depthstencilstate
 		}
 
-		private void InitEffect(EffectLibrary effectLibrary)
+		private void InitEffect()
 		{
-			var effectLibrary;
-
-			if(effectLibrary == null)
-			{
-				effectLibrary = new EffectLibrary(_context);
-				defer:: delete effectLibrary;
-			}
-
-			_effect = effectLibrary.Load("content\\Shaders\\textureViewerShader.hlsl");
+			_effect = new Effect(_context, "content\\Shaders\\textureViewerShader.hlsl");
 		}
 
 		private void InitState()
@@ -174,6 +161,8 @@ namespace Sandbox
 			}
 		}
 
+		OrthographicCamera _camera = new OrthographicCamera() ~ delete _;
+
 		private void RenderTexture(Texture2D viewedTexture)
 		{
 			Viewport vp = .(0, 0, _target.Width, _target.Height);
@@ -198,28 +187,38 @@ namespace Sandbox
 			_effect.Variables["AlphaOffset"].SetData(_alphaOffset);
 			_effect.Variables["AlphaScale"].SetData(_alphaScale);
 
-			_renderer.Begin(.SortByTexture, targetSize);
+			_camera.Left = 0;
+			_camera.Top = 0;
+			_camera.Right = targetSize.X;
+			_camera.Bottom = -targetSize.Y;
+			_camera.NearPlane = -5;
+			_camera.FarPlane = 5;
+			_camera.Update();
 
+			Renderer2D.BeginScene(_camera);
+			
 			switch(_backgroundMode)
 			{
 			case .Black:
-				_renderer.Draw(null, 0, 0, targetSize.X, targetSize.Y, .Black, 1);
+				Renderer2D.DrawQuadPivotCorner(Vector3(0, 0, 1), targetSize, 0, .Black);
 			case .White:
-				_renderer.Draw(null, 0, 0, targetSize.X, targetSize.Y, .White, 1);
+				Renderer2D.DrawQuadPivotCorner(Vector3(0, 0, 1), targetSize, 0, .White);
 			case .Checkerboard:
 				float quadSize = 50.0f;
-	
-				for(int x = 0; x < (targetSize.X / 500f) * 10f; x++)
+
+				Vector2 numQuads = (targetSize / 500f) * 10f;
+
+				for(float x = 0; x < numQuads.X; x++)
 				{
-					for(int y = 0; y < (targetSize.Y / 500f) * 10f; y++)
+					for(float y = 0; y < numQuads.Y; y++)
 					{
-						_renderer.Draw(null, x * quadSize, y * quadSize, quadSize, quadSize, ((x + y) % 2 == 0) ? .White : .Gray, 1);
+						Renderer2D.DrawQuadPivotCorner(Vector3(x * quadSize, -y * quadSize, 1), quadSize.XX, 0, ((x + y) % 2 == 0) ? .White : .Gray);
 					}
 				}
 				break;
 			}
 
-			_renderer.End();
+			Renderer2D.EndScene();
 
 			var sampler = viewedTexture.SamplerState;
 
@@ -231,11 +230,11 @@ namespace Sandbox
 				viewedTexture.SamplerState = _samplerLinear;
 			}
 
-			_renderer.Begin(.SortByTexture, targetSize, 100, _effect);
+			Renderer2D.BeginScene(_camera, .SortByTexture, _effect);
 
-			_renderer.Draw(viewedTexture, _position.X, _position.Y, zoomedTextureSize.X, zoomedTextureSize.Y);
+			Renderer2D.DrawQuadPivotCorner(Vector3(_position * .(1, -1), 0), zoomedTextureSize, 0, viewedTexture);
 			
-			_renderer.End();
+			Renderer2D.EndScene();
 
 			viewedTexture.SamplerState = sampler;
 		}

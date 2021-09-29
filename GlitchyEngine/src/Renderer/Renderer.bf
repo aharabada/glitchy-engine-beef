@@ -15,7 +15,7 @@ namespace GlitchyEngine.Renderer
 			public Matrix Transform;
 		}
 
-		static GraphicsContext _context ~ _?.ReleaseRef();
+		static internal GraphicsContext _context ~ _?.ReleaseRef();
 
 		//static Buffer<SceneConstants> _sceneConstants ~ _?.ReleaseRef();
 
@@ -39,8 +39,14 @@ namespace GlitchyEngine.Renderer
 			*/
 
 			RenderCommand.Init();
+			Renderer2D.Init();
 
 			InitLineRenderer(effectLibrary);
+		}
+
+		public static void Deinit()
+		{
+			Renderer2D.Deinit();
 		}
 
 		static void InitLineRenderer(EffectLibrary effectLibrary)

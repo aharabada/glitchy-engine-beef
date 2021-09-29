@@ -2,13 +2,61 @@ using GlitchyEngine.Math;
 using System.Collections;
 using System;
 using System.Diagnostics;
+using GlitchyEngine.Renderer.Text;
 
 namespace GlitchyEngine.Renderer
 {
 	using internal GlitchyEngine.Renderer;
 
-	public class Renderer2D
+	public static class Renderer2D
 	{
+		[CRepr]
+		struct QuadVertex : IVertexData
+		{
+			public Vector2 Position;
+			public Vector2 Texcoord;
+
+			public this(Vector2 position, Vector2 texcoord)
+			{
+				Position = position;
+				Texcoord = texcoord;
+			}
+
+			public this(float x, float y, float texX, float texY)
+			{
+				Position = .(x, y);
+				Texcoord = .(texX, texY);
+			}
+
+			public static VertexElement[] VertexElements ~ delete _;
+
+			public static VertexElement[] IVertexData.VertexElements => VertexElements;
+
+			static this()
+			{
+				VertexElements = new VertexElement[]
+				(
+					VertexElement(.R32G32_Float, "POSITION"),
+					VertexElement(.R32G32_Float, "TEXCOORD"),
+				);
+			}
+		}
+		
+		[CRepr]
+		struct BatchVertex
+		{
+			public Matrix Transform;
+			public ColorRGBA Color;
+			public Vector4 UVTransform;
+
+			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform)
+			{
+				Transform = transform;
+				Color = color;
+				UVTransform = uvTransform;
+			}
+		}
+		
 		enum DrawOrder
 		{
 			/// Immediately draw the sprites.
@@ -30,96 +78,55 @@ namespace GlitchyEngine.Renderer
 			FrontToBack
 		}
 
-		struct RenderVertex : IVertexData
+		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture2D Texture, float Depth, Vector4 uvTransform) { }
+
+#if DEBUG
+		private static bool s_initialized;
+		private static bool s_sceneRunning;
+#endif
+
+		private static Effect s_textureColorEffect;
+		private static Effect s_batchEffect;
+
+		private static GeometryBinding s_quadGeometry;
+
+		private static Texture2D s_whiteTexture;
+
+		private static GeometryBinding s_batchBinding;
+		private static VertexBuffer s_instanceBuffer;
+		
+		private static BatchVertex[] s_rawInstances;
+		private static uint32 s_setInstances;
+
+		private static List<QueueQuad> s_instanceQueue;
+
+		private static DrawOrder s_drawOrder;
+
+		/// The effect that is currently used to draw the sprites.
+		private static Effect s_currentEffect;
+
+		private static void InitEffect()
 		{
-			public Vector2 Position;
-
-			public this(Vector2 position)
-			{
-				Position = position;
-			}
-
-			public this(float x, float y)
-			{
-				Position = .(x, y);
-			}
-
-			public static VertexElement[] VertexElements ~ delete _;
-
-			public static VertexElement[] IVertexData.VertexElements => VertexElements;
-
-			static this()
-			{
-				VertexElements = new VertexElement[]
-				(
-					VertexElement(.R32G32_Float, "POSITION")
-				);
-			}
+			s_textureColorEffect = new Effect(Renderer._context, "content\\Shaders\\textureColor.hlsl");
+			s_batchEffect = new Effect(Renderer._context, "content\\Shaders\\spritebatch.hlsl");
 		}
 
-		[Ordered]
-		struct BatchVertex
+		private static void InitGeometry()
 		{
-			public Matrix Transform;
-			public Color Color;
-			public Vector4 UVTransform;
+			VertexLayout layout = new VertexLayout(Renderer._context, QuadVertex.VertexElements, false, s_textureColorEffect.VertexShader);
 
-			public this(Matrix transform, Color color, Vector4 uvTransform)
-			{
-				Transform = transform;
-				Color = color;
-				UVTransform = uvTransform;
-			}
-		}
+			VertexBuffer quadVertices = new VertexBuffer(Renderer._context, typeof(QuadVertex), 4, .Immutable);
 
-		private GraphicsContext _context ~ _?.ReleaseRef();
-
-		private Vector2 _virtualResolution;
-
-		private Effect quadEffect ~ _?.ReleaseRef();
-		private GeometryBinding quadBinding ~ _?.ReleaseRef();
-		
-		private Effect instancingEffect ~ _?.ReleaseRef();
-		private GeometryBinding instancingBinding ~ _?.ReleaseRef();
-		private VertexBuffer instanceBuffer ~ _?.ReleaseRef();
-
-		private Texture2D whiteTexture ~ _.ReleaseRef();
-		
-		private BatchVertex[] _rawInstances = new BatchVertex[1024] ~ delete _;
-		private uint32 _setInstances = 0;
-		
-		Matrix _projection;
-
-		DrawOrder _drawOrder;
-
-		/// The effect that is currently being used to draw the sprites.
-		private Effect _currentEffect ~ _?.ReleaseRef();
-
-		public this(GraphicsContext context, EffectLibrary effectLibrary)
-		{
-			_context = context..AddRef();
-			Init(effectLibrary);
-			InitInstancing(effectLibrary);
-		}
-
-		void Init(EffectLibrary effectLibrary)
-		{
-			quadEffect = effectLibrary.Load("content\\Shaders\\render2dShader.hlsl", "Renderer2D");
-
-			VertexLayout layout = new VertexLayout(_context, RenderVertex.VertexElements, false, quadEffect.VertexShader);
-
-			VertexBuffer quadVertices = new VertexBuffer(_context, typeof(RenderVertex), 4, .Immutable);
-
-			RenderVertex[4] vertices = .(
-				.(0, 0),
-				.(0, 1),
-				.(1, 1),
-				.(1, 0)
+			QuadVertex[4] vertices = .(
+				.(-0.5f,-0.5f, 0, 1),
+				.(-0.5f, 0.5f, 0, 0),
+				.( 0.5f, 0.5f, 1, 0),
+				.( 0.5f,-0.5f, 1, 1)
 				);
 
 			quadVertices.SetData(vertices);
 
-			IndexBuffer quadIndices = new IndexBuffer(_context, 6, .Immutable);
+			IndexBuffer quadIndices = new IndexBuffer(Renderer._context, 6, .Immutable);
 
 			uint16[6] indices = .(
 					0, 1, 2,
@@ -128,194 +135,227 @@ namespace GlitchyEngine.Renderer
 
 			quadIndices.SetData(indices);
 
-			quadBinding = new GeometryBinding(_context);
-			quadBinding.SetVertexLayout(layout..ReleaseRefNoDelete());
-			quadBinding.SetPrimitiveTopology(.TriangleList);
-			quadBinding.SetVertexBufferSlot(quadVertices, 0);
-			quadBinding.SetIndexBuffer(quadIndices);
+			s_quadGeometry = new GeometryBinding(Renderer._context);
+			s_quadGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
+			s_quadGeometry.SetPrimitiveTopology(.TriangleList);
+			s_quadGeometry.SetVertexBufferSlot(quadVertices, 0);
+			s_quadGeometry.SetIndexBuffer(quadIndices);
 
 			quadVertices.ReleaseRef();
 			quadIndices.ReleaseRef();
-
-			Texture2DDesc tex2Ddesc;
-			tex2Ddesc.Format = .R8G8B8A8_UNorm;
-			tex2Ddesc.Width = 1;
-			tex2Ddesc.Height = 1;
-			tex2Ddesc.MipLevels = 1;
-			tex2Ddesc.ArraySize = 1;
-			tex2Ddesc.Usage = .Immutable;
-			tex2Ddesc.CpuAccess = .None;
-			whiteTexture = new Texture2D(_context, tex2Ddesc);
-
-			Color color = .White;
-			whiteTexture.SetData(&color);
-
-			SamplerState sampler = SamplerStateManager.GetSampler(SamplerStateDescription());
-
-			whiteTexture.SamplerState = sampler;
-
-			sampler..ReleaseRef();
 		}
 
-		void InitInstancing(EffectLibrary effectLibrary)
+		private static void InitInstancingGeometry()
 		{
-			instancingEffect = effectLibrary.Load("content\\Shaders\\render2dShaderInst.hlsl", "Renderer2DInstancing");
-
-			instanceBuffer = new VertexBuffer(_context, typeof(BatchVertex), 1024, .Dynamic, .Write);
-			instanceBuffer.SetData(0);
+			s_instanceBuffer = new VertexBuffer(Renderer._context, typeof(BatchVertex), 1024, .Dynamic, .Write);
+			s_instanceBuffer.SetData(0);
 
 			VertexElement[] vertexElements = new .(
 				VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
+				VertexElement(.R32G32_Float, "TEXCOORD", false, 0, 0, (.)-1, .PerVertexData, 0),
 				
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 0, 1, (.)-1, .PerInstanceData, 1),
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 1, 1, (.)-1, .PerInstanceData, 1),
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 2, 1, (.)-1, .PerInstanceData, 1),
 				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(    .R8G8B8A8_UNorm,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 0, 1, (.)-1, .PerInstanceData, 1)
+				VertexElement(.R32G32B32A32_Float,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
+				VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1)
 			);
 
-			VertexLayout instancingLayout = new VertexLayout(_context, vertexElements, true, instancingEffect.VertexShader);
+			VertexLayout batchLayout = new VertexLayout(Renderer._context, vertexElements, true, s_batchEffect.VertexShader);
 
-			instancingBinding = new GeometryBinding(_context);
-			instancingBinding.SetVertexLayout(instancingLayout..ReleaseRefNoDelete());
-			instancingBinding.SetPrimitiveTopology(.TriangleList);
-			instancingBinding.SetVertexBufferSlot(quadBinding.GetVertexBuffer(0), 0);
-			instancingBinding.SetVertexBufferSlot(instanceBuffer, 1);
-			instancingBinding.SetIndexBuffer(quadBinding.GetIndexBuffer(), 0);
+			s_batchBinding = new GeometryBinding(Renderer._context);
+			s_batchBinding.SetVertexLayout(batchLayout..ReleaseRefNoDelete());
+			s_batchBinding.SetPrimitiveTopology(.TriangleList);
+
+			s_batchBinding.SetVertexBufferSlot(s_quadGeometry.GetVertexBuffer(0), 0);
+			s_batchBinding.SetIndexBuffer(s_quadGeometry.GetIndexBuffer(), 0);
+
+			s_batchBinding.SetVertexBufferSlot(s_instanceBuffer, 1);
+
+			s_rawInstances = new BatchVertex[1024];
+			s_setInstances = 0;
+
+			s_instanceQueue = new List<QueueQuad>(1024);
 		}
 
-		/**
-		 * Initializes the renderer.
-		 * @param drawOrder Determines if and how the sprites will be ordered before rendering.
-		 * @param virtualResolution The virtual resolution used for rendering.
-		 *			Can be used to draw resolution independent stuff. // TODO: find a better explanation
-		 */ // TODO: RenderMode (Immediate, Deferred)
-		public void Begin(DrawOrder drawOrder = .SortByTexture, Vector2 virtualResolution = .Zero, float maxDepth = 100, Effect effect = null)
+		private static void InitWhitetexture()
 		{
-			_drawOrder = drawOrder;
+			// Create a texture with a single white pixel
+			Texture2DDesc tex2Ddesc = .{
+				Format = .R8G8B8A8_UNorm,
+				Width = 1,
+				Height = 1,
+				MipLevels = 1,
+				ArraySize = 1,
+				Usage = .Immutable,
+				CpuAccess = .None
+			};
+			s_whiteTexture = new Texture2D(Renderer._context, tex2Ddesc);
 
-			_virtualResolution = virtualResolution;
+			Color color = .White;
+			s_whiteTexture.SetData(&color);
 
-			if(virtualResolution == .Zero)
-			{
-				_virtualResolution = .(_context.SwapChain.BackbufferViewport.Width, _context.SwapChain.BackbufferViewport.Height);
-			}
+			// Create the default sampler for the white texture
+			SamplerState sampler = SamplerStateManager.GetSampler(SamplerStateDescription());
+			s_whiteTexture.SamplerState = sampler;
+
+			sampler.ReleaseRef();
+		}
+
+		public static void Init()
+		{
+			InitEffect();
+			InitGeometry();
+			InitInstancingGeometry();
+			InitWhitetexture();
+
+			FontRenderer.Init();
+
+#if DEBUG
+			s_initialized = true;
+#endif
+		}
+
+		public static void Deinit()
+		{
+			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
+
+			FontRenderer.Deinit();
+
+			s_textureColorEffect.ReleaseRef();
+			s_batchEffect.ReleaseRef();
+
+			s_quadGeometry.ReleaseRef();
+
+			s_whiteTexture.ReleaseRef();
 			
-			_projection = .(2.0f / _virtualResolution.X, 0, 0, 0,
-							0, -2.0f / _virtualResolution.Y, 0, 0,
-							0, 0, 1.0f / maxDepth, 0,
-							-1, 1, 0, 1);
+			s_batchBinding.ReleaseRef();
+			s_instanceBuffer.ReleaseRef();
 
+			delete s_rawInstances;
+			delete s_instanceQueue;
+
+			s_currentEffect?.ReleaseRef();
+
+#if DEBUG
+			s_initialized = false;
+#endif
+		}
+
+		public static void BeginScene(OrthographicCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null)
+		{
+			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
+			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
+
+			//s_textureColorEffect.Bind(Renderer._context);
+			
 			if(effect != null)
 			{
-				_currentEffect?.ReleaseRef();
-				_currentEffect = effect..AddRef();
+				s_currentEffect?.ReleaseRef();
+				s_currentEffect = effect..AddRef();
 			}
 			else
 			{
-				_currentEffect = instancingEffect..AddRef();
+				s_currentEffect = s_batchEffect..AddRef();
 			}
+			
+			s_currentEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
+			s_textureColorEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
+
+			s_drawOrder = drawOrder;
+
+#if DEBUG
+			s_sceneRunning = true;
+#endif
 		}
 
-		struct QueuedQuad: this(Matrix Transform, Color Color, Texture2D Texture, float Depth, Vector4 uvTransform) { }
-
-		List<QueuedQuad> _quads = new .(128) ~ delete _;
-
-		public void Draw(Texture2D texture, float x, float y, float width, float height, Color color = .White, float depth = 0.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void EndScene()
 		{
-			Matrix transform = .(width,      0, 0, 0,
-									0, height, 0, 0,
-				                    0,      0, 1, 0,
-									x,      y, depth, 1) * _projection;
+			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 
-			if(_drawOrder == .Immediate)
-			{
-				/*
-				texture.Bind();
-	
-				quadEffect.Variables["World"].SetData(transform);
-				quadEffect.Variables["Color"].SetData(color);
-				quadEffect.Variables["HasTexture"].SetData(true);
-				quadEffect.Bind(_context);
-	
-				quadBinding.Bind(_context);
-				RenderCommand.DrawIndexed(quadBinding);
-				*/
-				_quads.Add(.(transform, color, texture ?? whiteTexture, depth, uvTransform));
+			Flush();
+#if DEBUG
+			s_sceneRunning = false;
+#endif
+		}
+
+		public static void Flush()
+		{
+			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
+
+			if(s_drawOrder != .Immediate)
 				DrawDeferred();
-			}
-			else
-			{
-				_quads.Add(.(transform, color, texture ?? whiteTexture, depth, uvTransform));
-			}
 		}
 
-		public void End()
+		/// Adds a quad instance to the instance queue.
+		[Inline]
+		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform)
 		{
-			if(_drawOrder != .Immediate)
-			{
-				DrawDeferred();
-			}
+			s_instanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform));
 		}
-
-		void FlushInstances()
+		
+		private static void FlushInstances()
 		{
-			if(_setInstances == 0)
+			if(s_setInstances == 0)
 				return;
 
-			instanceBuffer.SetData<BatchVertex>(_rawInstances.Ptr, _setInstances, 0, .WriteDiscard);
+			s_instanceBuffer.SetData<BatchVertex>(s_rawInstances.Ptr, s_setInstances, 0, .WriteDiscard);
 			
-			_currentEffect.Bind(_context);
-			instancingBinding.InstanceCount = _setInstances;
-			instancingBinding.Bind(_context);
-			RenderCommand.DrawIndexedInstanced(instancingBinding);
+			s_currentEffect.Bind(Renderer._context);
+			s_batchBinding.InstanceCount = s_setInstances;
+			s_batchBinding.Bind(Renderer._context);
+			RenderCommand.DrawIndexedInstanced(s_batchBinding);
 
-			_setInstances = 0;
+			s_setInstances = 0;
 		}
 
-		int TextureComparison(QueuedQuad lhs, QueuedQuad rhs)
+		private static int TextureComparison(QueueQuad lhs, QueueQuad rhs)
 		{
 			return (int)Internal.UnsafeCastToPtr(lhs.Texture) - (int)Internal.UnsafeCastToPtr(rhs.Texture);
 		}
-		int FrontToBackComparison(QueuedQuad lhs, QueuedQuad rhs)
+		private static int BackToFrontComparison(QueueQuad lhs, QueueQuad rhs)
 		{
 			return rhs.Depth <=> lhs.Depth;
 		}
-		int BackToFrontComparison(QueuedQuad lhs, QueuedQuad rhs)
+		private static int FrontToBackComparison(QueueQuad lhs, QueueQuad rhs)
 		{
 			return lhs.Depth <=> rhs.Depth;
 		}
 
-		private void SortQuads()
+		private static void SortQuads()
 		{
-			switch(_drawOrder)
+			s_instanceQueue.Sort(scope => TextureComparison);
+			
+			switch(s_drawOrder)
 			{
 			case .SortByTexture:
-				_quads.Sort(scope => TextureComparison);
+				s_instanceQueue.Sort(scope => TextureComparison);
 			case .BackToFront:
-				_quads.Sort(scope => BackToFrontComparison);
+				s_instanceQueue.Sort(scope => BackToFrontComparison);
 			case .FrontToBack:
-				_quads.Sort(scope => FrontToBackComparison);
+				s_instanceQueue.Sort(scope => FrontToBackComparison);
+			case .Immediate:
 			default:
+				Log.EngineLogger.Error("Unknown instance draw order.");
 			}
 		}
 
-		private void DrawDeferred()
+		private static void DrawDeferred()
 		{
-			if(_quads.Count == 0)
+			if(s_instanceQueue.IsEmpty)
 				return;
 
 			SortQuads();
 
-			Texture2D texture = _quads[0].Texture;
-			_currentEffect.SetTexture("Texture", texture);
+			Texture2D texture = s_instanceQueue[0].Texture;
+			s_currentEffect.SetTexture("Texture", texture);
 
-			_setInstances = 0;
+			s_setInstances = 0;
 
-			for(int i < _quads.Count)
+			for(int i < s_instanceQueue.Count)
 			{
-				var quad = ref _quads[i];
+				var quad = ref s_instanceQueue[i];
 
 				// flush every time the texture changes
 				if(quad.Texture != texture)
@@ -323,12 +363,12 @@ namespace GlitchyEngine.Renderer
 					FlushInstances();
 
 					texture = quad.Texture;
-					_currentEffect.SetTexture("Texture", texture);
+					s_currentEffect.SetTexture("Texture", texture);
 				}
 
-				_rawInstances[_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
+				s_rawInstances[s_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
 				
-				if(_setInstances == _rawInstances.Count)
+				if(s_setInstances == s_rawInstances.Count)
 				{
 					FlushInstances();
 				}
@@ -336,9 +376,78 @@ namespace GlitchyEngine.Renderer
 			
 			FlushInstances();
 			
-			_quads.Clear();
+			s_instanceQueue.Clear();
+		}
 
-			Debug.Assert(_quads.Count == 0);
+		private static void DrawImmediate(Matrix transform, ColorRGBA color, Texture2D texture, Vector4 uvTransform)
+		{
+			s_textureColorEffect.SetTexture("Texture", texture ?? s_whiteTexture);
+
+			s_textureColorEffect.Variables["World"].SetData(transform);
+			s_textureColorEffect.Variables["Color"].SetData(color);
+			s_textureColorEffect.Variables["UVTransform"].SetData(uvTransform);
+
+			s_textureColorEffect.Bind(Renderer._context);
+
+			s_quadGeometry.Bind(Renderer._context);
+			RenderCommand.DrawIndexed(s_quadGeometry);
+		}
+
+		// Primitives
+
+		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, ColorRGBA color)
+		{
+			DrawQuad(Vector3(position, 0.0f), size, rotation, s_whiteTexture, color);
+		}
+
+		/// Like DrawQuad but the pivot point is the top left corner
+		public static void DrawQuadPivotCorner(Vector2 position, Vector2 size, float rotation, ColorRGBA color)
+		{
+			DrawQuadPivotCorner(Vector3(position, 0.0f), size, rotation, s_whiteTexture, color);
+		}
+		
+		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, ColorRGBA color)
+		{
+			DrawQuad(position, size, rotation, s_whiteTexture, color);
+		}
+		
+		public static void DrawQuadPivotCorner(Vector3 position, Vector2 size, float rotation, ColorRGBA color)
+		{
+			DrawQuadPivotCorner(position, size, rotation, s_whiteTexture, color);
+		}
+		
+		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			DrawQuad(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
+		}
+		
+		public static void DrawQuadPivotCorner(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			DrawQuadPivotCorner(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
+		}
+
+		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
+				
+			Matrix transform = Matrix.Translation(position) * Matrix.RotationZ(rotation) * Matrix.Scaling(size.X, size.Y, 1.0f);
+
+			if(s_drawOrder == .Immediate)
+			{
+				//DrawImmediate(transform, color, texture, uvTransform);
+				QueueQuadInstance(transform, color, texture, position.Z, uvTransform);
+				DrawDeferred();
+				//Flush();
+			}
+			else
+			{
+				QueueQuadInstance(transform, color, texture, position.Z, uvTransform);
+			}
+		}
+
+		public static void DrawQuadPivotCorner(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			DrawQuad(position + Vector3(size.X / 2, size.Y / -2, 0), size, rotation, texture, color, uvTransform);
 		}
 	}
 }

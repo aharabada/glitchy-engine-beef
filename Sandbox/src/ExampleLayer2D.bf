@@ -49,7 +49,6 @@ namespace Sandbox
 		DepthStencilTarget _depthTarget ~ _?.ReleaseRef();
 
 		Texture2D _texture ~ _?.ReleaseRef();
-		Texture2D _ge_logo ~ _?.ReleaseRef();
 
 		BlendState _alphaBlendState ~ _?.ReleaseRef();
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
@@ -58,9 +57,7 @@ namespace Sandbox
 
 		EcsWorld _world = new EcsWorld() ~ delete _;
 
-		Renderer2D Renderer2D ~ delete _;
-
-		Texture2D _testTexture ~ _?.ReleaseRef();
+		//Renderer2D Renderer2D ~ delete _;
 
 		String testText ~ delete _;
 
@@ -78,22 +75,22 @@ namespace Sandbox
 			_effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
 
 			// Create rasterizer state
-			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
+			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, false);
 			_rasterizerState = new RasterizerState(_context, rsDesc);
 
 			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
 			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
-			_ge_logo = new Texture2D(_context, "content/Textures/GE_Logo.dds");
 
 			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()
 				{
-					MagFilter = .Point
+					MagFilter = .Point,
+					AddressModeU = .Wrap,
+					AddressModeV = .Wrap,
 				});
 			
 			_texture.SamplerState = sampler;
-			_ge_logo.SamplerState = sampler;
 
 			sampler.ReleaseRef();
 
@@ -104,7 +101,7 @@ namespace Sandbox
 
 			InitEcs();
 
-			Renderer2D = new Renderer2D(_context, _effectLibrary);
+			//Renderer2D = new Renderer2D(_context, _effectLibrary);
 			//Init2D();
 
 			Texture2DDesc desc = .();
@@ -115,14 +112,6 @@ namespace Sandbox
 			desc.CpuAccess = .None;
 			desc.MipLevels = 1;
 			desc.Usage = .Default;
-
-			_testTexture = new Texture2D(_context, desc);
-
-			Color[4] colors = .(
-				.Red, .Green,
-				.Blue, .White);
-			
-			_testTexture.SetData<Color>(&colors, 0, 1, 1, 1);
 
 			fonty = new Font(_context, "C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
 			var japanese = new Font(_context, "C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
@@ -135,15 +124,12 @@ namespace Sandbox
 			// Load test text
 			File.ReadAllText("test.txt", testText = new String(), true);
 
-			_textureViewer = new TextureViewer(_context, Renderer2D, _effectLibrary);
+			_textureViewer = new TextureViewer();
 
-			FontRenderer.Init(_effectLibrary);
+			controller = new OrthographicCameraController(16 / 9f);
 		}
 
-		public ~this()
-		{
-			FontRenderer.DeInit();
-		}
+		OrthographicCameraController controller;
 
 		Font fonty ~ _.ReleaseRef();
 
@@ -262,20 +248,41 @@ namespace Sandbox
 			var camera = _world.GetComponent<CameraComponent>(_cameraEntity);
 			camera.Aspect = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
 									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
+			
+			controller.Update(gameTime);
 
 			TransformSystem.Update(_world);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
+			RenderCommand.Clear(_depthTarget, 1.0f, 0, .Depth);
 			
-			_depthTarget..Clear(1.0f, 0, .Depth).Bind();
 			// Draw test geometry
 			_context.SetRenderTarget(null);
+			_depthTarget.Bind();
 			_context.BindRenderTargets();
 
 			_context.SetRasterizerState(_rasterizerState);
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
+			Renderer2D.BeginScene(controller.Camera, .BackToFront);
+			
+			_alphaBlendState.Bind();
+
+			for(int x < 10)
+			for(int y < 10)
+			{
+				int i = (x + y) % 2;
+
+				Renderer2D.DrawQuad(Vector3(2 * x, 2 * y, 0.5f), Vector2(1.5f, 1), MathHelper.PiOverFour, (i == 0) ? _squareColor0 : _squareColor1);
+			}
+			
+			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(10), 0, _texture, .White, .(0, 0, 1, 1));
+
+			FontRenderer.DrawText(fonty, "Hallo! gjy", 0, 0, 64, .White, .White);
+
+			Renderer2D.EndScene();
+			
 			/*
 			Renderer2D.Begin(.FrontToBack, .(80, 80));
 			
@@ -322,8 +329,7 @@ namespace Sandbox
 
 			Renderer2D.End();
 			*/
-
-			_alphaBlendState.Bind();
+			/*
 			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height));
 			
 			Renderer2D.End();
@@ -331,9 +337,10 @@ namespace Sandbox
 			_alphaBlendState.Bind();
 			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height), 100);
 
-			FontRenderer.DrawText(Renderer2D, fonty, "Hallo! gjy", 0, 0, 512, .White, .White);
+			FontRenderer.DrawText(Renderer2D, fonty, "Hallo! gjy", 0, 0, 64, .White, .White);
 
 			Renderer2D.End();
+			*/
 		}
 
 		int32 size = 500;
@@ -348,40 +355,20 @@ namespace Sandbox
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
 
 			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
+
+			controller.OnEvent(event);
 		}
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
-			/*
-			ImGui.Begin("SDF Test");
-
-			ImGui.InputInt("Size", &size);
-
-			float f = (size / 64f * 4.0f);
-
-			ImGui.Text($"SPR: {f}");
-
-			ImGui.End();
-			*/
-			//return true;
-
-			/*
-			return true;
-
 			ImGui.Begin("Test");
 
-			ImGui.ColorEdit3("Square Color", ref _squareColor0);
+			ImGui.ColorPicker4("Color", *(float[4]*)&_squareColor0);
 
 			_squareColor1 = ColorRGBA.White - _squareColor0;
-
-			//ImGui.Begin
-
-			//ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeView, .(100, 200));
-			//ImGui.Scrollbar(.X);
-			//ImGui.Image(fonty.[Friend]_atlas.[Friend]nativeView, .(fonty.[Friend]_atlas.Width, fonty.[Friend]_atlas.Height), .(0.0f, 0.0f), .(1.0f, 1.0f), .(1.0f, 1.0f, 1.0f, 1.0f), .(1.0f, 0, 0, 1));
+			_squareColor1.A = _squareColor0.A;
 
 			ImGui.End();
-			*/
 
 			_textureViewer.ViewTexture(fonty.[Friend]_atlas);
 
@@ -398,22 +385,6 @@ namespace Sandbox
 			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
 			return false;
-		}
-	}
-
-	class SandboxApp2D : Application
-	{
-		public this()
-		{
-			PushLayer(new ExampleLayer2D());
-		}
-
-#if SANDBOX_2D		
-		[Export, LinkName("CreateApplication")]
-#endif
-		public static Application CreateApplication()
-		{
-			return new SandboxApp2D();
 		}
 	}
 }

@@ -113,6 +113,12 @@ namespace GlitchyEngine.Renderer
 			*(T*)firstByte = value;
 		}
 		
+		[Inline]
+		private T GetData<T>()
+		{
+			return *(T*)firstByte;
+		}
+
 		public void SetData(bool value) => SetData<bool>(value);
 
 		public void SetData(float value) => SetData<float>(value);
