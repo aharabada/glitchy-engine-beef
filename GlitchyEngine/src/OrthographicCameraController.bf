@@ -60,7 +60,7 @@ namespace GlitchyEngine
 				if(movement != .Zero)
 					movement.Normalize();
 
-				movement *= (float)(gameTime.FrameTime.TotalSeconds) * _cameraTranslationSpeed;
+				movement *= (float)(gameTime.FrameTime.TotalSeconds) * _cameraTranslationSpeed * _zoomLevel;
 
 				_cameraPosition += movement;
 
