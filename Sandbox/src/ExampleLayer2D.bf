@@ -16,52 +16,23 @@ namespace Sandbox
 {
 	class ExampleLayer2D : Layer
 	{
-		struct Vertexy : IVertexData
-		{
-			public Vector2 Position;
-
-			public this(Vector2 position)
-			{
-				Position = position;
-			}
-
-			public this(float x, float y)
-			{
-				Position = .(x, y);
-			}
-
-			public static VertexElement[] VertexElements ~ delete _;
-
-			public static VertexElement[] IVertexData.VertexElements => VertexElements;
-
-			static this()
-			{
-				VertexElements = new VertexElement[]
-				(
-					VertexElement(.R32G32_Float, "POSITION")
-				);
-			}
-		}
-
 		RasterizerState _rasterizerState ~ _?.ReleaseRef();
 
 		GraphicsContext _context ~ _?.ReleaseRef();
 		DepthStencilTarget _depthTarget ~ _?.ReleaseRef();
 
-		Texture2D _texture ~ _?.ReleaseRef();
+		Texture2D _checkerTexture ~ _?.ReleaseRef();
 
 		BlendState _alphaBlendState ~ _?.ReleaseRef();
-		BlendState _opaqueBlendState ~ _?.ReleaseRef();
-
-		EffectLibrary _effectLibrary ~ delete _;
-
-		EcsWorld _world = new EcsWorld() ~ delete _;
-
-		//Renderer2D Renderer2D ~ delete _;
-
-		String testText ~ delete _;
 
 		TextureViewer _textureViewer ~ delete _;
+		
+		OrthographicCameraController cameraController;
+
+		Font fonty ~ _.ReleaseRef();
+		
+		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
+		ColorRGBA _squareColor1;
 
 		[AllowAppend]
 		public this() : base("Example")
@@ -70,17 +41,13 @@ namespace Sandbox
 
 			_context = Application.Get().Window.Context..AddRef();
 
-			_effectLibrary = new EffectLibrary(_context);
-
-			_effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
-
 			// Create rasterizer state
-			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, false);
+			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, false, 0);
 			_rasterizerState = new RasterizerState(_context, rsDesc);
 
 			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
 
-			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
+			_checkerTexture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
 
 			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()
@@ -90,28 +57,13 @@ namespace Sandbox
 					AddressModeV = .Wrap,
 				});
 			
-			_texture.SamplerState = sampler;
+			_checkerTexture.SamplerState = sampler;
 
 			sampler.ReleaseRef();
 
 			BlendStateDescription blendDesc = .();
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
 			_alphaBlendState = new BlendState(_context, blendDesc);
-			_opaqueBlendState = new BlendState(_context, .Default);
-
-			InitEcs();
-
-			//Renderer2D = new Renderer2D(_context, _effectLibrary);
-			//Init2D();
-
-			Texture2DDesc desc = .();
-			desc.Format = .R8G8B8A8_UNorm;
-			desc.Width = 2;
-			desc.Height = 2;
-			desc.ArraySize = 1;
-			desc.CpuAccess = .None;
-			desc.MipLevels = 1;
-			desc.Usage = .Default;
 
 			fonty = new Font(_context, "C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
 			var japanese = new Font(_context, "C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
@@ -121,137 +73,14 @@ namespace Sandbox
 			japanese.Fallback = emojis..ReleaseRefNoDelete();
 			emojis.Fallback = mathstuff..ReleaseRefNoDelete();
 
-			// Load test text
-			File.ReadAllText("test.txt", testText = new String(), true);
-
 			_textureViewer = new TextureViewer();
 
-			controller = new OrthographicCameraController(16 / 9f);
-		}
-
-		OrthographicCameraController controller;
-
-		Font fonty ~ _.ReleaseRef();
-
-		VertexLayout layout ~ _?.ReleaseRef();
-
-		GeometryBinding quadBinding ~ _?.ReleaseRef();
-
-		/*
-		void Init2D()
-		{
-			var effect = _effectLibrary.Load("content\\Shaders\\render2dShader.hlsl", "Renderer2D");
-
-			layout = new VertexLayout(_context, Vertexy.VertexElements, effect.VertexShader);
-
-			effect.ReleaseRef();
-
-			VertexBuffer quadVertices = new VertexBuffer(_context, typeof(Vertexy), 4, .Immutable);
-
-			Vertexy[4] vertices = .(
-				Vertexy(0, 0),
-				Vertexy(0, 1),
-				Vertexy(1, 1),
-				Vertexy(1, 0)
-				);
-
-			quadVertices.SetData(vertices);
-
-			IndexBuffer quadIndices = new IndexBuffer(_context, 6, .Immutable);
-
-			uint16[6] indices = .(
-					0, 1, 2,
-					2, 3, 0
-				);
-
-			quadIndices.SetData(indices);
-
-			quadBinding = new GeometryBinding(_context);
-			quadBinding.SetPrimitiveTopology(.TriangleList);
-			quadBinding.SetVertexBufferSlot(quadVertices, 0);
-			quadBinding.SetVertexLayout(layout);
-			quadBinding.SetIndexBuffer(quadIndices);
-
-			quadVertices.ReleaseRef();
-			quadIndices.ReleaseRef();
-		}
-		*/
-
-		Entity _cameraEntity;
-
-		void InitEcs()
-		{
-			_world.Register<TransformComponent>();
-			_world.Register<MeshComponent>();
-			_world.Register<CameraComponent>();
-
-			// Create camera entity
-			_cameraEntity = _world.NewEntity();
-			var cameraTransform = _world.AssignComponent<TransformComponent>(_cameraEntity);
-			var camera = _world.AssignComponent<CameraComponent>(_cameraEntity);
-			*cameraTransform = TransformComponent();
-			camera.NearPlane = 0.1f;
-			camera.FarPlane = 10.0f;
-			camera.FovY = Math.PI_f / 4;
-			cameraTransform.Position = .(0, -1, -5);
-			/*
-			for(int x < 20)
-			for(int y < 20)
-			{
-				Entity entity = _world.NewEntity();
-
-				var transform = _world.AssignComponent<TransformComponent>(entity);
-				transform.Transform = Matrix.Translation(x * 0.2f, y * 0.2f, 0) * Matrix.Scaling(0.1f);
-
-				var mesh = _world.AssignComponent<MeshComponent>(entity);
-				mesh.Mesh = _quadGeometryBinding;
-			}
-			*/
+			cameraController = new OrthographicCameraController(16 / 9f);
 		}
 
 		public override void Update(GameTime gameTime)
 		{
-			var cameraTransform = _world.GetComponent<TransformComponent>(_cameraEntity);
-
-			if(Application.Get().Window.IsActive)
-			{
-				Vector2 movement = .();
-
-				if(Input.IsKeyPressed(Key.W))
-				{
-					movement.Y += 1;
-				}
-				if(Input.IsKeyPressed(Key.S))
-				{
-					movement.Y -= 1;
-				}
-
-				if(Input.IsKeyPressed(Key.A))
-				{
-					movement.X -= 1;
-				}
-				if(Input.IsKeyPressed(Key.D))
-				{
-					movement.X += 1;
-				}
-
-				if(movement != .Zero)
-					movement.Normalize();
-
-				movement *= (float)(gameTime.FrameTime.TotalSeconds);
-
-				cameraTransform.Position += .(movement, 0);
-				//Runtime.NotImplemented();
-				//cameraTransform.Update();
-			}
-
-			var camera = _world.GetComponent<CameraComponent>(_cameraEntity);
-			camera.Aspect = Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
-									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height;
-			
-			controller.Update(gameTime);
-
-			TransformSystem.Update(_world);
+			cameraController.Update(gameTime);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
 			RenderCommand.Clear(_depthTarget, 1.0f, 0, .Depth);
@@ -265,7 +94,7 @@ namespace Sandbox
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
-			Renderer2D.BeginScene(controller.Camera, .BackToFront);
+			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
 			
 			_alphaBlendState.Bind();
 
@@ -277,76 +106,12 @@ namespace Sandbox
 				Renderer2D.DrawQuad(Vector3(2 * x, 2 * y, 0.5f), Vector2(1.5f, 1), MathHelper.PiOverFour, (i == 0) ? _squareColor0 : _squareColor1);
 			}
 			
-			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(10), 0, _texture, .White, .(0, 0, 1, 1));
+			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(10), 0, _checkerTexture, .White, .(0, 0, 1, 1));
 
 			FontRenderer.DrawText(fonty, "Hallo! gjy", 0, 0, 64, .White, .White);
 
 			Renderer2D.EndScene();
-			
-			/*
-			Renderer2D.Begin(.FrontToBack, .(80, 80));
-			
-			//_opaqueBlendState.Bind();
-			_alphaBlendState.Bind();
-			
-			//Renderer2D.DrawQuad(5, 5, 1, 1, .Red);
-			//Renderer2D.DrawQuad(5, 5, 1, 1, .Blue);
-
-			Random r = scope Random(1337);
-
-			//_texture.Bind(0);
-			//_ge_logo.Bind(1);
-			
-			for(int x < 40)
-			for(int y < 40)
-			{
-				int i = (x + y) % 2 + 1;//((x + (y * 40)) ^ (x * y)) % 3;
-
-				if(i == 1)
-				{
-					Renderer2D.Draw(_texture, 2 * x, 2 * y, 1, 1, .(r.Next(0, 256), r.Next(0, 256), r.Next(0, 256)), 10);
-				}
-				else if(i == 2)
-				{
-					Renderer2D.Draw(_ge_logo, 2 * x, 2 * y, 1, 1, .(r.Next(0, 256), r.Next(0, 256), r.Next(0, 256)), 10);
-				}
-			}
-			
-			Renderer2D.Draw(_ge_logo, 0, 0, 180, 40, .White, 20);
-
-			/*
-			Renderer2D.Draw(_texture, 10, 50, 100, 100, .White);
-
-			Renderer2D.Draw(_texture, 120, 50, 100, 100, .White);
-
-			Renderer2D.Draw(_texture, 10, 160, 100, 100, .White);
-
-			Renderer2D.Draw(_texture, 120, 160, 100, 100, .White);
-			*/
-			//_alphaBlendState.Bind();
-
-			//Renderer2D.Draw(_ge_logo, 80, 50, 100, 100, .White);
-
-			Renderer2D.End();
-			*/
-			/*
-			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height));
-			
-			Renderer2D.End();
-			
-			_alphaBlendState.Bind();
-			Renderer2D.Begin(.FrontToBack, .(_context.SwapChain.Width, _context.SwapChain.Height), 100);
-
-			FontRenderer.DrawText(Renderer2D, fonty, "Hallo! gjy", 0, 0, 64, .White, .White);
-
-			Renderer2D.End();
-			*/
 		}
-
-		int32 size = 500;
-
-		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
-		ColorRGBA _squareColor1;
 
 		public override void OnEvent(Event event)
 		{
@@ -356,7 +121,7 @@ namespace Sandbox
 
 			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
 
-			controller.OnEvent(event);
+			cameraController.OnEvent(event);
 		}
 
 		private bool OnImGuiRender(ImGuiRenderEvent e)
