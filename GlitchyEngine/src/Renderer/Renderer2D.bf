@@ -250,9 +250,9 @@ namespace GlitchyEngine.Renderer
 
 			//s_textureColorEffect.Bind(Renderer._context);
 			
+			s_currentEffect?.ReleaseRef();
 			if(effect != null)
 			{
-				s_currentEffect?.ReleaseRef();
 				s_currentEffect = effect..AddRef();
 			}
 			else
