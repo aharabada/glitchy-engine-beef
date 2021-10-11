@@ -444,32 +444,33 @@ namespace GlitchyEngine.Renderer.Text
 			int bufferX = desc.Width;
 			int bufferY = desc.Height;
 
-			Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY);
-
-			MSDFGeneratorConfig config = .();
-
-			msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, _range, config);
-			
-			int8[] pixels = new int8[desc.Width * desc.Height * 4];
-			
-			int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
-
-			for(int y = 0; y < desc.Height; y++)
-			for(int x = 0; x < desc.Width; x++)
+			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY))
 			{
-				ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
-
-				int index = ((desc.Height - y - 1) * desc.Width + x) * 4;
-
-				pixels[index + 0] = ToInt8(pixel.Red);
-				pixels[index + 1] = ToInt8(pixel.Green);
-				pixels[index + 2] = ToInt8(pixel.Blue);
-
-				pixels[index + 3] = Int8.MaxValue;
+				MSDFGeneratorConfig config = .();
+	
+				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, _range, config);
+				
+				int8[] pixels = new:ScopedAlloc! int8[desc.Width * desc.Height * 4];
+				
+				int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
+	
+				for(int y = 0; y < desc.Height; y++)
+				for(int x = 0; x < desc.Width; x++)
+				{
+					ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
+	
+					int index = ((desc.Height - y - 1) * desc.Width + x) * 4;
+	
+					pixels[index + 0] = ToInt8(pixel.Red);
+					pixels[index + 1] = ToInt8(pixel.Green);
+					pixels[index + 2] = ToInt8(pixel.Blue);
+	
+					pixels[index + 3] = Int8.MaxValue;
+				}
+	
+				_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
+					(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
 			}
-
-			_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
-				(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
 		}
 	}
 }
