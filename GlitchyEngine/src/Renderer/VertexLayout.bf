@@ -1,4 +1,5 @@
 using System;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
@@ -78,7 +79,7 @@ namespace GlitchyEngine.Renderer
 		public static readonly uint32 AppendAligned = 0xffffffff;
 	}
 
-	public class VertexLayout : RefCounted
+	public class VertexLayout : RefCounter
 	{
 		private GraphicsContext _context ~ _?.ReleaseRef();
 

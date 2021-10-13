@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
@@ -18,7 +19,7 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public abstract class Shader : RefCounted
+	public abstract class Shader : RefCounter
 	{
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 

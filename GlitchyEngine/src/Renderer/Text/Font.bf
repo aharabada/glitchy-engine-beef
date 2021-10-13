@@ -1,6 +1,7 @@
 using System;
 using FreeType;
 using GlitchyEngine.Math;
+using GlitchyEngine.Core;
 using System.Collections;
 using msdfgen;
 
@@ -8,7 +9,7 @@ using internal GlitchyEngine.Renderer.Text;
 
 namespace GlitchyEngine.Renderer.Text
 {
-	public class Font : RefCounted
+	public class Font : RefCounter
 	{
 		internal class GlyphDescriptor
 		{

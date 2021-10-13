@@ -1,12 +1,13 @@
 using System;
 using System.Collections;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
 using internal GlitchyEngine.Renderer;
 
 namespace GlitchyEngine.Renderer
 {
-	public class Material : RefCounted
+	public class Material : RefCounter
 	{
 		private Effect _effect ~ _?.ReleaseRef();
 

@@ -1,9 +1,10 @@
 using System;
 using System.Collections;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
-	public class GeometryBinding : RefCounted
+	public class GeometryBinding : RefCounter
 	{
 		internal GraphicsContext _context ~ _?.ReleaseRef();
 

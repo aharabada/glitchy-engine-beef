@@ -1,5 +1,6 @@
-using GlitchyEngine.Math;
 using System;
+using GlitchyEngine.Core;
+using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer.Animation
 {
@@ -64,7 +65,7 @@ namespace GlitchyEngine.Renderer.Animation
 		}
 	}
 
-	class AnimationClip : RefCounted
+	class AnimationClip : RefCounter
 	{
 		private Skeleton _skeleton ~ _.ReleaseRef();
 		//public float FramesPerSecond;

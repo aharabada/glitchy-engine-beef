@@ -1,4 +1,5 @@
-using System;
+using GlitchyEngine.Core;
+
 namespace GlitchyEngine.Renderer
 {
 	public struct RenderTarget2DDescription
@@ -32,7 +33,7 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public class RenderTarget2D : RefCounted
+	public class RenderTarget2D : RefCounter
 	{
 		internal GraphicsContext _context;
 

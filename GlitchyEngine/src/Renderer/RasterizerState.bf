@@ -1,4 +1,6 @@
 using System;
+using GlitchyEngine.Core;
+
 namespace GlitchyEngine.Renderer
 {
 	public enum FillMode
@@ -50,7 +52,7 @@ namespace GlitchyEngine.Renderer
 		public static readonly RasterizerStateDescription Default = .(.Solid, .Back, false, 0, 0f, 0f, true, false, false, false);
 	}
 
-	public class RasterizerState : RefCounted
+	public class RasterizerState : RefCounter
 	{
 		internal GraphicsContext _context ~ _?.ReleaseRef();
 		private RasterizerStateDescription _description;

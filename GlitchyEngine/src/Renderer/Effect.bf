@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Collections;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
@@ -89,7 +90,7 @@ namespace GlitchyEngine.Renderer
 		public bool Exists(String effectName) => _effects.ContainsKey(effectName);
 	}
 
-	public class Effect : RefCounted
+	public class Effect : RefCounter
 	{
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 		internal VertexShader _vs ~ _?.ReleaseRef();

@@ -1,4 +1,5 @@
 using System;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 using System.Collections;
 
@@ -285,7 +286,7 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public class SamplerState : RefCounted
+	public class SamplerState : RefCounter
 	{
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 

@@ -1,9 +1,10 @@
 using System;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
-	public abstract class Texture : RefCounted
+	public abstract class Texture : RefCounter
 	{
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 

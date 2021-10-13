@@ -1,4 +1,5 @@
 using System;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
@@ -80,7 +81,7 @@ namespace GlitchyEngine.Renderer
 	}
 
 	/// Represents a buffer containing binary data on the GPU.
-	public class Buffer : RefCounted
+	public class Buffer : RefCounter
 	{
 		internal GraphicsContext _context ~ _?.ReleaseRef();
 

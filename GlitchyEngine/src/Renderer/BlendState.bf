@@ -1,5 +1,7 @@
 using System;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
+
 namespace GlitchyEngine.Renderer
 {
 	public struct BlendStateDescription
@@ -70,7 +72,7 @@ namespace GlitchyEngine.Renderer
 		public static readonly Self Default = .(false, false, .(.Default, .Default, .Default, .Default, .Default, .Default, .Default, .Default));
 	}
 
-	public class BlendState : RefCounted
+	public class BlendState : RefCounter
 	{
 		protected GraphicsContext _context ~ _?.ReleaseRef();
 

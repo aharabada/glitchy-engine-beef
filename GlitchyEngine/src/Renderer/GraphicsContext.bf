@@ -1,9 +1,10 @@
-using GlitchyEngine.Math;
 using System;
+using GlitchyEngine.Core;
+using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
-	public class GraphicsContext : RefCounted
+	public class GraphicsContext : RefCounter
 	{
 		private RasterizerState _currentRasterizerState;
 

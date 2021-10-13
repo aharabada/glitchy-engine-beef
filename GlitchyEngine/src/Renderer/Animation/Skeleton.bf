@@ -1,9 +1,9 @@
-using System;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer.Animation
 {
-	public class Skeleton : RefCounted
+	public class Skeleton : RefCounter
 	{
 		public Joint[] Joints ~ delete _;
 

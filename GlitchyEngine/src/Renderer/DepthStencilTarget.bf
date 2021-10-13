@@ -1,4 +1,5 @@
-using System;
+using GlitchyEngine.Core;
+
 namespace GlitchyEngine.Renderer
 {
 	public enum DepthStencilFormat
@@ -11,7 +12,7 @@ namespace GlitchyEngine.Renderer
 	}
 
 	// TODO: add all features.
-	public class DepthStencilTarget : RefCounted
+	public class DepthStencilTarget : RefCounter
 	{
 		protected internal GraphicsContext _context ~ _?.ReleaseRef();
 
