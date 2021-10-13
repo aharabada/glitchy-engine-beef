@@ -3,6 +3,3 @@ Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine
 
 [Workspace]
 StartupProject = "Sandbox"
-
-[Configs.Debug.Win64]
-AllocType = "CRT"

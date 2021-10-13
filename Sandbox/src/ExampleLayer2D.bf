@@ -27,7 +27,7 @@ namespace Sandbox
 
 		TextureViewer _textureViewer ~ delete _;
 		
-		OrthographicCameraController cameraController;
+		OrthographicCameraController cameraController ~ delete _;
 
 		Font fonty ~ _.ReleaseRef();
 		
