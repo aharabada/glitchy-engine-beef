@@ -1,8 +1,13 @@
+#if GE_D3D11
+
 using DirectX.D3D11;
 using DirectX.Common;
 using GlitchyEngine.Math;
 
 using internal GlitchyEngine.Renderer;
+
+using GlitchyEngine.Platform.DX11;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -12,7 +17,7 @@ namespace GlitchyEngine.Renderer
 
 		public override void Bind(ColorRGBA blendFactor)
 		{
-			_context.nativeContext.OutputMerger.SetBlendState(nativeBlendState, blendFactor);
+			NativeContext.OutputMerger.SetBlendState(nativeBlendState, blendFactor);
 		}
 
 		protected override void PlatformCreateBlendState()
@@ -33,9 +38,11 @@ namespace GlitchyEngine.Renderer
 				nativeDesc.RenderTarget[i].RenderTargetWriteMask = _desc.RenderTarget[i].RenderTargetWriteMask;
 			}
 
-			HResult result = _context.nativeDevice.CreateBlendState(ref nativeDesc, &nativeBlendState);
+			HResult result = NativeDevice.CreateBlendState(ref nativeDesc, &nativeBlendState);
 
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create blend state. Error({(int)result}): {result}");
 		}
 	}
 }
+
+#endif

@@ -43,11 +43,11 @@ namespace Sandbox
 
 			// Create rasterizer state
 			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, false, 0);
-			_rasterizerState = new RasterizerState(_context, rsDesc);
+			_rasterizerState = new RasterizerState(rsDesc);
 
-			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
+			_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
-			_checkerTexture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
+			_checkerTexture = new Texture2D("content/Textures/Checkerboard.dds");
 
 			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()
@@ -63,12 +63,12 @@ namespace Sandbox
 
 			BlendStateDescription blendDesc = .();
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
-			_alphaBlendState = new BlendState(_context, blendDesc);
+			_alphaBlendState = new BlendState(blendDesc);
 
-			fonty = new Font(_context, "C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
-			var japanese = new Font(_context, "C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
-			var emojis = new Font(_context, "C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
-			var mathstuff = new Font(_context, "C:\\Windows\\Fonts\\cambria.ttc", 64, true, 'α', 1);
+			fonty = new Font("C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
+			var japanese = new Font("C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
+			var emojis = new Font("C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
+			var mathstuff = new Font("C:\\Windows\\Fonts\\cambria.ttc", 64, true, 'α', 1);
 			fonty.Fallback = japanese..ReleaseRefNoDelete();
 			japanese.Fallback = emojis..ReleaseRefNoDelete();
 			emojis.Fallback = mathstuff..ReleaseRefNoDelete();
@@ -87,7 +87,7 @@ namespace Sandbox
 			
 			// Draw test geometry
 			_context.SetRenderTarget(null);
-			_depthTarget.Bind();
+			_context.SetDepthStencilTarget(_depthTarget);
 			_context.BindRenderTargets();
 
 			_context.SetRasterizerState(_rasterizerState);
@@ -138,7 +138,7 @@ namespace Sandbox
 			_textureViewer.ViewTexture(fonty.[Friend]_atlas);
 
 			_context.SetRenderTarget(null);
-			_depthTarget.Bind();
+			_context.SetDepthStencilTarget(_depthTarget);
 			_context.BindRenderTargets();
 
 			return false;
@@ -147,7 +147,7 @@ namespace Sandbox
 		private bool OnWindowResize(WindowResizeEvent e)
 		{
 			_depthTarget.ReleaseRef();
-			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
+			_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
 			return false;
 		}

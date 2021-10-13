@@ -1,14 +1,18 @@
+#if GE_D3D11
+
 using DirectX.D3D11;
 using DirectX.DXGI.DXGI1_2;
 using System.Diagnostics;
+using GlitchyEngine.Platform.DX11;
 
 using internal GlitchyEngine.Renderer;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
 	public extension SwapChain
 	{
-		private GraphicsContext _context;
+		private GraphicsContext _context ~ _.ReleaseRef();
 
 		private bool _changed;
 
@@ -51,7 +55,7 @@ namespace GlitchyEngine.Renderer
 
 		public this(GraphicsContext context)
 		{
-			_context = context;
+			_context = context..AddRef();
 
 			SetResolutionFromWindow();
 		}
@@ -107,7 +111,7 @@ namespace GlitchyEngine.Renderer
 			}
 			else
 			{
-				_context.nativeDevice.QueryInterface(out nativeDxgiDevice);
+				NativeDevice.QueryInterface(out nativeDxgiDevice);
 
 				nativeDxgiDevice.GetAdapter(let adapter);
 				adapter.GetParent<DirectX.DXGI.IDXGIFactory2>(let factory);
@@ -125,7 +129,7 @@ namespace GlitchyEngine.Renderer
 				SwapChainFullscreenDescription fsSwapChainDesc = .();
 				fsSwapChainDesc.Windowed = true;
 
-				var createResult = factory.CreateSwapChainForHwnd((.)_context.nativeDevice, _context.nativeWindowHandle, ref swDesc, &fsSwapChainDesc, null, &nativeSwapChain);
+				var createResult = factory.CreateSwapChainForHwnd((.)NativeDevice, _context.nativeWindowHandle, ref swDesc, &fsSwapChainDesc, null, &nativeSwapChain);
 				if(createResult.Failed)
 				{
 					Log.EngineLogger.Error($"Failed to create swap chain. Message({(int)createResult}):{createResult}");
@@ -137,7 +141,7 @@ namespace GlitchyEngine.Renderer
 			nativeSwapChain.GetBuffer<ID3D11Texture2D>(0, let backBuffer);
 
 			RenderTargetViewDescription rtvDesc = .(backBuffer, .Texture2D, backBufferViewFormat);
-			_context.nativeDevice.CreateRenderTargetView(backBuffer, &rtvDesc, &nativeBackBufferTarget);
+			NativeDevice.CreateRenderTargetView(backBuffer, &rtvDesc, &nativeBackBufferTarget);
 
 			_backBufferViewport = GlitchyEngine.Renderer.Viewport(0, 0, _width, _height, 0.0f, 1.0f);
 
@@ -150,3 +154,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

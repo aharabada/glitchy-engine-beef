@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 using DirectX.Common;
 using DirectX.D3D11Shader;
 using System;
@@ -47,7 +49,7 @@ namespace GlitchyEngine.Renderer
 
 	extension ConstantBuffer
 	{
-		internal this(GraphicsContext context, ID3D11ShaderReflectionConstantBuffer* bufferReflection) : base(context)
+		internal this(ID3D11ShaderReflectionConstantBuffer* bufferReflection)
 		{
 			Reflect(bufferReflection);
 
@@ -80,3 +82,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

@@ -7,14 +7,12 @@ namespace GlitchyEngine.Renderer
 {
 	public class EffectLibrary
 	{
-		private GraphicsContext _context ~ _?.ReleaseRef();
 		private Dictionary<String, Effect> _effects = new .() ~ delete _;
 
 		private List<String> _ownedStrings = new .() ~ DeleteContainerAndItems!(_);
 
-		public this(GraphicsContext context)
+		public this()
 		{
-			_context = context..AddRef();
 		}
 
 		public ~this()
@@ -63,7 +61,7 @@ namespace GlitchyEngine.Renderer
 			
 			Log.EngineLogger.AssertDebug(!Exists(name), "Can't add two effects with the same name to library.");
 
-			Effect effect = new Effect(_context, filepath, name);
+			Effect effect = new Effect(filepath, name);
 			Add(effect);
 
 			return effect;
@@ -92,7 +90,6 @@ namespace GlitchyEngine.Renderer
 
 	public class Effect : RefCounter
 	{
-		protected GraphicsContext _context ~ _?.ReleaseRef();
 		internal VertexShader _vs ~ _?.ReleaseRef();
 		internal PixelShader _ps ~ _?.ReleaseRef();
 		protected String _name ~ delete _;
@@ -103,8 +100,6 @@ namespace GlitchyEngine.Renderer
 		
 		typealias TextureEntry = (Texture Texture, ShaderTextureCollection.ResourceEntry* VsSlot, ShaderTextureCollection.ResourceEntry* PsSlot);
 		Dictionary<String, TextureEntry> _textures ~ delete _;
-
-		public GraphicsContext Context => _context;
 
 		public Dictionary<String, TextureEntry> Textures => _textures;
 
@@ -140,9 +135,8 @@ namespace GlitchyEngine.Renderer
 		{
 		}
 		
-		public this(GraphicsContext context, String filename, String vsEntry, String psEntry, String shaderName = null)
+		public this(String filename, String vsEntry, String psEntry, String shaderName = null)
 		{
-			_context = context..AddRef();
 			CompileFromFile(filename, vsEntry, psEntry);
 
 			if(shaderName == null)
@@ -156,10 +150,8 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public this(GraphicsContext context, String filename, String shaderName = null)
+		public this(String filename, String shaderName = null)
 		{
-			_context = context..AddRef();
-			
 			String fileContent = scope String();
 			String vsName = scope String();
 			String psName = scope String();
@@ -243,10 +235,10 @@ namespace GlitchyEngine.Renderer
 
 		private void CompileFromFile(String filename, String vsEntry, String psEntry)
 		{
-			let vs = Shader.FromFile!<VertexShader>(_context, filename, vsEntry);
+			let vs = Shader.FromFile!<VertexShader>(filename, vsEntry);
 			VertexShader = vs;
 			vs.ReleaseRef();
-			let ps = Shader.FromFile!<PixelShader>(_context, filename, psEntry);
+			let ps = Shader.FromFile!<PixelShader>(filename, psEntry);
 			PixelShader = ps;
 			ps.ReleaseRef();
 		}
@@ -254,10 +246,10 @@ namespace GlitchyEngine.Renderer
 		private void Compile(String fileContent, String vsEntry, String psEntry)
 		{
 			// TODO: vsEntry and psEntry could be empty (which is a valid case.)
-			let vs = new VertexShader(_context, fileContent, vsEntry);
+			let vs = new VertexShader(fileContent, vsEntry);
 			VertexShader = vs;
 			vs.ReleaseRef();
-			let ps = new PixelShader(_context, fileContent, psEntry);
+			let ps = new PixelShader(fileContent, psEntry);
 			PixelShader = ps;
 			ps.ReleaseRef();
 		}

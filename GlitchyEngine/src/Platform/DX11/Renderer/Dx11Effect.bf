@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 using System;
 using DirectX;
 using DirectX.D3D11;
@@ -11,8 +13,8 @@ namespace GlitchyEngine.Renderer
 		protected override void Compile(String vsPath, String vsEntry, String psPath, String psEntry)
 		{
 			// Todo: macros
-			VertexShader = new VertexShader(_context, vsPath, vsEntry);
-			PixelShader = new PixelShader(_context, psPath, psEntry);
+			VertexShader = new VertexShader(vsPath, vsEntry);
+			PixelShader = new PixelShader(psPath, psEntry);
 
 			Reflect();
 		}
@@ -23,3 +25,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

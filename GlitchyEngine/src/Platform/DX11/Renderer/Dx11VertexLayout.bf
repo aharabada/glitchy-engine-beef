@@ -1,9 +1,13 @@
+#if GE_D3D11
+
 using System;
-using DirectX.D3D11;
 using System.Diagnostics;
 using DirectX.Common;
+using DirectX.D3D11;
+using GlitchyEngine.Platform.DX11;
 
 using internal GlitchyEngine.Renderer;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -13,11 +17,10 @@ namespace GlitchyEngine.Renderer
 
 		public ID3DBlob* nativeShaderCode ~ _?.Release();
 
-		public this(GraphicsContext context, VertexElement[] elements, bool ownsElements, VertexShader vertexShader)
+		public this(VertexElement[] elements, bool ownsElements, VertexShader vertexShader)
 		{
 			nativeShaderCode = vertexShader.nativeCode..AddRef();
 
-			_context = context..AddRef();
 			_elements = elements;
 			_ownsElements = ownsElements;
 
@@ -38,7 +41,7 @@ namespace GlitchyEngine.Renderer
 
 			ToNativeLayout(_elements, nativeElements);
 
-			var result = _context.nativeDevice.CreateInputLayout(nativeElements.CArray(), (.)nativeElements.Count, nativeShaderCode.GetBufferPointer(), nativeShaderCode.GetBufferSize(), &nativeLayout);
+			var result = NativeDevice.CreateInputLayout(nativeElements.CArray(), (.)nativeElements.Count, nativeShaderCode.GetBufferPointer(), nativeShaderCode.GetBufferSize(), &nativeLayout);
 			if(result.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to create D3D11 input layout: Message({(int)result}): {result}");
@@ -46,3 +49,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

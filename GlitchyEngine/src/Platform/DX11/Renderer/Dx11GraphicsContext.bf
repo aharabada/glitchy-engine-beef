@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 using System;
 using System.Diagnostics;
 using DirectX.Common;
@@ -7,8 +9,10 @@ using DirectX.DXGI.DXGI1_2;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using DirectX.D3D11.DeviceContextStages;
-
 using internal GlitchyEngine.Renderer;
+
+using GlitchyEngine.Platform.DX11;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -19,10 +23,12 @@ namespace GlitchyEngine.Renderer
 
 		internal Windows.HWnd nativeWindowHandle;
 
-		internal ID3D11Device* nativeDevice;
-		internal ID3D11DeviceContext* nativeContext;
-		
-		private ID3D11Debug* _debugDevice;
+		/// Gets whether or not the DX11 device is initialized.
+		//internal bool IsDx11Initialized => nativeDevice != null;
+		//internal ID3D11Device* nativeDevice => NativeDevice;
+		//internal ID3D11DeviceContext* nativeContext => NativeContext;
+
+		//internal ID3D11Debug* debugDevice => DebugDevice;
 
 		public override SwapChain SwapChain => _swapChain;
 
@@ -41,15 +47,12 @@ namespace GlitchyEngine.Renderer
 		{
 			delete _swapChain;
 
-			nativeDevice?.Release();
-			nativeContext?.Release();
-			_debugDevice.ReportLiveDeviceObjects(.Detail);
-			_debugDevice?.Release();
+			Dx11Release();
 		}
 
 		public override void Init()
 		{
-			InitDevice();
+			Dx11Init();
 
 			SwapChain.Init();
 		}
@@ -57,47 +60,54 @@ namespace GlitchyEngine.Renderer
 		/**
 		 * Initializes the Device and ImmediateContext.
 		 */
+		/*
 		void InitDevice()
 		{
-			nativeDevice?.Release();
-			nativeContext?.Release();
-			
-			Log.EngineLogger.Trace("Creating D3D11 Device and Context...");
-
-			DeviceCreationFlags deviceFlags = .None;
+			if(!IsDx11Initialized)
+			{
+				Log.EngineLogger.Trace("Creating D3D11 Device and Context...");
+				
+				DeviceCreationFlags deviceFlags = .None;
 #if DEBUG
-			deviceFlags |= .Debug;
+				deviceFlags |= .Debug;
 #endif
 
-			FeatureLevel[] levels = scope .(.Level_11_0);
+				FeatureLevel[] levels = scope .(.Level_11_0);
 
-			FeatureLevel deviceLevel = ?;
-			var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &nativeDevice, &deviceLevel, &nativeContext);
-			Debug.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message(0x{(int32)deviceResult}): {deviceResult}");
+				FeatureLevel deviceLevel = ?;
+				var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &nativeDevice, &deviceLevel, &nativeContext);
+				Log.EngineLogger.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message({(int32)deviceResult}): {deviceResult}");
 
 #if DEBUG	
-			if(nativeDevice.QueryInterface<ID3D11Debug>(out _debugDevice).Succeeded)
-			{
-				ID3D11InfoQueue* infoQueue;
-				if(nativeDevice.QueryInterface<ID3D11InfoQueue>(out infoQueue).Succeeded)
+				if(nativeDevice.QueryInterface<ID3D11Debug>(out debugDevice).Succeeded)
 				{
-					infoQueue.SetBreakOnSeverity(.Corruption, true);
-					infoQueue.SetBreakOnSeverity(.Error, true);
+					ID3D11InfoQueue* infoQueue;
+					if(nativeDevice.QueryInterface<ID3D11InfoQueue>(out infoQueue).Succeeded)
+					{
+						infoQueue.SetBreakOnSeverity(.Corruption, true);
+						infoQueue.SetBreakOnSeverity(.Error, true);
 
-					infoQueue.Release();
+						infoQueue.Release();
+					}
 				}
-			}
 #endif
 
-			Log.EngineLogger.Trace($"D3D11 Device and Context created (Feature level: {deviceLevel})");
+				Log.EngineLogger.Trace($"D3D11 Device and Context created (Feature level: {deviceLevel})");
+			}
+			else
+			{
+				// We created a second GraphicsContext (for some reason?) just increment references.
+				nativeDevice.AddRef();
+				nativeContext.AddRef();
+				debugDevice.AddRef();
+			}
 		}
+		*/
 
-		
-		
 		private ID3D11DepthStencilView* _depthStencilTarget;
 		private ID3D11RenderTargetView*[MaxRTVCount] _renderTargets;
 		
-		internal void SetDepthStencilTarget(DepthStencilTarget target)
+		public override void SetDepthStencilTarget(DepthStencilTarget target)
 		{
 			_depthStencilTarget = target?.nativeView;
 		}
@@ -121,18 +131,18 @@ namespace GlitchyEngine.Renderer
 
 		public override void BindRenderTargets()
 		{
-			nativeContext.OutputMerger.SetRenderTargets(MaxRTVCount, &_renderTargets, _depthStencilTarget);
+			NativeContext.OutputMerger.SetRenderTargets(MaxRTVCount, &_renderTargets, _depthStencilTarget);
 		}
 
 		public override void ClearRenderTarget(RenderTarget2D renderTarget, ColorRGBA color)
 		{
 			if(renderTarget == null)
 			{
-				nativeContext.ClearRenderTargetView(_swapChain.nativeBackBufferTarget, color);
+				NativeContext.ClearRenderTargetView(_swapChain.nativeBackBufferTarget, color);
 			}
 			else
 			{
-				nativeContext.ClearRenderTargetView(renderTarget._nativeRenderTargetView, color);
+				NativeContext.ClearRenderTargetView(renderTarget._nativeRenderTargetView, color);
 			}
 		}
 
@@ -140,42 +150,42 @@ namespace GlitchyEngine.Renderer
 		{
 			// make stride and offset mutable so that we can take their pointers.
 			var stride, offset;
-			nativeContext.InputAssembler.SetVertexBuffers(slot, 1, &buffer.nativeBuffer, &stride, &offset);
+			NativeContext.InputAssembler.SetVertexBuffers(slot, 1, &buffer.nativeBuffer, &stride, &offset);
 		}
 
 		public override void Draw(uint32 vertexCount, uint32 startVertexIndex = 0)
 		{
-			nativeContext.Draw(vertexCount, startVertexIndex);
+			NativeContext.Draw(vertexCount, startVertexIndex);
 		}
 
 		public override void DrawIndexed(uint32 indexCount, uint32 startIndexLocation = 0, int32 vertexOffset = 0)
 		{
-			nativeContext.DrawIndexed(indexCount, startIndexLocation, vertexOffset);
+			NativeContext.DrawIndexed(indexCount, startIndexLocation, vertexOffset);
 		}
 
 		public override void SetIndexBuffer(Buffer buffer, IndexFormat indexFormat = .Index16Bit, uint32 byteOffset = 0)
 		{
-			nativeContext.InputAssembler.SetIndexBuffer(buffer.nativeBuffer, indexFormat == .Index32Bit ? .R32_UInt : .R16_UInt, byteOffset);
+			NativeContext.InputAssembler.SetIndexBuffer(buffer.nativeBuffer, indexFormat == .Index32Bit ? .R32_UInt : .R16_UInt, byteOffset);
 		}
 
 		protected override void SetRasterizerStateImpl()
 		{
-			nativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
+			NativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
 		}
 
 		public override void SetViewports(uint32 viewportsCount, GlitchyEngine.Renderer.Viewport* viewports)
 		{
-			nativeContext.Rasterizer.SetViewports(viewportsCount, (.)viewports);
+			NativeContext.Rasterizer.SetViewports(viewportsCount, (.)viewports);
 		}
 
 		public override void SetVertexLayout(VertexLayout vertexLayout)
 		{
-			nativeContext.InputAssembler.SetInputLayout(vertexLayout.nativeLayout);
+			NativeContext.InputAssembler.SetInputLayout(vertexLayout.nativeLayout);
 		}
 
 		public override void SetPrimitiveTopology(GlitchyEngine.Renderer.PrimitiveTopology primitiveTopology)
 		{
-			nativeContext.InputAssembler.SetPrimitiveTopology((DirectX.Common.PrimitiveTopology)primitiveTopology);
+			NativeContext.InputAssembler.SetPrimitiveTopology((DirectX.Common.PrimitiveTopology)primitiveTopology);
 		}
 
 		/**
@@ -208,11 +218,11 @@ namespace GlitchyEngine.Renderer
 					// TODO: Add remaining shader stages
 				case typeof(PixelShader):
 					// TODO: bind uavs
-					nativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
-					nativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+					NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+					NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
 				case typeof(VertexShader):
-					nativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
-					nativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+					NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+					NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
 				default:
 					Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
 				}
@@ -224,11 +234,11 @@ namespace GlitchyEngine.Renderer
 			{
 				// TODO: Add remaining shader stages
 			case typeof(PixelShader):
-				nativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-				[IgnoreErrors]{ nativeContext.PixelShader.SetShader(((PixelShader)shader).nativeShader); }
+				NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+				[IgnoreErrors]{ NativeContext.PixelShader.SetShader(((PixelShader)shader).nativeShader); }
 			case typeof(VertexShader):
-				nativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-				[IgnoreErrors]{ nativeContext.VertexShader.SetShader(((VertexShader)shader).nativeShader); }
+				NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+				[IgnoreErrors]{ NativeContext.VertexShader.SetShader(((VertexShader)shader).nativeShader); }
 			default:
 				Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
 			}
@@ -245,3 +255,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

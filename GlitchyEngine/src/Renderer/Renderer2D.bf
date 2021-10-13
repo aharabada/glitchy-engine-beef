@@ -107,15 +107,15 @@ namespace GlitchyEngine.Renderer
 
 		private static void InitEffect()
 		{
-			s_textureColorEffect = new Effect(Renderer._context, "content\\Shaders\\textureColor.hlsl");
-			s_batchEffect = new Effect(Renderer._context, "content\\Shaders\\spritebatch.hlsl");
+			s_textureColorEffect = new Effect("content\\Shaders\\textureColor.hlsl");
+			s_batchEffect = new Effect("content\\Shaders\\spritebatch.hlsl");
 		}
 
 		private static void InitGeometry()
 		{
-			VertexLayout layout = new VertexLayout(Renderer._context, QuadVertex.VertexElements, false, s_textureColorEffect.VertexShader);
+			VertexLayout layout = new VertexLayout(QuadVertex.VertexElements, false, s_textureColorEffect.VertexShader);
 
-			VertexBuffer quadVertices = new VertexBuffer(Renderer._context, typeof(QuadVertex), 4, .Immutable);
+			VertexBuffer quadVertices = new VertexBuffer(typeof(QuadVertex), 4, .Immutable);
 
 			QuadVertex[4] vertices = .(
 				.(-0.5f,-0.5f, 0, 1),
@@ -126,7 +126,7 @@ namespace GlitchyEngine.Renderer
 
 			quadVertices.SetData(vertices);
 
-			IndexBuffer quadIndices = new IndexBuffer(Renderer._context, 6, .Immutable);
+			IndexBuffer quadIndices = new IndexBuffer(6, .Immutable);
 
 			uint16[6] indices = .(
 					0, 1, 2,
@@ -135,7 +135,7 @@ namespace GlitchyEngine.Renderer
 
 			quadIndices.SetData(indices);
 
-			s_quadGeometry = new GeometryBinding(Renderer._context);
+			s_quadGeometry = new GeometryBinding();
 			s_quadGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
 			s_quadGeometry.SetPrimitiveTopology(.TriangleList);
 			s_quadGeometry.SetVertexBufferSlot(quadVertices, 0);
@@ -147,7 +147,7 @@ namespace GlitchyEngine.Renderer
 
 		private static void InitInstancingGeometry()
 		{
-			s_instanceBuffer = new VertexBuffer(Renderer._context, typeof(BatchVertex), 1024, .Dynamic, .Write);
+			s_instanceBuffer = new VertexBuffer(typeof(BatchVertex), 1024, .Dynamic, .Write);
 			s_instanceBuffer.SetData(0);
 
 			VertexElement[] vertexElements = new .(
@@ -162,9 +162,9 @@ namespace GlitchyEngine.Renderer
 				VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1)
 			);
 
-			VertexLayout batchLayout = new VertexLayout(Renderer._context, vertexElements, true, s_batchEffect.VertexShader);
+			VertexLayout batchLayout = new VertexLayout(vertexElements, true, s_batchEffect.VertexShader);
 
-			s_batchBinding = new GeometryBinding(Renderer._context);
+			s_batchBinding = new GeometryBinding();
 			s_batchBinding.SetVertexLayout(batchLayout..ReleaseRefNoDelete());
 			s_batchBinding.SetPrimitiveTopology(.TriangleList);
 
@@ -191,7 +191,7 @@ namespace GlitchyEngine.Renderer
 				Usage = .Immutable,
 				CpuAccess = .None
 			};
-			s_whiteTexture = new Texture2D(Renderer._context, tex2Ddesc);
+			s_whiteTexture = new Texture2D(tex2Ddesc);
 
 			Color color = .White;
 			s_whiteTexture.SetData(&color);
@@ -304,7 +304,7 @@ namespace GlitchyEngine.Renderer
 			
 			s_currentEffect.Bind(Renderer._context);
 			s_batchBinding.InstanceCount = s_setInstances;
-			s_batchBinding.Bind(Renderer._context);
+			s_batchBinding.Bind();
 			RenderCommand.DrawIndexedInstanced(s_batchBinding);
 
 			s_setInstances = 0;
@@ -389,7 +389,7 @@ namespace GlitchyEngine.Renderer
 
 			s_textureColorEffect.Bind(Renderer._context);
 
-			s_quadGeometry.Bind(Renderer._context);
+			s_quadGeometry.Bind();
 			RenderCommand.DrawIndexed(s_quadGeometry);
 		}
 

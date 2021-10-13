@@ -9,7 +9,9 @@ namespace GlitchyEngine.Renderer
 		private RasterizerState _currentRasterizerState;
 
 		public extern SwapChain SwapChain {get;}
-		
+
+		protected extern void PlatformConstruct();
+
 		/**
 		 * The maximum number of simultaneous rendertargets supported. 
 		 */
@@ -17,6 +19,13 @@ namespace GlitchyEngine.Renderer
 
 		public extern void Init();
 		
+		/** @brief Sets a depthtarget.
+		 * @BindRenderTargets has to be called in order to bind the rendertargets.
+		 * @param renderTarget The render target to set. If null, the backbuffer will be set.
+		 * @param slot The slot to which the rendertarget will be bound. If 0 the depth buffer of the current render target will be set. If it has no depthbuffer the current will be unset.
+		 */
+		public extern void SetDepthStencilTarget(DepthStencilTarget target);
+
 		/** @brief Sets a rendertarget to the given slot.
 		 * @BindRenderTargets has to be called in order to bind the rendertargets.
 		 * @param renderTarget The render target to set. If null, the backbuffer will be set.

@@ -5,6 +5,13 @@ using ImGuizmo;
 
 using internal ImGui;
 
+#if GE_D3D11
+
+using GlitchyEngine.Platform.DX11;
+using internal GlitchyEngine.Platform.DX11;
+
+#endif
+
 namespace GlitchyEngine.ImGui
 {
 	public class ImGuiLayer : Layer
@@ -40,10 +47,10 @@ namespace GlitchyEngine.ImGui
 #if GE_WINDOWS
 			// Todo: temporary, needs to be platform independent
 			ImGuiImplWin32.Init((void*)(uint)(Windows.HWnd)(int)Application.Get().Window.NativeWindow);
+#endif
 
-			var context = Application.Get().Window.Context;
-
-			ImGuiImplDX11.Init(context.[Friend]nativeDevice, context.[Friend]nativeContext);
+#if GE_D3D11
+			ImGuiImplDX11.Init(NativeDevice, NativeContext);
 #endif
 		}
 

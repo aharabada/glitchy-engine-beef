@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 using System;
 using DirectX.D3D11;
 using DirectX.Common;
@@ -9,6 +11,9 @@ using internal GlitchyEngine.Renderer;
 
 typealias NativeTex2DDesc = DirectX.D3D11.Texture2DDescription;
 
+using GlitchyEngine.Platform.DX11;
+using internal GlitchyEngine.Platform.DX11;
+
 namespace GlitchyEngine.Renderer
 {
 	extension Texture
@@ -17,8 +22,9 @@ namespace GlitchyEngine.Renderer
 
 		protected override void ImplBind(uint32 slot)
 		{
-			_context.nativeContext.VertexShader.SetShaderResources(slot, 1, &nativeResourceView);
-			_context.nativeContext.PixelShader.SetShaderResources(slot, 1, &nativeResourceView);
+			// TODO: textures don't bind themselves!
+			NativeContext.VertexShader.SetShaderResources(slot, 1, &nativeResourceView);
+			NativeContext.PixelShader.SetShaderResources(slot, 1, &nativeResourceView);
 		}
 
 		/** \brief Loads the texture from the specified path.
@@ -31,7 +37,7 @@ namespace GlitchyEngine.Renderer
 			((ID3D11Resource*)texture)?.Release();
 			nativeResourceView?.Release();
 
-			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(_context.nativeDevice, path.ToScopedNativeWChar!(),
+			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(NativeDevice, path.ToScopedNativeWChar!(),
 				(.)&texture, &nativeResourceView);
 
 			if(loadResult.Failed)
@@ -107,10 +113,10 @@ namespace GlitchyEngine.Renderer
 			// If data is null, set subresourceData null
 			SubresourceData* resDataPtr = data == null ? null : &resData;
 
-			var result = _context.nativeDevice.CreateTexture2D(ref nativeDesc, resDataPtr, &nativeTexture);
+			var result = NativeDevice.CreateTexture2D(ref nativeDesc, resDataPtr, &nativeTexture);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture 2D. Error ({result.Underlying}): {result}");
 
-			result = _context.[Friend]nativeDevice.CreateShaderResourceView(nativeTexture, null, &nativeResourceView);
+			result = NativeDevice.CreateShaderResourceView(nativeTexture, null, &nativeResourceView);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture view. Error ({result.Underlying}): {result}");
 		}
 
@@ -157,7 +163,7 @@ namespace GlitchyEngine.Renderer
 			case .Default:
 				Box dataBox = .(destX, destY, 0, destX + destWidth, destY + destHeight, 1);
 				var rowPitch = elementSize * destWidth;
-				_context.nativeContext.UpdateSubresource(nativeTexture, subresourceIndex, &dataBox, data, rowPitch, rowPitch * destHeight);
+				NativeContext.UpdateSubresource(nativeTexture, subresourceIndex, &dataBox, data, rowPitch, rowPitch * destHeight);
 			case .Dynamic:
 				Runtime.NotImplemented();
 				/*
@@ -202,7 +208,7 @@ namespace GlitchyEngine.Renderer
 			if(destination.nativeTexture == null)
 				destination.InternalCreateTexture(null, 0, 0);
 
-			source._context.nativeContext.CopySubresourceRegion(destination.nativeTexture,
+			NativeContext.CopySubresourceRegion(destination.nativeTexture,
 				D3D11.CalcSubresource(destMipSlice, destArraySlice, destination.MipLevels), destX, destY, 0,
 				source.nativeTexture, D3D11.CalcSubresource(srcMipSlice, srcArraySlice, source.MipLevels), (.)&sourceBox); 
 		}
@@ -227,7 +233,7 @@ namespace GlitchyEngine.Renderer
 			{
 				Box sourceBox = .(0, 0, 0, Width, Height, 1);
 
-				_context.nativeContext.CopySubresourceRegion(destination.nativeTexture,
+				NativeContext.CopySubresourceRegion(destination.nativeTexture,
 					D3D11.CalcSubresource(mipSlice, arraySlice, destination.MipLevels), 0, 0, 0,
 					nativeTexture, D3D11.CalcSubresource(mipSlice, arraySlice, MipLevels), (.)&sourceBox);
 			}
@@ -258,3 +264,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

@@ -6,12 +6,8 @@ namespace GlitchyEngine.Renderer
 {
 	public abstract class Texture : RefCounter
 	{
-		protected GraphicsContext _context ~ _?.ReleaseRef();
-
 		protected SamplerState _samplerState ~ _?.ReleaseRef();
 	
-		public GraphicsContext Context => _context;
-
 		public SamplerState SamplerState
 		{
 			get => _samplerState;
@@ -41,11 +37,6 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern void ImplBind(uint32 slot);
-
-		protected this(GraphicsContext context)
-		{
-			_context = context..AddRef();
-		}
 	}
 
 	public struct Texture2DDesc
@@ -69,15 +60,13 @@ namespace GlitchyEngine.Renderer
 		public override extern uint32 ArraySize {get;}
 		public override extern uint32 MipLevels {get;}
 		
-		protected this(GraphicsContext context) : base(context) {}
-
-		public this(GraphicsContext context, String path) : base(context)
+		public this(String path)
 		{
 			this._path = new String(path);
 			LoadTexturePlatform();
 		}
 
-		public this(GraphicsContext context, Texture2DDesc desc) : base(context)
+		public this(Texture2DDesc desc)
 		{
 			PrepareTexturePlatform(desc, false);
 		}
@@ -132,9 +121,7 @@ namespace GlitchyEngine.Renderer
 		public override extern uint32 ArraySize {get;}
 		public override extern uint32 MipLevels {get;}
 
-		protected this(GraphicsContext context) : base(context) {}
-		
-		public this(GraphicsContext context, String path) : base(context)
+		public this(String path)
 		{
 			this._path = new String(path);
 			LoadTexturePlatform();

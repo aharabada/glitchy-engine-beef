@@ -12,7 +12,7 @@ namespace GlitchyEngine.Content
 	{
 		static readonly Matrix RightToLeftHand = .Scaling(1, 1, -1);
 
-		public static void LoadModel(String filename, GraphicsContext context, Effect validationEffect, Material material, EcsWorld world,
+		public static void LoadModel(String filename, Effect validationEffect, Material material, EcsWorld world,
 			List<(Matrix Transform, GeometryBinding Model)> output, out Skeleton skeleton, out List<AnimationClip> clips)
 		{
 			skeleton = null;
@@ -30,7 +30,7 @@ namespace GlitchyEngine.Content
 
 			for(var node in data.Scenes[0].Nodes)
 			{
-				NodesToEntities(data, node, null, world, context, validationEffect, material);
+				NodesToEntities(data, node, null, world, validationEffect, material);
 			}
 			
 			clips = removeMe___Clips;
@@ -47,7 +47,7 @@ namespace GlitchyEngine.Content
 
 					for(var primitive in node.Mesh.Primitives)
 					{
-						GeometryBinding binding = ModelLoader.PrimitiveToGeoBinding(context, primitive, validationEffect);
+						GeometryBinding binding = ModelLoader.PrimitiveToGeoBinding(primitive, validationEffect);
 
 						output.Add((transform, binding));
 					}
@@ -67,7 +67,7 @@ namespace GlitchyEngine.Content
 
 		static List<AnimationClip> removeMe___Clips;
 
-		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, Entity? parentEntity, EcsWorld world, GraphicsContext context, Effect validationEffect, Material material)
+		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, Entity? parentEntity, EcsWorld world, Effect validationEffect, Material material)
 		{
 			Entity entity = world.NewEntity();
 
@@ -126,7 +126,7 @@ namespace GlitchyEngine.Content
 				if(node.Mesh.Primitives.Length == 1)
 				{
 					var mesh = world.AssignComponent<MeshComponent>(entity);
-					mesh.Mesh = ModelLoader.PrimitiveToGeoBinding(context, node.Mesh.Primitives[0], validationEffect);
+					mesh.Mesh = ModelLoader.PrimitiveToGeoBinding(node.Mesh.Primitives[0], validationEffect);
 
 					if(skeleton == null)
 					{
@@ -151,7 +151,7 @@ namespace GlitchyEngine.Content
 						meshParent.Entity = entity;
 
 						var mesh = world.AssignComponent<MeshComponent>(meshEntity);
-						mesh.Mesh = ModelLoader.PrimitiveToGeoBinding(context, node.Mesh.Primitives[0], validationEffect);
+						mesh.Mesh = ModelLoader.PrimitiveToGeoBinding(node.Mesh.Primitives[0], validationEffect);
 						
 						if(skeleton == null)
 						{
@@ -170,13 +170,13 @@ namespace GlitchyEngine.Content
 
 			for(var child in node.Children)
 			{
-				NodesToEntities(data, child, entity, world, context, validationEffect, material);
+				NodesToEntities(data, child, entity, world, validationEffect, material);
 			}
 		}
 
-		public static GeometryBinding PrimitiveToGeoBinding(GraphicsContext context, CGLTF.Primitive primitive, Effect validationEffect)
+		public static GeometryBinding PrimitiveToGeoBinding(CGLTF.Primitive primitive, Effect validationEffect)
 		{
-			GeometryBinding binding = new GeometryBinding(context);
+			GeometryBinding binding = new GeometryBinding();
 
 			// primitive topology
 			switch(primitive.Type)
@@ -203,7 +203,7 @@ namespace GlitchyEngine.Content
 				{
 					bool is16bit = indices.ComponentType == .R_16u || indices.ComponentType == .R_16;
 
-					IndexBuffer ib = new IndexBuffer(context, (.)indices.Count, .Immutable, .None, is16bit ? .Index16Bit : .Index32Bit);
+					IndexBuffer ib = new IndexBuffer((.)indices.Count, .Immutable, .None, is16bit ? .Index16Bit : .Index32Bit);
 					
 					uint8* bufferData = (uint8*)indices.BufferView.Buffer.Data;
 					bufferData += indices.BufferView.Offset;
@@ -255,7 +255,7 @@ namespace GlitchyEngine.Content
 						// if buffer doesn't exist -> create
 						if(!buffers.TryGetValue(bufferView, out vertexBuffer))
 						{
-							vertexBuffer = new VertexBuffer(context, 1, (uint32)bufferView.Size, .Immutable)..ReleaseRefNoDelete();
+							vertexBuffer = new VertexBuffer(1, (uint32)bufferView.Size, .Immutable)..ReleaseRefNoDelete();
 
 							uint8* bufferData = (uint8*)bufferView.Buffer.Data;
 							bufferData += bufferView.Offset;
@@ -318,7 +318,7 @@ namespace GlitchyEngine.Content
 					else
 						GenerateNormals(positions, normals);
 
-					VertexBuffer vertexBuffer = new VertexBuffer(context, (uint32)sizeof(Vector3), (uint32)normals.Count, .Immutable);
+					VertexBuffer vertexBuffer = new VertexBuffer((uint32)sizeof(Vector3), (uint32)normals.Count, .Immutable);
 					vertexBuffer.SetData<Vector3>(normals);
 					
 					bindings.Add(vertexBuffer.Binding);
@@ -338,7 +338,7 @@ namespace GlitchyEngine.Content
 					vertexElements[i] = elements[i];
 				}
 
-				VertexLayout layout = new VertexLayout(context, vertexElements, true, validationEffect.VertexShader);
+				VertexLayout layout = new VertexLayout(vertexElements, true, validationEffect.VertexShader);
 				binding.SetVertexLayout(layout..ReleaseRefNoDelete());
 			}
 

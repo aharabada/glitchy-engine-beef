@@ -24,7 +24,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			InitFreetype();
 
-			_msdfEffect = new Effect(Renderer._context, "content\\Shaders\\msdfShader.hlsl");
+			_msdfEffect = new Effect("content\\Shaders\\msdfShader.hlsl");
 
 			s_isInitialized = true;
 		}

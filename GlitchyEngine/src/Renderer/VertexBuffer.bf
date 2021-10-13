@@ -25,13 +25,13 @@ namespace GlitchyEngine.Renderer
 
 		public VertexBufferBinding Binding => _defaultBinding;
 
-		public this(GraphicsContext context, Type vertexType, uint32 vertexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None) :
-			this(context, (.)vertexType.Stride, vertexCount, usage, cpuAccess)
+		public this(Type vertexType, uint32 vertexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None) :
+			this((.)vertexType.Stride, vertexCount, usage, cpuAccess)
 		{
 			_vertexType = vertexType;
 		}
 
-		public this(GraphicsContext context, uint32 vertexStride, uint32 vertexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None) : base(context)
+		public this(uint32 vertexStride, uint32 vertexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None)
 		{
 			_vertexType = null;
 

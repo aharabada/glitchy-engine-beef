@@ -1,8 +1,12 @@
+#if GE_D3D11
+
 using System;
 using DirectX.D3D11;
 using DirectX.D3DCompiler;
+using GlitchyEngine.Platform.DX11;
 
 using internal GlitchyEngine.Renderer;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -14,7 +18,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "ps_5_0", DefaultCompileFlags, out nativeCode);
 
-			var result = _context.nativeDevice.CreatePixelShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
+			var result = NativeDevice.CreatePixelShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
 			if(result.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to create pixel shader: Message ({(int)result}): {result}");
@@ -24,3 +28,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

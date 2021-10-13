@@ -19,7 +19,7 @@ namespace GlitchyEngine.Renderer
 		public uint32 IndexCount => _indexCount;
 		public IndexFormat Format => _format;
 
-		public this(GraphicsContext context, uint32 indexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None, IndexFormat indexFormat = .Index16Bit) : base(context)
+		public this(uint32 indexCount, Usage usage = .Default, CPUAccessFlags cpuAccess = .None, IndexFormat indexFormat = .Index16Bit)
 		{
 			_indexCount = indexCount;
 			_format = indexFormat;

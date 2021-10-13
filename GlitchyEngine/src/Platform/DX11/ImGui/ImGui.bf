@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 using GlitchyEngine.Renderer;
 using System.Collections;
 using DirectX.D3D11;
@@ -37,3 +39,5 @@ namespace ImGui
 		}
 	}
 }
+
+#endif

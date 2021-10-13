@@ -74,15 +74,12 @@ namespace GlitchyEngine.Renderer
 
 	public class BlendState : RefCounter
 	{
-		protected GraphicsContext _context ~ _?.ReleaseRef();
-
 		protected BlendStateDescription _desc;
 
 		public BlendStateDescription Description => _desc;
 
-		public this(GraphicsContext context, BlendStateDescription desc)
+		public this(BlendStateDescription desc)
 		{
-			_context = context..AddRef();
 			_desc = desc;
 
 			PlatformCreateBlendState();

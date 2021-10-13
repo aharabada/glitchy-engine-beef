@@ -1,5 +1,11 @@
-using DirectX.D3D11;
+#if GE_D3D11
+
 using DirectX.Common;
+using DirectX.D3D11;
+using GlitchyEngine.Platform.DX11;
+
+using internal GlitchyEngine.Renderer;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace DirectX.D3D11
 {
@@ -73,8 +79,6 @@ namespace DirectX.D3D11
 	}
 }
 
-using internal GlitchyEngine.Renderer;
-
 namespace GlitchyEngine.Renderer
 {
 	extension SamplerStateDescription
@@ -109,15 +113,17 @@ namespace GlitchyEngine.Renderer
 		{
 			_desc.ToNative(var nativeDesc);
 
-			HResult result = _context.nativeDevice.CreateSamplerState(ref nativeDesc, &nativeSamplerState);
+			HResult result = NativeDevice.CreateSamplerState(ref nativeDesc, &nativeSamplerState);
 
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create SamplerState. Error({(int)result}): {result}");
 		}
 
 		public override void Bind(uint32 slot)
 		{
-			_context.nativeContext.VertexShader.SetSamplers(slot, 1, &nativeSamplerState);
-			_context.nativeContext.PixelShader.SetSamplers(slot, 1, &nativeSamplerState);
+			NativeContext.VertexShader.SetSamplers(slot, 1, &nativeSamplerState);
+			NativeContext.PixelShader.SetSamplers(slot, 1, &nativeSamplerState);
 		}
 	}
 }
+
+#endif

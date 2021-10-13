@@ -54,17 +54,10 @@ namespace GlitchyEngine.Renderer
 
 	public class RasterizerState : RefCounter
 	{
-		internal GraphicsContext _context ~ _?.ReleaseRef();
 		private RasterizerStateDescription _description;
 
-		public GraphicsContext Context => _context;
 		public RasterizerStateDescription Description => _description;
 
-		protected this(GraphicsContext context)
-		{
-			_context = context..AddRef();
-		}
-
-		public extern this(GraphicsContext context, RasterizerStateDescription description);
+		public extern this(RasterizerStateDescription description);
 	}
 }

@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 namespace GlitchyEngine.Renderer
 {
 	extension CPUAccessFlags
@@ -16,3 +18,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

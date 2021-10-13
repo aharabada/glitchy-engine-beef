@@ -1,5 +1,10 @@
+#if GE_D3D11
+
 using DirectX.Common;
 using DirectX.D3D11;
+using GlitchyEngine.Platform.DX11;
+
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -38,7 +43,7 @@ namespace GlitchyEngine.Renderer
 
 			if(_description.DepthStencilFormat != .None)
 			{
-				_depthStenilTarget = new DepthStencilTarget(_context, _description.Width, _description.Height, _description.DepthStencilFormat);
+				_depthStenilTarget = new DepthStencilTarget(_description.Width, _description.Height, _description.DepthStencilFormat);
 			}
 		}
 
@@ -61,7 +66,7 @@ namespace GlitchyEngine.Renderer
 				Usage = .Default
 			};
 
-			var result = _context.nativeDevice.CreateTexture2D(ref desc, null, &_nativeTexture);
+			var result = NativeDevice.CreateTexture2D(ref desc, null, &_nativeTexture);
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to create RenderTarget2D");
 
 			CreateViews();
@@ -69,11 +74,13 @@ namespace GlitchyEngine.Renderer
 
 		private void CreateViews()
 		{
-			var result = _context.nativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
+			var result = NativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
 
-			result = _context.nativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
+			result = NativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
 		}
 	}
 }
+
+#endif

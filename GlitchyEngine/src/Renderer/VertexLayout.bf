@@ -81,23 +81,10 @@ namespace GlitchyEngine.Renderer
 
 	public class VertexLayout : RefCounter
 	{
-		private GraphicsContext _context ~ _?.ReleaseRef();
-
 		private VertexElement[] _elements;
 		private bool _ownsElements;
 
-		public GraphicsContext Context => _context;
-
 		public VertexElement[] Elements => _elements;
-
-		public this(GraphicsContext context, VertexElement[] elements, bool ownsElements, VertexShader vertexShader)
-		{
-			_context = context..AddRef();
-			_elements = elements;
-			_ownsElements = ownsElements;
-
-			CreateNativeLayout();
-		}
 
 		public ~this()
 		{

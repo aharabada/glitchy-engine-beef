@@ -1,5 +1,10 @@
+#if GE_D3D11
+
 using DirectX.D3D11;
 using internal GlitchyEngine.Renderer;
+
+using GlitchyEngine.Platform.DX11;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -40,21 +45,13 @@ namespace GlitchyEngine.Renderer
 			desc.SampleDesc = .(1, 0);
 
 			ID3D11Texture2D* tex = ?;
-			_context.nativeDevice.CreateTexture2D(ref desc, null, &tex);
+			NativeDevice.CreateTexture2D(ref desc, null, &tex);
 
-			_context.nativeDevice.CreateDepthStencilView(tex, null, &nativeView);
+			NativeDevice.CreateDepthStencilView(tex, null, &nativeView);
 
 			tex.Release();
 		}
-
-		public override void Bind()
-		{
-			_context.SetDepthStencilTarget(this);
-		}
-
-		public override void Clear(float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
-		{
-			_context.nativeContext.ClearDepthStencilView(nativeView, (.)clearFlags, depthValue, stencilValue);
-		}
 	}
 }
+
+#endif

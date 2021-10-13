@@ -83,24 +83,17 @@ namespace GlitchyEngine.Renderer
 	/// Represents a buffer containing binary data on the GPU.
 	public class Buffer : RefCounter
 	{
-		internal GraphicsContext _context ~ _?.ReleaseRef();
-
 		protected BufferDescription _description;
 
-		public GraphicsContext Context => _context;
-
 		public BufferDescription Description => _description;
-		
-		protected this(GraphicsContext context)
-		{
-			_context = context..AddRef();
-		}
+
+		protected this() {  }
 
 		/**
 		 * Creates a new instance of a Buffer.
 		 * @param description The buffer description.
 		 */
-		public this(GraphicsContext context, BufferDescription description) : this(context)
+		public this(BufferDescription description)
 		{
 			_description = description;
 		}
@@ -162,10 +155,9 @@ namespace GlitchyEngine.Renderer
 
 		/**
 		 * Creates a new instance of a Buffer<T>
-		 * @param context The graphics context.
 		 * @param description Describes the Buffer. Note: description.Size is ignored, as it will always be sizeof(T).
 		 */
-		public this(GraphicsContext context, BufferDescription description) : base(context)
+		public this(BufferDescription description)
 		{
 			_description = description;
 			_description.Size = (uint32)sizeof(T);

@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 // Disable warning when taking pointer of in-Parameter
 #pragma warning disable 4204
 
@@ -32,3 +34,5 @@ namespace GlitchyEngine.Math
 		public static implicit operator Self(in DirectX.Math.Vector4 value) => *(Self*)&value;
 	}
 }
+
+#endif

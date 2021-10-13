@@ -14,8 +14,6 @@ namespace GlitchyEngine.Renderer
 	// TODO: add all features.
 	public class DepthStencilTarget : RefCounter
 	{
-		protected internal GraphicsContext _context ~ _?.ReleaseRef();
-
 		protected uint32 _width, _height;
 		protected DepthStencilFormat _format;
 
@@ -23,11 +21,10 @@ namespace GlitchyEngine.Renderer
 		public uint32 Height => _height;
 		public DepthStencilFormat Format => _format;
 
-		public this(GraphicsContext context, uint32 width, uint32 height, DepthStencilFormat format = .D32_Float)
+		public this(uint32 width, uint32 height, DepthStencilFormat format = .D32_Float)
 		{
 			Log.EngineLogger.Assert(format != .None, "DepthStencilFormat None is only valid for RenderTarget");
 
-			_context = context..AddRef();
 			_width = width;
 			_height = height;
 			_format = format;
@@ -36,9 +33,5 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern void PlatformCreate();
-
-		public extern void Bind();
-
-		public extern void Clear(float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags);
 	}
 }

@@ -31,10 +31,10 @@ namespace GlitchyEngine.Renderer
 		{
 			_context = context..AddRef();
 			/*
-			_sceneConstants = new Buffer<SceneConstants>(_context, .(0, .Constant, .Dynamic, .Write));
+			_sceneConstants = new Buffer<SceneConstants>(.(0, .Constant, .Dynamic, .Write));
 			_sceneConstants.Update();
 
-			_objectConstants = new Buffer<ObjectConstants>(_context, .(0, .Constant, .Dynamic, .Write));
+			_objectConstants = new Buffer<ObjectConstants>(.(0, .Constant, .Dynamic, .Write));
 			_objectConstants.Update();
 			*/
 
@@ -53,23 +53,23 @@ namespace GlitchyEngine.Renderer
 		{
 			LineEffect = effectLibrary.Load("content\\Shaders\\lineShader.hlsl");
 
-			LineGeometry = new GeometryBinding(_context);
+			LineGeometry = new GeometryBinding();
 			LineGeometry.SetPrimitiveTopology(.LineList);
 			
 			Vector4[2] vertices = .(.Zero, .Zero);
-			LineVertices = new VertexBuffer(_context, sizeof(Vector4), 2, .Dynamic, .Write);
+			LineVertices = new VertexBuffer(sizeof(Vector4), 2, .Dynamic, .Write);
 			LineVertices.SetData<Vector4>(vertices, 0, .WriteDiscard);
 			LineGeometry.SetVertexBufferSlot(LineVertices, 0);
 			
 			uint16[2] indices = .(0, 1);
-			IndexBuffer indexBuffer = new IndexBuffer(_context, 2, .Immutable);
+			IndexBuffer indexBuffer = new IndexBuffer(2, .Immutable);
 			indexBuffer.SetData(indices);
 			LineGeometry.SetIndexBuffer(indexBuffer);
 			indexBuffer.ReleaseRef();
 
 			VertexElement[] vertexElements = new VertexElement[1];
 			vertexElements[0] = .(.R32G32B32_Float, "POSITION");
-			VertexLayout layout = new VertexLayout(_context, vertexElements, true, LineEffect.VertexShader);
+			VertexLayout layout = new VertexLayout(vertexElements, true, LineEffect.VertexShader);
 			LineGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
 		}
 

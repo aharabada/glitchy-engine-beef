@@ -1,10 +1,14 @@
+#if GE_D3D11
+
 using System;
 using DirectX.D3D11;
+using GlitchyEngine.Platform.DX11;
+
+using internal GlitchyEngine.Renderer;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
-	using internal GlitchyEngine.Renderer;
-
 	extension GeometryBinding
 	{
 		internal ID3D11Buffer*[DirectX.D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] nativeBuffers;
@@ -73,33 +77,29 @@ namespace GlitchyEngine.Renderer
 
 		}
 
-		public override void Bind(GraphicsContext context = null)
+		public override void Bind()
 		{
-			var context;
-			context ??= _context;
-
-			context.nativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
-			context.nativeContext.InputAssembler.SetInputLayout(_vertexLayout.nativeLayout);
-			context.nativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
+			NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
+			NativeContext.InputAssembler.SetInputLayout(_vertexLayout.nativeLayout);
+			NativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
 
 			if(_indexBuffer != null)
-				context.nativeContext.InputAssembler.SetIndexBuffer(_indexBuffer.nativeBuffer, _indexBuffer.Format == .Index32Bit ? .R32_UInt : .R16_UInt, _indexByteOffset);
+				NativeContext.InputAssembler.SetIndexBuffer(_indexBuffer.nativeBuffer, _indexBuffer.Format == .Index32Bit ? .R32_UInt : .R16_UInt, _indexByteOffset);
 		}
 
-		public void Unbind(GraphicsContext context = null)
+		public override void Unbind()
 		{
-			var context;
-			context ??= _context;
-
 			ID3D11Buffer*[nativeBuffers.Count] nullBuffers = .();
 			uint32[nativeBuffers.Count] zeroStrides = .();
 			uint32[nativeBuffers.Count] zeroOffsets = .();
 
-			context.nativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nullBuffers, &zeroStrides, &zeroOffsets);
-			context.nativeContext.InputAssembler.SetInputLayout(null);
-			context.nativeContext.InputAssembler.SetPrimitiveTopology(.Undefined);
+			NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nullBuffers, &zeroStrides, &zeroOffsets);
+			NativeContext.InputAssembler.SetInputLayout(null);
+			NativeContext.InputAssembler.SetPrimitiveTopology(.Undefined);
 			
-			context.nativeContext.InputAssembler.SetIndexBuffer(null, .R16_UNorm, 0);
+			NativeContext.InputAssembler.SetIndexBuffer(null, .R16_UNorm, 0);
 		}
 	}
 }
+
+#endif

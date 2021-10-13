@@ -1,8 +1,13 @@
+#if GE_D3D11
+
 using System.Diagnostics;
 using System;
 using DirectX.D3D11;
 
 using internal GlitchyEngine.Renderer;
+
+using GlitchyEngine.Platform.DX11;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -67,7 +72,7 @@ namespace GlitchyEngine.Renderer
 			}
 
 			SubresourceData srData = .(byteData, byteLength, 0);
-			var result = _context.nativeDevice.CreateBuffer(ref nativeDescription, &srData, &nativeBuffer);
+			var result = NativeDevice.CreateBuffer(ref nativeDescription, &srData, &nativeBuffer);
 			if(result.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to create buffer. Message({(int)result}):{result}");
@@ -91,14 +96,14 @@ namespace GlitchyEngine.Renderer
 			{
 			case .Default:
 				Box dataBox = .(dstByteOffset, 0, 0, dstByteOffset + byteLength, 1, 1);
-				_context.nativeContext.UpdateSubresource(nativeBuffer, 0, &dataBox, data, byteLength, byteLength);
+				NativeContext.UpdateSubresource(nativeBuffer, 0, &dataBox, data, byteLength, byteLength);
 			case .Dynamic:
 				Debug.Assert(mapType.CanWrite, "The map type has to have write access.");
 				// Todo: DoNotWaitFlag
 				MappedSubresource map = ?;
-				_context.nativeContext.Map(nativeBuffer, 0, (.)mapType, .None, &map);
+				NativeContext.Map(nativeBuffer, 0, (.)mapType, .None, &map);
 				Internal.MemCpy(((uint8*)map.Data) + dstByteOffset, data, byteLength);
-				_context.nativeContext.Unmap(nativeBuffer, 0);
+				NativeContext.Unmap(nativeBuffer, 0);
 			case .Immutable:
 				Log.EngineLogger.Error("Can't set the data of an immutable resource.");
 				return .Err;
@@ -111,3 +116,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

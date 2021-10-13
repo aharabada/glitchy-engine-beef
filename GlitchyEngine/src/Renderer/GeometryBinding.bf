@@ -6,8 +6,6 @@ namespace GlitchyEngine.Renderer
 {
 	public class GeometryBinding : RefCounter
 	{
-		internal GraphicsContext _context ~ _?.ReleaseRef();
-
 		internal List<VertexBufferBinding> _vertexBuffers = new .() ~ delete _;
 		internal IndexBuffer _indexBuffer ~ _?.ReleaseRef();
 		internal VertexLayout _vertexLayout ~ _?.ReleaseRef();
@@ -19,9 +17,8 @@ namespace GlitchyEngine.Renderer
 
 		public bool IsIndexed => _indexBuffer != null;
 
-		public this(GraphicsContext context)
+		public this()
 		{
-			_context = context..AddRef();
 		}
 
 		public ~this()
@@ -120,8 +117,8 @@ namespace GlitchyEngine.Renderer
 		
 		protected extern void PlatformSetIndexBuffer(IndexBuffer indexBuffer);
 
-		public extern void Bind(GraphicsContext context = null);
+		public extern void Bind();
 
-		public extern void Unbind(GraphicsContext context = null);
+		public extern void Unbind();
 	}
 }

@@ -96,17 +96,17 @@ namespace Sandbox
 			
 			var textureEffect = effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
 
-			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
+			_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
 			// Create Input Layout
 
-			VertexLayout vertexLayout = new VertexLayout(_context, VertexColorTexture.VertexElements, false, textureEffect.VertexShader);
+			VertexLayout vertexLayout = new VertexLayout(VertexColorTexture.VertexElements, false, textureEffect.VertexShader);
 
 			textureEffect.ReleaseRef();
 
 			// Create hexagon
 			{
-				_geometryBinding = new GeometryBinding(_context);
+				_geometryBinding = new GeometryBinding();
 				_geometryBinding.SetPrimitiveTopology(.TriangleList);
 				_geometryBinding.SetVertexLayout(vertexLayout);
 	
@@ -121,7 +121,7 @@ namespace Sandbox
 					VertexColorTexture(CircleCoord(-pO3), Color(255,  0,255)),
 				);
 	
-				let vb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
+				let vb = new VertexBuffer(typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
 				vb.SetData(vertices);
 				_geometryBinding.SetVertexBufferSlot(vb, 0);
 				vb.ReleaseRef();
@@ -134,7 +134,7 @@ namespace Sandbox
 					0, 5, 6,
 					0, 6, 1);
 	
-				let ib = new IndexBuffer(_context, (.)indices.Count, .Immutable);
+				let ib = new IndexBuffer((.)indices.Count, .Immutable);
 				ib.SetData(indices);
 				_geometryBinding.SetIndexBuffer(ib);
 				ib.ReleaseRef();
@@ -142,7 +142,7 @@ namespace Sandbox
 
 			// Create Quad
 			{
-				_quadGeometryBinding = new GeometryBinding(_context);
+				_quadGeometryBinding = new GeometryBinding();
 				_quadGeometryBinding.SetPrimitiveTopology(.TriangleList);
 				_quadGeometryBinding.SetVertexLayout(vertexLayout);
 	
@@ -153,7 +153,7 @@ namespace Sandbox
 					VertexColorTexture(Vector3(0.75f, 0.75f, 0), Color.White, .(1, 0)),
 				);
 	
-				let qvb = new VertexBuffer(_context, typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
+				let qvb = new VertexBuffer(typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
 				qvb.SetData(vertices);
 				_quadGeometryBinding.SetVertexBufferSlot(qvb, 0);
 				qvb.ReleaseRef();
@@ -162,7 +162,7 @@ namespace Sandbox
 					0, 1, 2,
 					2, 3, 0);
 	
-				let qib = new IndexBuffer(_context, (.)indices.Count, .Immutable);
+				let qib = new IndexBuffer((.)indices.Count, .Immutable);
 				qib.SetData(indices);
 				_quadGeometryBinding.SetIndexBuffer(qib);
 				qib.ReleaseRef();
@@ -172,13 +172,13 @@ namespace Sandbox
 
 			// Create rasterizer state
 			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
-			_rasterizerState = new RasterizerState(_context, rsDesc);
+			_rasterizerState = new RasterizerState(rsDesc);
 
 			rsDesc.FrontCounterClockwise = false;
-			_rasterizerStateClockWise = new RasterizerState(_context, rsDesc);
+			_rasterizerStateClockWise = new RasterizerState(rsDesc);
 
-			_texture = new Texture2D(_context, "content/Textures/Checkerboard.dds");
-			_ge_logo = new Texture2D(_context, "content/Textures/GE_Logo.dds");
+			_texture = new Texture2D("content/Textures/Checkerboard.dds");
+			_ge_logo = new Texture2D("content/Textures/GE_Logo.dds");
 
 			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()
@@ -199,8 +199,8 @@ namespace Sandbox
 
 			BlendStateDescription blendDesc = .();
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
-			_alphaBlendState = new BlendState(_context, blendDesc);
-			_opaqueBlendState = new BlendState(_context, .Default);
+			_alphaBlendState = new BlendState(blendDesc);
+			_opaqueBlendState = new BlendState(.Default);
 
 			InitEcs();
 
@@ -255,13 +255,13 @@ namespace Sandbox
 			materialTestMaterial.SetVariable("BaseColor", Color.White);
 			materialTestMaterial.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
 
-			//ModelLoader.LoadModel("content\\Models\\Test\\axisTest.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\RiggedSimple\\RiggedSimple.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox_2.glb", _context, testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
-			//ModelLoader.LoadModel("content\\Models\\DancingCylinder\\DancingCylinder.glb", _context, testEffect, _modelTest, out Skeleton, out Clip);
-			ModelLoader.LoadModel("content\\Models\\Figure\\Figure.gltf", _context, testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
-			//ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", _context, testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
+			//ModelLoader.LoadModel("content\\Models\\Test\\axisTest.glb", testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\RiggedSimple\\RiggedSimple.glb", testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox.glb", testEffect, _modelTest, out Skeleton, out Clip);
+			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox_2.glb", testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
+			//ModelLoader.LoadModel("content\\Models\\DancingCylinder\\DancingCylinder.glb", testEffect, _modelTest, out Skeleton, out Clip);
+			ModelLoader.LoadModel("content\\Models\\Figure\\Figure.gltf", testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
+			//ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
 
 			materialTestMaterial.ReleaseRef();
 			testEffect.ReleaseRef();
@@ -389,11 +389,11 @@ namespace Sandbox
 			_cameraController.Update(gameTime);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
-			_depthTarget.Clear(1.0f, 0, .Depth);
+			RenderCommand.Clear(_depthTarget, 1.0f, 0, .Depth);
 
 			// Draw test geometry
 			_context.SetRenderTarget(null);
-			_depthTarget.Bind();
+			_context.SetDepthStencilTarget(_depthTarget);
 			_context.BindRenderTargets();
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
@@ -560,7 +560,7 @@ namespace Sandbox
 		private bool OnWindowResize(WindowResizeEvent e)
 		{
 			_depthTarget.ReleaseRef();
-			_depthTarget = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
+			_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
 			return false;
 		}

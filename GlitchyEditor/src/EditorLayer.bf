@@ -42,24 +42,24 @@ namespace GlitchyEditor
 		{
 			_context = Application.Get().Window.Context..AddRef();
 			
-			_swapchainDepthBuffer = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
+			_swapchainDepthBuffer = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 			
 			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
-			_rasterizerState = new RasterizerState(_context, rsDesc);
+			_rasterizerState = new RasterizerState(rsDesc);
 
 			rsDesc.FrontCounterClockwise = false;
-			_rasterizerStateClockWise = new RasterizerState(_context, rsDesc);
+			_rasterizerStateClockWise = new RasterizerState(rsDesc);
 
 			BlendStateDescription blendDesc = .();
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
-			_alphaBlendState = new BlendState(_context, blendDesc);
-			_opaqueBlendState = new BlendState(_context, .Default);
+			_alphaBlendState = new BlendState(blendDesc);
+			_opaqueBlendState = new BlendState(.Default);
 
-			_renderTarget2D = new RenderTarget2D(_context, RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
+			_renderTarget2D = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
 
 			SamplerStateDescription desc = .();
 
-			SamplerState sampler = new SamplerState(_context, desc);
+			SamplerState sampler = new SamplerState(desc);
 
 			_renderTarget2D.SamplerState = sampler;
 
@@ -117,10 +117,10 @@ namespace GlitchyEditor
 			Renderer.EndScene();
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
-			_swapchainDepthBuffer.Clear(1.0f, 0, .Depth);
+			RenderCommand.Clear(_swapchainDepthBuffer, 1.0f, 0, .Depth);
 
 			_context.SetRenderTarget(null);
-			_swapchainDepthBuffer.Bind();
+			_context.SetDepthStencilTarget(_swapchainDepthBuffer);
 			_context.BindRenderTargets();
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
@@ -188,7 +188,7 @@ namespace GlitchyEditor
 		private bool OnWindowResize(WindowResizeEvent e)
 		{
 			_swapchainDepthBuffer.ReleaseRef();
-			_swapchainDepthBuffer = new DepthStencilTarget(_context, _context.SwapChain.Width, _context.SwapChain.Height);
+			_swapchainDepthBuffer = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
 			return false;
 		}

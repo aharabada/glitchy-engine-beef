@@ -48,7 +48,7 @@ namespace Sandbox
 
 		private void InitEffect()
 		{
-			_effect = new Effect(_context, "content\\Shaders\\textureViewerShader.hlsl");
+			_effect = new Effect("content\\Shaders\\textureViewerShader.hlsl");
 		}
 
 		private void InitState()
@@ -100,9 +100,9 @@ namespace Sandbox
 			if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
 			{
 				_target?.ReleaseRef();
-				_target = new RenderTarget2D(_context, .(.R8G8B8A8_UNorm, (.)viewportSize.x, (.)viewportSize.y));
+				_target = new RenderTarget2D(.(.R8G8B8A8_UNorm, (.)viewportSize.x, (.)viewportSize.y));
 				_depth?.ReleaseRef();
-				_depth = new DepthStencilTarget(_context, (.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
+				_depth = new DepthStencilTarget((.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
 			}
 
 			RenderTexture(viewedTexture);
@@ -170,11 +170,11 @@ namespace Sandbox
 
 			// TODO: don't clear pink!
 			_context.ClearRenderTarget(_target, .Pink);
-			_depth.Clear(1.0f, 0, .Depth);
+			RenderCommand.Clear(_depth, 1.0f, 0, .Depth);
 
 			//_target.Bind();
 			_context.SetRenderTarget(_target);
-			_depth.Bind();
+			_context.SetDepthStencilTarget(_depth);
 			_context.BindRenderTargets();
 
 			Vector2 textureSize = Vector2(viewedTexture.Width, viewedTexture.Height);

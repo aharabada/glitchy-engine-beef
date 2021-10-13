@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 using DirectX.D3D11;
 
 using internal GlitchyEngine.Renderer;
@@ -17,3 +19,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

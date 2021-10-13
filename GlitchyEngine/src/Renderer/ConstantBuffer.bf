@@ -69,7 +69,7 @@ namespace GlitchyEngine.Renderer
 
 		public BufferVariableCollection Variables => _variables;
 
-		protected this(GraphicsContext context) : base(context) {}
+		protected this() {}
 
 		protected internal void AddVariable(BufferVariable ownVariable)
 		{

@@ -10,14 +10,14 @@ namespace GlitchyEngine.Renderer
 		
 		public static bool DrawEntityTransforms = true;
 
-		public static void Init(GraphicsContext context)
+		public static void Init()
 		{
-			CreateCoordinateCross(context);
+			CreateCoordinateCross();
 		}
 
-		private static void CreateCoordinateCross(GraphicsContext context)
+		private static void CreateCoordinateCross()
 		{
-			CoordinateCross = new GeometryBinding(context);
+			CoordinateCross = new GeometryBinding();
 			//CoordinateCross.PrimitiveTopology
 		}
 

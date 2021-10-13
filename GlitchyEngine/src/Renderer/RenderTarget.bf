@@ -35,8 +35,6 @@ namespace GlitchyEngine.Renderer
 
 	public class RenderTarget2D : RefCounter
 	{
-		internal GraphicsContext _context;
-
 		private RenderTarget2DDescription _description;
 
 		public RenderTarget2DDescription Description => _description;
@@ -63,9 +61,8 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public this(GraphicsContext context, RenderTarget2DDescription description)
+		public this(RenderTarget2DDescription description)
 		{
-			_context = context;
 			_description = description;
 
 			ApplyChanges();

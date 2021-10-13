@@ -37,7 +37,6 @@ namespace GlitchyEngine.Renderer.Text
 			public bool IsRendered = false;
 		}
 
-		private GraphicsContext _context ~ _.ReleaseRef();
 		internal FT_Face _face ~ FreeType.Done_Face(_face);
 
 		private Font _fallback ~ _?.ReleaseRef();
@@ -106,13 +105,11 @@ namespace GlitchyEngine.Renderer.Text
 			return (double(value) / 64.0);
 		}
 
-		public this(GraphicsContext context, String fontPath, uint32 fontSize, bool hasColor = true, char32 firstChar = '\0', uint32 charCount = 128, int32 faceIndex = 0)
+		public this(String fontPath, uint32 fontSize, bool hasColor = true, char32 firstChar = '\0', uint32 charCount = 128, int32 faceIndex = 0)
 		{
 			// Make sure the fontrenderer is initialized (Font only cares about freetype)
 			FontRenderer.Init();
 
-			_context = context..AddRef();
-			
 			// Set default sampler
 			Sampler = null;
 
@@ -317,7 +314,7 @@ namespace GlitchyEngine.Renderer.Text
 				desc.CpuAccess = .None;
 				desc.Usage = .Default;
 
-				_atlas = new Texture2D(_context, desc);
+				_atlas = new Texture2D(desc);
 				_atlas.SamplerState = _sampler;
 
 				if(oldAtlas != null)

@@ -1,3 +1,5 @@
+#if GE_D3D11
+
 using System;
 using GlitchyEngine.Renderer;
 using DirectX.Common;
@@ -79,7 +81,7 @@ namespace GlitchyEngine.Renderer
 					// ConstantBuffer
 					if(bufferDesc.Type == .D3D11_CT_CBUFFER)
 					{
-						let buffer = new ConstantBuffer(_context, bufferReflection);
+						let buffer = new ConstantBuffer(bufferReflection);
 
 						_buffers.Add(bindDesc.BindPoint, buffer.Name, buffer);
 
@@ -98,3 +100,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif

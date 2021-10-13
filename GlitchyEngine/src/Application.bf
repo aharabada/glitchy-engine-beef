@@ -43,11 +43,11 @@ namespace GlitchyEngine
 			_rendererApi = new RendererAPI();
 			_rendererApi.Context = _window.Context;
 
-			SamplerStateManager.Init(_window.Context);
+			SamplerStateManager.Init();
 
 			RenderCommand.RendererAPI = _rendererApi;
 
-			_effectLibrary = new EffectLibrary(_window.Context);
+			_effectLibrary = new EffectLibrary();
 
 			Renderer.Init(_window.Context, _effectLibrary);
 

@@ -153,8 +153,6 @@ namespace GlitchyEngine.Renderer
 
 	public static class SamplerStateManager
 	{
-		static GraphicsContext _context;
-
 		static Dictionary<SamplerStateDescription, SamplerState> _samplers;
 
 		public static SamplerState PointClamp;
@@ -164,9 +162,8 @@ namespace GlitchyEngine.Renderer
 		public static SamplerState AnisotropicClamp;
 		public static SamplerState AnisotropicWrap;
 
-		public static void Init(GraphicsContext context)
+		public static void Init()
 		{
-			_context = context..AddRef();
 			_samplers = new .();
 
 			// Init point samplers
@@ -240,8 +237,6 @@ namespace GlitchyEngine.Renderer
 			AnisotropicClamp.ReleaseRef();
 			AnisotropicWrap.ReleaseRef();
 
-			_context?.ReleaseRef();
-
 			delete _samplers;
 			_samplers = null;
 		}
@@ -261,7 +256,7 @@ namespace GlitchyEngine.Renderer
 				return sampler..AddRef();
 			}
 
-			SamplerState newState = new SamplerState(_context, desc);
+			SamplerState newState = new SamplerState(desc);
 			ManageSampler(newState);
 
 			return newState;
@@ -288,8 +283,6 @@ namespace GlitchyEngine.Renderer
 
 	public class SamplerState : RefCounter
 	{
-		protected GraphicsContext _context ~ _?.ReleaseRef();
-
 		protected SamplerStateDescription _desc;
 
 		[Inline]
@@ -304,12 +297,7 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		public SamplerStateDescription Description => _desc;
 
-		protected this(GraphicsContext context)
-		{
-			_context = context..AddRef();
-		}
-
-		public this(GraphicsContext context, SamplerStateDescription desc) : this(context)
+		public this(SamplerStateDescription desc)
 		{
 			_desc = desc;
 

@@ -1,6 +1,10 @@
+#if GE_D3D11
+
 using DirectX.D3D11;
+using GlitchyEngine.Platform.DX11;
 
 using internal GlitchyEngine.Renderer;
+using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
@@ -48,12 +52,12 @@ namespace GlitchyEngine.Renderer
 		internal DirectX.D3D11.RasterizerStateDescription nativeDescription;
 		internal ID3D11RasterizerState* nativeRasterizerState ~ _?.Release();
 
-		public override this(GraphicsContext context, GlitchyEngine.Renderer.RasterizerStateDescription description) : this(context)
+		public override this(GlitchyEngine.Renderer.RasterizerStateDescription description)
 		{
 			_description = description;
 			nativeDescription = (.)_description;
 
-			var result = context.nativeDevice.CreateRasterizerState(ref nativeDescription, &nativeRasterizerState);
+			var result = NativeDevice.CreateRasterizerState(ref nativeDescription, &nativeRasterizerState);
 			if(result.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to create rasterizer state. Message({(int)result}): {result}");
@@ -61,3 +65,5 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 }
+
+#endif
