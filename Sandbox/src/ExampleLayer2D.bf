@@ -108,10 +108,16 @@ namespace Sandbox
 			
 			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(10), 0, _checkerTexture, .White, .(0, 0, 1, 1));
 
+			Renderer2D.DrawCircle(Vector3(0, 0, 0f), Vector2(5), _checkerTexture, .LightBlue, innerRadius, .(0, 0, 1, 1));
+
+			Renderer2D.DrawCircle(Vector3(-2, -2, -2f), Vector2(1), .GreenYellow);
+
 			FontRenderer.DrawText(fonty, "Hallo! gjy", 0, 0, 64, .White, .White);
 
 			Renderer2D.EndScene();
 		}
+
+		float innerRadius = 0.5f;
 
 		public override void OnEvent(Event event)
 		{
@@ -127,6 +133,8 @@ namespace Sandbox
 		private bool OnImGuiRender(ImGuiRenderEvent e)
 		{
 			ImGui.Begin("Test");
+
+			ImGui.DragFloat("Inner Radius", &innerRadius, 0.01f);
 
 			ImGui.ColorPicker4("Color", *(float[4]*)&_squareColor0);
 

@@ -57,6 +57,18 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 		
+		[CRepr]
+		struct CircleBatchVertex : BatchVertex
+		{
+			public float InnerRadius;
+
+			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform, float innerRadius)
+				 : base(transform, color, uvTransform)
+			{
+				InnerRadius = innerRadius;
+			}
+		}
+		
 		enum DrawOrder
 		{
 			/// Immediately draw the sprites.
@@ -80,6 +92,17 @@ namespace GlitchyEngine.Renderer
 
 		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture2D Texture, float Depth, Vector4 uvTransform) { }
 
+		struct QueueCircle : QueueQuad
+		{
+			public float InnerRadius;
+
+			public this(Matrix Transform, ColorRGBA Color, Texture2D Texture, float Depth, Vector4 uvTransform, float innerRadius)
+				 : base(Transform, Color, Texture, Depth, uvTransform)
+			{
+				InnerRadius = innerRadius;
+			}
+		}
+
 #if DEBUG
 		private static bool s_initialized;
 		private static bool s_sceneRunning;
@@ -87,28 +110,35 @@ namespace GlitchyEngine.Renderer
 
 		private static Effect s_textureColorEffect;
 		private static Effect s_batchEffect;
+		private static Effect s_circleBatchEffect;
 
 		private static GeometryBinding s_quadGeometry;
 
 		private static Texture2D s_whiteTexture;
 
 		private static GeometryBinding s_batchBinding;
+		private static GeometryBinding s_circleBatchBinding;
 		private static VertexBuffer s_instanceBuffer;
+		private static VertexBuffer s_circleInstanceBuffer;
 		
 		private static BatchVertex[] s_rawInstances;
+		private static CircleBatchVertex[] s_rawCircleInstances;
 		private static uint32 s_setInstances;
 
 		private static List<QueueQuad> s_instanceQueue;
+		private static List<QueueCircle> s_circleInstanceQueue;
 
 		private static DrawOrder s_drawOrder;
 
 		/// The effect that is currently used to draw the sprites.
 		private static Effect s_currentEffect;
+		private static Effect s_currentCircleEffect;
 
 		private static void InitEffect()
 		{
 			s_textureColorEffect = new Effect("content\\Shaders\\textureColor.hlsl");
 			s_batchEffect = new Effect("content\\Shaders\\spritebatch.hlsl");
+			s_circleBatchEffect = new Effect("content\\Shaders\\circlebatch.hlsl");
 		}
 
 		private static void InitGeometry()
@@ -147,36 +177,73 @@ namespace GlitchyEngine.Renderer
 
 		private static void InitInstancingGeometry()
 		{
-			s_instanceBuffer = new VertexBuffer(typeof(BatchVertex), 1024, .Dynamic, .Write);
-			s_instanceBuffer.SetData(0);
+			{
+				s_instanceBuffer = new VertexBuffer(typeof(BatchVertex), 1024, .Dynamic, .Write);
+				s_instanceBuffer.SetData(0);
 
-			VertexElement[] vertexElements = new .(
-				VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
-				VertexElement(.R32G32_Float, "TEXCOORD", false, 0, 0, (.)-1, .PerVertexData, 0),
+				VertexElement[] vertexElements = new .(
+					VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
+					VertexElement(.R32G32_Float, "TEXCOORD", false, 0, 0, (.)-1, .PerVertexData, 0),
+					
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 0, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 1, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 2, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1)
+				);
+	
+				VertexLayout batchLayout = new VertexLayout(vertexElements, true, s_batchEffect.VertexShader);
+	
+				s_batchBinding = new GeometryBinding();
+				s_batchBinding.SetVertexLayout(batchLayout..ReleaseRefNoDelete());
+				s_batchBinding.SetPrimitiveTopology(.TriangleList);
+	
+				s_batchBinding.SetVertexBufferSlot(s_quadGeometry.GetVertexBuffer(0), 0);
+				s_batchBinding.SetIndexBuffer(s_quadGeometry.GetIndexBuffer(), 0);
+	
+				s_batchBinding.SetVertexBufferSlot(s_instanceBuffer, 1);
+	
+				s_rawInstances = new BatchVertex[1024];
+				s_setInstances = 0;
+	
+				s_instanceQueue = new List<QueueQuad>(1024);
+			}
+			
+			{
+				s_circleInstanceBuffer = new VertexBuffer(typeof(BatchVertex), 1024, .Dynamic, .Write);
+				s_circleInstanceBuffer.SetData(0);
+
+				VertexElement[] vertexElements = new .(
+					VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
+					VertexElement(.R32G32_Float, "TEXCOORD", false, 0, 0, (.)-1, .PerVertexData, 0),
+					
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 0, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 1, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 2, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32_Float,  			"TEXCOORD", false, 2, 1, (.)-1, .PerInstanceData, 1)
+				);
 				
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 0, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 1, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 2, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
-				VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1)
-			);
+				s_circleBatchBinding = new GeometryBinding();
+					s_circleBatchBinding.SetPrimitiveTopology(.TriangleList);
 
-			VertexLayout batchLayout = new VertexLayout(vertexElements, true, s_batchEffect.VertexShader);
+				using(var circleBatchLayout = new VertexLayout(vertexElements, true, s_circleBatchEffect.VertexShader))
+				{
+					s_circleBatchBinding.SetVertexLayout(circleBatchLayout);
+				}
+	
+				s_circleBatchBinding.SetVertexBufferSlot(s_quadGeometry.GetVertexBuffer(0), 0);
+				s_circleBatchBinding.SetIndexBuffer(s_quadGeometry.GetIndexBuffer(), 0);
 
-			s_batchBinding = new GeometryBinding();
-			s_batchBinding.SetVertexLayout(batchLayout..ReleaseRefNoDelete());
-			s_batchBinding.SetPrimitiveTopology(.TriangleList);
+				s_circleBatchBinding.SetVertexBufferSlot(s_circleInstanceBuffer, 1);
+	
+				s_rawCircleInstances = new CircleBatchVertex[1024];
 
-			s_batchBinding.SetVertexBufferSlot(s_quadGeometry.GetVertexBuffer(0), 0);
-			s_batchBinding.SetIndexBuffer(s_quadGeometry.GetIndexBuffer(), 0);
-
-			s_batchBinding.SetVertexBufferSlot(s_instanceBuffer, 1);
-
-			s_rawInstances = new BatchVertex[1024];
-			s_setInstances = 0;
-
-			s_instanceQueue = new List<QueueQuad>(1024);
+				s_circleInstanceQueue = new List<QueueCircle>(1024);
+			}
 		}
 
 		private static void InitWhitetexture()
@@ -225,25 +292,31 @@ namespace GlitchyEngine.Renderer
 
 			s_textureColorEffect.ReleaseRef();
 			s_batchEffect.ReleaseRef();
+			s_circleBatchEffect.ReleaseRef();
 
 			s_quadGeometry.ReleaseRef();
 
 			s_whiteTexture.ReleaseRef();
 			
 			s_batchBinding.ReleaseRef();
+			s_circleBatchBinding.ReleaseRef();
 			s_instanceBuffer.ReleaseRef();
+			s_circleInstanceBuffer.ReleaseRef();
 
 			delete s_rawInstances;
+			delete s_rawCircleInstances;
 			delete s_instanceQueue;
+			delete s_circleInstanceQueue;
 
 			s_currentEffect?.ReleaseRef();
+			s_currentCircleEffect?.ReleaseRef();
 
 #if DEBUG
 			s_initialized = false;
 #endif
 		}
 
-		public static void BeginScene(OrthographicCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null)
+		public static void BeginScene(OrthographicCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
 		{
 			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
@@ -259,12 +332,23 @@ namespace GlitchyEngine.Renderer
 			{
 				s_currentEffect = s_batchEffect..AddRef();
 			}
+
+			s_currentCircleEffect?.ReleaseRef();
+			if(circleEffect != null)
+			{
+				s_currentCircleEffect = effect..AddRef();
+			}
+			else
+			{
+				s_currentCircleEffect = s_circleBatchEffect..AddRef();
+			}
 			
 			s_currentEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
+			s_currentCircleEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 			s_textureColorEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 
 			s_drawOrder = drawOrder;
-
+			
 #if DEBUG
 			s_sceneRunning = true;
 #endif
@@ -295,6 +379,13 @@ namespace GlitchyEngine.Renderer
 			s_instanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform));
 		}
 		
+		/// Adds a circle instance to the instance queue.
+		[Inline]
+		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform, float innerRadius)
+		{
+			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, depth, uvTransform, innerRadius));
+		}
+		
 		private static void FlushInstances()
 		{
 			if(s_setInstances == 0)
@@ -310,6 +401,22 @@ namespace GlitchyEngine.Renderer
 			s_setInstances = 0;
 		}
 
+		private static void FlushCircleInstances()
+		{
+			if(s_setInstances == 0)
+				return;
+
+			s_circleInstanceBuffer.SetData<CircleBatchVertex>(s_rawCircleInstances.Ptr, s_setInstances, 0, .WriteDiscard);
+			
+			s_currentCircleEffect.Bind(Renderer._context);
+			s_circleBatchBinding.InstanceCount = s_setInstances;
+			s_circleBatchBinding.Bind();
+			RenderCommand.DrawIndexedInstanced(s_circleBatchBinding);
+
+			s_setInstances = 0;
+		}
+
+		// Quad comparison
 		private static int TextureComparison(QueueQuad lhs, QueueQuad rhs)
 		{
 			return (int)Internal.UnsafeCastToPtr(lhs.Texture) - (int)Internal.UnsafeCastToPtr(rhs.Texture);
@@ -322,19 +429,34 @@ namespace GlitchyEngine.Renderer
 		{
 			return lhs.Depth <=> rhs.Depth;
 		}
-
-		private static void SortQuads()
+		
+		// Circle comparison
+		private static int TextureComparison(QueueCircle lhs, QueueCircle rhs)
 		{
-			s_instanceQueue.Sort(scope => TextureComparison);
-			
+			return (int)Internal.UnsafeCastToPtr(lhs.Texture) - (int)Internal.UnsafeCastToPtr(rhs.Texture);
+		}
+		private static int BackToFrontComparison(QueueCircle lhs, QueueCircle rhs)
+		{
+			return rhs.Depth <=> lhs.Depth;
+		}
+		private static int FrontToBackComparison(QueueCircle lhs, QueueCircle rhs)
+		{
+			return lhs.Depth <=> rhs.Depth;
+		}
+
+		private static void SortInstances()
+		{
 			switch(s_drawOrder)
 			{
 			case .SortByTexture:
 				s_instanceQueue.Sort(scope => TextureComparison);
+				s_circleInstanceQueue.Sort(scope => TextureComparison);
 			case .BackToFront:
 				s_instanceQueue.Sort(scope => BackToFrontComparison);
+				s_circleInstanceQueue.Sort(scope => BackToFrontComparison);
 			case .FrontToBack:
 				s_instanceQueue.Sort(scope => FrontToBackComparison);
+				s_circleInstanceQueue.Sort(scope => FrontToBackComparison);
 			case .Immediate:
 			default:
 				Log.EngineLogger.Error("Unknown instance draw order.");
@@ -343,10 +465,19 @@ namespace GlitchyEngine.Renderer
 
 		private static void DrawDeferred()
 		{
-			if(s_instanceQueue.IsEmpty)
+			if(s_instanceQueue.IsEmpty && s_circleInstanceQueue.IsEmpty)
 				return;
 
-			SortQuads();
+			SortInstances();
+
+			DrawDeferredQuads();
+			DrawDeferredCircles();
+		}
+
+		private static void DrawDeferredQuads()
+		{
+			if(s_instanceQueue.IsEmpty)
+				return;
 
 			Texture2D texture = s_instanceQueue[0].Texture;
 			s_currentEffect.SetTexture("Texture", texture);
@@ -373,10 +504,46 @@ namespace GlitchyEngine.Renderer
 					FlushInstances();
 				}
 			}
-			
+
 			FlushInstances();
-			
+
 			s_instanceQueue.Clear();
+		}
+
+		private static void DrawDeferredCircles()
+		{
+			if(s_circleInstanceQueue.IsEmpty)
+				return;
+
+			Texture2D texture = s_circleInstanceQueue[0].Texture;
+			s_currentCircleEffect.SetTexture("Texture", texture);
+
+			s_setInstances = 0;
+
+			for(int i < s_circleInstanceQueue.Count)
+			{
+				var circle = ref s_circleInstanceQueue[i];
+
+				// flush every time the texture changes
+				if(circle.Texture != texture)
+				{
+					FlushCircleInstances();
+
+					texture = circle.Texture;
+					s_currentCircleEffect.SetTexture("Texture", texture);
+				}
+
+				s_rawCircleInstances[s_setInstances++] = .(circle.Transform, circle.Color, circle.uvTransform, circle.InnerRadius);
+				
+				if(s_setInstances == s_rawCircleInstances.Count)
+				{
+					FlushCircleInstances();
+				}
+			}
+
+			FlushCircleInstances();
+
+			s_circleInstanceQueue.Clear();
 		}
 
 		private static void DrawImmediate(Matrix transform, ColorRGBA color, Texture2D texture, Vector4 uvTransform)
@@ -394,6 +561,8 @@ namespace GlitchyEngine.Renderer
 		}
 
 		// Primitives
+
+		// Quad
 
 		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, ColorRGBA color)
 		{
@@ -448,6 +617,37 @@ namespace GlitchyEngine.Renderer
 		public static void DrawQuadPivotCorner(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			DrawQuad(position + Vector3(size.X / 2, size.Y / -2, 0), size, rotation, texture, color, uvTransform);
+		}
+
+		// Circle
+
+		public static void DrawCircle(Vector2 position, Vector2 size, ColorRGBA color, float innerRadius = 1.0f)
+		{
+			DrawCircle(Vector3(position, 0.0f), size, s_whiteTexture, color, innerRadius);
+		}
+
+		public static void DrawCircle(Vector3 position, Vector2 size, ColorRGBA color, float innerRadius = 1.0f)
+		{
+			DrawCircle(position, size, s_whiteTexture, color, innerRadius);
+		}
+
+		public static void DrawCircle(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			DrawCircle(Vector3(position, 0.0f), size, texture, color, innerRadius, uvTransform);
+		}
+
+		public static void DrawCircle(Vector3 position, Vector2 size, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
+				
+			Matrix transform = Matrix.Translation(position) * Matrix.Scaling(size.X, size.Y, 1.0f);
+			
+			QueueCircleInstance(transform, color, texture, position.Z, uvTransform, innerRadius);
+
+			if(s_drawOrder == .Immediate)
+			{
+				DrawDeferred();
+			}
 		}
 	}
 }
