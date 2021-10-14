@@ -20,5 +20,22 @@ namespace GlitchyEngine
 			value?.ReleaseRef();
 			value = null;
 		}
+
+		public static mixin DeleteContainerAndReleaseItems(var container)
+		{
+			if (container != null)
+			{
+				for (var value in container)
+					value?.ReleaseRef();
+				delete container;
+			}
+		}
+
+		public static mixin ClearAndReleaseItems(var container)
+		{
+			for (var value in container)
+				value?.ReleaseRef();
+			container.Clear();
+		}
 	}
 }
