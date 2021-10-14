@@ -13,11 +13,8 @@ namespace GlitchyEngine.Content
 		static readonly Matrix RightToLeftHand = .Scaling(1, 1, -1);
 
 		public static void LoadModel(String filename, Effect validationEffect, Material material, EcsWorld world,
-			List<(Matrix Transform, GeometryBinding Model)> output, out Skeleton skeleton, out List<AnimationClip> clips)
+			List<AnimationClip> outClips)
 		{
-			skeleton = null;
-			removeMe___Clips = null;
-
 			CGLTF.Options options = .();
 			CGLTF.Data* data;
 			CGLTF.Result result = CGLTF.ParseFile(options, filename, out data);
@@ -30,44 +27,13 @@ namespace GlitchyEngine.Content
 
 			for(var node in data.Scenes[0].Nodes)
 			{
-				NodesToEntities(data, node, null, world, validationEffect, material);
+				NodesToEntities(data, node, null, world, validationEffect, material, outClips);
 			}
 			
-			clips = removeMe___Clips;
-
-			
-			for(var node in data.Nodes)
-			{
-				if(node.Mesh != null)
-				{
-					Matrix transform = ?;
-					CGLTF.NodeTransformLocal(&node, (float*)&transform);
-
-					transform = RightToLeftHand * transform;
-
-					for(var primitive in node.Mesh.Primitives)
-					{
-						GeometryBinding binding = ModelLoader.PrimitiveToGeoBinding(primitive, validationEffect);
-
-						output.Add((transform, binding));
-					}
-				}
-
-				if(node.Skin != null)
-				{
-					AnimationClip clip;
-					(skeleton, clip) = ExtractBonestuff(node.Skin, data);
-					clips.Add(clip);
-				}
-			}
-			
-
 			CGLTF.Free(data);
 		}
 
-		static List<AnimationClip> removeMe___Clips;
-
-		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, Entity? parentEntity, EcsWorld world, Effect validationEffect, Material material)
+		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, Entity? parentEntity, EcsWorld world, Effect validationEffect, Material material, List<AnimationClip> clips)
 		{
 			Entity entity = world.NewEntity();
 
@@ -116,8 +82,7 @@ namespace GlitchyEngine.Content
 			{
 				skeleton = ExtractSkeleton(node.Skin);
 
-				removeMe___Clips = new List<AnimationClip>();
-				LoadAnimationClips(data, node.Skin, skeleton, removeMe___Clips);
+				LoadAnimationClips(data, node.Skin, skeleton, clips);
 			}
 
 			if(node.Mesh != null)
@@ -126,7 +91,11 @@ namespace GlitchyEngine.Content
 				if(node.Mesh.Primitives.Length == 1)
 				{
 					var mesh = world.AssignComponent<MeshComponent>(entity);
-					mesh.Mesh = ModelLoader.PrimitiveToGeoBinding(node.Mesh.Primitives[0], validationEffect);
+
+					using (var geo = PrimitiveToGeoBinding(node.Mesh.Primitives[0], validationEffect))
+					{
+						mesh.Mesh = geo;
+					}
 
 					if(skeleton == null)
 					{
@@ -168,9 +137,11 @@ namespace GlitchyEngine.Content
 				}
 			}
 
+			skeleton?.ReleaseRef();
+
 			for(var child in node.Children)
 			{
-				NodesToEntities(data, child, entity, world, validationEffect, material);
+				NodesToEntities(data, child, entity, world, validationEffect, material, clips);
 			}
 		}
 
@@ -464,6 +435,9 @@ namespace GlitchyEngine.Content
 
 					ref JointAnimation jointAnimation = ref clip.JointAnimations[nodeIndex];
 
+					if(jointAnimation == null)
+						jointAnimation = new JointAnimation();
+
 					Log.EngineLogger.AssertDebug(channel.Sampler.Input.Count == channel.Sampler.Output.Count);
 
 					int samples = (int)channel.Sampler.Input.Count;
@@ -534,131 +508,6 @@ namespace GlitchyEngine.Content
 					clip.Duration = Math.Max(clip.Duration, jointAnimation.Duration);
 				}
 			}
-		}
-
-		static (Skeleton, AnimationClip) ExtractBonestuff(CGLTF.Skin* skin, CGLTF.Data* data)
-		{
-			Skeleton skeleton = new Skeleton();
-			skeleton.Joints = new Joint[skin.Joints.Length];
-
-			AnimationClip testClip = new AnimationClip(skeleton);
-			testClip.IsLooping = true;
-
-			for(int i < skin.Joints.Length)
-			{
-				ref Joint joint = ref skeleton.Joints[i];
-
-
-
-				joint.InverseBindPose = GetEntry<Matrix>(skin.InverseBindMatrices, i);
-
-				joint.Name = new String(skin.Joints[i].Name);
-
-				int parentId = skin.Joints.IndexOf(skin.Joints[i].Parent);
-
-				Log.EngineLogger.AssertDebug(parentId < uint8.MaxValue, scope $"A skeleton must not have more than {uint8.MaxValue - 1} bones.");
-
-				if(parentId == -1)
-					joint.ParentID = uint8.MaxValue;
-				else
-					joint.ParentID = (uint8)parentId;
-			}
-
-			for(var channel in data.Animations[0].Channels)
-			{
-				int nodeIndex = skin.Joints.IndexOf(channel.TargetNode);
-
-				Log.EngineLogger.AssertDebug(nodeIndex != -1);
-
-				ref JointAnimation jointAnimation = ref testClip.JointAnimations[nodeIndex];
-
-				Log.EngineLogger.AssertDebug(channel.Sampler.Input.Count == channel.Sampler.Output.Count);
-
-				int samples = (int)channel.Sampler.Input.Count;
-
-				Log.EngineLogger.AssertDebug(channel.Sampler.Input.ComponentType == .R_32f);
-				Log.EngineLogger.AssertDebug(channel.Sampler.Input.Type == .Scalar);
-
-				InterpolationMode interpolationMode;
-
-				switch(channel.Sampler.Interpolation)
-				{
-				case .Step:
-					interpolationMode = .Step;
-				case .Linear:
-					interpolationMode = .Linear;
-				case .CubicSpline:
-					interpolationMode = .CubicSpline;
-				}
-
-				switch(channel.TargetPath)
-				{
-				case .Translation:
-					jointAnimation.TranslationChannel = new .(samples, interpolationMode);
-
-					Log.EngineLogger.AssertDebug(channel.Sampler.Output.ComponentType == .R_32f);
-					Log.EngineLogger.AssertDebug(channel.Sampler.Output.Type == .Vec3);
-
-					for(int i < samples)
-					{
-						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
-						Vector3 sample = GetEntry<Vector3>(channel.Sampler.Output, i);
-						/*
-						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
-						float timeStamp2 = ?;
-						CGLTF.AccessorReadFloat(channel.Sampler.Input, (uint)i, (float*)&timeStamp2, 1);
-
-						Log.EngineLogger.Assert(timeStamp == timeStamp2);
-
-						Vector3 sample2 = ?;
-						CGLTF.AccessorReadFloat(channel.Sampler.Output, (uint)i, (float*)&sample2, 3);
-						
-						Log.EngineLogger.Assert(sample == sample2);
-						*/
-						jointAnimation.TranslationChannel.TimeStamps[i] = timeStamp;
-						jointAnimation.TranslationChannel.Values[i] = sample;
-					}
-				case .Rotation:
-					jointAnimation.RotationChannel = new .(samples, interpolationMode);
-
-					Log.EngineLogger.AssertDebug(channel.Sampler.Output.ComponentType == .R_32f);
-					Log.EngineLogger.AssertDebug(channel.Sampler.Output.Type == .Vec4);
-
-					for(int i < samples)
-					{
-						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
-						Quaternion sample = GetEntry<Quaternion>(channel.Sampler.Output, i);
-
-						jointAnimation.RotationChannel.TimeStamps[i] = timeStamp;
-						jointAnimation.RotationChannel.Values[i] = sample;
-					}
-				case .Scale:
-					jointAnimation.ScaleChannel = new .(samples, interpolationMode);
-
-					Log.EngineLogger.AssertDebug(channel.Sampler.Output.ComponentType == .R_32f);
-					Log.EngineLogger.AssertDebug(channel.Sampler.Output.Type == .Vec3);
-
-					for(int i < samples)
-					{
-						float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
-						Vector3 sample = GetEntry<Vector3>(channel.Sampler.Output, i);
-
-						jointAnimation.ScaleChannel.TimeStamps[i] = timeStamp;
-						jointAnimation.ScaleChannel.Values[i] = sample;
-					}
-				default:
-					Log.EngineLogger.Error($"Unknown channel target path \"{channel.TargetPath}\"");
-				}
-
-				//channel.
-
-				//
-
-				//testClip.JointAnimations[i].
-				testClip.Duration = Math.Max(testClip.Duration, jointAnimation.Duration);
-			}
-
-			return (skeleton, testClip);
 		}
 
 		static T GetEntry<T>(CGLTF.Accessor* accessor, int index)

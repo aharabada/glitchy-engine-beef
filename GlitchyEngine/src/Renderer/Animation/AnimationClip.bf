@@ -68,8 +68,7 @@ namespace GlitchyEngine.Renderer.Animation
 	class AnimationClip : RefCounter
 	{
 		private Skeleton _skeleton ~ _.ReleaseRef();
-		//public float FramesPerSecond;
-		public JointAnimation[] JointAnimations;
+		public JointAnimation[] JointAnimations ~ delete _;
 		public bool IsLooping;
 		public float Duration;
 
@@ -78,7 +77,7 @@ namespace GlitchyEngine.Renderer.Animation
 		[AllowAppend]
 		public this(Skeleton skeleton)
 		{
-			var jointAnimations = append JointAnimation[skeleton.Joints.Count];
+			var jointAnimations = new JointAnimation[skeleton.Joints.Count];
 
 			Log.EngineLogger.AssertDebug(skeleton != null);
 
@@ -91,7 +90,8 @@ namespace GlitchyEngine.Renderer.Animation
 		{
 			for(var jointAnimation in JointAnimations)
 			{
-				jointAnimation.Dispose();
+				//jointAnimation.Dispose();
+				delete jointAnimation;
 			}
 		}
 	}
@@ -186,11 +186,11 @@ namespace GlitchyEngine.Renderer.Animation
 		}
 	}
 
-	struct JointAnimation : IDisposable
+	class JointAnimation// : IDisposable
 	{
-		public JointAnimationChannel<Vector3> TranslationChannel;
-		public JointAnimationChannel<Quaternion> RotationChannel;
-		public JointAnimationChannel<Vector3> ScaleChannel;
+		public JointAnimationChannel<Vector3> TranslationChannel ~ delete _;
+		public JointAnimationChannel<Quaternion> RotationChannel ~ delete _;
+		public JointAnimationChannel<Vector3> ScaleChannel ~ delete _;
 
 		public float Duration
 		{
@@ -200,14 +200,14 @@ namespace GlitchyEngine.Renderer.Animation
 					TranslationChannel?.Duration ?? 0, RotationChannel?.Duration ?? 0), ScaleChannel?.Duration ?? 0);
 			}
 		}
-
+		/*
 		public void Dispose()
 		{
 			delete TranslationChannel;
 			delete RotationChannel;
 			delete ScaleChannel;
 		}
-
+		*/
 		public JointPose GetCurrentPose(float timeStamp)
 		{
 			JointPose result;

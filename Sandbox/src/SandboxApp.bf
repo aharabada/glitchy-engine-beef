@@ -215,24 +215,9 @@ namespace Sandbox
 			TestLoadModel();
 		}
 
-		//GeometryBinding _modelTest ~ _?.ReleaseRef();
-
-		List<(Matrix Transform, GeometryBinding Model)> _modelTest = new .() ~ UnloadModelTest!();
-
-		Skeleton Skeleton;
-		List<AnimationClip> Clips ~ delete _;
+		List<AnimationClip> Clips = new List<AnimationClip>() ~ DeleteContainerAndReleaseItems!(_);
 
 		Material animationMat;
-
-		mixin UnloadModelTest()
-		{
-			for(var entry in _modelTest)
-			{
-				entry.Model?.ReleaseRef();
-			}
-
-			delete _modelTest;
-		}
 
 		void TestLoadModel()
 		{
@@ -255,13 +240,7 @@ namespace Sandbox
 			materialTestMaterial.SetVariable("BaseColor", Color.White);
 			materialTestMaterial.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
 
-			//ModelLoader.LoadModel("content\\Models\\Test\\axisTest.glb", testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\RiggedSimple\\RiggedSimple.glb", testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox.glb", testEffect, _modelTest, out Skeleton, out Clip);
-			//ModelLoader.LoadModel("content\\Models\\Fox\\Fox_2.glb", testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
-			//ModelLoader.LoadModel("content\\Models\\DancingCylinder\\DancingCylinder.glb", testEffect, _modelTest, out Skeleton, out Clip);
-			ModelLoader.LoadModel("content\\Models\\Figure\\Figure.gltf", testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
-			//ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", testEffect, materialTestMaterial, _world, _modelTest, out Skeleton, out Clips);
+			ModelLoader.LoadModel("content\\Models\\Figure\\Figure.gltf", testEffect, materialTestMaterial, _world, Clips);
 
 			materialTestMaterial.ReleaseRef();
 			testEffect.ReleaseRef();
@@ -275,28 +254,6 @@ namespace Sandbox
 				animation.IsPlaying = true;
 				animation.[Friend]_pose = new SkeletonPose(meshRenderer.Skeleton);
 			}
-
-			/*
-			CGLTF.Options options = .();
-			CGLTF.Data* data;
-			CGLTF.Result result = CGLTF.ParseFile(options, "content\\Models\\box.gltf", out data);
-
-			CGLTF.LoadBuffers(options, data, "content\\Models\\box.gltf");
-
-			Log.EngineLogger.Assert(result == .Success, "Failed to load model");
-
-			var mesh = data.Meshes[0];
-			var primitive = mesh.Primitives[0];
-
-			var testEffect = _effectLibrary.Get("testShader");
-
-			_modelTest = ModelLoader.PrimitiveToGeoBinding(_context, primitive, testEffect);
-
-			testEffect.ReleaseRef();
-
-			/* TODO make awesome stuff */
-			CGLTF.Free(data);
-			*/
 		}
 
 		Entity evenCrazierParent;
@@ -436,8 +393,10 @@ namespace Sandbox
 					}
 				}
 
+				var skeleton = currentClip.Skeleton;
+
 				// Update joints
-				for(int i < Skeleton.Joints.Count)
+				for(int i < skeleton.Joints.Count)
 				{
 					ref JointPose localPose = ref pose.LocalPose[i];
 
@@ -448,7 +407,7 @@ namespace Sandbox
 						Matrix.RotationQuaternion(localPose.Rotation) *
 						Matrix.Scaling(localPose.Scale);
 
-					uint8 parentIndex = Skeleton.Joints[i].ParentID;
+					uint8 parentIndex = skeleton.Joints[i].ParentID;
 					
 					ref Matrix globalPose = ref pose.GlobalPose[i];
 
@@ -461,7 +420,7 @@ namespace Sandbox
 						globalPose = pose.GlobalPose[parentIndex] * jointToParent;
 					}
 
-					pose.SkinningMatricies[i] = globalPose * Skeleton.Joints[i].InverseBindPose;
+					pose.SkinningMatricies[i] = globalPose * skeleton.Joints[i].InverseBindPose;
 					pose.InvTransSkinningMatricies[i] = ((Matrix3x3)pose.SkinningMatricies[i]).Inverse().Transpose();
 				}
 				

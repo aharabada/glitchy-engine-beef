@@ -16,9 +16,7 @@ namespace GlitchyEngine.World
 				if(_animationClip == value)
 					return;
 
-				_animationClip?.ReleaseRef();
-				_animationClip = value;
-				_animationClip?.AddRef();
+				SetReference!(_animationClip, value);
 			}
 		}
 
