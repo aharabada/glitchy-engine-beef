@@ -17,7 +17,7 @@ namespace GlitchyEngine.World
 
 		typealias DisposeFunction = function void(void* component);
 
-		internal typealias ComponentPoolEntry = (uint32 Id, ComponentPool Pool, DisposeFunction DisposeFunction);
+		internal typealias ComponentPoolEntry = (uint32 Id, IComponentPool Pool, DisposeFunction DisposeFunction);
 		internal Dictionary<Type, ComponentPoolEntry> _componentPools = new .();
 
 		/// A list containing all pools whose components need to be disposed before removal.
@@ -47,7 +47,7 @@ namespace GlitchyEngine.World
 		public void Register<T>() where T: struct
 		{
 			uint32 id = (uint32)_componentPools.Count;
-			ComponentPool componentPool = new ComponentPool(sizeof(T), MaxEntities);
+			ComponentPool<T> componentPool = new ComponentPool<T>(MaxEntities);
 
 			_componentPools.Add(typeof(T), (id, componentPool, null));
 		}
@@ -58,7 +58,8 @@ namespace GlitchyEngine.World
 		public void Register<T>() where T: struct, IDisposableComponent
 		{
 			uint32 id = (uint32)_componentPools.Count;
-			ComponentPool componentPool = new ComponentPool(sizeof(T), MaxEntities);
+			ComponentPool<T> componentPool = new ComponentPool<T>(MaxEntities);
+
 			DisposeFunction disposeFunction = => T.DisposeComponent;
 
 			_componentPools.Add(typeof(T), (id, componentPool, disposeFunction));

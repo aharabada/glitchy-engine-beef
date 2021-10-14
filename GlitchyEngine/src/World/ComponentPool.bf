@@ -2,29 +2,27 @@ using System;
 
 namespace GlitchyEngine.World
 {
-	public class ComponentPool
+	public interface IComponentPool
 	{
-		int _objectSize;
-		int _capacity;
+		public void* Get(int index);
+	}
 
-		int PoolSize => _objectSize * _capacity;
+	public class ComponentPool<T> : IComponentPool
+	{
+		int PoolSize => sizeof(T) * _data.Count;
+		T[] _data ~ delete _;
 
-		uint8* _rawData ~ delete _;
-
-		public this(int objectSize, int capacity)
+		public this(int capacity)
 		{
-			_objectSize = objectSize;
-			_capacity = capacity;
-
-			_rawData = new uint8[_capacity * _objectSize]*;
+			_data = new T[capacity];
 		}
 
 		[Inline]
 		public void* Get(int index)
 		{
-			Log.EngineLogger.AssertDebug(index >= 0 && index < _capacity);
+			Log.EngineLogger.AssertDebug(index >= 0 && index < _data.Count);
 
-			return _rawData + index * _objectSize;
+			return &_data[index];
 		}
 	}
 }
