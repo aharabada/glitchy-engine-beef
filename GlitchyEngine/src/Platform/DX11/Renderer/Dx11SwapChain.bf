@@ -12,7 +12,7 @@ namespace GlitchyEngine.Renderer
 {
 	public extension SwapChain
 	{
-		private GraphicsContext _context ~ _.ReleaseRef();
+		private GraphicsContext _context;
 
 		private bool _changed;
 
@@ -55,7 +55,7 @@ namespace GlitchyEngine.Renderer
 
 		public this(GraphicsContext context)
 		{
-			_context = context..AddRef();
+			_context = context;
 
 			SetResolutionFromWindow();
 		}
