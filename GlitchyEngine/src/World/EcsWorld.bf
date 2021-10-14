@@ -25,19 +25,20 @@ namespace GlitchyEngine.World
 		
 		public ~this()
 		{
+			for(var entry in _entities)
+			{
+				DisposeComponents(entry);
+
+				delete entry.ComponentMask;
+			}
+
+			delete _entities;
 			for(var entry in _componentPools)
 			{
 				delete entry.value.Pool;
 			}
 
 			delete _componentPools;
-
-			for(var entry in _entities)
-			{
-				delete entry.ComponentMask;
-			}
-
-			delete _entities;
 		}
 		
 		/**
