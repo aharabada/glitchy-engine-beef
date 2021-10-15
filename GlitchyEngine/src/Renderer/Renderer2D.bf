@@ -211,7 +211,7 @@ namespace GlitchyEngine.Renderer
 			}
 			
 			{
-				s_circleInstanceBuffer = new VertexBuffer(typeof(BatchVertex), 1024, .Dynamic, .Write);
+				s_circleInstanceBuffer = new VertexBuffer(typeof(CircleBatchVertex), 1024, .Dynamic, .Write);
 				s_circleInstanceBuffer.SetData(0);
 
 				VertexElement[] vertexElements = new .(

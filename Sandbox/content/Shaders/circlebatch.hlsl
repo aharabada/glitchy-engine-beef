@@ -50,6 +50,9 @@ float4 PS(PS_Input input) : SV_Target0
     float amount = smoothstep(0.0f, f, distance);
     amount *= smoothstep(input.InnerRadius + f, input.InnerRadius, distance);
 
+    // Discard invisible pixels
+    clip(amount - 0.5f);
+
     float4 color = Texture.Sample(Sampler, input.Texcoord) * input.Color;
     color.a *= amount;
 
