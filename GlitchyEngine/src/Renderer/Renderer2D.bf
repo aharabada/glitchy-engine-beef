@@ -108,7 +108,6 @@ namespace GlitchyEngine.Renderer
 		private static bool s_sceneRunning;
 #endif
 
-		private static Effect s_textureColorEffect;
 		private static Effect s_batchEffect;
 		private static Effect s_circleBatchEffect;
 
@@ -136,43 +135,38 @@ namespace GlitchyEngine.Renderer
 
 		private static void InitEffect()
 		{
-			s_textureColorEffect = new Effect("content\\Shaders\\textureColor.hlsl");
 			s_batchEffect = new Effect("content\\Shaders\\spritebatch.hlsl");
 			s_circleBatchEffect = new Effect("content\\Shaders\\circlebatch.hlsl");
 		}
 
 		private static void InitGeometry()
 		{
-			VertexLayout layout = new VertexLayout(QuadVertex.VertexElements, false, s_textureColorEffect.VertexShader);
-
-			VertexBuffer quadVertices = new VertexBuffer(typeof(QuadVertex), 4, .Immutable);
-
-			QuadVertex[4] vertices = .(
-				.(-0.5f,-0.5f, 0, 1),
-				.(-0.5f, 0.5f, 0, 0),
-				.( 0.5f, 0.5f, 1, 0),
-				.( 0.5f,-0.5f, 1, 1)
-				);
-
-			quadVertices.SetData(vertices);
-
-			IndexBuffer quadIndices = new IndexBuffer(6, .Immutable);
-
-			uint16[6] indices = .(
-					0, 1, 2,
-					2, 3, 0
-				);
-
-			quadIndices.SetData(indices);
-
 			s_quadGeometry = new GeometryBinding();
-			s_quadGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
 			s_quadGeometry.SetPrimitiveTopology(.TriangleList);
-			s_quadGeometry.SetVertexBufferSlot(quadVertices, 0);
-			s_quadGeometry.SetIndexBuffer(quadIndices);
 
-			quadVertices.ReleaseRef();
-			quadIndices.ReleaseRef();
+			using(var quadVertices = new VertexBuffer(typeof(QuadVertex), 4, .Immutable))
+			{
+				QuadVertex[4] vertices = .(
+					.(-0.5f,-0.5f, 0, 1),
+					.(-0.5f, 0.5f, 0, 0),
+					.( 0.5f, 0.5f, 1, 0),
+					.( 0.5f,-0.5f, 1, 1)
+					);
+
+				quadVertices.SetData(vertices);
+				s_quadGeometry.SetVertexBufferSlot(quadVertices, 0);
+			}
+
+			using(var quadIndices = new IndexBuffer(6, .Immutable))
+			{
+				uint16[6] indices = .(
+						0, 1, 2,
+						2, 3, 0
+					);
+
+				quadIndices.SetData(indices);
+				s_quadGeometry.SetIndexBuffer(quadIndices);
+			}
 		}
 
 		private static void InitInstancingGeometry()
@@ -290,7 +284,6 @@ namespace GlitchyEngine.Renderer
 
 			FontRenderer.Deinit();
 
-			s_textureColorEffect.ReleaseRef();
 			s_batchEffect.ReleaseRef();
 			s_circleBatchEffect.ReleaseRef();
 
@@ -345,7 +338,6 @@ namespace GlitchyEngine.Renderer
 			
 			s_currentEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 			s_currentCircleEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
-			s_textureColorEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 
 			s_drawOrder = drawOrder;
 			
@@ -546,20 +538,6 @@ namespace GlitchyEngine.Renderer
 			s_circleInstanceQueue.Clear();
 		}
 
-		private static void DrawImmediate(Matrix transform, ColorRGBA color, Texture2D texture, Vector4 uvTransform)
-		{
-			s_textureColorEffect.SetTexture("Texture", texture ?? s_whiteTexture);
-
-			s_textureColorEffect.Variables["World"].SetData(transform);
-			s_textureColorEffect.Variables["Color"].SetData(color);
-			s_textureColorEffect.Variables["UVTransform"].SetData(uvTransform);
-
-			s_textureColorEffect.Bind(Renderer._context);
-
-			s_quadGeometry.Bind();
-			RenderCommand.DrawIndexed(s_quadGeometry);
-		}
-
 		// Primitives
 
 		// Quad
@@ -601,16 +579,11 @@ namespace GlitchyEngine.Renderer
 				
 			Matrix transform = Matrix.Translation(position) * Matrix.RotationZ(rotation) * Matrix.Scaling(size.X, size.Y, 1.0f);
 
+			QueueQuadInstance(transform, color, texture, position.Z, uvTransform);
+
 			if(s_drawOrder == .Immediate)
 			{
-				//DrawImmediate(transform, color, texture, uvTransform);
-				QueueQuadInstance(transform, color, texture, position.Z, uvTransform);
 				DrawDeferred();
-				//Flush();
-			}
-			else
-			{
-				QueueQuadInstance(transform, color, texture, position.Z, uvTransform);
 			}
 		}
 
