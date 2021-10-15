@@ -17,11 +17,30 @@ namespace GlitchyEngine.Renderer
 
 		public extern void Init();
 
-		public extern void Clear(RenderTarget2D renderTarget, ColorRGBA clearColor);
+		public extern void Clear(RenderTarget2D renderTarget, ColorRGBA color);
 
-		public extern void Clear(DepthStencilTarget target, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags);
+		public extern void Clear(DepthStencilTarget target, ClearOptions options, float depth, uint8 stencil);
 		
-		public extern void Clear(RenderTarget2D renderTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags);
+		public void Clear(RenderTarget2D renderTarget, ClearOptions options, ColorRGBA color, float depth, uint8 stencil)
+		{
+			var actualRt = (renderTarget ?? GraphicsContext.Get().SwapChain.BackBuffer);
+
+			if(options.HasFlag(.Color))
+				Clear(actualRt, color);
+
+			if((options.HasFlag(.Depth) || options.HasFlag(.Stencil)) && actualRt.DepthStencilTarget != null)
+				Clear(actualRt.DepthStencilTarget, options, depth, stencil);
+		}
+
+		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthBuffer);
+
+		public extern void SetDepthStencilTarget(DepthStencilTarget target);
+
+		public extern void BindRenderTargets();
+
+		public extern void SetRasterizerState(RasterizerState rasterizerState);
+
+		public extern void SetBlendState(BlendState blendState, ColorRGBA blendFactor);
 
 		public extern void DrawIndexed(GeometryBinding geometry);
 

@@ -27,21 +27,67 @@ namespace GlitchyEngine.Renderer
 
 		}
 
-		public override void Clear(RenderTarget2D renderTarget, ColorRGBA clearColor)
+		private mixin RtOrBackbuffer(RenderTarget2D renderTarget)
 		{
-			_context.ClearRenderTarget(renderTarget, clearColor);
+			renderTarget ?? _context.SwapChain.BackBuffer
 		}
 
-		public override void Clear(DepthStencilTarget target, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		public override void Clear(RenderTarget2D renderTarget, ColorRGBA color)
 		{
-			NativeContext.ClearDepthStencilView(target.nativeView, (.)clearFlags, depthValue, stencilValue);
+			NativeContext.ClearRenderTargetView(RtOrBackbuffer!(renderTarget)._nativeRenderTargetView, color);
 		}
 
-		public override void Clear(RenderTarget2D renderTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		public override void Clear(DepthStencilTarget target, ClearOptions clearOptions, float depth, uint8 stencil)
 		{
-			NativeContext.ClearDepthStencilView(renderTarget._depthStenilTarget.nativeView, (.)clearFlags, depthValue, stencilValue);
+			if(target == null)
+				return;
+
+			DirectX.D3D11.ClearFlag flags = default;
+			
+			if(clearOptions.HasFlag(.Depth))
+			{
+				flags |= .Depth;
+			}
+			
+			if(clearOptions.HasFlag(.Stencil))
+			{
+				flags |= .Stencil;
+			}
+
+			NativeContext.ClearDepthStencilView(target.nativeView, flags, depth, stencil);
+		}
+
+		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthBuffer)
+		{
+			_context.SetRenderTarget(renderTarget, slot, setDepthBuffer);
 		}
 		
+		public override void SetDepthStencilTarget(DepthStencilTarget target)
+		{
+			_context.SetDepthStencilTarget(target);
+		}
+
+		public override void BindRenderTargets()
+		{
+			_context.BindRenderTargets();
+		}
+
+		private RasterizerState _currentRasterizerState ~ _?.ReleaseRef();
+
+		public override void SetRasterizerState(RasterizerState rasterizerState)
+		{
+			SetReference!(_currentRasterizerState, rasterizerState);
+			NativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
+		}
+
+		private BlendState _currentBlendState ~ _?.ReleaseRef();
+
+		public override void SetBlendState(BlendState blendState, ColorRGBA blendFactor)
+		{
+			SetReference!(_currentBlendState, blendState);
+			NativeContext.OutputMerger.SetBlendState(_currentBlendState.nativeBlendState, blendFactor);
+		}
+
 		public override void DrawIndexed(GeometryBinding geometry)
 		{
 			if(geometry.IsIndexed)

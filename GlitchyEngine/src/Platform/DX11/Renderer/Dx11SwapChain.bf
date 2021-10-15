@@ -12,46 +12,8 @@ namespace GlitchyEngine.Renderer
 {
 	public extension SwapChain
 	{
-		private GraphicsContext _context;
-
-		private bool _changed;
-
-		private uint32 _width, _height;
-		
 		internal DirectX.DXGI.IDXGIDevice* nativeDxgiDevice;
 		internal IDXGISwapChain1* nativeSwapChain;
-
-		internal ID3D11RenderTargetView* nativeBackBufferTarget;
-
-		public override uint32 Width
-		{
-			get => _width;
-
-			set
-			{
-				if(_width == value)
-					return;
-
-				_width = value;
-				_changed = true;
-			}
-		}
-		
-		public override uint32 Height
-		{
-			get => _height;
-
-			set
-			{
-				if(_height == value)
-					return;
-
-				_height = value;
-				_changed = true;
-			}
-		}
-
-		public override GraphicsContext Context => _context;
 
 		public this(GraphicsContext context)
 		{
@@ -64,7 +26,6 @@ namespace GlitchyEngine.Renderer
 		{
 			nativeDxgiDevice?.Release();
 			nativeSwapChain?.Release();
-			nativeBackBufferTarget?.Release();
 		}
 
 		void SetResolutionFromWindow()
@@ -101,7 +62,8 @@ namespace GlitchyEngine.Renderer
 
 			if(nativeSwapChain != null)
 			{
-				nativeBackBufferTarget.Release();
+				//nativeBackBufferTarget.Release();
+				_backBuffer.ReleaseRef();
 
 				var resizeResult = nativeSwapChain.ResizeBuffers(backBufferCount, _width, _height, backBufferFormat, .None);
 				if(resizeResult.Failed)
@@ -122,7 +84,7 @@ namespace GlitchyEngine.Renderer
 				swDesc.Height = _height;
 				swDesc.Format = backBufferFormat;
 				swDesc.SampleDescription = .(1, 0);
-				swDesc.BufferUsage = .RenderTargetOutput;
+				swDesc.BufferUsage = .RenderTargetOutput | .ShaderInput;
 				swDesc.BufferCount = backBufferCount;
 				swDesc.SwapEffect = .FlipDiscard;
 
@@ -138,14 +100,20 @@ namespace GlitchyEngine.Renderer
 				factory.Release();
 			}
 
-			nativeSwapChain.GetBuffer<ID3D11Texture2D>(0, let backBuffer);
+			RenderTarget2DDescription desc = .(backBufferFormat, _width, _height);
+			desc.DepthStencilFormat = _depthStencilFormat;
+			desc.IsSwapchainTarget = true;
 
-			RenderTargetViewDescription rtvDesc = .(backBuffer, .Texture2D, backBufferViewFormat);
-			NativeDevice.CreateRenderTargetView(backBuffer, &rtvDesc, &nativeBackBufferTarget);
-
+			// Todo: perhaps just update the render target
+			_backBuffer = new RenderTarget2D(desc);
+			
 			_backBufferViewport = GlitchyEngine.Renderer.Viewport(0, 0, _width, _height, 0.0f, 1.0f);
+		}
 
-			backBuffer.Release();
+		internal void GetBackbuffer(out ID3D11Texture2D* texture)
+		{
+			var result = nativeSwapChain.GetBuffer<ID3D11Texture2D>(0, out texture);
+			Log.EngineLogger.Assert(result.Succeeded, "Failed to get backbuffer.");
 		}
 
 		public override void Present()

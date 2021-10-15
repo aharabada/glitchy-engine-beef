@@ -3,6 +3,7 @@
 using DirectX.Common;
 using DirectX.D3D11;
 using GlitchyEngine.Platform.DX11;
+using DirectX.DXGI.DXGI1_2;
 
 using internal GlitchyEngine.Platform.DX11;
 
@@ -40,6 +41,18 @@ namespace GlitchyEngine.Renderer
 			ReleaseAndNullify();
 
 			PlatformCreateTexture();
+
+			if(_description.IsSwapchainTarget)
+			{
+				// TODO: if the engine supports multiple windows it has to support multiple swap chains.
+
+				// kinda dirty...
+				var context = GraphicsContext.Get();
+
+				context.SwapChain.GetBackbuffer(out _nativeTexture);
+
+				CreateViews();
+			}
 
 			if(_description.DepthStencilFormat != .None)
 			{

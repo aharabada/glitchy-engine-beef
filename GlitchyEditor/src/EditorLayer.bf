@@ -100,15 +100,14 @@ namespace GlitchyEditor
 
 			TransformSystem.Update(_world);
 
-			RenderCommand.Clear(_renderTarget2D, .(0.2f, 0.2f, 0.2f));
-			RenderCommand.Clear(_renderTarget2D, 1.0f, 0, .Depth);
+			RenderCommand.Clear(_renderTarget2D, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
 			_context.SetRenderTarget(_renderTarget2D);
 			_context.BindRenderTargets();
 
 			RenderCommand.SetViewport(Viewport(0, 0, _renderTarget2D.Width, _renderTarget2D.Height));
 
-			_opaqueBlendState.Bind();
+			RenderCommand.SetBlendState(_opaqueBlendState);
 
 			Renderer.BeginScene(_cameraController.Camera);
 
@@ -117,7 +116,7 @@ namespace GlitchyEditor
 			Renderer.EndScene();
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
-			RenderCommand.Clear(_swapchainDepthBuffer, 1.0f, 0, .Depth);
+			RenderCommand.Clear(_swapchainDepthBuffer, .Depth, 1.0f, 0);
 
 			_context.SetRenderTarget(null);
 			_context.SetDepthStencilTarget(_swapchainDepthBuffer);

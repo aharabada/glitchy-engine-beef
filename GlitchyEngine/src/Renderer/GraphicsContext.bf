@@ -6,7 +6,8 @@ namespace GlitchyEngine.Renderer
 {
 	public class GraphicsContext : RefCounter
 	{
-		private RasterizerState _currentRasterizerState;
+		private static GraphicsContext s_GraphicsContext;
+		public static GraphicsContext Get() => s_GraphicsContext;
 
 		public extern SwapChain SwapChain {get;}
 
@@ -30,8 +31,9 @@ namespace GlitchyEngine.Renderer
 		 * @BindRenderTargets has to be called in order to bind the rendertargets.
 		 * @param renderTarget The render target to set. If null, the backbuffer will be set.
 		 * @param slot The slot to which the rendertarget will be bound. If 0 the depth buffer of the current render target will be set. If it has no depthbuffer the current will be unset.
+		 * @param setDepthTarget If set to true the depth stencil target of the given renderTarget will be bound (only applies if slot is 0).
 		 */
-		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0);
+		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0, bool setDepthTarget = true);
 
 		/**
 		 * Binds all.
@@ -80,18 +82,7 @@ namespace GlitchyEngine.Renderer
 
 		public extern void SetIndexBuffer(Buffer buffer, IndexFormat indexFormat = .Index16Bit, uint32 byteOffset = 0);
 
-		public void SetRasterizerState(RasterizerState rasterizerState)
-		{
-			_currentRasterizerState = rasterizerState;
-			SetRasterizerStateImpl();
-		}
-
 		protected extern void SetRasterizerStateImpl();
-
-		public RasterizerState GetRasterizerState()
-		{
-			return _currentRasterizerState;
-		}
 
 		internal void SetViewport(Viewport viewport)
 		{

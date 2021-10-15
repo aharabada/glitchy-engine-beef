@@ -41,6 +41,8 @@ namespace GlitchyEngine.Renderer
 			nativeWindowHandle = windowHandle;
 
 			_swapChain = new SwapChain(this);
+
+			s_GraphicsContext = this;
 		}
 
 		public ~this()
@@ -112,20 +114,13 @@ namespace GlitchyEngine.Renderer
 			_depthStencilTarget = target?.nativeView;
 		}
 
-		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0)
+		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthTarget)
 		{
-			if(renderTarget == null || renderTarget.Description.IsSwapchainTarget)
-			{
-				_renderTargets[slot] = _swapChain.nativeBackBufferTarget;
-			}
-			else
-			{
-				_renderTargets[slot] = renderTarget._nativeRenderTargetView;
-			}
+			_renderTargets[slot] = (renderTarget ?? _swapChain.BackBuffer)._nativeRenderTargetView;
 
-			if(slot == 0)
+			if(slot == 0 && setDepthTarget)
 			{
-				SetDepthStencilTarget(renderTarget?.DepthStencilTarget);
+				SetDepthStencilTarget((renderTarget ?? _swapChain.BackBuffer).DepthStencilTarget);
 			}
 		}
 
@@ -136,14 +131,7 @@ namespace GlitchyEngine.Renderer
 
 		public override void ClearRenderTarget(RenderTarget2D renderTarget, ColorRGBA color)
 		{
-			if(renderTarget == null)
-			{
-				NativeContext.ClearRenderTargetView(_swapChain.nativeBackBufferTarget, color);
-			}
-			else
-			{
-				NativeContext.ClearRenderTargetView(renderTarget._nativeRenderTargetView, color);
-			}
+			NativeContext.ClearRenderTargetView((renderTarget ?? _swapChain.BackBuffer)._nativeRenderTargetView, color);
 		}
 
 		public override void SetVertexBuffer(uint32 slot, Buffer buffer, uint32 stride, uint32 offset = 0)
@@ -166,11 +154,6 @@ namespace GlitchyEngine.Renderer
 		public override void SetIndexBuffer(Buffer buffer, IndexFormat indexFormat = .Index16Bit, uint32 byteOffset = 0)
 		{
 			NativeContext.InputAssembler.SetIndexBuffer(buffer.nativeBuffer, indexFormat == .Index32Bit ? .R32_UInt : .R16_UInt, byteOffset);
-		}
-
-		protected override void SetRasterizerStateImpl()
-		{
-			NativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
 		}
 
 		public override void SetViewports(uint32 viewportsCount, GlitchyEngine.Renderer.Viewport* viewports)

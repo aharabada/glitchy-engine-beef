@@ -85,8 +85,6 @@ namespace GlitchyEngine.Renderer
 			PlatformCreateBlendState();
 		}
 
-		public extern void Bind(ColorRGBA blendFactor = .White);
-
 		protected extern void PlatformCreateBlendState();
 	}
 }

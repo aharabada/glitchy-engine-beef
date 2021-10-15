@@ -346,22 +346,22 @@ namespace Sandbox
 			_cameraController.Update(gameTime);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
-			RenderCommand.Clear(_depthTarget, 1.0f, 0, .Depth);
+			RenderCommand.Clear(_depthTarget, .Depth, 1.0f, 0);
 
 			// Draw test geometry
-			_context.SetRenderTarget(null);
-			_context.SetDepthStencilTarget(_depthTarget);
-			_context.BindRenderTargets();
+			RenderCommand.SetRenderTarget(null);
+			RenderCommand.SetDepthStencilTarget(_depthTarget);
+			RenderCommand.BindRenderTargets();
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
 			Renderer.BeginScene(_cameraController.Camera);
 			
-			_opaqueBlendState.Bind();
+			RenderCommand.SetBlendState(_opaqueBlendState);
 
 			var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
 
-			_context.SetRasterizerState(_rasterizerState);
+			RenderCommand.SetRasterizerState(_rasterizerState);
 			
 			TransformSystem.Update(_world);
 			
@@ -471,8 +471,8 @@ namespace Sandbox
 			_checkerMaterial.SetVariable("BaseColor", Color.White);
 
 			Renderer.Submit(_quadGeometryBinding, _checkerMaterial, Matrix.RotationZ(f) * .Scaling(1.5f));
-			
-			_alphaBlendState.Bind();
+
+			RenderCommand.SetBlendState(_alphaBlendState);
 			
 			_logoMaterial.SetVariable("BaseColor", Color.Pink);
 

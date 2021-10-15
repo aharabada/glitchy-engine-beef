@@ -3,11 +3,20 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
+	/*
 	public enum DepthStencilClearFlag
 	{
 		None = 0,
 		Depth = 1,
 		Stencil = 2
+	}
+	*/
+	public enum ClearOptions
+	{
+		None = 0,
+		Color = 1,
+		Depth = 2,
+		Stencil = 4
 	}
 
 	public static class RenderCommand
@@ -32,14 +41,39 @@ namespace GlitchyEngine.Renderer
 			_rendererAPI.Clear(renderTarget, color);
 		}
 
-		public static void Clear(DepthStencilTarget depthTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		public static void Clear(DepthStencilTarget target, ClearOptions options, float depth, uint8 stencil)
 		{
-			_rendererAPI.Clear(depthTarget, depthValue, stencilValue, clearFlags);
+			_rendererAPI.Clear(target, options, depth, stencil);
 		}
 
-		public static void Clear(RenderTarget2D renderTarget, float depthValue, uint8 stencilValue, DepthStencilClearFlag clearFlags)
+		public static void Clear(RenderTarget2D renderTarget, ClearOptions options, ColorRGBA color, float depth, uint8 stencil)
 		{
-			_rendererAPI.Clear(renderTarget, depthValue, stencilValue, clearFlags);
+			_rendererAPI.Clear(renderTarget, options, color, depth, stencil);
+		}
+
+		public static void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0, bool setDepthBuffer = false)
+		{
+			_rendererAPI.SetRenderTarget(renderTarget, slot, setDepthBuffer);
+		}
+
+		public static void SetDepthStencilTarget(DepthStencilTarget target)
+		{
+			_rendererAPI.SetDepthStencilTarget(target);
+		}
+
+		public static void BindRenderTargets()
+		{
+			_rendererAPI.BindRenderTargets();
+		}
+
+		public static void SetRasterizerState(RasterizerState rasterizerState)
+		{
+			_rendererAPI.SetRasterizerState(rasterizerState);
+		}
+
+		public static void SetBlendState(BlendState blendState, ColorRGBA blendFactor = .White)
+		{
+			_rendererAPI.SetBlendState(blendState, blendFactor);
 		}
 
 		[Inline]

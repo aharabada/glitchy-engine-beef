@@ -15,11 +15,6 @@ namespace GlitchyEngine.Renderer
 	{
 		internal ID3D11BlendState* nativeBlendState ~ _?.Release();
 
-		public override void Bind(ColorRGBA blendFactor)
-		{
-			NativeContext.OutputMerger.SetBlendState(nativeBlendState, blendFactor);
-		}
-
 		protected override void PlatformCreateBlendState()
 		{
 			BlendDescription nativeDesc = .Default;

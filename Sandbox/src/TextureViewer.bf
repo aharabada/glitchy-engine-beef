@@ -169,8 +169,8 @@ namespace Sandbox
 			RenderCommand.SetViewport(vp);
 
 			// TODO: don't clear pink!
-			_context.ClearRenderTarget(_target, .Pink);
-			RenderCommand.Clear(_depth, 1.0f, 0, .Depth);
+			RenderCommand.Clear(_target, .Pink);
+			RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
 
 			//_target.Bind();
 			_context.SetRenderTarget(_target);

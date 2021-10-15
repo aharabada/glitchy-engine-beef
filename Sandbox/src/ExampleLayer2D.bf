@@ -83,20 +83,20 @@ namespace Sandbox
 			cameraController.Update(gameTime);
 
 			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
-			RenderCommand.Clear(_depthTarget, 1.0f, 0, .Depth);
+			RenderCommand.Clear(_depthTarget, .Depth, 1.0f, 0);
 			
 			// Draw test geometry
-			_context.SetRenderTarget(null);
-			_context.SetDepthStencilTarget(_depthTarget);
-			_context.BindRenderTargets();
+			RenderCommand.SetRenderTarget(null);
+			RenderCommand.SetDepthStencilTarget(_depthTarget);
+			RenderCommand.BindRenderTargets();
 
-			_context.SetRasterizerState(_rasterizerState);
+			RenderCommand.SetRasterizerState(_rasterizerState);
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
 			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
-			
-			_alphaBlendState.Bind();
+
+			RenderCommand.SetBlendState(_alphaBlendState);
 
 			for(int x < 10)
 			for(int y < 10)
