@@ -178,6 +178,16 @@ namespace GlitchyEngine.Math
 		{
 			return a + interpolationValue * (b - a);
 		}
+		
+		public static Vector4 Min(Vector4 a, Vector4 b)
+		{
+			return .(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z), Math.Min(a.W, b.W));
+		}
+
+		public static Vector4 Max(Vector4 a, Vector4 b)
+		{
+			return .(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Min(a.Z, b.Z), Math.Min(a.W, b.W));
+		}
 
 		//
 		// Assignment operators

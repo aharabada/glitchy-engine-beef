@@ -133,7 +133,7 @@ namespace GlitchyEngine.Math
 		/**
 		* Calculates the projection of a onto b
 		*/
-		public Vector2 Project(Vector2 a, Vector2 b)
+		public static Vector2 Project(Vector2 a, Vector2 b)
 		{
 			return (b * (Dot(a, b) / Dot(b, b)));
 		}
@@ -141,7 +141,7 @@ namespace GlitchyEngine.Math
 		/**
 		* Calculates the rejection of a from b
 		*/
-		public Vector2 Reject(Vector2 a, Vector2 b)
+		public static Vector2 Reject(Vector2 a, Vector2 b)
 		{
 			return (a - b * (Dot(a, b) / Dot(b, b)));
 		}
@@ -157,6 +157,16 @@ namespace GlitchyEngine.Math
 		public static Vector2 Lerp(Vector2 a, Vector2 b, float interpolationValue)
 		{
 			return a + interpolationValue * (b - a);
+		}
+
+		public static Vector2 Min(Vector2 a, Vector2 b)
+		{
+			return .(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y));
+		}
+
+		public static Vector2 Max(Vector2 a, Vector2 b)
+		{
+			return .(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y));
 		}
 
 		//
