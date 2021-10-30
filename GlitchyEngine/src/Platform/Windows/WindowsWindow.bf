@@ -1,4 +1,5 @@
-#if GE_WINDOWS
+#if BF_PLATFORM_WINDOWS
+
 using System;
 using DirectX.Common;
 using DirectX.Windows;
@@ -539,4 +540,5 @@ namespace GlitchyEngine
 		}
 	}
 }
+
 #endif

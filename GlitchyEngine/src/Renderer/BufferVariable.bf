@@ -49,16 +49,16 @@ namespace GlitchyEngine.Renderer
 
 		public void EnsureTypeMatch(int rows, int cols, ShaderVariableType type)
 		{
-#if GE_ERROR_SHADER_MATRIX_MISMATCH
+#if GE_SHADER_MATRIX_MISMATCH_IS_ERROR
 	   		Log.EngineLogger.Assert(rows == _rows || cols == _columns, scope $"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
-#elif GE_WARN_SHADER_MATRIX_MISMATCH
+#elif GE_SHADER_MATRIX_MISMATCH_IS_WARNING
 			if (rows != _rows || cols != _columns)
 	   			Log.EngineLogger.Warning($"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #endif
 
-#if GE_ERROR_SHADER_VAR_TYPE_MISMATCH
+#if GE_SHADER_VAR_TYPE_MISMATCH_IS_ERROR
 	   		Log.EngineLogger.Assert(type == _type, scope $"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
-#elif GE_WARN_SHADER_VAR_TYPE_MISMATCH
+#elif GE_SHADER_VAR_TYPE_MISMATCH_IS_WARNING
 			if (type != _type)
 	   			Log.EngineLogger.Warning($"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #endif
@@ -187,7 +187,9 @@ namespace GlitchyEngine.Renderer
 		 */
 		internal void SetRawData(void* rawData)
 		{
-#if DEBUG && !GE_IGNORE_UNUSED_VARIABLE
+#if GE_SHADER_UNUSED_VARIABLE_IS_ERROR
+			Log.EngineLogger.Assert(_isUsed, scope $"Setting data for unused Variable \"{_name}\" of constant buffer \"{_constantBuffer.Name}\".");
+#elif GE_SHADER_UNUSED_VARIABLE_IS_WARNING
 			if(!_isUsed)
 			{
 				Log.EngineLogger.Warning($"Setting data for unused Variable \"{_name}\" of constant buffer \"{_constantBuffer.Name}\".");

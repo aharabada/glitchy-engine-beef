@@ -81,7 +81,7 @@ namespace GlitchyEngine
 			}
 		}
 		
-#if APP_SINGLESTEP
+#if GE_APP_SINGLESTEP
 		bool allowFrame = false;
 		bool disableSingleFrame = false;
 #else
@@ -99,7 +99,7 @@ namespace GlitchyEngine
 
 				Input.NewFrame();
 				
-#if APP_SINGLESTEP
+#if GE_APP_SINGLESTEP
 				allowFrame = disableSingleFrame || Input.IsKeyPressing(Key.F10);
 
 				if(Input.IsKeyPressing(Key.F11))

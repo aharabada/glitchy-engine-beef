@@ -1,4 +1,4 @@
-#if GE_D3D11
+#if GE_GRAPHICS_DX11
 
 // Disable warning when taking pointer of in-Parameter
 #pragma warning disable 4204

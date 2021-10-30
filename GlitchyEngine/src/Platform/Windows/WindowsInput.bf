@@ -1,3 +1,5 @@
+#if BF_PLATFORM_WINDOWS
+
 using System;
 using GlitchyEngine.Events;
 using DirectX.Windows.VirtualKeyCodes;
@@ -7,8 +9,6 @@ using static System.Windows;
 
 namespace GlitchyEngine
 {
-
-#if GE_WINDOWS
 	/// Windows (WinApi) specific implementation of the Input-class
 	extension Input
 	{
@@ -192,5 +192,6 @@ namespace GlitchyEngine
 			CurrentState.CursorPositionDifference = CurrentState.CursorPosition - LastState.CursorPosition;
 		}
 	}
-#endif
 }
+
+#endif

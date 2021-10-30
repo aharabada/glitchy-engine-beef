@@ -1,4 +1,4 @@
-#if GE_D3D11
+#if GE_GRAPHICS_DX11
 
 using System;
 using DirectX;

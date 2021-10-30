@@ -1,4 +1,4 @@
-#if GE_D3D11
+#if GE_GRAPHICS_DX11
 
 using DirectX.D3D11;
 using GlitchyEngine.Platform.DX11;

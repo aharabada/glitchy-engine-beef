@@ -53,7 +53,7 @@ namespace GlitchLog
 			//Debug.Assert(Debug.IsDebuggerPresent, "The DebugLogger requires a debugger to be present.");
 		}
 		
-#if GL_NOLOG || GL_NOTRACE
+#if GL_NOLOG || GL_LOG_NOTRACE
 		[SkipCall]
 #endif
 		[Inline]
@@ -62,7 +62,7 @@ namespace GlitchLog
 			InternalLog(.Trace, format, params args);
 		}
 		
-#if GL_NOLOG || GL_NOINFO
+#if GL_NOLOG || GL_LOG_NOINFO
 		[SkipCall]
 #endif
 		[Inline]
@@ -71,7 +71,7 @@ namespace GlitchLog
 			InternalLog(.Info, format, params args);
 		}
 		
-#if GL_NOLOG || GL_NOWARNING
+#if GL_NOLOG || GL_LOG_NOWARNING
 		[SkipCall]
 #endif
 		[Inline]
@@ -80,7 +80,7 @@ namespace GlitchLog
 			InternalLog(.Warning, format, params args);
 		}
 
-#if GL_NOLOG || GL_NOERROR
+#if GL_NOLOG || GL_LOG_NOERROR
 		[SkipCall]
 #endif
 		[Inline]
@@ -89,7 +89,7 @@ namespace GlitchLog
 			InternalLog(.Error, format, params args);
 		}
 
-#if GL_NOLOG || GL_NOCRITICAL
+#if GL_NOLOG || GL_LOG_NOCRITICAL
 		[SkipCall]
 #endif
 		[Inline]

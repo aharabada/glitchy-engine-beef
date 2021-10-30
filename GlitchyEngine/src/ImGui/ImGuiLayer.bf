@@ -5,7 +5,7 @@ using ImGuizmo;
 
 using internal ImGui;
 
-#if GE_D3D11
+#if GE_GRAPHICS_DX11
 
 using GlitchyEngine.Platform.DX11;
 using internal GlitchyEngine.Platform.DX11;
@@ -44,12 +44,12 @@ namespace GlitchyEngine.ImGui
 				style.Colors[(int)ImGui.Col.WindowBg].w = 1.0f;
 			}
 
-#if GE_WINDOWS
+#if BF_PLATFORM_WINDOWS
 			// Todo: temporary, needs to be platform independent
 			ImGuiImplWin32.Init((void*)(uint)(Windows.HWnd)(int)Application.Get().Window.NativeWindow);
 #endif
 
-#if GE_D3D11
+#if GE_GRAPHICS_DX11
 			ImGuiImplDX11.Init(NativeDevice, NativeContext);
 #endif
 		}

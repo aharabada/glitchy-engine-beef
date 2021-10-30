@@ -1,27 +1,24 @@
 FileVersion = 1
-Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", DirectXTK = "*", FreeType = "*", cgltf-beef = "*", msdfgen-beef = "*", ImGui = "*", ImGuiImplDX11 = "*", ImGuiImplWin32 = "*", ImGuizmo = "*"}
+Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", DirectXTK = "*", FreeType = "*", cgltf-beef = "*", msdfgen-beef = "*", ImGui = "*", ImGuiImplDX11 = "*", ImGuiImplWin32 = "*", ImGuizmo = "*", Beefy2D = "*"}
 
 [Project]
 Name = "GlitchyEngine"
 ProcessorMacros = ["GE_ERROR_SHADER_MATRIX_MISMATCH", "GE_ERROR_SHADER_VAR_TYPE_MISMATCH"]
 
-[Configs.Debug.Win32]
-PreprocessorMacros = ["DEBUG", "GE_WINDOWS"]
-
 [Configs.Debug.Win64]
-PreprocessorMacros = ["DEBUG", "GE_WINDOWS", "GE_D3D11"]
-
-[Configs.Release.Win32]
-PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
-
-[Configs.Release.Win64]
-PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
+PreprocessorMacros = ["DEBUG", "GE_GRAPHICS_DX11", "GE_PROFILE"]
 
 [Configs.Paranoid.Win32]
 PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
 
 [Configs.Paranoid.Win64]
 PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
+
+[Configs.Release.Win32]
+PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
+
+[Configs.Release.Win64]
+PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
 
 [Configs.Test.Win32]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
