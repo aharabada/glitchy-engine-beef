@@ -2,7 +2,7 @@ using System;
 
 namespace GlitchyEngine.Math
 {
-	//[SwizzleVector(3, "Vector")]
+	[SwizzleVector(3, "Vector")]
 	public struct Vector3
 	{
 		public const Vector3 Zero     = .(0f, 0f, 0f);
@@ -18,7 +18,7 @@ namespace GlitchyEngine.Math
 		public const Vector3 Up       = .(0f, 1f, 0f); 	
 		public const Vector3 Down     = .(0f, -1f, 0f);
 		
-		public const int Length = 3;
+		public const int ComponentCount = 3;
 
 		public float X, Y, Z;
 
@@ -50,7 +50,7 @@ namespace GlitchyEngine.Math
 			[Checked]
 			get mut
 			{
-				if(index < 0 || index >= Length)
+				if(index < 0 || index >= ComponentCount)
 					Internal.ThrowIndexOutOfRange(1);
 				
 				return ref (&X)[index];
@@ -69,7 +69,7 @@ namespace GlitchyEngine.Math
 				case 0: return X;
 				case 1: return Y;
 				case 2: return Z;
-				default: Internal.ThrowIndexOutOfRange();
+				default: Internal.ThrowIndexOutOfRange(1);
 				}
 			}
 
@@ -80,7 +80,7 @@ namespace GlitchyEngine.Math
 				case 0: X = value;
 				case 1: Y = value;
 				case 2: Z = value;
-				default: Internal.ThrowIndexOutOfRange();
+				default: Internal.ThrowIndexOutOfRange(1);
 				}
 			}
 		}
