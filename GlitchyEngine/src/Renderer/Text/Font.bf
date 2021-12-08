@@ -18,7 +18,7 @@ namespace GlitchyEngine.Renderer.Text
 			public FT_UInt GlyphIndex;
 
 			// TODO: Consider using floats
-			public Int32_3 MapCoord;
+			public Int3 MapCoord;
 			public int32 Width, Height;
 
 			public double TranslationX, TranslationY;
@@ -45,10 +45,10 @@ namespace GlitchyEngine.Renderer.Text
 		private int32 _faceIndex;
 		private bool _hasColor;
 		
-		private Int32_3 _penPos;
+		private Int3 _penPos;
 		private int32 _lastRowHeight;
 		internal Texture2D _atlas ~ _?.ReleaseRef();
-		private Int32_3 _atlasSize;
+		private Int3 _atlasSize;
 
 		private Dictionary<char32, GlyphDescriptor> _glyphs = new .() ~ DeleteDictionaryAndValues!(_);
 		GlyphDescriptor _missingGlyph;
@@ -215,12 +215,12 @@ namespace GlitchyEngine.Renderer.Text
 			UpdateAtlas();
 		}
 
-		Int32_3 PrepareAtlas()
+		Int3 PrepareAtlas()
 		{
 			const uint32 maxRes = 16384; // D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION
 			const uint32 maxArray = 2048; // D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION
 			
-			ref Int32_3 pen = ref _penPos;
+			ref Int3 pen = ref _penPos;
 			ref int32 rowHeight = ref _lastRowHeight;
 
 			int32 atlasWidth = _atlasSize.X;
@@ -298,7 +298,7 @@ namespace GlitchyEngine.Renderer.Text
 
 		void DrawAtlas()
 		{
-			Int32_3 oldAtlasSize = _atlasSize;
+			Int3 oldAtlasSize = _atlasSize;
 			_atlasSize = PrepareAtlas();
 
 			if(_atlasSize != oldAtlasSize)

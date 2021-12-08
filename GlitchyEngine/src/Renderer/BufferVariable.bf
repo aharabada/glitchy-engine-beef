@@ -82,11 +82,11 @@ namespace GlitchyEngine.Renderer
 				
 			case typeof(int32):
 					EnsureTypeMatch(1, 1, .Int);
-			case typeof(Int32_2):
+			case typeof(Int2):
 					EnsureTypeMatch(1, 2, .Int);
-			case typeof(Int32_3):
+			case typeof(Int3):
 					EnsureTypeMatch(1, 3, .Int);
-			case typeof(Int32_4):
+			case typeof(Int4):
 					EnsureTypeMatch(1, 4, .Int);
 
 			case typeof(Matrix4x3):
@@ -127,9 +127,9 @@ namespace GlitchyEngine.Renderer
 		public void SetData(Vector4 value) => SetData<Vector4>(value);
 
 		public void SetData(int32 value) => SetData<int32>(value);
-		public void SetData(Int32_2 value) => SetData<Int32_2>(value);
-		public void SetData(Int32_3 value) => SetData<Int32_3>(value);
-		public void SetData(Int32_4 value) => SetData<Int32_4>(value);
+		public void SetData(Int2 value) => SetData<Int2>(value);
+		public void SetData(Int3 value) => SetData<Int3>(value);
+		public void SetData(Int4 value) => SetData<Int4>(value);
 		
 		public void SetData(ColorRGB value) => SetData<ColorRGB>(value);
 		public void SetData(ColorRGBA value) => SetData<ColorRGBA>(value);
