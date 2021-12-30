@@ -19,11 +19,9 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public static void DisposeComponent(void* component)
+		public void Dispose() mut
 		{
-			Self* self = (Self*)component;
-
-			ReleaseRefAndNullify!(self._mesh);
+			ReleaseRefAndNullify!(_mesh);
 		}
 	}
 }

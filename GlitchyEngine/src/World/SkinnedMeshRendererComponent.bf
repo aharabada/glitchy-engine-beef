@@ -40,12 +40,10 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public static void DisposeComponent(void* component)
+		public void Dispose()
 		{
-			Self* meshRenderComponent = (Self*)component;
-
-			meshRenderComponent._material?.ReleaseRef();
-			meshRenderComponent._skeleton?.ReleaseRef();
+			_material?.ReleaseRef();
+			_skeleton?.ReleaseRef();
 		}
 	}
 }
