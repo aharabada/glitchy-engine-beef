@@ -145,7 +145,7 @@ namespace GlitchyEngine.World
 		/**
 		 * Assigns a component of type T to the specified entity and returns it.
 		 */
-		public T* AssignComponent<T>(Entity entity) where T : struct
+		public T* AssignComponent<T>(Entity entity) where T : struct, new
 		{
 			if(entity.Index > _entities.Count)
 				return null;
@@ -167,8 +167,12 @@ namespace GlitchyEngine.World
 			//	return null;
 			
 			listEntity.ComponentMask[entry.Id] = true;
-			
-			return (.)entry.Pool.Get(entity.Index);
+
+			T* component = (T*)entry.Pool.Get(entity.Index);
+
+			*component = T();
+
+			return component;
 		}
 
 		/**
