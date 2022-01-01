@@ -42,6 +42,8 @@ namespace GlitchyEngine.Renderer
 
 		public extern void SetBlendState(BlendState blendState, ColorRGBA blendFactor);
 
+		public extern void SetDepthStencilState(DepthStencilState depthStencilState, uint8 stencilReference);
+
 		public extern void DrawIndexed(GeometryBinding geometry);
 
 		public extern void DrawInstanced(GeometryBinding geometry);

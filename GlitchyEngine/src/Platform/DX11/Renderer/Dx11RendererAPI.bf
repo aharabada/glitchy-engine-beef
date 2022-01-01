@@ -87,6 +87,14 @@ namespace GlitchyEngine.Renderer
 			SetReference!(_currentBlendState, blendState);
 			NativeContext.OutputMerger.SetBlendState(_currentBlendState.nativeBlendState, blendFactor);
 		}
+		
+		private DepthStencilState _currentDepthStencilState ~ _?.ReleaseRef();
+
+		public override void SetDepthStencilState(DepthStencilState depthStencilState, uint8 stencilReference)
+		{
+			SetReference!(_currentDepthStencilState, depthStencilState);
+			NativeContext.OutputMerger.SetDepthStencilState(_currentDepthStencilState.nativeDepthStencilState, stencilReference);
+		}
 
 		public override void DrawIndexed(GeometryBinding geometry)
 		{
