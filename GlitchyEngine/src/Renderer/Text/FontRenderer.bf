@@ -3,6 +3,7 @@ using FreeType;
 using System.Diagnostics;
 using GlitchyEngine.Math;
 using System.Collections;
+using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
 using internal GlitchyEngine.Renderer;
@@ -109,6 +110,87 @@ namespace GlitchyEngine.Renderer.Text
 			//float f = 1.0f;
 			//int32 depthInt = *(int32*)&f;
 
+			// Shape!!!!!!!!!!!!!!!!!!!
+
+			// 1. Create a buffer and put your text in it:
+			hb_buffer_t *buf;
+			buf = hb_buffer_create();
+			hb_buffer_add_utf8(buf, text.CStr(), -1, 0, -1);
+
+			// 2. Set the script, language and direction of the buffer.
+			hb_buffer_set_direction(buf, .HB_DIRECTION_LTR);
+			hb_buffer_set_script(buf, .HB_SCRIPT_LATIN);
+			hb_buffer_set_language(buf, hb_language_from_string("en".CStr(), -1));
+
+			// 3. Get the face
+			hb_font_t* hb_font = font.[Friend]font;
+			
+			// 4. Shape:
+			hb_shape(hb_font, buf, null, 0);
+			
+			// 5. Get the glyph and position information.
+			uint32 glyph_count = ?;
+			hb_glyph_info_t* glyph_info    = hb_buffer_get_glyph_infos(buf, &glyph_count);
+			hb_glyph_position_t* glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
+
+			for (uint32 i < glyph_count)
+			{
+				hb_codepoint_t glyphid  = glyph_info[i].codepoint;
+				hb_position_t x_offset  = glyph_pos[i].x_offset;
+				hb_position_t y_offset  = glyph_pos[i].y_offset;
+				hb_position_t x_advance = glyph_pos[i].x_advance;
+				hb_position_t y_advance = glyph_pos[i].y_advance;
+
+				// Get glyph from Font
+				var glyphDesc = font.GetGlyph(glyphid);
+
+				// This never happens
+				Debug.Assert(glyphDesc != null);
+
+				// The glyph might belong to a fallback font
+				var glyphFont = glyphDesc.Font;
+				float glyphFontScale = (float)fontSize / glyphFont._fontSize;
+
+				Texture2D atlas = glyphFont._atlas;
+
+				// Add reference to atlas in case it is recreated during rendering
+				if(!atlasses.Contains(atlas))
+				{
+					atlasses.Add(atlas..AddRef());
+				}
+
+				Vector2 atlasSize = .(atlas.Width, atlas.Height);
+
+				float adjustToPenX = glyphDesc.AdjustToPen;
+				adjustToPenX *= glyphFontScale;
+
+				float adjustToBaseline = glyphDesc.AdjustToBaseLine;
+				adjustToBaseline *= glyphFontScale;
+
+				// Rectangle on the screen
+				Vector4 viewportRect = .(
+					penPosition + adjustToPenX,
+					baseline + adjustToBaseline,
+					glyphDesc.Width * glyphFontScale,
+					glyphDesc.Height * glyphFontScale);
+
+				// Rectangle on the font atlas
+				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
+
+				Color glyphColor = glyphDesc.IsBitmap ? bitmapColor : fontColor;
+
+				texRect /= Vector4(atlasSize, atlasSize);
+				
+				Renderer2D.DrawQuad(Vector3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
+
+				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+
+				Renderer2D.DrawQuad(Vector3(penPosition, baseline, -1), .(1), 0, .Green);
+
+			    penPosition += (x_advance / 64) * glyphFontScale;
+			    baseline += (y_advance / 64) * glyphFontScale;
+			}
+			/*
 			// enumerate through the unicode codepoints
 			for(char32 char in text.DecodedChars)
 			{
@@ -182,7 +264,7 @@ namespace GlitchyEngine.Renderer.Text
 				// Increase depth for the next glyph
 				//depthInt--;
 			}
-
+			*/
 			Renderer2D.Flush();
 
 			// TODO: not good!

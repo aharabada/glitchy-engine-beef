@@ -4,6 +4,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Core;
 using System.Collections;
 using msdfgen;
+using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
 
@@ -22,6 +23,7 @@ namespace GlitchyEngine.Renderer.Text
 			public int32 Width, Height;
 
 			public double TranslationX, TranslationY;
+			//public double Scale;
 
 			/// How many pixels we have to move the pen after drawing this glyph.
 			public float Advance;
@@ -50,7 +52,8 @@ namespace GlitchyEngine.Renderer.Text
 		internal Texture2D _atlas ~ _?.ReleaseRef();
 		private Int3 _atlasSize;
 
-		private Dictionary<char32, GlyphDescriptor> _glyphs = new .() ~ DeleteDictionaryAndValues!(_);
+		private Dictionary<char32, GlyphDescriptor> _glyphs = new .() ~ delete _;//DeleteDictionaryAndValues!(_);
+		private Dictionary<uint32, GlyphDescriptor> _glyphsById = new .() ~ DeleteDictionaryAndValues!(_);
 		GlyphDescriptor _missingGlyph;
 		
 		private SamplerState _sampler ~ _.ReleaseRef();
@@ -59,6 +62,10 @@ namespace GlitchyEngine.Renderer.Text
 		private double _geometryScaler;
 
 		internal double _range = 4.0;
+
+		private hb_blob_t* blob ~ hb_blob_destroy(_);
+		private hb_face_t* face ~ hb_face_destroy(_);
+		private hb_font_t* font ~ hb_font_destroy(_);
 
 		/**
 		 * Gets or sets the fallback Font for this Font.
@@ -113,8 +120,6 @@ namespace GlitchyEngine.Renderer.Text
 			// Set default sampler
 			Sampler = null;
 
-			_glyphs.Add('\0', new GlyphDescriptor(){Font = this});
-
 			_fontSize = fontSize;
 			_faceIndex = faceIndex;
 			_hasColor = hasColor;
@@ -130,7 +135,23 @@ namespace GlitchyEngine.Renderer.Text
 
 			_range = 4.0 / _geometryScaler;
 
+			GlyphDescriptor nullDesc = new GlyphDescriptor(){Font = this};
+			nullDesc.GlyphIndex = FreeType.Get_Char_Index(_face, '\0');
+			_glyphs.Add('\0', nullDesc);
+			_glyphsById.Add(nullDesc.GlyphIndex, nullDesc);
+
 			LoadGlyphs(firstChar, charCount);
+
+			// HarfBuzz
+			{
+				blob = hb_blob_create_from_file(fontPath.CStr()); /* or hb_blob_create_from_file_or_fail() */
+				face = hb_face_create(blob, 0);
+				font = hb_font_create(face);
+
+				hb_font_set_scale(font, (.)fontSize * 64, (.)fontSize * 64);
+			}
+
+			//TestMSDF();
 		}
 
 		public void LoadGlyphs(char32 firstChar, uint32 charCount)
@@ -138,6 +159,37 @@ namespace GlitchyEngine.Renderer.Text
 			ExtendRange(firstChar, firstChar + charCount);
 
 			UpdateAtlas();
+		}
+
+		public void LoadGlyphs(uint32 firstGlyph, uint32 charCount)
+		{
+			ExtendRange(firstGlyph, firstGlyph + charCount);
+
+			UpdateAtlas();
+		}
+
+		internal GlyphDescriptor GetGlyph(uint32 glyphId, bool allowDynamicLoading = true)
+		{
+			GlyphDescriptor desc;
+
+			if(_glyphsById.TryGetValue(glyphId, out desc))
+			{
+				// if the char is not defined in the current font try to load it from the fallback
+				if(desc == null && _fallback != null)
+				{
+					desc = _fallback.GetGlyph(glyphId, allowDynamicLoading);
+				}
+			}
+			else if(allowDynamicLoading)
+			{
+				// TODO: make reloading optional
+				uint32 start = (glyphId >> 4) << 4;
+				LoadGlyphs(start, 64);
+
+				desc = GetGlyph(glyphId, false);
+			}
+
+			return desc ?? _missingGlyph;
 		}
 
 		internal GlyphDescriptor GetGlyph(char32 char, bool allowDynamicLoading = true)
@@ -176,12 +228,41 @@ namespace GlitchyEngine.Renderer.Text
 					//desc.Face = _face;
 					desc.Font = this;
 					desc.GlyphIndex = FreeType.Get_Char_Index(_face, char);
+					
+					_glyphsById.TryAdd(desc.GlyphIndex, desc);
 
 					// if the char is not contained by the font we set the desc to null
 					if(desc.GlyphIndex == 0)
 					{
 						delete desc;
 						_glyphs[char] = null;
+					}
+				}
+				else
+				{
+					delete desc;
+				}
+			}
+		}
+		
+		void ExtendRange(uint32 firstGlyph, uint32 rangeEnd)
+		{
+			// TODO: refactor
+
+			for(uint32 glyphId = firstGlyph; glyphId < rangeEnd; glyphId++)
+			{
+				GlyphDescriptor desc = new GlyphDescriptor();
+				if(_glyphsById.TryAdd(glyphId, desc))
+				{
+					//desc.Face = _face;
+					desc.Font = this;
+					desc.GlyphIndex = glyphId;//FreeType.Get_Char_Index(_face, char);
+
+					// if the char is not contained by the font we set the desc to null
+					if(desc.GlyphIndex == 0)
+					{
+						delete desc;
+						_glyphsById[glyphId] = null;
 					}
 				}
 				else
@@ -227,7 +308,7 @@ namespace GlitchyEngine.Renderer.Text
 			int32 atlasHeight = _atlasSize.Y;
 			int32 atlasArray = _atlasSize.Z;
 
-			for(var (char, desc) in _glyphs)
+			for(var (char, desc) in _glyphsById)
 			{
 				if(desc == null || desc.IsCalculated)
 				{
@@ -324,7 +405,7 @@ namespace GlitchyEngine.Renderer.Text
 				}
 			}
 
-			for(let (char, desc) in _glyphs)
+			for(let (char, desc) in _glyphsById)
 			{
 				if(desc == null)
 					continue;
@@ -356,10 +437,13 @@ namespace GlitchyEngine.Renderer.Text
 
 			desc.Advance = (float)(advance * _geometryScaler);
 
+			//shape.OrientContours();
+			msdfgen.ResolveShapeGeometry(shape);
+
 			shape.Normalize();
 
 			var bounds = shape.GetBounds();
-
+			
 			// prepare projection
 
 			double width;
@@ -407,12 +491,109 @@ namespace GlitchyEngine.Renderer.Text
 			desc.TranslationX = translationX;
 			desc.TranslationY = translationY;
 
+			//desc.Scale = scale;
+
 			desc.AdjustToBaseLine = (float)(-translationY * _geometryScaler);
 
 			desc.AdjustToPen = (float)(-translationX);
 
 			return true;
 		}
+
+		/*
+		void TestMSDF()
+		{
+			GlyphDescriptor desc = scope .();
+			desc.GlyphIndex = FreeType.Get_Char_Index(_face, 'A');
+
+			var v = _range;
+
+			_range = 4.0f;
+			_geometryScaler = 1.0f;
+
+			Calculate(ref desc);
+
+			// prepare shape
+
+			double advance = 0;
+
+			Shape shape;
+			msdfgen.LoadGlyph(out shape, ref _face, 36, out advance);
+			
+			bool b = msdfgen.ResolveShapeGeometry(shape);
+
+			if(!b)
+			{
+
+			}
+
+			shape.Normalize();
+
+			var bounds = shape.GetBounds();
+
+			//shape.ReverseIfNeeded(bounds);
+
+			msdfgen.EdgeColoringSimple(shape, 3.0);
+
+			// prepare projection
+			msdfgen.Projection projection = .();
+			projection.ScaleX = _geometryScaler;
+			projection.ScaleY = _geometryScaler;
+
+			projection.TranslationX = desc.TranslationX;
+			projection.TranslationY = desc.TranslationY;
+
+			int bufferX = desc.Width;
+			int bufferY = desc.Height;
+
+			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY))
+			{
+				MSDFGeneratorConfig config = .();
+
+				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, _range, config);
+
+				// Check if we have to invert
+				/*
+				Line 1039
+				// Get sign of signed distance outside bounds
+				Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
+				double distance = SimpleTrueShapeDistanceFinder::oneShotDistance(shape, p);
+				orientation = distance <= 0 ? KEEP : REVERSE;
+
+				if (invert)
+				{
+					invertColor<3>(bitmap);
+				}
+				*/
+
+				uint8[] pixels = new:ScopedAlloc! uint8[desc.Width * desc.Height * 4];
+				
+				//int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
+				uint8 ToInt8(float f) => (.)Math.Clamp(255 * f, uint8.MinValue, uint8.MaxValue);
+
+				for(int y = 0; y < desc.Height; y++)
+				for(int x = 0; x < desc.Width; x++)
+				{
+					ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
+
+					int index = ((desc.Height - y - 1) * desc.Width + x) * 4;
+
+					pixels[index + 0] = ToInt8(pixel.Red);
+					pixels[index + 1] = ToInt8(pixel.Green);
+					pixels[index + 2] = ToInt8(pixel.Blue);
+
+					pixels[index + 3] = uint8.MaxValue;
+				}
+
+				LodePng.LodePng.Encode32File("testA.png", pixels.CArray(), (.)desc.Width, (.)desc.Height);
+
+				//_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
+				//	(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
+			}
+
+			_range = v;
+		}
+		*/
 
 		void GenerateMSDF(GlyphDescriptor desc)
 		{
@@ -423,11 +604,13 @@ namespace GlitchyEngine.Renderer.Text
 			Shape shape;
 			msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance);
 
+			msdfgen.ResolveShapeGeometry(shape);
+
 			shape.Normalize();
 
 			var bounds = shape.GetBounds();
 			
-			shape.ReverseIfNeeded(bounds);
+			//shape.ReverseIfNeeded(bounds);
 
 			msdfgen.EdgeColoringSimple(shape, 3.0);
 
