@@ -280,7 +280,9 @@ namespace GlitchyEngine.Renderer
 
 		public static void Deinit()
 		{
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
+#endif
 
 			FontRenderer.Deinit();
 
@@ -311,8 +313,10 @@ namespace GlitchyEngine.Renderer
 
 		public static void BeginScene(OrthographicCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
 		{
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
+#endif
 
 			//s_textureColorEffect.Bind(Renderer._context);
 			
@@ -348,7 +352,9 @@ namespace GlitchyEngine.Renderer
 
 		public static void EndScene()
 		{
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
+#endif
 
 			Flush();
 #if DEBUG
@@ -358,7 +364,9 @@ namespace GlitchyEngine.Renderer
 
 		public static void Flush()
 		{
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
+#endif
 
 			if(s_drawOrder != .Immediate)
 				DrawDeferred();
@@ -575,8 +583,10 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
-				
+#endif
+
 			Matrix transform = Matrix.Translation(position) * Matrix.RotationZ(rotation) * Matrix.Scaling(size.X, size.Y, 1.0f);
 
 			QueueQuadInstance(transform, color, texture, position.Z, uvTransform);
@@ -611,7 +621,9 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawCircle(Vector3 position, Vector2 size, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
+#endif
 				
 			Matrix transform = Matrix.Translation(position) * Matrix.Scaling(size.X, size.Y, 1.0f);
 			
