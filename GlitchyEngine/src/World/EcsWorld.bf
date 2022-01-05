@@ -17,7 +17,7 @@ namespace GlitchyEngine.World
 
 		typealias DisposeFunction = function void(void* component);
 
-		internal typealias ComponentPoolEntry = (uint32 Id, IComponentPool Pool, DisposeFunction DisposeFunction);
+		internal typealias ComponentPoolEntry = (uint32 Id, IComponentPool Pool, DisposeFunction DisposeComponent);
 		internal Dictionary<Type, ComponentPoolEntry> _componentPools = new .();
 
 		/// A list containing all pools whose components need to be disposed before removal.
@@ -60,12 +60,19 @@ namespace GlitchyEngine.World
 			uint32 id = (uint32)_componentPools.Count;
 			ComponentPool<T> componentPool = new ComponentPool<T>(MaxEntities);
 
-			DisposeFunction disposeFunction = => T.DisposeComponent;
+			DisposeFunction disposeFunction = => DisposeComponent<T>;
 
 			_componentPools.Add(typeof(T), (id, componentPool, disposeFunction));
 
 			// Add to list of components that need disposing
 			_disposingPools.Add(typeof(T));
+		}
+
+		/// Enables us to bind a function pointer to the components dispose function
+		private static void DisposeComponent<T>(void* component) where T : IDisposableComponent
+		{
+			T* myComponent = (T*)component;
+			(*myComponent).Dispose();
 		}
 
 		/** @brief Returns the component pool for the given component type.
@@ -137,7 +144,7 @@ namespace GlitchyEngine.World
 					// Get pointer to component
 					void* component = pool.Pool.Get(listEntity.ID.Index);
 					// Dispose component
-					pool.DisposeFunction(component);
+					pool.DisposeComponent(component);
 				}
 			}
 		}
@@ -145,7 +152,7 @@ namespace GlitchyEngine.World
 		/**
 		 * Assigns a component of type T to the specified entity and returns it.
 		 */
-		public T* AssignComponent<T>(Entity entity) where T : struct
+		public T* AssignComponent<T>(Entity entity) where T : struct, new
 		{
 			if(entity.Index > _entities.Count)
 				return null;
@@ -167,8 +174,12 @@ namespace GlitchyEngine.World
 			//	return null;
 			
 			listEntity.ComponentMask[entry.Id] = true;
-			
-			return (.)entry.Pool.Get(entity.Index);
+
+			T* component = (T*)entry.Pool.Get(entity.Index);
+
+			*component = T();
+
+			return component;
 		}
 
 		/**
@@ -214,7 +225,7 @@ namespace GlitchyEngine.World
 			listEntity.ComponentMask[entry.Id] = false;
 
 			// Get component and call dispose
-			T.DisposeComponent(entry.Pool.Get(entity.Index));
+			DisposeComponent<T>(entry.Pool.Get(entity.Index));
 		}
 
 		public T* GetComponent<T>(Entity entity) where T : struct
@@ -303,10 +314,9 @@ namespace GlitchyEngine.World
 		{
 			public bool IsDisposed;
 
-			public static void DisposeComponent(void* component)
+			public void Dispose() mut
 			{
-				Self* testComponent = (Self*)component;
-				testComponent.IsDisposed = true;
+				IsDisposed = true;
 			}
 		}
 

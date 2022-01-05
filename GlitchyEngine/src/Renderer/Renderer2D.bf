@@ -597,6 +597,20 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
+		public static void DrawQuad(Matrix transform, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+#if DEBUG
+			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
+#endif
+
+			QueueQuadInstance(transform, color, texture, transform.Translation.Z, uvTransform);
+
+			if(s_drawOrder == .Immediate)
+			{
+				DrawDeferred();
+			}
+		}
+
 		public static void DrawQuadPivotCorner(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			DrawQuad(position + Vector3(size.X / 2, size.Y / -2, 0), size, rotation, texture, color, uvTransform);

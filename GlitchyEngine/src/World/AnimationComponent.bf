@@ -28,12 +28,10 @@ namespace GlitchyEngine.World
 
 		public SkeletonPose Pose => _pose;
 
-		public static void DisposeComponent(void* component)
+		public void Dispose()
 		{
-			Self* animationComponent = (Self*)component;
-
-			animationComponent._animationClip?.ReleaseRef();
-			delete animationComponent._pose;
+			_animationClip?.ReleaseRef();
+			delete _pose;
 		}
 	}
 }

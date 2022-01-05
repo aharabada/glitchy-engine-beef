@@ -18,11 +18,9 @@ namespace GlitchyEngine.World
 			_debugName = new String(name);
 		}
 
-		public static void DisposeComponent(void* component)
+		public void Dispose() mut
 		{
-			Self* self = (Self*)component;
-
-			DeleteAndNullify!(self._debugName);
+			DeleteAndNullify!(_debugName);
 		}
 	}
 }

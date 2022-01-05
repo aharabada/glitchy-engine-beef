@@ -7,6 +7,6 @@ namespace GlitchyEngine.World
 		 * @Note This function will be called when the given component was removed from the entity
 		 * 		or when the entity itself was removed.
 		 */
-		static void DisposeComponent(void* component);
+		void Dispose() mut;
 	}
 }
