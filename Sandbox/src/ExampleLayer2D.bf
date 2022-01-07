@@ -34,6 +34,8 @@ namespace Sandbox
 		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
 		ColorRGBA _squareColor1;
 
+		DepthStencilState _depthStencilState ~ _.ReleaseRef();
+
 		[AllowAppend]
 		public this() : base("Example")
 		{
@@ -78,7 +80,19 @@ namespace Sandbox
 			_textureViewer = new TextureViewer();
 
 			cameraController = new OrthographicCameraController(16 / 9f);
+
+			DepthStencilStateDescription dssDesc = .()
+				{
+					DepthEnabled = false
+				};
+			_depthStencilState = new DepthStencilState(dssDesc);
+
+			File.ReadAllText("lorem.txt", text);
+
+			prepText = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
 		}
+
+		String text = new .() ~ delete _;
 
 		public override void Update(GameTime gameTime)
 		{
@@ -99,6 +113,7 @@ namespace Sandbox
 			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
 
 			RenderCommand.SetBlendState(_alphaBlendState);
+			RenderCommand.SetDepthStencilState(_depthStencilState);
 
 			for(int x < 10)
 			for(int y < 10)
@@ -115,10 +130,22 @@ namespace Sandbox
 			Renderer2D.DrawCircle(Vector3(-2, -2, -2f), Vector2(1), .GreenYellow);
 
 			//FontRenderer.DrawText(fonty.Fallback.Fallback.Fallback.Fallback, "Hallö! gjy ÄAwww www <--||-->", 0, 0, 64, .White, .White); // Hallo! gjy
-			FontRenderer.DrawText(fonty, "Hallö!\n gjy ÄAwww www <--||-->", 0, 0, 128, .White, .White);
+			//FontRenderer.DrawText(fonty, "Hallö!\n gjy ÄAwww www <--||-->", 0, 0, 128, .White, .White);
+			//FontRenderer.DrawText(fonty, text, 0, 0, 64, .White, .White);
+
+			//var prepared = FontRenderer.PrepareText(fonty,"Hallö!\n gjy ÄA\n\nwww www <--||-->", 64, .White, .White);
+			//var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
+			//var prepared = FontRenderer.PrepareText(fonty,"A\nB", 64, .White, .White);
+
+			//FontRenderer.DrawText(prepared, 0, 0);
+			FontRenderer.DrawText(prepText, 0, 0);
+
+			//prepared.ReleaseRef();
 
 			Renderer2D.EndScene();
 		}
+
+		FontRenderer.PreparedText prepText ~ _.ReleaseRef();
 
 		float innerRadius = 0.5f;
 

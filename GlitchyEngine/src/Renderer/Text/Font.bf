@@ -4,6 +4,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Core;
 using System.Collections;
 using msdfgen;
+using System.Diagnostics;
 using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
@@ -63,6 +64,9 @@ namespace GlitchyEngine.Renderer.Text
 		private double _geometryScaler;
 
 		internal double _range = 4.0;
+
+		/// The space between two lines.
+		internal double _linespace;
 
 		/**
 		 * Gets or sets the fallback Font for this Font.
@@ -132,6 +136,8 @@ namespace GlitchyEngine.Renderer.Text
 
 			_range = 4.0 / _geometryScaler;
 
+			_linespace = ((_face.size.metrics.ascender - _face.size.metrics.descender) / 64);
+
 			GlyphDescriptor nullDesc = new GlyphDescriptor(){Font = this};
 			nullDesc.GlyphIndex = FreeType.Get_Char_Index(_face, '\0');
 			_glyphs.Add('\0', nullDesc);
@@ -160,6 +166,25 @@ namespace GlitchyEngine.Renderer.Text
 			ExtendRange(firstGlyph, firstGlyph + charCount);
 
 			UpdateAtlas();
+		}
+
+		/// Returns the font that can draw the char
+		static internal Font GetDrawingFont(char32 char, Font font)
+		{
+			uint32 glyphId = FreeType.Get_Char_Index(font._face, char);
+
+			if (glyphId != 0)
+			{
+				return font;
+			}
+			else if (font.Fallback != null)
+			{		
+				return GetDrawingFont(char, font.Fallback);
+			}
+			else
+			{
+				return null;
+			}
 		}
 
 		internal GlyphDescriptor GetGlyph(uint32 glyphId, bool allowDynamicLoading = true)

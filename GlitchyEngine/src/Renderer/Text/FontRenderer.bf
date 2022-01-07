@@ -53,6 +53,286 @@ namespace GlitchyEngine.Renderer.Text
 			FreeType.Done_FreeType(s_Library);
 		}
 
+		public class PreparedText : RefCounted
+		{
+			//public List<PreparedLine> Lines ~ ClearAndDeleteItems!(_);
+			public Font Font ~ _?.ReleaseRef();
+			public List<PreparedGlyph> Glyphs ~ delete:append _;
+
+			[AllowAppend]
+			public this(Font font)
+			{
+				//List<PreparedLine> lines = append .();
+				//Lines = lines;
+				List<PreparedGlyph> glyphs = append .();
+				Glyphs = glyphs;
+
+				if(font != null)
+					Font = font..AddRef();
+			}
+
+			public static readonly Self Empty = new Self(null) ~ _.ReleaseRef();
+		}
+		/*
+		public class PreparedLine
+		{
+			public int Line;
+			public List<PreparedGlyph> Glyphs;
+			
+			[AllowAppend]
+			public this()
+			{
+				List<PreparedGlyph> glyphs = append .();
+				Glyphs = glyphs;
+			}
+		}
+		*/
+		public struct PreparedGlyph
+		{
+			public Font Font;
+			public uint32 GlyphId;
+			public Vector2 Position;
+			public float Scale;
+			//public float AdvanceX;
+			//public float AdvanceY;
+
+			public this(Font font, uint32 glyphId, Vector2 position, float scale)//, float advanceX, float advanceY)
+			{
+				Font = font;
+				GlyphId = glyphId;
+				Position = position;
+				Scale = scale;
+				//AdvanceX = advanceX;
+				//AdvanceY = advanceY;
+			}
+		}
+
+		public static PreparedText PrepareText(Font font, String text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f)
+		{
+			if(text.IsWhiteSpace)
+				return .Empty;
+
+			PreparedText preparedText = new PreparedText(font);
+
+			float scale = fontSize / (float)font._fontSize;
+			
+			// Space between two baselines
+			float linespace = (float)font._linespace * lineSpaceScale * scale;
+			
+			// The line we are writing on
+			float baseline = 0;
+			
+			// Position of the next character on the line
+			float penPosition = 0;
+
+			// TODO: use stringview?
+			StringView textBuffer = .(text, 0, 0);//new:ScopedAlloc! String();
+			
+			hb_buffer_t* buf = hb_buffer_create();
+
+			//PreparedLine currentLine = new PreparedLine();
+
+			void FlushShapeBuffer(Font font, float scale)
+			{
+				hb_buffer_clear_contents(buf);
+
+				hb_buffer_add_utf8(buf, text.Ptr, (.)text.Length, (.)(textBuffer.Ptr - text.Ptr), (.)textBuffer.Length);
+				
+				textBuffer.Ptr += textBuffer.Length;
+				textBuffer.Length = 0;
+
+				// Set the script, language and direction of the buffer.
+				// TODO: change direction, script, etc.
+				hb_buffer_set_direction(buf, .HB_DIRECTION_LTR);
+				hb_buffer_set_script(buf, .HB_SCRIPT_LATIN);
+				hb_buffer_set_language(buf, hb_language_from_string("en".CStr(), -1));
+				
+				hb_shape(font._harfBuzzFont, buf, null, 0);
+
+				
+				// 5. Get the glyph and position information.
+				uint32 glyph_count = ?;
+				hb_glyph_info_t* glyph_info    = hb_buffer_get_glyph_infos(buf, &glyph_count);
+				hb_glyph_position_t* glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
+
+				for (uint32 i < glyph_count)
+				{
+					hb_codepoint_t glyphid  = glyph_info[i].codepoint;
+					//hb_position_t x_offset  = glyph_pos[i].x_offset;
+					//hb_position_t y_offset  = glyph_pos[i].y_offset;
+					hb_position_t x_advance = glyph_pos[i].x_advance;
+					hb_position_t y_advance = glyph_pos[i].y_advance;
+
+					PreparedGlyph glyph = .(font, glyphid, .(penPosition, baseline), scale);//, x_advance / 64, y_advance / 64);
+
+					preparedText.Glyphs.Add(glyph);
+
+					penPosition += (x_advance / 64) * scale;
+					baseline += (y_advance / 64) * scale;
+				}
+			}
+
+			int movedLines = 0;
+
+			bool flush = false;
+
+			Font currentFont = font;
+
+			int currentIndex = 0;
+
+			for (char32 char in text.DecodedChars)
+			{
+				// TODO: right to left mark (/ embedding?)
+				// TODO: left to right mark (/ embedding?)
+				switch(char)
+				{
+				case '\n':
+					// carriage return
+					movedLines++;
+					flush = true;
+					currentIndex = @char.NextIndex;
+					continue;
+				case '\u{240}':
+					// carriage return
+					penPosition = 0;
+					flush = true;
+					currentIndex = @char.NextIndex;
+					continue;
+				}
+
+				// Get the font that can draw the char. Use the given font if no fallback is found (will draw the "missing glyph").
+				Font charFont = Font.GetDrawingFont(char, font) ?? font;
+
+				if (flush || charFont != font)
+				{
+					float fontScale = (float)fontSize / charFont._fontSize;
+
+					FlushShapeBuffer(currentFont, fontScale);
+
+					currentFont = charFont;
+					flush = true;
+				}
+
+				// move baseline if necessary
+				if(movedLines != 0)
+				{
+					// move baseline
+					baseline -= linespace * movedLines;
+
+					// TODO: make carriage return optional?
+					// return pen to start of line
+					penPosition = 0;
+
+					movedLines = 0;
+				}
+
+				//textBuffer.Append(char);
+				if(textBuffer.Length == 0)
+				{
+					textBuffer.Ptr = text.Ptr + currentIndex;
+				}
+				textBuffer.Length += @char.NextIndex - currentIndex;
+				currentIndex = @char.NextIndex;
+			}
+			
+			float fontScale = (float)fontSize / currentFont._fontSize;
+			FlushShapeBuffer(currentFont, fontScale);
+
+			return preparedText;
+		}
+
+		public static void DrawText(PreparedText text, float x, float y)
+		{
+			text.AddRef();
+			defer text.ReleaseRef();
+
+			if (text.Glyphs.Count == 0)
+				return;
+
+			Renderer2D.Flush();
+
+			// TODO: this is very not good!
+			var lastEffect = Renderer2D.[Friend]s_currentEffect;
+			Renderer2D.[Friend]s_currentEffect = _msdfEffect..AddRef();
+			// TODO: oh no....
+			// Copy viewProjection from current effect
+			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
+			_msdfEffect.Variables["ViewProjection"].SetData(viewProjection);
+			
+			// TODO: this doesn't really work with fallback fonts
+			Vector2 unitRange = Vector2((float)text.Font._range) / Vector2(text.Font._atlas.Width, text.Font._atlas.Height);
+			_msdfEffect.Variables["UnitRange"].SetData(unitRange);
+			
+			List<Texture2D> atlasses = scope .();
+
+			for (PreparedGlyph glyph in text.Glyphs)
+			{
+				// Get glyph from Font
+				var glyphDesc = glyph.Font.GetGlyph(glyph.GlyphId);
+
+				// This never happens
+				Debug.Assert(glyphDesc != null);
+
+				// The glyph might belong to a fallback font
+				var glyphFont = glyphDesc.Font;
+				//float glyphFontScale = (float)glyph.Scale / glyphFont._fontSize;
+
+				Texture2D atlas = glyphFont._atlas;
+
+				// Add reference to atlas in case it is recreated during rendering
+				if(!atlasses.Contains(atlas))
+				{
+					atlasses.Add(atlas..AddRef());
+				}
+
+				Vector2 atlasSize = .(atlas.Width, atlas.Height);
+
+				float adjustToPenX = glyphDesc.AdjustToPen;
+				//adjustToPenX *= glyphFontScale;
+				adjustToPenX *= glyph.Scale;
+
+				float adjustToBaseline = glyphDesc.AdjustToBaseLine;
+				//adjustToBaseline *= glyphFontScale;
+				adjustToBaseline *= glyph.Scale;
+
+				// Rectangle on the screen
+				Vector4 viewportRect = .(
+					// TODO: merge adjustToPenX and adjustToBaseline into Position
+					x + glyph.Position.X + adjustToPenX,
+					y + glyph.Position.Y + adjustToBaseline,
+					glyphDesc.Width * glyph.Scale,
+					glyphDesc.Height * glyph.Scale);
+
+				// Rectangle on the font atlas
+				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
+
+				Color glyphColor = Color.White;// TODO: glyphDesc.IsBitmap ? bitmapColor : fontColor;
+
+				texRect /= Vector4(atlasSize, atlasSize);
+
+				// Show quads
+				// Renderer2D.DrawQuad(Vector3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
+
+				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+
+				// Show pen positions
+				// Renderer2D.DrawQuad(Vector3(Vector2(x, y) + glyph.Position, -1), .(1), 0, .Green);
+			}
+
+			Renderer2D.Flush();
+
+			// TODO: not good!
+			// Change back effect
+			_msdfEffect.ReleaseRef();
+			Renderer2D.[Friend]s_currentEffect = lastEffect;
+			
+			// release all atlas textures
+			for(int i < atlasses.Count)
+			{
+				atlasses[i].ReleaseRef();
+			}
+		}
+
 		/** @brief Draws a given text using a specified font stack and renderer.
 		 * @param renderer The 2D renderer that will be used to draw the text.
 		 * @param font the Fontstack that will be used to draw the text.
@@ -81,12 +361,13 @@ namespace GlitchyEngine.Renderer.Text
 			float scale = (float)fontSize / (float)font._fontSize;
 
 			_msdfEffect.Variables["screenPixelRange"].SetData(scale * 4.0f);
-			
+
+			// TODO: this doesn't really work with fallback fonts
 			Vector2 unitRange = Vector2((float)font._range) / Vector2(font._atlas.Width, font._atlas.Height);
 			_msdfEffect.Variables["UnitRange"].SetData(unitRange);
 
 			// Space between two baselines
-			float linespace = (((font._face.size.metrics.ascender - font._face.size.metrics.descender) / 64) + lineGapOffset) * scale;
+			float linespace = ((float)font._linespace + lineGapOffset) * scale;
 			
 			// The line we are writing on
 			float baseline = y;// + linespace;
@@ -140,6 +421,27 @@ namespace GlitchyEngine.Renderer.Text
 				hb_position_t y_offset  = glyph_pos[i].y_offset;
 				hb_position_t x_advance = glyph_pos[i].x_advance;
 				hb_position_t y_advance = glyph_pos[i].y_advance;
+
+				/*
+				if(glyphid == (.)'\n')
+				{
+					movedLines++;
+					continue;
+				}
+				
+				// move baseline if necessary
+				if(movedLines != 0)
+				{
+					// move baseline
+					baseline -= linespace * movedLines;
+
+					// TODO: make carriage return optional?
+					// return pen to start of line
+					penPosition = x;
+
+					movedLines = 0;
+				}
+				*/
 
 				// Get glyph from Font
 				var glyphDesc = font.GetGlyph(glyphid);
