@@ -40,6 +40,7 @@ namespace GlitchyEngine.Renderer.Text
 		}
 
 		internal FT_Face _face ~ FreeType.Done_Face(_face);
+		internal hb_font_t* _harfBuzzFont ~ hb_font_destroy(_);
 
 		private Font _fallback ~ _?.ReleaseRef();
 
@@ -62,10 +63,6 @@ namespace GlitchyEngine.Renderer.Text
 		private double _geometryScaler;
 
 		internal double _range = 4.0;
-
-		private hb_blob_t* blob ~ hb_blob_destroy(_);
-		private hb_face_t* face ~ hb_face_destroy(_);
-		private hb_font_t* font ~ hb_font_destroy(_);
 
 		/**
 		 * Gets or sets the fallback Font for this Font.
@@ -144,11 +141,8 @@ namespace GlitchyEngine.Renderer.Text
 
 			// HarfBuzz
 			{
-				blob = hb_blob_create_from_file(fontPath.CStr()); /* or hb_blob_create_from_file_or_fail() */
-				face = hb_face_create(blob, 0);
-				font = hb_font_create(face);
-
-				hb_font_set_scale(font, (.)fontSize * 64, (.)fontSize * 64);
+				_harfBuzzFont = hb_ft_font_create_referenced(_face);
+				hb_font_set_scale(_harfBuzzFont, (.)fontSize * 64, (.)fontSize * 64);
 			}
 
 			//TestMSDF();

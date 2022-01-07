@@ -123,7 +123,7 @@ namespace GlitchyEngine.Renderer.Text
 			hb_buffer_set_language(buf, hb_language_from_string("en".CStr(), -1));
 
 			// 3. Get the face
-			hb_font_t* hb_font = font.[Friend]font;
+			hb_font_t* hb_font = font._harfBuzzFont;
 			
 			// 4. Shape:
 			hb_shape(hb_font, buf, null, 0);
@@ -180,12 +180,14 @@ namespace GlitchyEngine.Renderer.Text
 				Color glyphColor = glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
 				texRect /= Vector4(atlasSize, atlasSize);
-				
-				Renderer2D.DrawQuad(Vector3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
+
+				// Show quads
+				// Renderer2D.DrawQuad(Vector3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
 
 				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
 
-				Renderer2D.DrawQuad(Vector3(penPosition, baseline, -1), .(1), 0, .Green);
+				// Show pen positions
+				// Renderer2D.DrawQuad(Vector3(penPosition, baseline, -1), .(1), 0, .Green);
 
 			    penPosition += (x_advance / 64) * glyphFontScale;
 			    baseline += (y_advance / 64) * glyphFontScale;

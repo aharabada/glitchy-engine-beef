@@ -69,7 +69,7 @@ namespace Sandbox
 			var japanese = new Font("C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
 			var emojis = new Font("C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
 			var mathstuff = new Font("C:\\Windows\\Fonts\\cambria.ttc", 64, true, 'α', 1);
-			var cascadiaCode = new Font("C:\\Windows\\Fonts\\CascadiaCode.ttf", 32, true, 'A', 1);
+			var cascadiaCode = new Font("C:\\Windows\\Fonts\\CascadiaCode.ttf", 64, true, 'A', 1);
 			fonty.Fallback = japanese..ReleaseRefNoDelete();
 			japanese.Fallback = emojis..ReleaseRefNoDelete();
 			emojis.Fallback = mathstuff..ReleaseRefNoDelete();
@@ -114,7 +114,8 @@ namespace Sandbox
 
 			Renderer2D.DrawCircle(Vector3(-2, -2, -2f), Vector2(1), .GreenYellow);
 
-			FontRenderer.DrawText(fonty.Fallback.Fallback.Fallback.Fallback, "Hallö! gjy ÄAwww www", 0, 0, 64, .White, .White); // Hallo! gjy
+			//FontRenderer.DrawText(fonty.Fallback.Fallback.Fallback.Fallback, "Hallö! gjy ÄAwww www <--||-->", 0, 0, 64, .White, .White); // Hallo! gjy
+			FontRenderer.DrawText(fonty, "Hallö!\n gjy ÄAwww www <--||-->", 0, 0, 128, .White, .White);
 
 			Renderer2D.EndScene();
 		}
