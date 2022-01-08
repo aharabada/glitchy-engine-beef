@@ -87,7 +87,7 @@ namespace Sandbox
 				};
 			_depthStencilState = new DepthStencilState(dssDesc);
 
-			File.ReadAllText("lorem.txt", text);
+			File.ReadAllText("change_direction_test.txt", text);
 
 			prepText = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
 		}
@@ -134,13 +134,13 @@ namespace Sandbox
 			//FontRenderer.DrawText(fonty, text, 0, 0, 64, .White, .White);
 
 			//var prepared = FontRenderer.PrepareText(fonty,"Hallö!\n gjy ÄA\n\nwww www <--||-->", 64, .White, .White);
-			//var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
+			var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
 			//var prepared = FontRenderer.PrepareText(fonty,"A\nB", 64, .White, .White);
 
-			//FontRenderer.DrawText(prepared, 0, 0);
-			FontRenderer.DrawText(prepText, 0, 0);
+			FontRenderer.DrawText(prepared, 0, 0);
+			//FontRenderer.DrawText(prepText, 0, 0);
 
-			//prepared.ReleaseRef();
+			prepared.ReleaseRef();
 
 			Renderer2D.EndScene();
 		}

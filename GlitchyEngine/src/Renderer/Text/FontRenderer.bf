@@ -107,7 +107,15 @@ namespace GlitchyEngine.Renderer.Text
 			}
 		}
 
-		public static PreparedText PrepareText(Font font, String text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f)
+		public enum TextDirection
+		{
+			case LeftToRight;
+			case RightToLeft;
+			case TopToBottom;
+			case BottomToTop;
+		}
+
+		public static PreparedText PrepareText(Font font, String text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
 		{
 			if(text.IsWhiteSpace)
 				return .Empty;
@@ -132,8 +140,20 @@ namespace GlitchyEngine.Renderer.Text
 
 			//PreparedLine currentLine = new PreparedLine();
 
-			void FlushShapeBuffer(Font font, float scale)
+			// Stack to keep track of the text direction.
+			List<TextDirection> textDirectionStack = scope .();
+			textDirectionStack.Add(direction);
+			
+			int movedLines = 0;
+
+			Font currentFont = font;
+
+			int currentIndex = 0;
+
+			void FlushShapeBuffer()
 			{
+				float fontScale = (float)fontSize / currentFont._fontSize;
+
 				hb_buffer_clear_contents(buf);
 
 				hb_buffer_add_utf8(buf, text.Ptr, (.)text.Length, (.)(textBuffer.Ptr - text.Ptr), (.)textBuffer.Length);
@@ -143,7 +163,21 @@ namespace GlitchyEngine.Renderer.Text
 
 				// Set the script, language and direction of the buffer.
 				// TODO: change direction, script, etc.
-				hb_buffer_set_direction(buf, .HB_DIRECTION_LTR);
+
+				TextDirection direction = textDirectionStack.Back;
+
+				switch (direction)
+				{
+				case .LeftToRight:
+					hb_buffer_set_direction(buf, .HB_DIRECTION_LTR);
+				case .RightToLeft:
+					hb_buffer_set_direction(buf, .HB_DIRECTION_RTL);
+				case .TopToBottom:
+					hb_buffer_set_direction(buf, .HB_DIRECTION_TTB);
+				case .BottomToTop:
+					hb_buffer_set_direction(buf, .HB_DIRECTION_BTT);
+				}
+
 				hb_buffer_set_script(buf, .HB_SCRIPT_LATIN);
 				hb_buffer_set_language(buf, hb_language_from_string("en".CStr(), -1));
 				
@@ -163,54 +197,73 @@ namespace GlitchyEngine.Renderer.Text
 					hb_position_t x_advance = glyph_pos[i].x_advance;
 					hb_position_t y_advance = glyph_pos[i].y_advance;
 
-					PreparedGlyph glyph = .(font, glyphid, .(penPosition, baseline), scale);//, x_advance / 64, y_advance / 64);
+					PreparedGlyph glyph = .(font, glyphid, .(penPosition, baseline), fontScale);//, x_advance / 64, y_advance / 64);
 
 					preparedText.Glyphs.Add(glyph);
 
-					penPosition += (x_advance / 64) * scale;
-					baseline += (y_advance / 64) * scale;
+					penPosition += (x_advance / 64) * fontScale;
+					baseline += (y_advance / 64) * fontScale;
 				}
 			}
 
-			int movedLines = 0;
-
-			bool flush = false;
-
-			Font currentFont = font;
-
-			int currentIndex = 0;
-
 			for (char32 char in text.DecodedChars)
 			{
-				// TODO: right to left mark (/ embedding?)
-				// TODO: left to right mark (/ embedding?)
+				defer
+				{
+					currentIndex = @char.NextIndex;
+				}
+
 				switch(char)
 				{
 				case '\n':
+					// Only flush after the first new line
+					if (movedLines == 0)
+						FlushShapeBuffer();
+
 					// carriage return
 					movedLines++;
-					flush = true;
-					currentIndex = @char.NextIndex;
+
 					continue;
 				case '\u{240}':
+					FlushShapeBuffer();
+
 					// carriage return
 					penPosition = 0;
-					flush = true;
-					currentIndex = @char.NextIndex;
+
+					continue;
+				case '\u{2066}':
+					// LEFT-TO-RIGHT ISOLATE
+					FlushShapeBuffer();
+
+					textDirectionStack.Add(.RightToLeft);
+
+					continue;
+				case '\u{2067}':
+					// RIGHT-TO-LEFT ISOLATE
+					FlushShapeBuffer();
+
+					textDirectionStack.Add(.RightToLeft);
+
+					continue;
+				// TODO: FIRST STRONG ISOLATE (U+2068)
+				case '\u{2069}':
+					// POP DIRECTIONAL ISOLATE
+					FlushShapeBuffer();
+
+					if (textDirectionStack.Count > 1)
+						textDirectionStack.PopBack();
+
 					continue;
 				}
 
 				// Get the font that can draw the char. Use the given font if no fallback is found (will draw the "missing glyph").
 				Font charFont = Font.GetDrawingFont(char, font) ?? font;
 
-				if (flush || charFont != font)
+				if (charFont != font)
 				{
-					float fontScale = (float)fontSize / charFont._fontSize;
-
-					FlushShapeBuffer(currentFont, fontScale);
+					FlushShapeBuffer();
 
 					currentFont = charFont;
-					flush = true;
 				}
 
 				// move baseline if necessary
@@ -232,11 +285,9 @@ namespace GlitchyEngine.Renderer.Text
 					textBuffer.Ptr = text.Ptr + currentIndex;
 				}
 				textBuffer.Length += @char.NextIndex - currentIndex;
-				currentIndex = @char.NextIndex;
 			}
 			
-			float fontScale = (float)fontSize / currentFont._fontSize;
-			FlushShapeBuffer(currentFont, fontScale);
+			FlushShapeBuffer();
 
 			return preparedText;
 		}
