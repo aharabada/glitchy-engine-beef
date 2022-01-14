@@ -21,6 +21,8 @@ namespace GlitchyEngine.Platform.DX11
 
 		internal static void Dx11Init()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(!IsDx11Initialized)
 			{
 				Log.EngineLogger.Trace("Creating D3D11 Device and Context...");
@@ -31,21 +33,30 @@ namespace GlitchyEngine.Platform.DX11
 	#endif
 	
 				FeatureLevel[] levels = scope .(.Level_11_0);
-	
+
 				FeatureLevel deviceLevel = ?;
-				var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &NativeDevice, &deviceLevel, &NativeContext);
+
+				HResult deviceResult;
+				{
+					Debug.Profiler.ProfileScope!("D3D11.CreateDevice");
+					deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &NativeDevice, &deviceLevel, &NativeContext);
+				}
+				
 				Log.EngineLogger.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message({(int32)deviceResult}): {deviceResult}");
 	
 	#if DEBUG	
-				if(NativeDevice.QueryInterface<ID3D11Debug>(out DebugDevice).Succeeded)
 				{
-					ID3D11InfoQueue* infoQueue;
-					if(NativeDevice.QueryInterface<ID3D11InfoQueue>(out infoQueue).Succeeded)
+					Debug.Profiler.ProfileScope!("Query for ID3D11Debug");
+					if(NativeDevice.QueryInterface<ID3D11Debug>(out DebugDevice).Succeeded)
 					{
-						infoQueue.SetBreakOnSeverity(.Corruption, true);
-						infoQueue.SetBreakOnSeverity(.Error, true);
-	
-						infoQueue.Release();
+						ID3D11InfoQueue* infoQueue;
+						if(NativeDevice.QueryInterface<ID3D11InfoQueue>(out infoQueue).Succeeded)
+						{
+							infoQueue.SetBreakOnSeverity(.Corruption, true);
+							infoQueue.SetBreakOnSeverity(.Error, true);
+		
+							infoQueue.Release();
+						}
 					}
 				}
 	#endif
@@ -63,6 +74,8 @@ namespace GlitchyEngine.Platform.DX11
 
 		internal static void Dx11Release()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			NativeDevice.Release();
 			NativeContext.Release();
 			DebugDevice.ReportLiveDeviceObjects(.Detail);

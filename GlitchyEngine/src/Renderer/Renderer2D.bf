@@ -135,12 +135,16 @@ namespace GlitchyEngine.Renderer
 
 		private static void InitEffect()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			s_batchEffect = new Effect("content\\Shaders\\spritebatch.hlsl");
 			s_circleBatchEffect = new Effect("content\\Shaders\\circlebatch.hlsl");
 		}
 
 		private static void InitGeometry()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			s_quadGeometry = new GeometryBinding();
 			s_quadGeometry.SetPrimitiveTopology(.TriangleList);
 
@@ -171,6 +175,8 @@ namespace GlitchyEngine.Renderer
 
 		private static void InitInstancingGeometry()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			{
 				s_instanceBuffer = new VertexBuffer(typeof(BatchVertex), 1024, .Dynamic, .Write);
 				s_instanceBuffer.SetData(0);
@@ -242,6 +248,8 @@ namespace GlitchyEngine.Renderer
 
 		private static void InitWhitetexture()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			// Create a texture with a single white pixel
 			Texture2DDesc tex2Ddesc = .{
 				Format = .R8G8B8A8_UNorm,
@@ -266,6 +274,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void Init()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			InitEffect();
 			InitGeometry();
 			InitInstancingGeometry();
@@ -280,6 +290,7 @@ namespace GlitchyEngine.Renderer
 
 		public static void Deinit()
 		{
+			Debug.Profiler.ProfileFunction!();
 #if DEBUG
 			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
 #endif
@@ -313,6 +324,7 @@ namespace GlitchyEngine.Renderer
 
 		public static void BeginScene(OrthographicCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
 			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
@@ -352,6 +364,7 @@ namespace GlitchyEngine.Renderer
 
 		public static void EndScene()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
@@ -364,6 +377,7 @@ namespace GlitchyEngine.Renderer
 
 		public static void Flush()
 		{
+			Debug.Profiler.ProfileFunction!();
 #if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
@@ -388,6 +402,8 @@ namespace GlitchyEngine.Renderer
 		
 		private static void FlushInstances()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(s_setInstances == 0)
 				return;
 
@@ -403,6 +419,8 @@ namespace GlitchyEngine.Renderer
 
 		private static void FlushCircleInstances()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(s_setInstances == 0)
 				return;
 
@@ -446,6 +464,8 @@ namespace GlitchyEngine.Renderer
 
 		private static void SortInstances()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			switch(s_drawOrder)
 			{
 			case .SortByTexture:
@@ -465,6 +485,8 @@ namespace GlitchyEngine.Renderer
 
 		private static void DrawDeferred()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(s_instanceQueue.IsEmpty && s_circleInstanceQueue.IsEmpty)
 				return;
 
@@ -476,6 +498,8 @@ namespace GlitchyEngine.Renderer
 
 		private static void DrawDeferredQuads()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(s_instanceQueue.IsEmpty)
 				return;
 
@@ -512,6 +536,8 @@ namespace GlitchyEngine.Renderer
 
 		private static void DrawDeferredCircles()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(s_circleInstanceQueue.IsEmpty)
 				return;
 
@@ -583,6 +609,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 #if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
@@ -599,6 +627,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawQuad(Matrix transform, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 #if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
@@ -636,6 +666,8 @@ namespace GlitchyEngine.Renderer
 		public static void DrawCircle(Vector3 position, Vector2 size, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 #if DEBUG
+			Debug.Profiler.ProfileRendererFunction!();
+
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
 				

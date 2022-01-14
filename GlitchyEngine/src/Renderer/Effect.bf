@@ -25,6 +25,8 @@ namespace GlitchyEngine.Renderer
 
 		public void Add(Effect effect, String effectName = null)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			String name;
 
 			if(effectName == null)
@@ -51,6 +53,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public Effect Load(String filepath, String effectName = null)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			String name = effectName;
 
 			if(name == null)
@@ -80,6 +84,8 @@ namespace GlitchyEngine.Renderer
 
 		public Effect Get(String effectName)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Log.EngineLogger.AssertDebug(Exists(effectName), "Effect not found!");
 
 			return _effects.GetValue(effectName).Get()..AddRef();
@@ -137,6 +143,8 @@ namespace GlitchyEngine.Renderer
 		
 		public this(String filename, String vsEntry, String psEntry, String shaderName = null)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			CompileFromFile(filename, vsEntry, psEntry);
 
 			if(shaderName == null)
@@ -152,6 +160,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(String filename, String shaderName = null)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			String fileContent = scope String();
 			String vsName = scope String();
 			String psName = scope String();
@@ -175,6 +185,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(String shaderName, String vsPath, String vsEntry, String psPath, String psEntry)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Compile(vsPath, vsEntry, psPath, psEntry);
 			
 			_name = new String(shaderName);
@@ -182,6 +194,8 @@ namespace GlitchyEngine.Renderer
 
 		public ~this()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			for(let entry in _textures)
 			{
 				entry.value.Texture?.ReleaseRef();
@@ -190,6 +204,8 @@ namespace GlitchyEngine.Renderer
 
 		public void SetTexture(String name, Texture texture)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			ref TextureEntry entry = ref _textures[name];
 
 			entry.Texture?.ReleaseRef();
@@ -199,6 +215,8 @@ namespace GlitchyEngine.Renderer
 
 		private void ApplyTextures()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			for(let (name, entry) in _textures)
 			{
 				entry.VsSlot?.Texture?.ReleaseRef();
@@ -213,6 +231,8 @@ namespace GlitchyEngine.Renderer
 
 		private void ApplyChanges()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			for(let buffer in _bufferCollection)
 			{
 				if(let cbuffer = buffer.Buffer as ConstantBuffer)
@@ -224,6 +244,8 @@ namespace GlitchyEngine.Renderer
 
 		public void Bind(GraphicsContext context)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			ApplyTextures();
 			ApplyChanges();
 
@@ -235,6 +257,8 @@ namespace GlitchyEngine.Renderer
 
 		private void CompileFromFile(String filename, String vsEntry, String psEntry)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			let vs = Shader.FromFile!<VertexShader>(filename, vsEntry);
 			VertexShader = vs;
 			vs.ReleaseRef();
@@ -245,6 +269,8 @@ namespace GlitchyEngine.Renderer
 
 		private void Compile(String fileContent, String vsEntry, String psEntry)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// TODO: vsEntry and psEntry could be empty (which is a valid case.)
 			let vs = new VertexShader(fileContent, vsEntry);
 			VertexShader = vs;
@@ -265,6 +291,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		private static void ProcessFile(String filename, String fileContent, String vsName, String psName)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			File.ReadAllText(filename, fileContent, true);
 			// append line ending just in case the file doesn't end with one.
 			fileContent.Append('\n');
@@ -324,6 +352,8 @@ namespace GlitchyEngine.Renderer
 
 		private void MergeResources()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			MergeConstantBuffers();
 			MergeBufferVariables();
 			MergeTextures();
@@ -331,6 +361,8 @@ namespace GlitchyEngine.Renderer
 
 		private void MergeConstantBuffers()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_bufferCollection = new BufferCollection();
 
 			HashSet<String> bufferNames = scope HashSet<String>();
@@ -374,6 +406,8 @@ namespace GlitchyEngine.Renderer
 
 		private void MergeBufferVariables()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_variables = new BufferVariableCollection(false);
 
 			for(let buffer in _bufferCollection)
@@ -390,6 +424,8 @@ namespace GlitchyEngine.Renderer
 
 		private void AddShaderBuffers(Shader shader, HashSet<String> bufferNames)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(shader != null)
 			{
 				for(let buffer in shader.Buffers)
@@ -402,6 +438,8 @@ namespace GlitchyEngine.Renderer
 		/// Merges the texture slots of all shaders into one dictionary.
 		private void MergeTextures()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			delete _textures;
 			_textures = new .();
 
@@ -414,6 +452,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		private void EnumerateShaderTextures<T>(T shader) where T : Shader
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			//for(var (name, index, texture) in shader.Resources)
 			for(var shaderEntry in ref shader.Textures)
 			{

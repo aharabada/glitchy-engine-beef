@@ -80,9 +80,16 @@ namespace GlitchyEngine.Renderer
 
 		public this(BlendStateDescription desc)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_desc = desc;
 
 			PlatformCreateBlendState();
+		}
+
+		public ~this()
+		{
+			Debug.Profiler.ProfileResourceFunction!();
 		}
 
 		protected extern void PlatformCreateBlendState();

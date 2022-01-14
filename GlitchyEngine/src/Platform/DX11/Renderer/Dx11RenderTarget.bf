@@ -19,6 +19,8 @@ namespace GlitchyEngine.Renderer
 
 		private void ReleaseAndNullify()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			ReleaseAndNullify!(_nativeTexture);
 			ReleaseAndNullify!(_nativeResourceView);
 			ReleaseAndNullify!(_nativeRenderTargetView);
@@ -28,6 +30,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void Resize(uint32 width, uint32 height)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			ReleaseAndNullify();
 
 			_description.Width = width;
@@ -38,6 +42,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PlatformApplyChanges()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			ReleaseAndNullify();
 
 			PlatformCreateTexture();
@@ -62,6 +68,8 @@ namespace GlitchyEngine.Renderer
 
 		private void PlatformCreateTexture()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Texture2DDescription desc = .()
 			{
 				Width = _description.Width,
@@ -87,6 +95,8 @@ namespace GlitchyEngine.Renderer
 
 		private void CreateViews()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			var result = NativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
 

@@ -78,6 +78,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void UpdateProjection()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(_projectionType == .Limited || _projectionType == .LimitedReversed)
 				Log.EngineLogger.AssertDebug(_nearPlane < _farPlane, "The near plane must be smaller than the far plane.");
 
@@ -98,6 +100,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void UpdateTransform()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_transform = Matrix.Translation(_position) * Matrix.RotationZ(_rotation.Z) * Matrix.RotationY(_rotation.Y) * Matrix.RotationX(_rotation.X);
 			_view = _transform.Invert();
 		}

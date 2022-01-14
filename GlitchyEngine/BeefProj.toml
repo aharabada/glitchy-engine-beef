@@ -3,7 +3,7 @@ Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", DirectXTK = "*", F
 
 [Project]
 Name = "GlitchyEngine"
-ProcessorMacros = ["GE_GRAPHICS_DX11", "GE_PROFILE", "GE_SHADER_MATRIX_MISMATCH_IS_ERROR", "GE_SHADER_VAR_TYPE_MISMATCH_IS_ERROR", "GE_SHADER_UNUSED_VARIABLE_IS_WARNING", "GE_WINDOWS"]
+ProcessorMacros = ["GE_GRAPHICS_DX11", "GE_SHADER_MATRIX_MISMATCH_IS_ERROR", "GE_SHADER_VAR_TYPE_MISMATCH_IS_ERROR", "GE_SHADER_UNUSED_VARIABLE_IS_WARNING", "GE_WINDOWS"]
 
 [Configs.Paranoid.Win32]
 PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
@@ -14,8 +14,14 @@ PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
 [Configs.Release.Win32]
 PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
 
+[Configs.Release.Win64]
+PreprocessorMacros = ["RELEASE", "GE_PROFILE"]
+
 [Configs.Test.Win32]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 
 [Configs.Test.Win64]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
+
+[Configs.Debug.Win64]
+PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES"]

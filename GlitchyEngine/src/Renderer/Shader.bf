@@ -32,6 +32,8 @@ namespace GlitchyEngine.Renderer
 		[AllowAppend]
 		public this(String source, String entryPoint, ShaderDefine[] macros = null)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// Todo: append as soon as it's fixed.
 			//let buffers = new BufferCollection();
 			_buffers = new BufferCollection();
@@ -42,11 +44,13 @@ namespace GlitchyEngine.Renderer
 
 		public ~this()
 		{
-
+			Debug.Profiler.ProfileResourceFunction!();
 		}
 
 		public static mixin FromFile<T>(String fileName, String entryPoint, ShaderDefine[] macros = null) where T : Shader
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			String fileContent = new String();
 
 			File.ReadAllText(fileName, fileContent, true);

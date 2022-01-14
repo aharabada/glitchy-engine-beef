@@ -23,6 +23,8 @@ namespace GlitchyEngine
 
 		public this(float aspectRatio, bool rotation = false)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_aspectRatio = aspectRatio;
 			_rotation = rotation;
 
@@ -35,6 +37,8 @@ namespace GlitchyEngine
 
 		public void Update(GameTime gameTime)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(Application.Get().Window.IsActive)
 			{
 				Vector3 movement = .();
@@ -82,6 +86,8 @@ namespace GlitchyEngine
 
 		public void OnEvent(Event e)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			EventDispatcher dispatcher = EventDispatcher(e);
 			dispatcher.Dispatch<MouseScrolledEvent>(scope => OnMouseScrolled);
 			dispatcher.Dispatch<WindowResizeEvent>(scope => OnWindowResized);
@@ -89,6 +95,8 @@ namespace GlitchyEngine
 
 		private bool OnMouseScrolled(MouseScrolledEvent e)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_zoomLevel -= e.YOffset * 0.25f;
 
 			_zoomLevel = Math.Max(_zoomLevel, 0.25f);
@@ -100,6 +108,8 @@ namespace GlitchyEngine
 
 		private bool OnWindowResized(WindowResizeEvent e)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_aspectRatio = (float)e.Width / (float)e.Height;
 
 			UpdateCamera();
@@ -109,6 +119,8 @@ namespace GlitchyEngine
 
 		private void UpdateCamera()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_camera.Left = -_aspectRatio * _zoomLevel;
 			_camera.Right = _aspectRatio * _zoomLevel;
 			_camera.Top = _zoomLevel;

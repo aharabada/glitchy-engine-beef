@@ -27,6 +27,8 @@ namespace GlitchyEngine.Renderer
 
 		internal static void PlattformCompileShaderFromSource(String code, ShaderDefine[] macros, String entryPoint, String target, ShaderCompileFlags compileFlags, out ID3DBlob* shaderBlob)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			ShaderMacro* nativeMacros = macros == null ? null : new:ScopedAlloc! ShaderMacro[macros.Count]*; 
 
 			for(int i < macros?.Count ?? 0)
@@ -51,6 +53,8 @@ namespace GlitchyEngine.Renderer
 
 		protected internal void Reflect(ID3DBlob* shaderCode)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			ID3D11ShaderReflection* reflection = null;
 			var result = D3DCompiler.D3DReflect(shaderCode.GetBufferPointer(), shaderCode.GetBufferSize(), &reflection);
 			if(result.Failed)

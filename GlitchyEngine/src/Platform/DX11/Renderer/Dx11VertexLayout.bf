@@ -37,6 +37,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void CreateNativeLayout()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			var nativeElements = scope InputElementDescription[_elements.Count];
 
 			ToNativeLayout(_elements, nativeElements);

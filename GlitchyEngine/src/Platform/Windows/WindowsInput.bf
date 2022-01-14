@@ -163,6 +163,8 @@ namespace GlitchyEngine
 
 		public override static void NewFrame()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Swap!(CurrentState, LastState);
 			
 			// Get current keyboard state

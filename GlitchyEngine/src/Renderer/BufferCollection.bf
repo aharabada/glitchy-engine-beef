@@ -15,6 +15,8 @@ namespace GlitchyEngine.Renderer
 		[AllowAppend]
 		public this()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// Todo: append allocate as soon as it's fixed
 			let buffers = new List<BufferEntry>();
 			let strToBuf = new Dictionary<String, BufferEntry*>();
@@ -23,6 +25,11 @@ namespace GlitchyEngine.Renderer
 			_buffers = buffers;
 			_strToBuf = strToBuf;
 			_idxToBuf = idxToBuf;
+		}
+
+		public ~this()
+		{
+			Debug.Profiler.ProfileResourceFunction!();
 		}
 		
 		mixin DeleteBufferEntries(List<BufferEntry> entries)
@@ -54,6 +61,8 @@ namespace GlitchyEngine.Renderer
 
 		public BufferEntry* TryGetBufferEntry(String name)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(_strToBuf.TryGetValue(name, let buffer))
 			{
 				return buffer;
@@ -64,6 +73,8 @@ namespace GlitchyEngine.Renderer
 
 		public BufferEntry* TryGetBufferEntry(int index)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(_idxToBuf.TryGetValue(index, let buffer))
 			{
 				return buffer;
@@ -80,6 +91,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public bool TryReplaceBuffer(int idx, Buffer buffer)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(_idxToBuf.TryGetValue(idx, let bufferEntry))
 			{
 				Log.EngineLogger.Assert(idx == bufferEntry.Index);
@@ -105,6 +118,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public bool TryReplaceBuffer(String name, Buffer buffer)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(_strToBuf.TryGetValue(name, let bufferEntry))
 			{
 				Log.EngineLogger.AssertDebug(name == bufferEntry.Name);
@@ -129,6 +144,8 @@ namespace GlitchyEngine.Renderer
 
 		public void Add(BufferEntry entry)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			BufferEntry copy = (new String(entry.Name), entry.Index, entry.Buffer..AddRef());
 
 			_buffers.Add(copy);
@@ -146,6 +163,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		int GetIndexOfBuffer(Buffer buffer)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			for(int i < _buffers.Count)
 			{
 				// Only check for reference equality.
@@ -165,6 +184,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		String GetNameOfBuffer(Buffer buffer)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			for(int i < _buffers.Count)
 			{
 				// Only check for reference equality.

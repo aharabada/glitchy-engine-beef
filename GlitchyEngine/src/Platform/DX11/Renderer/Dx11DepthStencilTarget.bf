@@ -36,6 +36,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PlatformCreate()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Texture2DDescription desc = .();
 			desc.Format = (.)_format;
 			desc.ArraySize = 1;

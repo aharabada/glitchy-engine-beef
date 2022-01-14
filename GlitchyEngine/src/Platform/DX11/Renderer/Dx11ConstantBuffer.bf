@@ -12,6 +12,8 @@ namespace GlitchyEngine.Renderer
 	{
 		internal this(ConstantBuffer constantBuffer, ID3D11ShaderReflectionVariable* variableReflection)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_constantBuffer = constantBuffer;
 
 			HResult result = variableReflection.GetDescription(let variableDescription);
@@ -51,6 +53,8 @@ namespace GlitchyEngine.Renderer
 	{
 		internal this(ID3D11ShaderReflectionConstantBuffer* bufferReflection)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Reflect(bufferReflection);
 
 			ConstructBuffer();
@@ -60,6 +64,8 @@ namespace GlitchyEngine.Renderer
 
 		private void Reflect(ID3D11ShaderReflectionConstantBuffer* bufferReflection)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			HResult result = bufferReflection.GetDescription(let bufferDescription);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to get buffer description. Error({(int)result}): {result}");
 

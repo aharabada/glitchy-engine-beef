@@ -160,6 +160,8 @@ namespace GlitchyEngine
 
 		public override this(WindowDescription desc)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_minMaxInfo.MaximumTrackingSize.x = int32.MaxValue;
 			_minMaxInfo.MaximumTrackingSize.y = int32.MaxValue;
 
@@ -174,6 +176,8 @@ namespace GlitchyEngine
 
 		public ~this()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(!DestroyWindow(_windowHandle))
 			{
 				HResult res = (.)GetLastError();
@@ -188,6 +192,8 @@ namespace GlitchyEngine
 
 		private void Init(WindowDescription desc)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Log.EngineLogger.Trace($"Creating window \"{desc.Title}\" ({desc.Width}, {desc.Height})...");
 
 			_instanceHandle = (.)GetModuleHandleW(null);
@@ -497,6 +503,8 @@ namespace GlitchyEngine
 
 		public override void Update()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Message message = .();
 			while (PeekMessageW(&message, 0, 0, 0, .Remove))
 			{

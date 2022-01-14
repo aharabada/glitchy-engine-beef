@@ -28,11 +28,45 @@ namespace GlitchyEngine.Debug
 		{
 			scope:mixin PerformanceTimer()
 		}
-		
+
 #if !GE_PROFILE
 		[SkipCall]
 #endif
 		public static mixin ProfileScope(char8* scopeName)
+		{
+			scope:mixin PerformanceTimer(scopeName)
+		}
+
+		// Extension
+		
+#if !GE_PROFILE_RENDERER
+		[SkipCall]
+#endif
+		public static mixin ProfileRendererFunction()
+		{
+			scope:mixin PerformanceTimer()
+		}
+
+#if !GE_PROFILE_RENDERER
+		[SkipCall]
+#endif
+		public static mixin ProfileRendererScope(char8* scopeName)
+		{
+			scope:mixin PerformanceTimer(scopeName)
+		}
+
+#if !GE_PROFILE_RESOURCES
+		[SkipCall]
+#endif
+		public static mixin ProfileResourceFunction()
+		{
+			scope:mixin PerformanceTimer()
+		}
+
+#if !GE_PROFILE_RESOURCES
+		[SkipCall]
+#endif
+		public static mixin ProfileResourceScope(char8* scopeName)
 		{
 			scope:mixin PerformanceTimer(scopeName)
 		}

@@ -34,6 +34,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		protected bool LoadResourcePlatform<T>(StringView path, ref T* texture) where T : ID3D11Resource
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			((ID3D11Resource*)texture)?.Release();
 			nativeResourceView?.Release();
 
@@ -92,6 +94,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void LoadTexturePlatform()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			LoadResourcePlatform(_path, ref nativeTexture);
 
 			let resType = nativeTexture.GetResourceType();
@@ -102,12 +106,16 @@ namespace GlitchyEngine.Renderer
 
 		protected override void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			PrepareTexturePlatform(desc, isRenderTarget);
 			InternalCreateTexture(data, linePitch, 0);
 		}
 
 		private void InternalCreateTexture(void* data, uint32 linePitch, uint32 slicePitch)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			SubresourceData resData = .(data, linePitch, slicePitch);
 
 			// If data is null, set subresourceData null
@@ -122,6 +130,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PrepareTexturePlatform(Texture2DDesc desc, bool isRenderTarget)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			nativeTexture?.Release();
 			nativeTexture = null;
 			nativeResourceView?.Release();
@@ -137,6 +147,8 @@ namespace GlitchyEngine.Renderer
 		protected override System.Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
 			uint32 destY, uint32 destWidth, uint32 destHeight, uint32 arraySlice, uint32 mipLevel, GlitchyEngine.Renderer.MapType mapType)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(nativeTexture == null)
 			{
 				if(destX == 0 && destY == 0 && destWidth == nativeDesc.Width && destHeight == nativeDesc.Height)
@@ -189,6 +201,8 @@ namespace GlitchyEngine.Renderer
 			ResourceBox sourceBox = default, uint32 destX = 0, uint32 destY = 0,
 			uint32 srcArraySlice = 0, uint32 srcMipSlice = 0, uint32 destArraySlice = 0, uint32 destMipSlice = 0)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Log.EngineLogger.AssertDebug(source != destination || srcArraySlice != destArraySlice
 				|| srcMipSlice != destMipSlice, "Cannot copy from and to the same sub resource.");
 
@@ -215,6 +229,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void CopyTo(Texture2D destination)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(nativeTexture == null)
 				return;
 
@@ -252,6 +268,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void LoadTexturePlatform()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			LoadResourcePlatform(_path, ref nativeTexture);
 
 			let resType = nativeTexture.GetResourceType();

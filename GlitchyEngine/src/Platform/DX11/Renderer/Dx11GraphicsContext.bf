@@ -38,6 +38,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(Windows.HWnd windowHandle)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			nativeWindowHandle = windowHandle;
 
 			_swapChain = new SwapChain(this);
@@ -47,6 +49,8 @@ namespace GlitchyEngine.Renderer
 
 		public ~this()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			delete _swapChain;
 
 			Dx11Release();
@@ -54,6 +58,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void Init()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Dx11Init();
 
 			SwapChain.Init();
@@ -177,6 +183,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		private void BindShaderToStage<TShader>(TShader shader) where TShader : Shader
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			uint32 _firstTexture = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
 			uint32 _textureCount = 0;
 
@@ -212,7 +220,7 @@ namespace GlitchyEngine.Renderer
 			}
 			
 			shader.Buffers.PlatformFetchNativeBuffers();
-
+			
 			switch(typeof(TShader))
 			{
 				// TODO: Add remaining shader stages

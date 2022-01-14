@@ -83,6 +83,8 @@ namespace GlitchyEngine
 
 		public this(float aspectRatio)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_aspectRatio = aspectRatio;
 
 			_camera = new PerspectiveCamera();
@@ -94,6 +96,8 @@ namespace GlitchyEngine
 		
 		public void Update(GameTime gameTime)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(Application.Get().Window.IsActive)
 			{
 				Vector3 movement = .();
@@ -150,12 +154,16 @@ namespace GlitchyEngine
 
 		public void OnEvent(Event e)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			EventDispatcher dispatcher = EventDispatcher(e);
 			dispatcher.Dispatch<WindowResizeEvent>(scope => OnWindowResized);
 		}
 
 		private bool OnWindowResized(WindowResizeEvent e)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_aspectRatio = (float)e.Width / (float)e.Height;
 
 			UpdateCamera();
@@ -165,6 +173,8 @@ namespace GlitchyEngine
 
 		private void UpdateCamera()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_camera.AspectRatio = _aspectRatio;
 			_camera.FovY = _fovY;
 			_camera.Rotation = _cameraRotation;

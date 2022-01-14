@@ -29,7 +29,6 @@ namespace GlitchyEngine
 		public void PushLayer(Layer ownLayer)
 		{
 			_layers.Insert(_insertIndex++, ownLayer);
-			ownLayer.OnAttach();
 		}
 		
 		/**
@@ -40,7 +39,6 @@ namespace GlitchyEngine
 		public void PushOverlay(Layer ownOverlay)
 		{
 			_layers.Add(ownOverlay);
-			ownOverlay.OnAttach();
 		}
 		
 		/**

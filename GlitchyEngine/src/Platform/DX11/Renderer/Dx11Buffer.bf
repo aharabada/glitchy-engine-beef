@@ -60,6 +60,8 @@ namespace GlitchyEngine.Renderer
 
 		private Result<void> InternalCreateBuffer(void* data, uint32 byteLength, uint32 dstByteOffset)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			nativeDescription = (.)_description;
 
 			uint8* byteData = (.)data;
@@ -84,6 +86,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override Result<void> PlatformSetData(void* data, uint32 byteLength, uint32 dstByteOffset, GlitchyEngine.Renderer.MapType mapType)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			if(nativeBuffer == null)
 			{
 				// We can pass the data while creating the buffer, so we can return here.

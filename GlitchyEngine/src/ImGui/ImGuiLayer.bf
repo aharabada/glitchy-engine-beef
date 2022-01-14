@@ -20,6 +20,8 @@ namespace GlitchyEngine.ImGui
 
 		public override void OnAttach()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			//ImGuiImplWin32.EnableDpiAwareness();
 			Log.EngineLogger.Trace("Initializing ImGui...");
 
@@ -56,6 +58,8 @@ namespace GlitchyEngine.ImGui
 
 		public override void OnDetach()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			ImGuiImplDX11.Shutdown();
 			ImGuiImplWin32.Shutdown();
 			ImGui.DestroyContext();
@@ -184,6 +188,8 @@ namespace GlitchyEngine.ImGui
 
 		public void Begin()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			// Todo:
 			//var v = DirectX.ImmediateContext;
 			//v.OutputMerger.SetRenderTargets(1, &DirectX.BackBufferTarget, null);
@@ -198,11 +204,16 @@ namespace GlitchyEngine.ImGui
 		bool showDemo = true;
 		public void ImGuiRender()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Begin();
 
-			var event = scope ImGuiRenderEvent();
-			Application.Get().OnEvent(event);
+			{
+				Debug.Profiler.ProfileScope!("ImGuiRenderEvent");
 
+				var event = scope ImGuiRenderEvent();
+				Application.Get().OnEvent(event);
+			}
 			//ImGui.ShowDemoWindow(&showDemo);
 
 			End();
@@ -210,6 +221,8 @@ namespace GlitchyEngine.ImGui
 
 		public void End()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			ImGui.IO* io = ImGui.GetIO();
 
 			let window = Application.Get().Window;

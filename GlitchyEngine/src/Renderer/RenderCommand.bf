@@ -32,6 +32,8 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		public static void Init()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_rendererAPI.Init();
 		}
 

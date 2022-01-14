@@ -31,6 +31,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PlatformSetVertexBuffer(VertexBufferBinding binding, uint32 slot)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Log.EngineLogger.Assert(slot < nativeBuffers.Count, "The buffer slot has to be in the range from 0 to 31.");
 
 			VertexBuffer vertexBuffer = binding.Buffer;
@@ -59,12 +61,16 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PlatformSetVertexLayout(VertexLayout vertexLayout)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			nativeVertexLayout?.Release();
 			nativeVertexLayout = vertexLayout?.nativeLayout..AddRef();
 		}
 
 		protected override void PlatformSetIndexBuffer(IndexBuffer indexBuffer)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Log.EngineLogger.Assert(indexBuffer.nativeDescription.BindFlags.HasFlag(.IndexBuffer),
 				scope $"Buffer ({indexBuffer.nativeBuffer.GetDebugName(.. scope .())}) must have IndexBuffer-flag set to be bound as an index buffer.");
 
@@ -79,6 +85,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void Bind()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
 			NativeContext.InputAssembler.SetInputLayout(_vertexLayout.nativeLayout);
 			NativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
@@ -89,6 +97,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void Unbind()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			ID3D11Buffer*[nativeBuffers.Count] nullBuffers = .();
 			uint32[nativeBuffers.Count] zeroStrides = .();
 			uint32[nativeBuffers.Count] zeroOffsets = .();

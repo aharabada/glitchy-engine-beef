@@ -20,6 +20,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		internal static void Init()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(s_isInitialized)
 				return;
 
@@ -32,6 +34,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		internal static void Deinit()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_msdfEffect.ReleaseRef();
 
 			DeinitFreetype();
@@ -41,6 +45,8 @@ namespace GlitchyEngine.Renderer.Text
 		
 		private static void InitFreetype()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(s_Library == null)
 			{
 				var res = FreeType.Init_FreeType(&s_Library);
@@ -50,6 +56,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		private static void DeinitFreetype()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			FreeType.Done_FreeType(s_Library);
 		}
 
@@ -117,6 +125,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		public static PreparedText PrepareText(Font font, String text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(text.IsWhiteSpace)
 				return .Empty;
 
@@ -152,6 +162,8 @@ namespace GlitchyEngine.Renderer.Text
 
 			void FlushShapeBuffer()
 			{
+				Debug.Profiler.ProfileRendererFunction!();
+
 				float fontScale = (float)fontSize / currentFont._fontSize;
 
 				hb_buffer_clear_contents(buf);
@@ -294,6 +306,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		public static void DrawText(PreparedText text, float x, float y)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			text.AddRef();
 			defer text.ReleaseRef();
 
@@ -396,6 +410,8 @@ namespace GlitchyEngine.Renderer.Text
 		 */
 		public static void DrawText(Font font, String text, float x, float y, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineGapOffset = 0)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(text.IsWhiteSpace)
 				return;
 			

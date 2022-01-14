@@ -17,6 +17,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(GraphicsContext context)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_context = context;
 
 			SetResolutionFromWindow();
@@ -24,6 +26,8 @@ namespace GlitchyEngine.Renderer
 
 		public ~this()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			nativeDxgiDevice?.Release();
 			nativeSwapChain?.Release();
 		}
@@ -38,11 +42,15 @@ namespace GlitchyEngine.Renderer
 
 		public override void Init()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			ApplyChanges();
 		}
 
 		public override void ApplyChanges()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(!_changed)
 				return;
 
@@ -54,6 +62,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public void UpdateSwapchain()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Log.EngineLogger.Trace($"Updating swap chain ({_width}, {_height})");
 
 			uint32 backBufferCount = 2;
@@ -112,12 +122,16 @@ namespace GlitchyEngine.Renderer
 
 		internal void GetBackbuffer(out ID3D11Texture2D* texture)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			var result = nativeSwapChain.GetBuffer<ID3D11Texture2D>(0, out texture);
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to get backbuffer.");
 		}
 
 		public override void Present()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			nativeSwapChain.Present(Application.Get().Window.IsVSync ? 1 : 0, .None);
 		}
 	}

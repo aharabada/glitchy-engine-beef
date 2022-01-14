@@ -23,6 +23,8 @@ namespace GlitchyEngine.Renderer
 		
 		public void Clear(RenderTarget2D renderTarget, ClearOptions options, ColorRGBA color, float depth, uint8 stencil)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			var actualRt = (renderTarget ?? GraphicsContext.Get().SwapChain.BackBuffer);
 
 			if(options.HasFlag(.Color))

@@ -80,11 +80,15 @@ namespace GlitchyEngine.Renderer
 
 		protected override void UpdateProjection()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_projection = Matrix.OrthographicProjectionOffCenter(_left, _right, _top, _bottom, _nearPlane, _farPlane);
 		}
 
 		protected override void UpdateTransform()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_transform = Matrix.Translation(_position) * Matrix.RotationZ(_rotation.Z) * Matrix.RotationY(_rotation.Y) * Matrix.RotationX(_rotation.X);
 			_view = _transform.Invert();
 		}

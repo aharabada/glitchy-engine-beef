@@ -17,6 +17,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PlatformCreateBlendState()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			BlendDescription nativeDesc = .Default;
 			nativeDesc.IndependentBlendEnable = _desc.IndependentBlendEnable;
 			nativeDesc.AlphaToCoverageEnable = _desc.AlphaToCoverageEnable;

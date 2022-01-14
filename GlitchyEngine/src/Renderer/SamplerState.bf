@@ -164,6 +164,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void Init()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_samplers = new .();
 
 			// Init point samplers
@@ -230,6 +232,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void Uninit()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			PointClamp.ReleaseRef();
 			PointWrap.ReleaseRef();
 			LinearClamp.ReleaseRef();
@@ -249,6 +253,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static SamplerState GetSampler(SamplerStateDescription desc)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Log.EngineLogger.AssertDebug(_samplers != null, "SamplerStateManager was not initialized.");
 
 			if(_samplers.TryGetValue(desc, let sampler))
@@ -299,6 +305,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(SamplerStateDescription desc)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_desc = desc;
 
 			PlatformCreateSamplerState();
@@ -306,6 +314,8 @@ namespace GlitchyEngine.Renderer
 
 		public ~this()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			SamplerStateManager.[Friend]Remove(this);
 		}
 

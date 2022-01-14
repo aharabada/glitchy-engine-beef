@@ -63,6 +63,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(RenderTarget2DDescription description)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_description = description;
 
 			ApplyChanges();

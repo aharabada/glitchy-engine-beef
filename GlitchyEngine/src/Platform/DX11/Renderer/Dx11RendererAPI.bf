@@ -24,7 +24,7 @@ namespace GlitchyEngine.Renderer
 
 		public override void Init()
 		{
-
+			Debug.Profiler.ProfileFunction!();
 		}
 
 		private mixin RtOrBackbuffer(RenderTarget2D renderTarget)
@@ -34,11 +34,15 @@ namespace GlitchyEngine.Renderer
 
 		public override void Clear(RenderTarget2D renderTarget, ColorRGBA color)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			NativeContext.ClearRenderTargetView(RtOrBackbuffer!(renderTarget)._nativeRenderTargetView, color);
 		}
 
 		public override void Clear(DepthStencilTarget target, ClearOptions clearOptions, float depth, uint8 stencil)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(target == null)
 				return;
 
@@ -59,16 +63,22 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthBuffer)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			_context.SetRenderTarget(renderTarget, slot, setDepthBuffer);
 		}
 		
 		public override void SetDepthStencilTarget(DepthStencilTarget target)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			_context.SetDepthStencilTarget(target);
 		}
 
 		public override void BindRenderTargets()
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			_context.BindRenderTargets();
 		}
 
@@ -76,6 +86,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetRasterizerState(RasterizerState rasterizerState)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			SetReference!(_currentRasterizerState, rasterizerState);
 			NativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
 		}
@@ -84,6 +96,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetBlendState(BlendState blendState, ColorRGBA blendFactor)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			SetReference!(_currentBlendState, blendState);
 			NativeContext.OutputMerger.SetBlendState(_currentBlendState.nativeBlendState, blendFactor);
 		}
@@ -92,12 +106,16 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetDepthStencilState(DepthStencilState depthStencilState, uint8 stencilReference)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			SetReference!(_currentDepthStencilState, depthStencilState);
 			NativeContext.OutputMerger.SetDepthStencilState(_currentDepthStencilState.nativeDepthStencilState, stencilReference);
 		}
 
 		public override void DrawIndexed(GeometryBinding geometry)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			if(geometry.IsIndexed)
 				_context.DrawIndexed(geometry.IndexCount, geometry.IndexByteOffset, 0);
 			else
@@ -106,11 +124,15 @@ namespace GlitchyEngine.Renderer
 
 		public override void DrawIndexedInstanced(GeometryBinding geometry)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			NativeContext.DrawIndexedInstanced(geometry.IndexCount, geometry.InstanceCount, geometry.IndexByteOffset, 0, 0);
 		}
 
 		public override void SetViewport(Viewport viewport)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			_context.SetViewport(viewport);
 		}
 	}

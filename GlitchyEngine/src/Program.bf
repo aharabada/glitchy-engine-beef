@@ -1,5 +1,6 @@
 using System;
 using GlitchLog;
+using GlitchyEngine.Debug;
 using System.Diagnostics;
 
 namespace GlitchyEngine
@@ -11,6 +12,8 @@ namespace GlitchyEngine
 
 		public static int Main(String[] args)
 		{
+			Debug.Profiler.BeginProfiling();
+
 			Log.EngineLogger.Info("Initializing Application...");
 
 			Stopwatch initWatch = scope Stopwatch();
@@ -29,6 +32,8 @@ namespace GlitchyEngine
 			delete app;
 
 			Log.EngineLogger.Info("Application uninitialized.");
+
+			Debug.Profiler.EndProfiling();
 
 			return 0;
 		}

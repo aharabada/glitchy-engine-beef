@@ -47,6 +47,8 @@ namespace GlitchyEngine.Renderer
 
 		public this(GEDSSDesc description)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_description = description;
 			nativeDescription = (.)description;
 

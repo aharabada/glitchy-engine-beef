@@ -17,6 +17,8 @@ namespace GlitchyEngine.Renderer
 
 		public override void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "vs_5_0", DefaultCompileFlags, out nativeCode);
 
 			var result = NativeDevice.CreateVertexShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);

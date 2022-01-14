@@ -54,6 +54,8 @@ namespace GlitchyEngine.Renderer
 
 		public override this(GlitchyEngine.Renderer.RasterizerStateDescription description)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			_description = description;
 			nativeDescription = (.)_description;
 

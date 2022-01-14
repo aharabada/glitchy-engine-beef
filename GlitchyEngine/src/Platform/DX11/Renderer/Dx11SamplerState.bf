@@ -111,6 +111,8 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PlatformCreateSamplerState()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			_desc.ToNative(var nativeDesc);
 
 			HResult result = NativeDevice.CreateSamplerState(ref nativeDesc, &nativeSamplerState);

@@ -115,6 +115,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		public this(String fontPath, uint32 fontSize, bool hasColor = true, char32 firstChar = '\0', uint32 charCount = 128, int32 faceIndex = 0)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// Make sure the fontrenderer is initialized (Font only cares about freetype)
 			FontRenderer.Init();
 
@@ -125,11 +127,19 @@ namespace GlitchyEngine.Renderer.Text
 			_faceIndex = faceIndex;
 			_hasColor = hasColor;
 
-			var res = FreeType.New_Face(FontRenderer.s_Library, fontPath, faceIndex, &_face);
-			Log.EngineLogger.Assert(res.Success, scope $"New_Face failed({(int)res}): {res}");
+			{
+				Debug.Profiler.ProfileResourceScope!("Freetype.New_Face");
 
-			res = FreeType.Set_Pixel_Sizes(_face, 0, _fontSize);
-			Log.EngineLogger.Assert(res.Success, scope $"Set_Pixel_Sizes failed({(int)res}): {res}");
+				FT_Error res = FreeType.New_Face(FontRenderer.s_Library, fontPath, faceIndex, &_face);
+				Log.EngineLogger.Assert(res.Success, scope $"New_Face failed({(int)res}): {res}");
+			}
+			
+			{
+				Debug.Profiler.ProfileResourceScope!("Freetype.Set_Pixel_Sizes");
+
+				FT_Error res = FreeType.Set_Pixel_Sizes(_face, 0, _fontSize);
+				Log.EngineLogger.Assert(res.Success, scope $"Set_Pixel_Sizes failed({(int)res}): {res}");
+			}
 
 			double unitsPerEm = F26Dot6ToDouble(_face.units_per_EM);
 			_geometryScaler = _fontSize / unitsPerEm;
@@ -147,6 +157,8 @@ namespace GlitchyEngine.Renderer.Text
 
 			// HarfBuzz
 			{
+				Debug.Profiler.ProfileResourceScope!("hb_ft_font_create_referenced");
+
 				_harfBuzzFont = hb_ft_font_create_referenced(_face);
 				hb_font_set_scale(_harfBuzzFont, (.)fontSize * 64, (.)fontSize * 64);
 			}
@@ -156,6 +168,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		public void LoadGlyphs(char32 firstChar, uint32 charCount)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			ExtendRange(firstChar, firstChar + charCount);
 
 			UpdateAtlas();
@@ -163,6 +177,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		public void LoadGlyphs(uint32 firstGlyph, uint32 charCount)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			ExtendRange(firstGlyph, firstGlyph + charCount);
 
 			UpdateAtlas();
@@ -237,6 +253,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		void ExtendRange(char32 firstChar, char32 rangeEnd)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// TODO: refactor
 
 			for(char32 char = firstChar; char < rangeEnd; char++)
@@ -266,6 +284,8 @@ namespace GlitchyEngine.Renderer.Text
 		
 		void ExtendRange(uint32 firstGlyph, uint32 rangeEnd)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// TODO: refactor
 
 			for(uint32 glyphId = firstGlyph; glyphId < rangeEnd; glyphId++)
@@ -317,6 +337,8 @@ namespace GlitchyEngine.Renderer.Text
 
 		Int3 PrepareAtlas()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			const uint32 maxRes = 16384; // D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION
 			const uint32 maxArray = 2048; // D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION
 			
@@ -398,11 +420,15 @@ namespace GlitchyEngine.Renderer.Text
 
 		void DrawAtlas()
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Int3 oldAtlasSize = _atlasSize;
 			_atlasSize = PrepareAtlas();
 
 			if(_atlasSize != oldAtlasSize)
 			{
+				Debug.Profiler.ProfileResourceScope!("Recreate Atlas");
+
 				var oldAtlas = _atlas;
 
 				Texture2DDesc desc;
@@ -444,20 +470,31 @@ namespace GlitchyEngine.Renderer.Text
 
 		bool Calculate(ref GlyphDescriptor desc)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// prepare shape
 
 			double advance = 0;
 
 			Shape shape;
-			if(!msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance) || !shape.Validate())
+
 			{
-				return false;
+				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
+
+				if(!msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance) || !shape.Validate())
+				{
+					return false;
+				}
 			}
 
 			desc.Advance = (float)(advance * _geometryScaler);
 
 			//shape.OrientContours();
-			msdfgen.ResolveShapeGeometry(shape);
+			{
+				Debug.Profiler.ProfileResourceScope!("msdfgen.ResolveShapeGeometry");
+
+				msdfgen.ResolveShapeGeometry(shape);
+			}
 
 			shape.Normalize();
 
@@ -616,13 +653,20 @@ namespace GlitchyEngine.Renderer.Text
 
 		void GenerateMSDF(GlyphDescriptor desc)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// prepare shape
 			
 			double advance = 0;
 
 			Shape shape;
-			msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance);
-
+			
+			{
+				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
+				
+				msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance);
+			}
+			
 			msdfgen.ResolveShapeGeometry(shape);
 
 			shape.Normalize();
@@ -646,6 +690,8 @@ namespace GlitchyEngine.Renderer.Text
 
 			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY))
 			{
+				Debug.Profiler.ProfileResourceScope!("GenerateMSDF");
+				
 				MSDFGeneratorConfig config = .();
 	
 				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, _range, config);

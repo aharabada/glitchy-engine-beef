@@ -29,6 +29,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void Init(GraphicsContext context, EffectLibrary effectLibrary)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			_context = context..AddRef();
 			/*
 			_sceneConstants = new Buffer<SceneConstants>(.(0, .Constant, .Dynamic, .Write));
@@ -46,11 +48,15 @@ namespace GlitchyEngine.Renderer
 
 		public static void Deinit()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Renderer2D.Deinit();
 		}
 
 		static void InitLineRenderer(EffectLibrary effectLibrary)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			LineEffect = effectLibrary.Load("content\\Shaders\\lineShader.hlsl");
 
 			LineGeometry = new GeometryBinding();
@@ -75,6 +81,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void BeginScene(EcsWorld world, Entity cameraEntity)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			var camera = world.GetComponent<CameraComponent>(cameraEntity);
 			var transform = world.GetComponent<TransformComponent>(cameraEntity);
 
@@ -87,15 +95,22 @@ namespace GlitchyEngine.Renderer
 
 		public static void BeginScene(Camera camera)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			_sceneConstants.ViewProjection = camera.ViewProjection;
 			//_sceneConstants.Data.ViewProjection = camera.ViewProjection;
 			//_sceneConstants.Update();
 		}
 
-		public static void EndScene(){}
+		public static void EndScene()
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+		}
 
 		public static void Submit(GeometryBinding geometry, Effect effect, Matrix transform = .Identity)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			//effect.PixelShader?.Buffers.TryReplaceBuffer("SceneConstants", _sceneConstants);
 			//effect.VertexShader?.Buffers.TryReplaceBuffer("SceneConstants", _sceneConstants);
 
@@ -116,6 +131,8 @@ namespace GlitchyEngine.Renderer
 
 		public static void Submit(GeometryBinding geometry, Material material, Matrix transform = .Identity)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
 			material.SetVariable("Transform", transform);
 
@@ -175,6 +192,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static void DrawLine(Vector4 start, Vector4 end, Color color, Matrix transform)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			LineVertices.SetData(Vector4[2](start, end), 0, .WriteDiscard);
 			LineEffect.Variables["ViewProjection"].SetData(_sceneConstants.ViewProjection * transform);
 			LineEffect.Variables["Color"].SetData(color);

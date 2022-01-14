@@ -12,6 +12,8 @@ namespace GlitchyEngine.Renderer
 	{
 		protected override void Compile(String vsPath, String vsEntry, String psPath, String psEntry)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// Todo: macros
 			VertexShader = new VertexShader(vsPath, vsEntry);
 			PixelShader = new PixelShader(psPath, psEntry);

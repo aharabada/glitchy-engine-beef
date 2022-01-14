@@ -2,6 +2,7 @@ using System;
 using GlitchyEngine.Events;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Renderer;
+using GlitchyEngine.Debug;
 
 namespace GlitchyEngine
 {
@@ -34,6 +35,8 @@ namespace GlitchyEngine
 
 		public this()
 		{
+			Profiler.ProfileFunction!();
+
 			Log.EngineLogger.Assert(s_Instance == null, "Tried to create a second application.");
 			s_Instance = this;
 
@@ -57,6 +60,8 @@ namespace GlitchyEngine
 
 		public ~this()
 		{
+			Profiler.ProfileFunction!();
+
 			delete _layerStack;
 			SamplerStateManager.Uninit();
 			Renderer.Deinit();
@@ -65,6 +70,8 @@ namespace GlitchyEngine
 
 		public void OnEvent(Event e)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			if(!_running)
 				return;
 
@@ -90,8 +97,12 @@ namespace GlitchyEngine
 
 		public void Run()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			while(_running)
 			{
+				Debug.Profiler.ProfileScope!("Loop");
+
 				if(allowFrame)
 				{
 					_gameTime.NewFrame();
@@ -110,6 +121,8 @@ namespace GlitchyEngine
 
 				if(allowFrame && !_isMinimized)
 				{
+					Debug.Profiler.ProfileScope!("Update Layers");
+
 					for(Layer layer in _layerStack)
 						layer.Update(_gameTime);
 				}
@@ -125,9 +138,21 @@ namespace GlitchyEngine
 			}
 		}
 
-		public void PushLayer(Layer ownLayer) => _layerStack.PushLayer(ownLayer);
+		public void PushLayer(Layer ownLayer)
+		{
+			Profiler.ProfileFunction!();
 
-		public void PushOverlay(Layer ownOverlay) => _layerStack.PushOverlay(ownOverlay);
+			_layerStack.PushLayer(ownLayer);
+			ownLayer.OnAttach();
+		}
+
+		public void PushOverlay(Layer ownOverlay)
+		{
+			Profiler.ProfileFunction!();
+
+			_layerStack.PushOverlay(ownOverlay);
+			ownOverlay.OnAttach();
+		}
 
 		public bool OnWindowClose(WindowCloseEvent e)
 		{
