@@ -56,10 +56,14 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileResourceFunction!();
 
 			ID3D11ShaderReflection* reflection = null;
-			var result = D3DCompiler.D3DReflect(shaderCode.GetBufferPointer(), shaderCode.GetBufferSize(), &reflection);
-			if(result.Failed)
 			{
-				Log.EngineLogger.Error($"Failed to reflect shader: Message ({(int)result}): {result}");
+				Debug.Profiler.ProfileResourceScope!("D3DReflect");
+
+				var result = D3DCompiler.D3DReflect(shaderCode.GetBufferPointer(), shaderCode.GetBufferSize(), &reflection);
+				if(result.Failed)
+				{
+					Log.EngineLogger.Error($"Failed to reflect shader: Message ({(int)result}): {result}");
+				}
 			}
 
 			reflection.GetDescription(let desc);

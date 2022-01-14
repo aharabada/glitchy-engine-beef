@@ -14,25 +14,34 @@ namespace GlitchyEngine
 		{
 			Debug.Profiler.BeginProfiling();
 
-			Log.EngineLogger.Info("Initializing Application...");
+			Application app;
 
-			Stopwatch initWatch = scope Stopwatch();
+			{
+				Debug.Profiler.ProfileScope!("Initialize");
+				
+				Log.EngineLogger.Info("Initializing Application...");
 
-			var app = CreateApplication();
+				Stopwatch initWatch = scope Stopwatch();
 
-			initWatch.Stop();
+				app = CreateApplication();
 
-			Log.EngineLogger.Info($"Application initialized ({initWatch.ElapsedMilliseconds}ms).");
-			Log.EngineLogger.Info("Running App...");
+				initWatch.Stop();
+
+				Log.EngineLogger.Info($"Application initialized ({initWatch.ElapsedMilliseconds}ms).");
+				Log.EngineLogger.Info("Running App...");
+			}
 
 			app.Run();
 			
-			Log.EngineLogger.Info("Uninitializing Application...");
-
-			delete app;
-
-			Log.EngineLogger.Info("Application uninitialized.");
-
+			{
+				Debug.Profiler.ProfileScope!("Shutdown");
+					
+				Log.EngineLogger.Info("Uninitializing Application...");
+	
+				delete app;
+	
+				Log.EngineLogger.Info("Application uninitialized.");
+			}
 			Debug.Profiler.EndProfiling();
 
 			return 0;

@@ -204,7 +204,11 @@ namespace GlitchyEngine
 			_windowClass.HInstance = (.)_instanceHandle;
 
 			if (desc.Icon.Ptr != null)
+			{
+				Debug.Profiler.ProfileScope!("LoadIcon");
+
 				_windowClass.Icon = LoadImageW(0, desc.Icon.ToScopedNativeWChar!(), .Icon, 0, 0, .LoadFromFile);
+			}
 			else
 				_windowClass.Icon = 0;
 
@@ -219,8 +223,12 @@ namespace GlitchyEngine
 				Runtime.FatalError("Failed to register window class");
 			}
 
-			_windowHandle = CreateWindowExW(.None, _windowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
-				CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
+			{
+				Debug.Profiler.ProfileScope!("CreateWindow");
+
+				_windowHandle = CreateWindowExW(.None, _windowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
+					CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
+			}
 			
 			_graphicsContext = new GraphicsContext(_windowHandle);
 			_graphicsContext.Init();

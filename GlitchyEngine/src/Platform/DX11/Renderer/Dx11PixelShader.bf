@@ -19,11 +19,15 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "ps_5_0", DefaultCompileFlags, out nativeCode);
-
-			var result = NativeDevice.CreatePixelShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
-			if(result.Failed)
+			
 			{
-				Log.EngineLogger.Error($"Failed to create pixel shader: Message ({(int)result}): {result}");
+				Debug.Profiler.ProfileResourceScope!("CreateNativePixelShader");
+
+				var result = NativeDevice.CreatePixelShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
+				if(result.Failed)
+				{
+					Log.EngineLogger.Error($"Failed to create pixel shader: Message ({(int)result}): {result}");
+				}
 			}
 
 			Reflect(nativeCode);

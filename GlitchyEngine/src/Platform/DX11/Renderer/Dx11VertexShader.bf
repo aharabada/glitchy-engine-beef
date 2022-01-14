@@ -21,10 +21,14 @@ namespace GlitchyEngine.Renderer
 
 			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "vs_5_0", DefaultCompileFlags, out nativeCode);
 
-			var result = NativeDevice.CreateVertexShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
-			if(result.Failed)
 			{
-				Log.EngineLogger.Error($"Failed to create vertex shader: Message ({(int)result}): {result}");
+				Debug.Profiler.ProfileResourceScope!("CreateNativeVertexShader");
+
+				var result = NativeDevice.CreateVertexShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
+				if(result.Failed)
+				{
+					Log.EngineLogger.Error($"Failed to create vertex shader: Message ({(int)result}): {result}");
+				}
 			}
 
 			Reflect(nativeCode);
