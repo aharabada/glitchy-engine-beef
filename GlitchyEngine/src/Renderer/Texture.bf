@@ -127,7 +127,9 @@ namespace GlitchyEngine.Renderer
 
 			Debug.Assert(errorCode == 0, "Failed to load png File");
 
-			Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm_SRGB, 1, 1, .Immutable);
+			// TODO: load as SRGB because PNGs are usually not stored as linear
+			//Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm_SRGB, 1, 1, .Immutable);
+			Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm, 1, 1, .Immutable);
 			
 			PrepareTexturePlatform(desc, false);
 

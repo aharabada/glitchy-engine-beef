@@ -529,7 +529,9 @@ namespace Sandbox
 	{
 		public this()
 		{
-#if SANDBOX_2D
+#if GAMMA_TEST
+			PushLayer(new GammaTestLayer());
+#elif SANDBOX_2D
 			PushLayer(new ExampleLayer2D());
 #else
 			PushLayer(new ExampleLayer());

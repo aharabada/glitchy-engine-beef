@@ -5,4 +5,4 @@ Dependencies = {GlitchyEngine = "*", corlib = "*", msdfgen-beef = "*", LodePng =
 Name = "Sandbox"
 TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
-ProcessorMacros = ["SANDBOX_2D"]
+ProcessorMacros = ["GAMMA_TEST", "NOT_SANDBOX_2D"]
