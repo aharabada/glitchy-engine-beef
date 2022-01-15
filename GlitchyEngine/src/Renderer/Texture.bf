@@ -1,6 +1,8 @@
 using System;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
+using System.IO;
+using System.Diagnostics;
 
 namespace GlitchyEngine.Renderer
 {
@@ -48,6 +50,19 @@ namespace GlitchyEngine.Renderer
 		public Format Format;
 		public Usage Usage;
 		public CPUAccessFlags CpuAccess;
+
+		public this() => this = default;
+
+		public this(uint32 width, uint32 height, Format format, uint32 arraySize = 1, uint32 mipLevels = 1, Usage usage = .Default, CPUAccessFlags cpuAccess = .None)
+		{
+			Width = width;
+			Height = height;
+			Format = format;
+			ArraySize = arraySize;
+			MipLevels = mipLevels;
+			Usage = usage;
+			CpuAccess = cpuAccess;
+		}
 	}
 
 	public class Texture2D : Texture
@@ -60,10 +75,65 @@ namespace GlitchyEngine.Renderer
 		public override extern uint32 ArraySize {get;}
 		public override extern uint32 MipLevels {get;}
 		
-		public this(String path)
+		public this(StringView path)
 		{
-			this._path = new String(path);
-			LoadTexturePlatform();
+			_path = new String(path);
+			LoadTexture();
+		}
+		
+		const String PngMagicWord = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A";
+		const String DdsMagicWord = "DDS ";
+
+		private void LoadTexture()
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			FileStream fs = new FileStream();
+
+			fs.Open(_path, .Read);
+			var readResult = fs.Read<char8[8]>();
+
+			delete fs;
+
+			char8[8] magicWord;
+
+			if (readResult case .Ok(out magicWord))
+			{
+				StringView strView = .(&magicWord, magicWord.Count);
+
+				if (strView.StartsWith(PngMagicWord))
+				{
+					LoadPng();
+				}
+				else if (strView.StartsWith(DdsMagicWord))
+				{
+					LoadTexturePlatform();
+				}
+				else
+				{
+					Runtime.FatalError("Unknown image format.");
+				}
+			}
+		}
+
+		protected void LoadPng()
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			uint8* rawData = ?;
+			uint32 width = 0, height = 0;
+
+			uint32 errorCode = LodePng.LodePng.Decode32File(&rawData, &width, &height, _path.CStr());
+
+			Debug.Assert(errorCode == 0, "Failed to load png File");
+
+			Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm_SRGB, 1, 1, .Immutable);
+			
+			PrepareTexturePlatform(desc, false);
+
+			SetData<Color>((.)rawData);
+
+			LodePng.LodePng.Free(rawData);
 		}
 
 		public this(Texture2DDesc desc)
