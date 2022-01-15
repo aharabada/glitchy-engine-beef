@@ -671,7 +671,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			shape.Normalize();
 
-			var bounds = shape.GetBounds();
+			//var bounds = shape.GetBounds();
 			
 			//shape.ReverseIfNeeded(bounds);
 

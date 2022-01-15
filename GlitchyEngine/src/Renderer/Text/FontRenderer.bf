@@ -457,7 +457,8 @@ namespace GlitchyEngine.Renderer.Text
 			// about 8 million (2^23) increments to reach a depth of 1 so I think it's safe enough.
 			//float f = 1.0f;
 			//int32 depthInt = *(int32*)&f;
-
+			
+			/*
 			// Shape!!!!!!!!!!!!!!!!!!!
 
 			// 1. Create a buffer and put your text in it:
@@ -469,7 +470,7 @@ namespace GlitchyEngine.Renderer.Text
 			hb_buffer_set_direction(buf, .HB_DIRECTION_LTR);
 			hb_buffer_set_script(buf, .HB_SCRIPT_LATIN);
 			hb_buffer_set_language(buf, hb_language_from_string("en".CStr(), -1));
-
+			
 			// 3. Get the face
 			hb_font_t* hb_font = font._harfBuzzFont;
 			
@@ -561,7 +562,8 @@ namespace GlitchyEngine.Renderer.Text
 			    penPosition += (x_advance / 64) * glyphFontScale;
 			    baseline += (y_advance / 64) * glyphFontScale;
 			}
-			/*
+			*/
+
 			// enumerate through the unicode codepoints
 			for(char32 char in text.DecodedChars)
 			{
@@ -635,7 +637,7 @@ namespace GlitchyEngine.Renderer.Text
 				// Increase depth for the next glyph
 				//depthInt--;
 			}
-			*/
+
 			Renderer2D.Flush();
 
 			// TODO: not good!
