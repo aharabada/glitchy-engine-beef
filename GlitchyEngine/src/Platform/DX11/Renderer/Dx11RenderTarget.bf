@@ -46,8 +46,6 @@ namespace GlitchyEngine.Renderer
 
 			ReleaseAndNullify();
 
-			PlatformCreateTexture();
-
 			if(_description.IsSwapchainTarget)
 			{
 				// TODO: if the engine supports multiple windows it has to support multiple swap chains.
@@ -58,6 +56,10 @@ namespace GlitchyEngine.Renderer
 				context.SwapChain.GetBackbuffer(out _nativeTexture);
 
 				CreateViews();
+			}
+			else
+			{
+				PlatformCreateTexture();
 			}
 
 			if(_description.DepthStencilFormat != .None)
@@ -96,12 +98,26 @@ namespace GlitchyEngine.Renderer
 		private void CreateViews()
 		{
 			Debug.Profiler.ProfileResourceFunction!();
+			
+			if(_description.IsSwapchainTarget)
+			{
+				var result = NativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
+				Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
 
-			var result = NativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
-			Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
+				// TODO: SRGB...
+				//RenderTargetViewDescription rtvDesc = .(_nativeTexture, .Texture2D, .R8G8B8A8_UNorm_SRGB);
+				//result = NativeDevice.CreateRenderTargetView(_nativeTexture, &rtvDesc, &_nativeRenderTargetView);
+				result = NativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
+				Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
+			}
+			else
+			{
+				var result = NativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
+				Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
 
-			result = NativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
-			Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
+				result = NativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
+				Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
+			}
 		}
 	}
 }
