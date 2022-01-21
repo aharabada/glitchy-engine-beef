@@ -322,7 +322,7 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
-		public static void BeginScene(OrthographicCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
+		public static void BeginScene(Camera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
@@ -597,6 +597,11 @@ namespace GlitchyEngine.Renderer
 			DrawQuadPivotCorner(position, size, rotation, s_whiteTexture, color);
 		}
 		
+		public static void DrawQuad(Matrix transform, ColorRGBA color)
+		{
+			DrawQuad(transform, s_whiteTexture, color);
+		}
+
 		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			DrawQuad(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
