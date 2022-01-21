@@ -67,6 +67,9 @@ namespace GlitchyEngine.Renderer.Text
 			public Font Font ~ _?.ReleaseRef();
 			public List<PreparedGlyph> Glyphs ~ delete:append _;
 
+			public float AdvanceX;
+			public float AdvanceY;
+
 			[AllowAppend]
 			public this(Font font)
 			{
@@ -216,6 +219,14 @@ namespace GlitchyEngine.Renderer.Text
 					penPosition += (x_advance / 64) * fontScale;
 					baseline += (y_advance / 64) * fontScale;
 				}
+
+				preparedText.AdvanceX = Math.Max(preparedText.AdvanceX, penPosition);
+			}
+
+			void ResetPenPos()
+			{
+				preparedText.AdvanceX = Math.Max(preparedText.AdvanceX, penPosition);
+				penPosition = 0;
 			}
 
 			for (char32 char in text.DecodedChars)
@@ -240,7 +251,7 @@ namespace GlitchyEngine.Renderer.Text
 					FlushShapeBuffer();
 
 					// carriage return
-					penPosition = 0;
+					ResetPenPos();
 
 					continue;
 				case '\u{2066}':
@@ -286,7 +297,7 @@ namespace GlitchyEngine.Renderer.Text
 
 					// TODO: make carriage return optional?
 					// return pen to start of line
-					penPosition = 0;
+					ResetPenPos();
 
 					movedLines = 0;
 				}
@@ -300,11 +311,18 @@ namespace GlitchyEngine.Renderer.Text
 			}
 			
 			FlushShapeBuffer();
+			
+			preparedText.AdvanceY = baseline;
 
 			return preparedText;
 		}
 
 		public static void DrawText(PreparedText text, float x, float y)
+		{
+			DrawText(text, Matrix.Translation(x, y, 0));
+		}
+
+		public static void DrawText(PreparedText text, Matrix transform)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -363,8 +381,8 @@ namespace GlitchyEngine.Renderer.Text
 				// Rectangle on the screen
 				Vector4 viewportRect = .(
 					// TODO: merge adjustToPenX and adjustToBaseline into Position
-					x + glyph.Position.X + adjustToPenX,
-					y + glyph.Position.Y + adjustToBaseline,
+					glyph.Position.X + adjustToPenX,
+					glyph.Position.Y + adjustToBaseline,
 					glyphDesc.Width * glyph.Scale,
 					glyphDesc.Height * glyph.Scale);
 
@@ -378,7 +396,12 @@ namespace GlitchyEngine.Renderer.Text
 				// Show quads
 				// Renderer2D.DrawQuad(Vector3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
 
-				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+				Vector3 position = .(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 0);
+
+				Matrix glyphTransform = transform * Matrix.Translation(position) * Matrix.Scaling(viewportRect.Z, viewportRect.W, 1.0f);
+				
+				Renderer2D.DrawQuad(glyphTransform, atlas, glyphColor, texRect);
+				//Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
 
 				// Show pen positions
 				// Renderer2D.DrawQuad(Vector3(Vector2(x, y) + glyph.Position, -1), .(1), 0, .Green);
