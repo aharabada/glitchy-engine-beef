@@ -130,9 +130,6 @@ namespace GlitchyEngine.Renderer.Text
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			if(text.IsWhiteSpace)
-				return .Empty;
-
 			PreparedText preparedText = new PreparedText(font);
 
 			float scale = fontSize / (float)font._fontSize;
@@ -317,12 +314,12 @@ namespace GlitchyEngine.Renderer.Text
 			return preparedText;
 		}
 
-		public static void DrawText(PreparedText text, float x, float y)
+		public static void DrawText(PreparedText text, float x, float y, Color fontColor = .White)
 		{
-			DrawText(text, Matrix.Translation(x, y, 0));
+			DrawText(text, Matrix.Translation(x, y, 0), fontColor);
 		}
 
-		public static void DrawText(PreparedText text, Matrix transform)
+		public static void DrawText(PreparedText text, Matrix transform, Color fontColor = .White)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -389,7 +386,7 @@ namespace GlitchyEngine.Renderer.Text
 				// Rectangle on the font atlas
 				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
 
-				Color glyphColor = Color.White;// TODO: glyphDesc.IsBitmap ? bitmapColor : fontColor;
+				Color glyphColor = fontColor;//Color.White;// TODO: glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
 				texRect /= Vector4(atlasSize, atlasSize);
 
