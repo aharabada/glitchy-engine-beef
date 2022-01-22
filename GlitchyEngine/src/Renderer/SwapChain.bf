@@ -53,7 +53,7 @@ namespace GlitchyEngine.Renderer
 		/**
 		 * Gets the aspect ratio of the backbuffer.
 		 */
-		public float AspectRatio => _width / _height;
+		public float AspectRatio => (float)_width / _height;
 
 		public Viewport BackbufferViewport => _backBufferViewport;
 		
