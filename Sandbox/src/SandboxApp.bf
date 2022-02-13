@@ -18,13 +18,14 @@ namespace Sandbox
 	{
 		public this()
 		{
-#if GAMMA_TEST
+/*#if GAMMA_TEST
 			PushLayer(new GammaTestLayer());
 #elif SANDBOX_2D
 			PushLayer(new ExampleLayer2D());
 #else
 			PushLayer(new ExampleLayer());
-#endif
+#endif*/
+			PushLayer(new GameLayer());
 		}
 
 		[Export, LinkName("CreateApplication")]
