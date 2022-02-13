@@ -172,7 +172,7 @@ namespace Sandbox
 			{
 				float f = (float)Math.Cos(gameTime.TotalTime.TotalSeconds) * 0.5f + 0.55f;
 
-				FontRenderer.DrawText(pressSpaceToRestart, -pressSpaceToStart.AdvanceX / 2f, 0, .(1, 0, 0, f));
+				FontRenderer.DrawText(pressSpaceToRestart, -pressSpaceToRestart.AdvanceX / 2f, 0, .(1, 0, 0, f));
 			}
 
 			Renderer2D.EndScene();

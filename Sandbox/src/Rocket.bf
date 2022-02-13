@@ -20,6 +20,9 @@ namespace Sandbox
 		private Vector2 _speed;
 
 		private Vector2 _position;
+		private Vector2 _direction;
+
+		private Line2D _rocketLine;
 
 		private float _rotation = -MathHelper.PiOverTwo;
 
@@ -31,45 +34,93 @@ namespace Sandbox
 
 		public int Score = 0;
 
+		public Vector2 Position => _position;
+		public Vector2 Direction => _direction;
+
+		ParticleSystem _particleSystem ~ delete _;
+
 		public this()
 		{
 			_rocketTexture = new Texture2D("content/RocketGame/Rocket.dds");
 			_rocketTexture.SamplerState = SamplerStateManager.PointClamp;
+
+			_particleSystem = new ParticleSystem(1024)
+			{
+				LiveTime = 1.0f,
+				LiveTimeVariance = 0.5f,
+				Emit = true,
+			};
 		}
 
 		public void Update(GameTime gameTime)
 		{
-			FlightSpeed = Dead ? 0.0f : 2.0f;
-			
-			if (Dead && Input.IsKeyPressing(Key.Space))
+			do
 			{
-				Dead = false;
-				Started = false;
-				_speed = .Zero;
-				Score = 0;
-			}
-			else if (!Started)
-			{
-				_position = .Zero;
+				FlightSpeed = Dead ? 0.0f : 2.0f;
 				
-				if (Input.IsKeyPressing(Key.Space))
-					Started = true;
-				else
-					return;
+				if (Dead && Input.IsKeyPressing(Key.Space))
+				{
+					Dead = false;
+					Started = false;
+					_speed = .Zero;
+					Score = 0;
+				}
+				else if (!Started)
+				{
+					_position = .Zero;
+					
+					if (Input.IsKeyPressing(Key.Space))
+						Started = true;
+					else
+						break;
+				}
+	
+				UpdatePosition(gameTime);
+	
+				if (Started)
+					CheckDead();
+			}
+			
+			UpdateParticles(gameTime);
+		}
+
+		private void UpdateParticles(GameTime gameTime)
+		{
+			
+			_particleSystem.Position = Position - Direction * 0.4f;
+			_particleSystem.EmissionDirection = -Direction;
+			_particleSystem.EmissionVelocity = FlightSpeed * 2;
+			_particleSystem.EmissionAngle = MathHelper.PiOverFour / 2;
+
+			_particleSystem.Emit = !Dead;
+
+			if (Input.IsKeyPressing(Key.Space))
+			{
+				_particleSystem.EmissionRate = 100;
+				_particleSystem.EmissionSize = 0.125f;
+				_particleSystem.EmissionSizeVariance = 0.025f;
+
+				_particleSystem.EmmisionColor = .(255, 106, 0);
+			}
+			else if (Input.IsKeyReleasing(Key.Space))
+			{
+				_particleSystem.EmissionRate = 10;
+				_particleSystem.EmissionSize = 0.075f;
+				_particleSystem.EmissionSizeVariance = 0.025f;
+
+				_particleSystem.EmmisionColor = .(140, 126, 93);
 			}
 
-			UpdatePosition(gameTime);
+			_particleSystem.Update(gameTime);
 
-			if (Started)
-				CheckDead();
 		}
 
 		public void Draw()
 		{
-			Renderer2D.DrawQuad(_position, .One, _rotation, _rocketTexture, .White);
-		}
+			_particleSystem.Draw();
 
-		Line2D rocketLine;
+			Renderer2D.DrawQuad(Vector3(_position, 5), .One, _rotation, _rocketTexture, .White);
+		}
 
 		private void UpdatePosition(GameTime gameTime)
 		{
@@ -91,8 +142,8 @@ namespace Sandbox
 
 			_rotation = ang;
 
-			Vector2 dir = Vector2.Normalize(_speed + .(10, 0));
-			rocketLine = .(_position - dir / 2.8f, _position + dir / 2.4f);
+			_direction = Vector2.Normalize(_speed + .(10, 0));
+			_rocketLine = .(_position - _direction / 2.8f, _position + _direction / 2.4f);
 		}
 
 		const float worldBorder = 2.1f;
@@ -136,17 +187,17 @@ namespace Sandbox
 				Line2D topR = .(topTip, topRight);
 				Line2D topL = .(topTip, topLeft);
 
-				if ((bottomR.Intersects(rocketLine) case .Intersection) ||
-					(bottomL.Intersects(rocketLine) case .Intersection) ||
-					(topR.Intersects(rocketLine) case .Intersection) ||
-					(topL.Intersects(rocketLine) case .Intersection))
+				if ((bottomR.Intersects(_rocketLine) case .Intersection) ||
+					(bottomL.Intersects(_rocketLine) case .Intersection) ||
+					(topR.Intersects(_rocketLine) case .Intersection) ||
+					(topL.Intersects(_rocketLine) case .Intersection))
 				{
 					Dead = true;
 				}
 
 				if (!Dead)
 				{
-					if (Line2D(bottomTip, topTip).Intersects(rocketLine) case .Intersection)
+					if (Line2D(bottomTip, topTip).Intersects(_rocketLine) case .Intersection)
 					{
 						scoreLine = @obs.Index;
 					}
