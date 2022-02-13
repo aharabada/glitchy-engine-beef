@@ -27,7 +27,10 @@ namespace GlitchyEngine
 		 * The number of frames that have been finished since the timer was started.
 		 */
 		public uint64 FrameCount => _frameCount;
-		
+
+		/// The interval in seconds from the last frame to the current one.
+		public float DeltaTime => (float)_frameTime.TotalSeconds;
+
 		/**
 		 * Initializes a new instance of a GameTime.
 		 */
