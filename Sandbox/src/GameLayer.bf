@@ -32,6 +32,9 @@ namespace Sandbox
 
 		List<Obstacle> _obstacles = new List<Obstacle>() ~ DeleteContainerAndItems!(_);
 
+		FontRenderer.PreparedText pressSpaceToStart ~ _.ReleaseRef();
+		FontRenderer.PreparedText pressSpaceToRestart ~ _.ReleaseRef();
+
 		[AllowAppend]
 		public this() : base("Example")
 		{
@@ -58,6 +61,10 @@ namespace Sandbox
 					DepthEnabled = false
 				};
 			_depthStencilState = new DepthStencilState(dssDesc);
+
+			pressSpaceToStart = FontRenderer.PrepareText(_font, "Press [SPACE]", 1);
+
+			pressSpaceToRestart = FontRenderer.PrepareText(_font, "YOU DIED!\nPress [SPACE] to restart", 0.5f);
 
 			InitGame();
 		}
@@ -149,14 +156,24 @@ namespace Sandbox
 				obs.Draw();
 			}
 
-			Renderer.BeginScene(_camera);
-
 			_rocket.Draw();
 
 			FontRenderer.DrawText(_font, scope $"{_rocket.Score}", 0, 1.5f, 1, .Black);
 			FontRenderer.DrawText(_font, scope $"{_rocket.Score}", 0.1f, 1.6f, 1, .(230, 230, 230));
 
-			Renderer.EndScene();
+			if (!_rocket.Started)
+			{
+				float f = (float)Math.Cos(gameTime.TotalTime.TotalSeconds) * 0.5f + 0.55f;
+
+				FontRenderer.DrawText(pressSpaceToStart, -pressSpaceToStart.AdvanceX / 2f, 0, .(1, 0, 0, f));
+			}
+
+			if (_rocket.Dead)
+			{
+				float f = (float)Math.Cos(gameTime.TotalTime.TotalSeconds) * 0.5f + 0.55f;
+
+				FontRenderer.DrawText(pressSpaceToRestart, -pressSpaceToStart.AdvanceX / 2f, 0, .(1, 0, 0, f));
+			}
 
 			Renderer2D.EndScene();
 		}

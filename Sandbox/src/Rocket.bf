@@ -21,11 +21,11 @@ namespace Sandbox
 
 		private Vector2 _position;
 
-		private float _rotation;
+		private float _rotation = -MathHelper.PiOverTwo;
 
-		private bool _dead;
+		public bool Dead;
 
-		private bool _started = false;
+		public bool Started = false;
 
 		public List<Obstacle> Obstacles;
 
@@ -39,28 +39,34 @@ namespace Sandbox
 
 		public void Update(GameTime gameTime)
 		{
-			FlightSpeed = _dead ? 0.0f : 2.0f;
-
-			if (!_started)
+			FlightSpeed = Dead ? 0.0f : 2.0f;
+			
+			if (Dead && Input.IsKeyPressing(Key.Space))
+			{
+				Dead = false;
+				Started = false;
+				_speed = .Zero;
+				Score = 0;
+			}
+			else if (!Started)
 			{
 				_position = .Zero;
 				
-				if (Input.IsKeyPressed(Key.Space))
-					_started = true;
+				if (Input.IsKeyPressing(Key.Space))
+					Started = true;
 				else
 					return;
 			}
 
 			UpdatePosition(gameTime);
 
-			CheckDead();
+			if (Started)
+				CheckDead();
 		}
 
 		public void Draw()
 		{
 			Renderer2D.DrawQuad(_position, .One, _rotation, _rocketTexture, .White);
-
-			CheckObstacles();
 		}
 
 		Line2D rocketLine;
@@ -69,7 +75,7 @@ namespace Sandbox
 		{
 			_acceleration.Y = 0;
 
-			if (!_dead && Input.IsKeyPressed(Key.Space))
+			if (!Dead && Input.IsKeyPressed(Key.Space))
 			{
 				_acceleration.Y += Power;
 			}
@@ -95,10 +101,12 @@ namespace Sandbox
 		{
 			if (Math.Abs(_position.Y) >= worldBorder)
 			{
-				_dead = true;
+				Dead = true;
 				_speed.Y *= -0.8f;
 				_position.Y = Math.Clamp(_position.Y, -worldBorder, worldBorder);
 			}
+
+			CheckObstacles();
 		}
 
 		private int scoreLine = -1;
@@ -107,7 +115,8 @@ namespace Sandbox
 		{
 			for (Obstacle obs in Obstacles)
 			{
-				const float f = Vector2.One.Magnitude();
+				//const float f = Vector2.One.Magnitude();
+				float f = Vector2.One.Magnitude();
 
 				Vector2 center = obs.Position;
 				
@@ -132,10 +141,10 @@ namespace Sandbox
 					(topR.Intersects(rocketLine) case .Intersection) ||
 					(topL.Intersects(rocketLine) case .Intersection))
 				{
-					_dead = true;
+					Dead = true;
 				}
 
-				if (!_dead)
+				if (!Dead)
 				{
 					if (Line2D(bottomTip, topTip).Intersects(rocketLine) case .Intersection)
 					{
