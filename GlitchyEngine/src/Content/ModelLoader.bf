@@ -39,7 +39,15 @@ namespace GlitchyEngine.Content
 
 #if DEBUG
 			var nameComponent = world.AssignComponent<DebugNameComponent>(entity);
-			nameComponent.SetName(StringView(node.Name));
+
+			if (node.Name != null)
+			{
+				nameComponent.SetName(StringView(node.Name));
+			}
+			else
+			{
+				nameComponent.SetName("Unnamed Node");
+			}
 #endif
 
 			if(parentEntity.HasValue)
@@ -120,16 +128,16 @@ namespace GlitchyEngine.Content
 						meshParent.Entity = entity;
 
 						var mesh = world.AssignComponent<MeshComponent>(meshEntity);
-						mesh.Mesh = ModelLoader.PrimitiveToGeoBinding(node.Mesh.Primitives[0], validationEffect);
+						mesh.Mesh = PrimitiveToGeoBinding(primitive, validationEffect);
 						
 						if(skeleton == null)
 						{
-							var meshRenderer = world.AssignComponent<MeshRendererComponent>(entity);
+							var meshRenderer = world.AssignComponent<MeshRendererComponent>(meshEntity);
 							meshRenderer.Material = material;
 						}
 						else
 						{
-							var meshRenderer = world.AssignComponent<SkinnedMeshRendererComponent>(entity);
+							var meshRenderer = world.AssignComponent<SkinnedMeshRendererComponent>(meshEntity);
 							meshRenderer.Material = material;
 							meshRenderer.Skeleton = skeleton;
 						}
@@ -179,6 +187,7 @@ namespace GlitchyEngine.Content
 					uint8* bufferData = (uint8*)indices.BufferView.Buffer.Data;
 					bufferData += indices.BufferView.Offset;
 
+					// TODO: this is a mess
 					ib.SetData<uint8>(bufferData, (.)indices.BufferView.Size);
 
 					binding.SetIndexBuffer(ib);
@@ -388,7 +397,8 @@ namespace GlitchyEngine.Content
 
 				joint.InverseBindPose = GetEntry<Matrix>(skin.InverseBindMatrices, i);
 
-				joint.Name = new String(skin.Joints[i].Name);
+				if (skin.Joints[i].Name != null)
+					joint.Name = new String(skin.Joints[i].Name);
 
 				int parentId = skin.Joints.IndexOf(skin.Joints[i].Parent);
 
@@ -528,6 +538,8 @@ namespace GlitchyEngine.Content
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 4);
 			case typeof(Matrix):
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 16);
+			case typeof(uint16):
+				CGLTF.AccessorReadUint(accessor, (uint)index, (uint32*)&result, 2);
 			case default:
 				uint8* data = (uint8*)accessor.BufferView.Buffer.Data;
 

@@ -70,7 +70,7 @@ namespace GlitchyEngine.Renderer
 			{
 				byteData = new uint8[nativeDescription.ByteWidth]*;
 				defer:: delete byteData;
-				Internal.MemCpy(byteData + dstByteOffset, data, byteLength);
+				Internal.MemCpy(byteData + dstByteOffset, data, Math.Min(nativeDescription.ByteWidth, byteLength));
 			}
 
 			SubresourceData srData = .(byteData, byteLength, 0);

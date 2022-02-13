@@ -16,8 +16,6 @@ namespace Sandbox
 {
 	class ExampleLayer2D : Layer
 	{
-		RasterizerState _rasterizerState ~ _?.ReleaseRef();
-
 		GraphicsContext _context ~ _?.ReleaseRef();
 		DepthStencilTarget _depthTarget ~ _?.ReleaseRef();
 
@@ -42,10 +40,6 @@ namespace Sandbox
 			Application.Get().Window.IsVSync = false;
 
 			_context = Application.Get().Window.Context..AddRef();
-
-			// Create rasterizer state
-			GlitchyEngine.Renderer.RasterizerStateDescription rsDesc = .(.Solid, .Back, false, 0);
-			_rasterizerState = new RasterizerState(rsDesc);
 
 			_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
@@ -79,7 +73,7 @@ namespace Sandbox
 
 			_textureViewer = new TextureViewer();
 
-			cameraController = new OrthographicCameraController(16 / 9f);
+			cameraController = new OrthographicCameraController(_context.SwapChain.AspectRatio);
 
 			DepthStencilStateDescription dssDesc = .()
 				{
@@ -105,8 +99,6 @@ namespace Sandbox
 			RenderCommand.SetRenderTarget(null);
 			RenderCommand.SetDepthStencilTarget(_depthTarget);
 			RenderCommand.BindRenderTargets();
-
-			RenderCommand.SetRasterizerState(_rasterizerState);
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
