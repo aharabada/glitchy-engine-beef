@@ -6,3 +6,6 @@ Name = "Sandbox"
 TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
 ProcessorMacros = ["NOT_GAMMA_TEST", "SANDBOX_2D"]
+
+[Platform.Windows]
+IconFile = "$(ProjectDir)/content/RocketGame/RocketIcon.ico"

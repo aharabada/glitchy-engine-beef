@@ -138,11 +138,11 @@ namespace Sandbox
 			_speed = newSpeed;
 			_position = newPosition;
 			
-			float ang = Math.Atan2(_speed.Y, 10) - MathHelper.PiOverTwo;
+			float ang = Math.Atan2(_speed.Y, 5) - MathHelper.PiOverTwo;
 
 			_rotation = ang;
 
-			_direction = Vector2.Normalize(_speed + .(10, 0));
+			_direction = Vector2.Normalize(_speed + .(5, 0));
 			_rocketLine = .(_position - _direction / 2.8f, _position + _direction / 2.4f);
 		}
 

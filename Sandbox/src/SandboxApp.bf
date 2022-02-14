@@ -18,6 +18,9 @@ namespace Sandbox
 	{
 		public this()
 		{
+			Window.Title = "Single Stage to Highscore";
+			Window.SetIcon("content/RocketGame/RocketIcon.ico");
+
 /*#if GAMMA_TEST
 			PushLayer(new GammaTestLayer());
 #elif SANDBOX_2D

@@ -31,16 +31,16 @@ namespace Sandbox
 
 		static Matrix mat = Matrix.Scaling(2.5f, 5, 1) * Matrix.RotationZ(MathHelper.PiOverFour);
 
-		public void Draw()
+		public void Draw(ColorRGBA color)
 		{
 			Matrix matty = mat;
 			matty.Translation.X = Position.X;
 
 			matty.Translation.Y = Position.Y - HoleSize;
-			Renderer2D.DrawQuad(matty, Color.White);
+			Renderer2D.DrawQuad(matty, color);
 
 			matty.Translation.Y = Position.Y + HoleSize;
-			Renderer2D.DrawQuad(matty, Color.White);
+			Renderer2D.DrawQuad(matty, color);
 		}
 	}
 }

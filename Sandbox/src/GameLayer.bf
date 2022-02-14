@@ -35,6 +35,8 @@ namespace Sandbox
 		FontRenderer.PreparedText pressSpaceToStart ~ _.ReleaseRef();
 		FontRenderer.PreparedText pressSpaceToRestart ~ _.ReleaseRef();
 
+		ColorHSV worldColor = .(0, 0.5f, 1.0f);
+
 		[AllowAppend]
 		public this() : base("Example")
 		{
@@ -88,7 +90,7 @@ namespace Sandbox
 				Vector4 v = .();
 				v.X = startRandom.Next(-1000, 1000) / 2000f * _camera.Width;
 				v.Y = startRandom.Next(-1000, 1000) / 2000f * _camera.Height;
-				v.Z = startRandom.Next(0, 999) / 1000.0f;
+				v.Z = startRandom.Next(0, 1000) / 2000.0f;
 				v.W = startRandom.Next(1000, 3000) / 1000.0f;
 
 				points[i] = v;
@@ -98,7 +100,12 @@ namespace Sandbox
 		private float lastObstacle = 0.0f;
 
 		public override void Update(GameTime gameTime)
-		{
+		{ 
+			worldColor.H += gameTime.DeltaTime * 18 * _rocket.FlightSpeed;
+ 			worldColor.H %= 360.0f;
+
+			ColorRGBA wColor = .((ColorRGB)worldColor, 1.0f);
+
 			float screenWidth = _camera.Width;
 			Obstacle.ScreenWidth = screenWidth / 2.0f;
 
@@ -147,19 +154,23 @@ namespace Sandbox
 			
 			Renderer2D.BeginScene(_camera, .BackToFront);
 
-			Renderer2D.DrawQuad(Vector3(0, 2.75f, 1), Vector2(screenWidth, 1), 0, .White);
+			Renderer2D.DrawQuad(Vector3(0, 2.75f, 1), Vector2(screenWidth, 1), 0, wColor);
 
-			Renderer2D.DrawQuad(Vector3(0, -2.75f, 1), Vector2(screenWidth, 1), 0, .White);
+			Renderer2D.DrawQuad(Vector3(0, -2.75f, 1), Vector2(screenWidth, 1), 0, wColor);
 			
 			for (Obstacle obs in _obstacles)
 			{
-				obs.Draw();
+				obs.Draw(wColor);
 			}
 
 			_rocket.Draw();
 
-			FontRenderer.DrawText(_font, scope $"{_rocket.Score}", 0, 1.5f, 1, .Black);
-			FontRenderer.DrawText(_font, scope $"{_rocket.Score}", 0.1f, 1.6f, 1, .(230, 230, 230));
+			var scorePrep = FontRenderer.PrepareText(_font, scope $"{_rocket.Score}", 1.0f);
+
+			FontRenderer.DrawText(scorePrep, -scorePrep.AdvanceX / 2, 1.5f, .Black);
+			FontRenderer.DrawText(scorePrep, -scorePrep.AdvanceX / 2 + 0.1f, 1.6f, .(230, 230, 230));
+
+			scorePrep.ReleaseRef();
 
 			if (!_rocket.Started)
 			{
