@@ -133,6 +133,9 @@ namespace GlitchyEngine.Renderer
 		private static Effect s_currentEffect;
 		private static Effect s_currentCircleEffect;
 
+		private static int s_InstancesPerDrawCall = 1024;
+		private static int s_MaxInstancesPerDrawCall = 8192;
+
 		private static void InitEffect()
 		{
 			Debug.Profiler.ProfileFunction!();
@@ -204,10 +207,10 @@ namespace GlitchyEngine.Renderer
 	
 				s_batchBinding.SetVertexBufferSlot(s_instanceBuffer, 1);
 	
-				s_rawInstances = new BatchVertex[1024];
+				s_rawInstances = new BatchVertex[s_InstancesPerDrawCall];
 				s_setInstances = 0;
 	
-				s_instanceQueue = new List<QueueQuad>(1024);
+				s_instanceQueue = new List<QueueQuad>(s_InstancesPerDrawCall);
 			}
 			
 			{
@@ -240,9 +243,9 @@ namespace GlitchyEngine.Renderer
 
 				s_circleBatchBinding.SetVertexBufferSlot(s_circleInstanceBuffer, 1);
 	
-				s_rawCircleInstances = new CircleBatchVertex[1024];
+				s_rawCircleInstances = new CircleBatchVertex[s_InstancesPerDrawCall];
 
-				s_circleInstanceQueue = new List<QueueCircle>(1024);
+				s_circleInstanceQueue = new List<QueueCircle>(s_InstancesPerDrawCall);
 			}
 		}
 
@@ -391,6 +394,11 @@ namespace GlitchyEngine.Renderer
 		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform)
 		{
 			s_instanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform));
+
+			if (s_instanceQueue.Count >= s_MaxInstancesPerDrawCall)
+			{
+				Flush();
+			}
 		}
 		
 		/// Adds a circle instance to the instance queue.
@@ -398,6 +406,11 @@ namespace GlitchyEngine.Renderer
 		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform, float innerRadius)
 		{
 			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, depth, uvTransform, innerRadius));
+
+			if (s_circleInstanceQueue.Count >= s_MaxInstancesPerDrawCall)
+			{
+				Flush();
+			}
 		}
 		
 		private static void FlushInstances()
@@ -670,9 +683,9 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawCircle(Vector3 position, Vector2 size, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
-#if DEBUG
 			Debug.Profiler.ProfileRendererFunction!();
 
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
 				
