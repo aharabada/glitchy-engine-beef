@@ -250,6 +250,18 @@ namespace GlitchyEngine
 		[CLink]
 		static extern IntBool IsWindowUnicode(HWND whnd);
 
+		public Result<void> SetIcon(StringView filePath)
+		{
+			HICON hIcon = LoadImageW(0, filePath.ToScopedNativeWChar!(), .Icon, 0, 0, .LoadFromFile);
+			if (hIcon == 0)
+				return .Err;
+
+			// WM_SETICON 0x0080
+			SendMessageW(_windowHandle, 0x0080, 1 /* ICON_BIG */, (int)hIcon);
+
+			return .Ok;
+		}
+
 		private static LRESULT MessageHandler(HWND hwnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			void* windowPtr = (void*)GetWindowLongPtrW(hwnd, GWL_USERDATA);

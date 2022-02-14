@@ -110,5 +110,10 @@ namespace GlitchyEngine
 		}
 
 		public extern void Update();
+
+		/**
+		 * Sets the Icon of the window to the given file.
+		 */
+		public extern Result<void> SetIcon(StringView filePath);
 	}
 }
