@@ -115,16 +115,18 @@ namespace GlitchyEngine.Renderer
 
 		private static Texture2D s_whiteTexture;
 
-		private static GeometryBinding s_batchBinding;
+		private static GeometryBinding s_quadBatchBinding;
 		private static GeometryBinding s_circleBatchBinding;
-		private static VertexBuffer s_instanceBuffer;
+		private static VertexBuffer s_quadInstanceBuffer;
 		private static VertexBuffer s_circleInstanceBuffer;
 		
-		private static BatchVertex[] s_rawInstances;
-		private static CircleBatchVertex[] s_rawCircleInstances;
-		private static uint32 s_setInstances;
+		private static uint32 s_maxInstancesPerBatch = 8192;
 
-		private static List<QueueQuad> s_instanceQueue;
+		private static BatchVertex[] s_rawQuadInstances;
+		private static CircleBatchVertex[] s_rawCircleInstances;
+		private static uint32 s_setInstances = 0;
+
+		private static List<QueueQuad> s_QuadinstanceQueue;
 		private static List<QueueCircle> s_circleInstanceQueue;
 
 		private static DrawOrder s_drawOrder;
@@ -133,6 +135,20 @@ namespace GlitchyEngine.Renderer
 		private static Effect s_currentEffect;
 		private static Effect s_currentCircleEffect;
 
+		public static uint32 MaxInstancesPerBatch
+		{
+			get => s_maxInstancesPerBatch;
+			set
+			{
+				if (s_maxInstancesPerBatch == value)
+					return;
+
+				s_maxInstancesPerBatch = value;
+
+				ApplyInstanceCount();
+			}
+		}
+		
 		private static void InitEffect()
 		{
 			Debug.Profiler.ProfileFunction!();
@@ -177,10 +193,8 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
+			// Quad
 			{
-				s_instanceBuffer = new VertexBuffer(typeof(BatchVertex), 1024, .Dynamic, .Write);
-				s_instanceBuffer.SetData(0);
-
 				VertexElement[] vertexElements = new .(
 					VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
 					VertexElement(.R32G32_Float, "TEXCOORD", false, 0, 0, (.)-1, .PerVertexData, 0),
@@ -193,27 +207,20 @@ namespace GlitchyEngine.Renderer
 					VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1)
 				);
 	
-				VertexLayout batchLayout = new VertexLayout(vertexElements, true, s_batchEffect.VertexShader);
+				s_quadBatchBinding = new GeometryBinding();
+				s_quadBatchBinding.SetPrimitiveTopology(.TriangleList);
+
+				using (var quadBatchLayout = new VertexLayout(vertexElements, true, s_batchEffect.VertexShader))
+				{
+					s_quadBatchBinding.SetVertexLayout(quadBatchLayout);
+				}
 	
-				s_batchBinding = new GeometryBinding();
-				s_batchBinding.SetVertexLayout(batchLayout..ReleaseRefNoDelete());
-				s_batchBinding.SetPrimitiveTopology(.TriangleList);
-	
-				s_batchBinding.SetVertexBufferSlot(s_quadGeometry.GetVertexBuffer(0), 0);
-				s_batchBinding.SetIndexBuffer(s_quadGeometry.GetIndexBuffer(), 0);
-	
-				s_batchBinding.SetVertexBufferSlot(s_instanceBuffer, 1);
-	
-				s_rawInstances = new BatchVertex[1024];
-				s_setInstances = 0;
-	
-				s_instanceQueue = new List<QueueQuad>(1024);
+				s_quadBatchBinding.SetVertexBufferSlot(s_quadGeometry.GetVertexBuffer(0), 0);
+				s_quadBatchBinding.SetIndexBuffer(s_quadGeometry.GetIndexBuffer(), 0);
 			}
 			
+			// Circle
 			{
-				s_circleInstanceBuffer = new VertexBuffer(typeof(CircleBatchVertex), 1024, .Dynamic, .Write);
-				s_circleInstanceBuffer.SetData(0);
-
 				VertexElement[] vertexElements = new .(
 					VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
 					VertexElement(.R32G32_Float, "TEXCOORD", false, 0, 0, (.)-1, .PerVertexData, 0),
@@ -228,21 +235,54 @@ namespace GlitchyEngine.Renderer
 				);
 				
 				s_circleBatchBinding = new GeometryBinding();
-					s_circleBatchBinding.SetPrimitiveTopology(.TriangleList);
+				s_circleBatchBinding.SetPrimitiveTopology(.TriangleList);
 
-				using(var circleBatchLayout = new VertexLayout(vertexElements, true, s_circleBatchEffect.VertexShader))
+				using (var circleBatchLayout = new VertexLayout(vertexElements, true, s_circleBatchEffect.VertexShader))
 				{
 					s_circleBatchBinding.SetVertexLayout(circleBatchLayout);
 				}
 	
 				s_circleBatchBinding.SetVertexBufferSlot(s_quadGeometry.GetVertexBuffer(0), 0);
 				s_circleBatchBinding.SetIndexBuffer(s_quadGeometry.GetIndexBuffer(), 0);
+			}
 
+			ApplyInstanceCount();
+		}
+
+		/// Updates the instance buffers so that they can fit s_maxInstancesPerBatch many instances
+		private static void ApplyInstanceCount()
+		{
+			Debug.Profiler.ProfileFunction!();
+
+			// Quads
+			{
+				VertexBuffer quadInstanceBuffer = new VertexBuffer(typeof(BatchVertex), s_maxInstancesPerBatch, .Dynamic, .Write);
+				quadInstanceBuffer.SetData(0);
+
+				s_quadInstanceBuffer?.ReleaseRef();
+				s_quadInstanceBuffer = quadInstanceBuffer;
+				s_quadBatchBinding.SetVertexBufferSlot(s_quadInstanceBuffer, 1);
+
+				delete s_rawQuadInstances;
+				delete s_QuadinstanceQueue;
+				s_rawQuadInstances = new BatchVertex[s_maxInstancesPerBatch];
+				s_QuadinstanceQueue = new List<QueueQuad>(s_maxInstancesPerBatch);
+
+			}
+
+			// Circles
+			{
+				VertexBuffer circleInstanceBuffer = new VertexBuffer(typeof(CircleBatchVertex), s_maxInstancesPerBatch, .Dynamic, .Write);
+				circleInstanceBuffer.SetData(0);
+				
+				s_circleInstanceBuffer?.ReleaseRef();
+				s_circleInstanceBuffer = circleInstanceBuffer;
 				s_circleBatchBinding.SetVertexBufferSlot(s_circleInstanceBuffer, 1);
-	
-				s_rawCircleInstances = new CircleBatchVertex[1024];
-
-				s_circleInstanceQueue = new List<QueueCircle>(1024);
+				
+				delete s_rawCircleInstances;
+				delete s_circleInstanceQueue;
+				s_rawCircleInstances = new CircleBatchVertex[s_maxInstancesPerBatch];
+				s_circleInstanceQueue = new List<QueueCircle>(s_maxInstancesPerBatch);
 			}
 		}
 
@@ -304,14 +344,14 @@ namespace GlitchyEngine.Renderer
 
 			s_whiteTexture.ReleaseRef();
 			
-			s_batchBinding.ReleaseRef();
+			s_quadBatchBinding.ReleaseRef();
 			s_circleBatchBinding.ReleaseRef();
-			s_instanceBuffer.ReleaseRef();
+			s_quadInstanceBuffer.ReleaseRef();
 			s_circleInstanceBuffer.ReleaseRef();
 
-			delete s_rawInstances;
+			delete s_rawQuadInstances;
 			delete s_rawCircleInstances;
-			delete s_instanceQueue;
+			delete s_QuadinstanceQueue;
 			delete s_circleInstanceQueue;
 
 			s_currentEffect?.ReleaseRef();
@@ -390,7 +430,8 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform)
 		{
-			s_instanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform));
+			s_QuadinstanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform));
+			s_statistics.QuadCount++;
 		}
 		
 		/// Adds a circle instance to the instance queue.
@@ -398,6 +439,7 @@ namespace GlitchyEngine.Renderer
 		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform, float innerRadius)
 		{
 			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, depth, uvTransform, innerRadius));
+			s_statistics.CircleCount++;
 		}
 		
 		private static void FlushInstances()
@@ -407,14 +449,16 @@ namespace GlitchyEngine.Renderer
 			if(s_setInstances == 0)
 				return;
 
-			s_instanceBuffer.SetData<BatchVertex>(s_rawInstances.Ptr, s_setInstances, 0, .WriteDiscard);
+			s_quadInstanceBuffer.SetData<BatchVertex>(s_rawQuadInstances.Ptr, s_setInstances, 0, .WriteDiscard);
 			
 			s_currentEffect.Bind(Renderer._context);
-			s_batchBinding.InstanceCount = s_setInstances;
-			s_batchBinding.Bind();
-			RenderCommand.DrawIndexedInstanced(s_batchBinding);
+			s_quadBatchBinding.InstanceCount = s_setInstances;
+			s_quadBatchBinding.Bind();
+			RenderCommand.DrawIndexedInstanced(s_quadBatchBinding);
 
 			s_setInstances = 0;
+
+			s_statistics.QuadDrawCalls++;
 		}
 
 		private static void FlushCircleInstances()
@@ -432,6 +476,8 @@ namespace GlitchyEngine.Renderer
 			RenderCommand.DrawIndexedInstanced(s_circleBatchBinding);
 
 			s_setInstances = 0;
+
+			s_statistics.CircleDrawCalls++;
 		}
 
 		// Quad comparison
@@ -469,13 +515,13 @@ namespace GlitchyEngine.Renderer
 			switch(s_drawOrder)
 			{
 			case .SortByTexture:
-				s_instanceQueue.Sort(scope => TextureComparison);
+				s_QuadinstanceQueue.Sort(scope => TextureComparison);
 				s_circleInstanceQueue.Sort(scope => TextureComparison);
 			case .BackToFront:
-				s_instanceQueue.Sort(scope => BackToFrontComparison);
+				s_QuadinstanceQueue.Sort(scope => BackToFrontComparison);
 				s_circleInstanceQueue.Sort(scope => BackToFrontComparison);
 			case .FrontToBack:
-				s_instanceQueue.Sort(scope => FrontToBackComparison);
+				s_QuadinstanceQueue.Sort(scope => FrontToBackComparison);
 				s_circleInstanceQueue.Sort(scope => FrontToBackComparison);
 			case .Immediate:
 			default:
@@ -487,7 +533,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			if(s_instanceQueue.IsEmpty && s_circleInstanceQueue.IsEmpty)
+			if(s_QuadinstanceQueue.IsEmpty && s_circleInstanceQueue.IsEmpty)
 				return;
 
 			SortInstances();
@@ -500,17 +546,17 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			if(s_instanceQueue.IsEmpty)
+			if(s_QuadinstanceQueue.IsEmpty)
 				return;
 
-			Texture2D texture = s_instanceQueue[0].Texture;
+			Texture2D texture = s_QuadinstanceQueue[0].Texture;
 			s_currentEffect.SetTexture("Texture", texture);
 
 			s_setInstances = 0;
 
-			for(int i < s_instanceQueue.Count)
+			for(int i < s_QuadinstanceQueue.Count)
 			{
-				var quad = ref s_instanceQueue[i];
+				var quad = ref s_QuadinstanceQueue[i];
 
 				// flush every time the texture changes
 				if(quad.Texture != texture)
@@ -521,9 +567,9 @@ namespace GlitchyEngine.Renderer
 					s_currentEffect.SetTexture("Texture", texture);
 				}
 
-				s_rawInstances[s_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
+				s_rawQuadInstances[s_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
 				
-				if(s_setInstances == s_rawInstances.Count)
+				if(s_setInstances == s_rawQuadInstances.Count)
 				{
 					FlushInstances();
 				}
@@ -531,7 +577,7 @@ namespace GlitchyEngine.Renderer
 
 			FlushInstances();
 
-			s_instanceQueue.Clear();
+			s_QuadinstanceQueue.Clear();
 		}
 
 		private static void DrawDeferredCircles()
@@ -612,22 +658,29 @@ namespace GlitchyEngine.Renderer
 			DrawQuadPivotCorner(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
 		}
 
+		/// A specialized function that calculates the 2D transform matrix
+		private static Matrix Calculate2DTransform(Vector3 translation, Vector2 scale, float rotation)
+		{
+			float sin = 0.0f;
+			float cos = 1.0f;
+
+			if (rotation != 0.0f)
+			{
+				sin = Math.Sin(rotation);
+				cos = Math.Cos(rotation);
+			}
+
+			return .(cos * scale.X, -sin * scale.Y, 0, translation.X,
+					 sin * scale.X,  cos * scale.Y, 0, translation.Y,
+					      0       ,       0       , 1, translation.Z,
+					      0       ,       0       , 0, 1);
+		}
+
 		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
-			Debug.Profiler.ProfileRendererFunction!();
+			Matrix transform = Calculate2DTransform(position, size, rotation);
 
-#if DEBUG
-			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
-#endif
-
-			Matrix transform = Matrix.Translation(position) * Matrix.RotationZ(rotation) * Matrix.Scaling(size.X, size.Y, 1.0f);
-
-			QueueQuadInstance(transform, color, texture, position.Z, uvTransform);
-
-			if(s_drawOrder == .Immediate)
-			{
-				DrawDeferred();
-			}
+			DrawQuad(transform, texture, color, uvTransform);
 		}
 
 		public static void DrawQuad(Matrix transform, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
@@ -655,35 +708,66 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawCircle(Vector2 position, Vector2 size, ColorRGBA color, float innerRadius = 1.0f)
 		{
-			DrawCircle(Vector3(position, 0.0f), size, s_whiteTexture, color, innerRadius);
+			DrawCircle(Vector3(position, 0.0f), size, 0, s_whiteTexture, color, innerRadius);
 		}
 
 		public static void DrawCircle(Vector3 position, Vector2 size, ColorRGBA color, float innerRadius = 1.0f)
 		{
-			DrawCircle(position, size, s_whiteTexture, color, innerRadius);
+			DrawCircle(position, size, 0, s_whiteTexture, color, innerRadius);
 		}
 
 		public static void DrawCircle(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawCircle(Vector3(position, 0.0f), size, texture, color, innerRadius, uvTransform);
+			DrawCircle(Vector3(position, 0.0f), size, rotation, texture, color, innerRadius, uvTransform);
 		}
 
-		public static void DrawCircle(Vector3 position, Vector2 size, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawCircle(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
-#if DEBUG
+			Matrix transform = Calculate2DTransform(position, size, rotation);
+
+			DrawCircle(transform, texture, color, innerRadius, uvTransform);
+		}
+		
+		public static void DrawCircle(Matrix transform, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
 			Debug.Profiler.ProfileRendererFunction!();
 
+#if DEBUG
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
-				
-			Matrix transform = Matrix.Translation(position) * Matrix.Scaling(size.X, size.Y, 1.0f);
-			
-			QueueCircleInstance(transform, color, texture, position.Z, uvTransform, innerRadius);
+
+			QueueCircleInstance(transform, color, texture, transform.Translation.Z, uvTransform, innerRadius);
 
 			if(s_drawOrder == .Immediate)
 			{
 				DrawDeferred();
 			}
 		}
+
+		public struct Statistics
+		{
+			public uint32 QuadDrawCalls = 0;
+			public uint32 CircleDrawCalls = 0;
+			public uint32 QuadCount = 0;
+			public uint32 CircleCount = 0;
+			
+			public uint32 TotalDrawCalls => QuadDrawCalls + CircleDrawCalls;
+			public uint32 TotalInstanceCount => QuadCount + CircleCount;
+			public uint32 TotalVertexCount => TotalInstanceCount * 4;
+			public uint32 TotalTriangleCount => TotalInstanceCount * 2;
+			public uint32 TotalIndexCount => TotalInstanceCount * 6;
+
+			public void Reset() mut
+			{
+				QuadDrawCalls = 0;
+				CircleDrawCalls = 0;
+				QuadCount = 0;
+				CircleCount = 0;
+			}
+		}
+
+		private static Statistics s_statistics;
+
+		public static ref Statistics Stats => ref s_statistics;
 	}
 }

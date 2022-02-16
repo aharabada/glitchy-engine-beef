@@ -80,10 +80,6 @@ namespace Sandbox
 					DepthEnabled = false
 				};
 			_depthStencilState = new DepthStencilState(dssDesc);
-
-			File.ReadAllText("change_direction_test.txt", text);
-
-			prepText = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
 		}
 
 		String text = new .() ~ delete _;
@@ -102,11 +98,33 @@ namespace Sandbox
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
+			Renderer2D.Stats.Reset();
+
 			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
 
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
+			float rotation = (float)gameTime.TotalTime.TotalSeconds;
+
+			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(20), 0, _checkerTexture, .White, .(0, 0, 10, 10));
+			
+			Renderer2D.DrawCircle(Vector3(0, 0, 0f), Vector2(5), rotation, _checkerTexture, .LightBlue, innerRadius, .(0, 0, 1, 1));
+			
+			Renderer2D.DrawQuad(Vector3(0, -7, 1), Vector2(2), -rotation, _checkerTexture, .White, .(0, 0, 10, 10));
+
+			Renderer2D.DrawCircle(Vector3(-2, -2, -2f), Vector2(1), .GreenYellow);
+
+			Renderer2D.EndScene();
+			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
+			
+			for(float x = -5.0f; x < 5.0f; x += 0.1f)
+			for(float y = -5.0f; y < 5.0f; y += 0.1f)
+			{
+				ColorRGBA color = .((x + 5.0f) / 10.0f, 0.4f, (y + 5.0f) / 10.0f, 0.6f);
+				Renderer2D.DrawQuad(Vector3(x, y, 0.75f), Vector2(0.098f), 0, color);
+			}
+			
 			for(int x < 10)
 			for(int y < 10)
 			{
@@ -114,30 +132,13 @@ namespace Sandbox
 
 				Renderer2D.DrawQuad(Vector3(2 * x, 2 * y, 0.5f), Vector2(1.5f, 1), MathHelper.PiOverFour, (i == 0) ? _squareColor0 : _squareColor1);
 			}
-			
-			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(10), 0, _checkerTexture, .White, .(0, 0, 1, 1));
 
-			Renderer2D.DrawCircle(Vector3(0, 0, 0f), Vector2(5), _checkerTexture, .LightBlue, innerRadius, .(0, 0, 1, 1));
-
-			Renderer2D.DrawCircle(Vector3(-2, -2, -2f), Vector2(1), .GreenYellow);
-
-			//FontRenderer.DrawText(fonty.Fallback.Fallback.Fallback.Fallback, "Hallö! gjy ÄAwww www <--||-->", 0, 0, 64, .White, .White); // Hallo! gjy
-			//FontRenderer.DrawText(fonty, "Hallö!\n gjy ÄAwww www <--||-->", 0, 0, 128, .White, .White);
-			//FontRenderer.DrawText(fonty, text, 0, 0, 64, .White, .White);
-
-			//var prepared = FontRenderer.PrepareText(fonty,"Hallö!\n gjy ÄA\n\nwww www <--||-->", 64, .White, .White);
 			var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
-			//var prepared = FontRenderer.PrepareText(fonty,"A\nB", 64, .White, .White);
-
 			FontRenderer.DrawText(prepared, 0, 0);
-			//FontRenderer.DrawText(prepText, 0, 0);
-
 			prepared.ReleaseRef();
 
 			Renderer2D.EndScene();
 		}
-
-		FontRenderer.PreparedText prepText ~ _.ReleaseRef();
 
 		float innerRadius = 0.5f;
 
@@ -163,6 +164,20 @@ namespace Sandbox
 			_squareColor1 = ColorRGBA.White - _squareColor0;
 			_squareColor1.A = _squareColor0.A;
 
+			ImGui.End();
+
+			ImGui.Begin("Renderer2D Stats:");
+
+			ImGui.Text($"Quad Drawcalls: {Renderer2D.Stats.QuadDrawCalls}");
+			ImGui.Text($"Circle Drawcalls: {Renderer2D.Stats.CircleDrawCalls}");
+			ImGui.Text($"Total Drawcalls: {Renderer2D.Stats.TotalDrawCalls}");
+
+			ImGui.Text($"Quads: {Renderer2D.Stats.QuadCount}");
+			ImGui.Text($"Circles: {Renderer2D.Stats.CircleCount}");
+
+			ImGui.Text($"Vertices: {Renderer2D.Stats.TotalVertexCount}");
+			ImGui.Text($"Indices: {Renderer2D.Stats.TotalIndexCount}");
+			
 			ImGui.End();
 
 			//_textureViewer.ViewTexture(fonty.Fallback.Fallback.Fallback.Fallback.[Friend]_atlas);
