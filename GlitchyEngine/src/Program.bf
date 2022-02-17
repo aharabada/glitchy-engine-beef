@@ -42,6 +42,7 @@ namespace GlitchyEngine
 	
 				Log.EngineLogger.Info("Application uninitialized.");
 			}
+
 			Debug.Profiler.EndProfiling();
 
 			return 0;

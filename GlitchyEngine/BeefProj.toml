@@ -15,7 +15,7 @@ PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
 PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
 
 [Configs.Release.Win64]
-PreprocessorMacros = ["RELEASE", "GE_PROFILE"]
+PreprocessorMacros = ["IMGUI", "RELEASE", "GE_PROFILE"]
 
 [Configs.Test.Win32]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
@@ -24,4 +24,4 @@ PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 
 [Configs.Debug.Win64]
-PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES"]
+PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI"]

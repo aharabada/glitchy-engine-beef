@@ -27,10 +27,13 @@ namespace Sandbox
 		
 		OrthographicCameraController cameraController ~ delete _;
 
-		Font fonty ~ _.ReleaseRef();
+		// Font fonty ~ _.ReleaseRef();
 		
 		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
-		ColorRGBA _squareColor1;
+		ColorRGBA _squareColor1 = {
+			ColorRGBA color = ColorRGBA.White - _squareColor0;
+			color.A = _squareColor0.A;
+			color};
 
 		DepthStencilState _depthStencilState ~ _.ReleaseRef();
 
@@ -61,7 +64,7 @@ namespace Sandbox
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
 			_alphaBlendState = new BlendState(blendDesc);
 
-			fonty = new Font("C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
+			/*fonty = new Font("C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
 			var japanese = new Font("C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
 			var emojis = new Font("C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
 			var mathstuff = new Font("C:\\Windows\\Fonts\\cambria.ttc", 64, true, 'α', 1);
@@ -69,7 +72,7 @@ namespace Sandbox
 			fonty.Fallback = japanese..ReleaseRefNoDelete();
 			japanese.Fallback = emojis..ReleaseRefNoDelete();
 			emojis.Fallback = mathstuff..ReleaseRefNoDelete();
-			mathstuff.Fallback = cascadiaCode..ReleaseRefNoDelete();
+			mathstuff.Fallback = cascadiaCode..ReleaseRefNoDelete();*/
 
 			_textureViewer = new TextureViewer();
 
@@ -133,9 +136,9 @@ namespace Sandbox
 				Renderer2D.DrawQuad(Vector3(2 * x, 2 * y, 0.5f), Vector2(1.5f, 1), MathHelper.PiOverFour, (i == 0) ? _squareColor0 : _squareColor1);
 			}
 
-			var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
-			FontRenderer.DrawText(prepared, 0, 0);
-			prepared.ReleaseRef();
+			//var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
+			//FontRenderer.DrawText(prepared, 0, 0);
+			//prepared.ReleaseRef();
 
 			Renderer2D.EndScene();
 		}
@@ -181,7 +184,7 @@ namespace Sandbox
 			ImGui.End();
 
 			//_textureViewer.ViewTexture(fonty.Fallback.Fallback.Fallback.Fallback.[Friend]_atlas);
-			_textureViewer.ViewTexture(fonty.[Friend]_atlas);
+			//_textureViewer.ViewTexture(fonty.[Friend]_atlas);
 
 			_context.SetRenderTarget(null);
 			_context.SetDepthStencilTarget(_depthTarget);

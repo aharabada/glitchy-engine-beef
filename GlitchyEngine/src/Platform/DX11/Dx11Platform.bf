@@ -17,7 +17,9 @@ namespace GlitchyEngine.Platform.DX11
 		protected internal static ID3D11Device* NativeDevice;
 		protected internal static ID3D11DeviceContext* NativeContext;
 
+#if DEBUG	
 		protected internal static ID3D11Debug* DebugDevice;
+#endif
 
 		internal static void Dx11Init()
 		{
@@ -28,9 +30,9 @@ namespace GlitchyEngine.Platform.DX11
 				Log.EngineLogger.Trace("Creating D3D11 Device and Context...");
 				
 				DeviceCreationFlags deviceFlags = .None;
-	#if DEBUG
+#if DEBUG
 				deviceFlags |= .Debug;
-	#endif
+#endif
 	
 				FeatureLevel[] levels = scope .(.Level_11_0);
 
@@ -44,7 +46,7 @@ namespace GlitchyEngine.Platform.DX11
 				
 				Log.EngineLogger.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message({(int32)deviceResult}): {deviceResult}");
 	
-	#if DEBUG	
+#if DEBUG
 				{
 					Debug.Profiler.ProfileScope!("Query for ID3D11Debug");
 					if(NativeDevice.QueryInterface<ID3D11Debug>(out DebugDevice).Succeeded)
@@ -59,7 +61,7 @@ namespace GlitchyEngine.Platform.DX11
 						}
 					}
 				}
-	#endif
+#endif
 	
 				Log.EngineLogger.Trace($"D3D11 Device and Context created (Feature level: {deviceLevel})");
 			}
@@ -68,7 +70,9 @@ namespace GlitchyEngine.Platform.DX11
 				// We created a second GraphicsContext (for some reason?) just increment references.
 				NativeDevice.AddRef();
 				NativeContext.AddRef();
+#if DEBUG
 				DebugDevice.AddRef();
+#endif
 			}
 		}
 
@@ -78,8 +82,10 @@ namespace GlitchyEngine.Platform.DX11
 
 			NativeDevice.Release();
 			NativeContext.Release();
+#if DEBUG
 			DebugDevice.ReportLiveDeviceObjects(.Detail);
 			DebugDevice.Release();
+#endif
 		}
 	}
 }

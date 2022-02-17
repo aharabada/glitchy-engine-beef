@@ -194,7 +194,7 @@ namespace GlitchyEngine.ImGui
 			//var v = DirectX.ImmediateContext;
 			//v.OutputMerger.SetRenderTargets(1, &DirectX.BackBufferTarget, null);
 			Application.Get().Window.Context.SetRenderTarget(null);
-			
+
 			ImGuiImplDX11.NewFrame();
 			ImGuiImplWin32.NewFrame();
 			ImGui.NewFrame();
@@ -229,7 +229,10 @@ namespace GlitchyEngine.ImGui
 			io.DisplaySize = .(window.Width, window.Height);
 
 			ImGui.Render();
+
+#if GE_GRAPHICS_DX11
 			ImGuiImplDX11.RenderDrawData(ImGui.GetDrawData());
+#endif
 
 			ImGui.CleanupFrame();
 

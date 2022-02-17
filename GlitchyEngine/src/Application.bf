@@ -10,18 +10,20 @@ namespace GlitchyEngine
 	{
 		static Application s_Instance = null;
 
-		private Window _window ~ delete _;
-		private RendererAPI _rendererApi ~ delete _;
-		private EffectLibrary _effectLibrary ~ delete _;
+		private Window _window;
+		private RendererAPI _rendererApi;
+		private EffectLibrary _effectLibrary;
 
 		private bool _running = true;
 		private bool _isMinimized = false;
 
-		private LayerStack _layerStack = new LayerStack();
+		private LayerStack _layerStack;
 
+#if IMGUI
 		private ImGuiLayer _imGuiLayer;
+#endif
 
-		private GameTime _gameTime = new GameTime(true);
+		private GameTime _gameTime;
 
 		public bool IsRunning => _running;
 		public Window Window => _window;
@@ -40,6 +42,9 @@ namespace GlitchyEngine
 			Log.EngineLogger.Assert(s_Instance == null, "Tried to create a second application.");
 			s_Instance = this;
 
+			_layerStack = new LayerStack();
+			_gameTime = new GameTime(true);
+
 			_window = new Window(.Default);
 			_window.EventCallback = new => OnEvent;
 
@@ -54,18 +59,25 @@ namespace GlitchyEngine
 
 			Renderer.Init(_window.Context, _effectLibrary);
 
+#if IMGUI
 			_imGuiLayer = new ImGuiLayer();
 			PushOverlay(_imGuiLayer);
+#endif
 		}
 
 		public ~this()
 		{
 			Profiler.ProfileFunction!();
 
-			delete _layerStack;
 			SamplerStateManager.Uninit();
 			Renderer.Deinit();
+
+			delete _effectLibrary;
+			delete _rendererApi;
+			delete _window;
+			
 			delete _gameTime;
+			delete _layerStack;
 		}
 
 		public void OnEvent(Event e)
@@ -131,7 +143,9 @@ namespace GlitchyEngine
 				
 				if(allowFrame)
 				{
+#if IMGUI
 					_imGuiLayer.ImGuiRender();
+#endif
 	
 					_window.Context.SwapChain.Present();
 				}
