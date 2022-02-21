@@ -21,9 +21,9 @@ namespace GlitchyEngine.Math
 		}
 
 		/**
-		 * Determines whether or not a swizzle operator can have a valid setter (e.g. no component assigned twice)
+		 * Returns true if the swizzle operator is invalid (same component assigned twice).
 		*/
-		static bool invalidSetter(int[4] cmp, int vecSize)
+		static bool IsSetterValid(int[4] cmp, int vecSize)
 		{
 			return cmp[0] == cmp[1] || (vecSize >= 3 && cmp[0] == cmp[2]) || (vecSize == 4 && cmp[0] == cmp[3]) ||
 				(vecSize >= 3 && cmp[1] == cmp[2]) || (vecSize == 4 && cmp[1] == cmp[3]) ||
@@ -33,8 +33,7 @@ namespace GlitchyEngine.Math
 		[Comptime]
 		public void ApplyToType(Type type)
 		{
-			// TODO: report bug... sized array not working
-			String[] componentNames = scope String[]("X", "Y", "Z", "W");
+			String[4] componentNames = .("X", "Y", "Z", "W");
 
 			for(int swizzleCount = 2; swizzleCount <= 4; swizzleCount++)
 			{
@@ -52,7 +51,16 @@ namespace GlitchyEngine.Math
 					String swizzleConstructor = scope String(swizzleCount * 3);
 					String setter = scope String(128);
 
-					bool setterInvalid = invalidSetter(cmp, swizzleCount);
+					bool setterInvalid = IsSetterValid(cmp, swizzleCount);
+
+					if (!setterInvalid)
+					{
+						setter.Append(
+							"""
+								set mut
+								{
+							""");
+					}
 
 					for(int c = 0; c < swizzleCount; c++)
 					{
@@ -64,21 +72,26 @@ namespace GlitchyEngine.Math
 						}
 						swizzleConstructor.Append(componentNames[cmp[c]]);
 
-						if(!setterInvalid && c < _vectorSize) //
+						if(!setterInvalid && c < _vectorSize)
 						{
 							setter.AppendF($"\n\t\t{componentNames[cmp[c]]} = value.{componentNames[c]};");
 						}
 					}
 
-					//{(setterInvalid ? "[Error(\"Cannot assign multiple values to same component.\")]" : String.Empty)}		
+					if (!setterInvalid)
+					{
+						setter.Append(
+							"""
+
+								}
+							""");
+					}
 
 					String swizzleString = scope $"""
 						public {_vectorTypeName}{swizzleCount} {swizzleName}
 						{{
 							get => .({swizzleConstructor});
-							set mut
-							{{{setter}
-							}}
+						{setter}
 						}}
 
 						""";
