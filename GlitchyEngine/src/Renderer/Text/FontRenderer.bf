@@ -193,7 +193,7 @@ namespace GlitchyEngine.Renderer.Text
 				hb_buffer_set_script(buf, .HB_SCRIPT_LATIN);
 				hb_buffer_set_language(buf, hb_language_from_string("en".CStr(), -1));
 				
-				hb_shape(font._harfBuzzFont, buf, null, 0);
+				hb_shape(currentFont._harfBuzzFont, buf, null, 0);
 
 				
 				// 5. Get the glyph and position information.
@@ -209,7 +209,7 @@ namespace GlitchyEngine.Renderer.Text
 					hb_position_t x_advance = glyph_pos[i].x_advance;
 					hb_position_t y_advance = glyph_pos[i].y_advance;
 
-					PreparedGlyph glyph = .(font, glyphid, .(penPosition, baseline), fontScale);//, x_advance / 64, y_advance / 64);
+					PreparedGlyph glyph = .(currentFont, glyphid, .(penPosition, baseline), fontScale);//, x_advance / 64, y_advance / 64);
 
 					preparedText.Glyphs.Add(glyph);
 
@@ -277,9 +277,9 @@ namespace GlitchyEngine.Renderer.Text
 				}
 
 				// Get the font that can draw the char. Use the given font if no fallback is found (will draw the "missing glyph").
-				Font charFont = Font.GetDrawingFont(char, font) ?? font;
+				Font charFont = currentFont.GetDrawingFont(char) ?? font;
 
-				if (charFont != font)
+				if (charFont != currentFont)
 				{
 					FlushShapeBuffer();
 

@@ -141,6 +141,14 @@ namespace GlitchyEngine.Renderer.Text
 				Log.EngineLogger.Assert(res.Success, scope $"Set_Pixel_Sizes failed({(int)res}): {res}");
 			}
 
+			// HarfBuzz
+			{
+				Debug.Profiler.ProfileResourceScope!("hb_ft_font_create_referenced");
+
+				_harfBuzzFont = hb_ft_font_create_referenced(_face);
+				hb_font_set_scale(_harfBuzzFont, (.)fontSize * 64, (.)fontSize * 64);
+			}
+
 			double unitsPerEm = F26Dot6ToDouble(_face.units_per_EM);
 			_geometryScaler = _fontSize / unitsPerEm;
 
@@ -154,14 +162,6 @@ namespace GlitchyEngine.Renderer.Text
 			_glyphsById.Add(nullDesc.GlyphIndex, nullDesc);
 
 			LoadGlyphs(firstChar, charCount);
-
-			// HarfBuzz
-			{
-				Debug.Profiler.ProfileResourceScope!("hb_ft_font_create_referenced");
-
-				_harfBuzzFont = hb_ft_font_create_referenced(_face);
-				hb_font_set_scale(_harfBuzzFont, (.)fontSize * 64, (.)fontSize * 64);
-			}
 
 			//TestMSDF();
 		}
@@ -185,17 +185,17 @@ namespace GlitchyEngine.Renderer.Text
 		}
 
 		/// Returns the font that can draw the char
-		static internal Font GetDrawingFont(char32 char, Font font)
+		internal Font GetDrawingFont(char32 char)
 		{
-			uint32 glyphId = FreeType.Get_Char_Index(font._face, char);
+			uint32 glyphId = FreeType.Get_Char_Index(_face, char);
 
 			if (glyphId != 0)
 			{
-				return font;
+				return this;
 			}
-			else if (font.Fallback != null)
+			else if (Fallback != null)
 			{		
-				return GetDrawingFont(char, font.Fallback);
+				return Fallback.GetDrawingFont(char);
 			}
 			else
 			{
