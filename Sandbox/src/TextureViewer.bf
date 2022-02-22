@@ -97,6 +97,9 @@ namespace Sandbox
 
 			var viewportSize = ImGui.GetContentRegionAvail();
 
+			viewportSize.x = Math.Max(viewportSize.x, 1);
+			viewportSize.y = Math.Max(viewportSize.y, 1);
+
 			if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
 			{
 				_target?.ReleaseRef();
