@@ -618,9 +618,27 @@ namespace GlitchyEngine.Renderer
 			s_circleInstanceQueue.Clear();
 		}
 
+		/// A specialized function that calculates the 2D transform matrix
+		private static Matrix Calculate2DTransform(Vector3 translation, Vector2 scale, float rotation)
+		{
+			float sin = 0.0f;
+			float cos = 1.0f;
+
+			if (rotation != 0.0f)
+			{
+				sin = Math.Sin(rotation);
+				cos = Math.Cos(rotation);
+			}
+
+			return .(cos * scale.X, -sin * scale.Y, 0, translation.X,
+					 sin * scale.X,  cos * scale.Y, 0, translation.Y,
+					      0       ,       0       , 1, translation.Z,
+					      0       ,       0       , 0, 1);
+		}
+
 		// Primitives
 
-		// Quad
+		// Colored Quad
 
 		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, ColorRGBA color)
 		{
@@ -648,32 +666,63 @@ namespace GlitchyEngine.Renderer
 			DrawQuad(transform, s_whiteTexture, color);
 		}
 
+		// Quad Subtexture
+
+		[Inline]
+		private static Vector4 CalculateSubTexcoords(Vector4 texCoords, Vector4 innerTexcoords)
+		{
+			Vector4 uv = texCoords;
+			uv.XY += innerTexcoords.XY * uv.ZW;
+			uv.ZW *= innerTexcoords.ZW;
+
+			return uv;
+		}
+
+		// Subtex only
+
+		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
+		{
+			DrawQuad(Vector3(position, 0.0f), size, rotation, texture.Texture, .White, texture.TexCoords);
+		}
+
+		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
+		{
+			DrawQuad(position, size, rotation, texture.Texture, .White, texture.TexCoords);
+		}
+		
+		public static void DrawQuad(Matrix transform, SubTexture2D texture, ColorRGBA color = .White)
+		{
+			DrawQuad(transform, texture.Texture, .White, texture.TexCoords);
+		}
+
+		// Subtex + Texcoords
+		
+		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			Vector4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
+
+			DrawQuad(Vector3(position, 0.0f), size, rotation, subtexture.Texture, .White, uv);
+		}
+
+		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			Vector4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
+
+			DrawQuad(position, size, rotation, subtexture.Texture, .White, uv);
+		}
+
+		public static void DrawQuad(Matrix transform, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			Vector4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
+
+			DrawQuad(transform, subtexture.Texture, .White, uv);
+		}
+		
+		// Textured Quad
+
 		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			DrawQuad(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
-		}
-		
-		public static void DrawQuadPivotCorner(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
-		{
-			DrawQuadPivotCorner(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
-		}
-
-		/// A specialized function that calculates the 2D transform matrix
-		private static Matrix Calculate2DTransform(Vector3 translation, Vector2 scale, float rotation)
-		{
-			float sin = 0.0f;
-			float cos = 1.0f;
-
-			if (rotation != 0.0f)
-			{
-				sin = Math.Sin(rotation);
-				cos = Math.Cos(rotation);
-			}
-
-			return .(cos * scale.X, -sin * scale.Y, 0, translation.X,
-					 sin * scale.X,  cos * scale.Y, 0, translation.Y,
-					      0       ,       0       , 1, translation.Z,
-					      0       ,       0       , 0, 1);
 		}
 
 		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
@@ -697,6 +746,13 @@ namespace GlitchyEngine.Renderer
 			{
 				DrawDeferred();
 			}
+		}
+
+		// Textured quad pivot
+
+		public static void DrawQuadPivotCorner(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		{
+			DrawQuadPivotCorner(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
 		}
 
 		public static void DrawQuadPivotCorner(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))

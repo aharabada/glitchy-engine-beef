@@ -27,8 +27,6 @@ namespace Sandbox
 		
 		OrthographicCameraController cameraController ~ delete _;
 
-		// Font fonty ~ _.ReleaseRef();
-		
 		ColorRGBA _squareColor0 = ColorRGBA.CornflowerBlue;
 		ColorRGBA _squareColor1 = {
 			ColorRGBA color = ColorRGBA.White - _squareColor0;
@@ -36,6 +34,10 @@ namespace Sandbox
 			color};
 
 		DepthStencilState _depthStencilState ~ _.ReleaseRef();
+
+		Texture2D _spriteSheet ~ _.ReleaseRef();
+		SubTexture2D _treeSprite ~ _.ReleaseRef();
+		SubTexture2D _barrelSprite ~ _.ReleaseRef();
 
 		[AllowAppend]
 		public this() : base("Example")
@@ -64,16 +66,6 @@ namespace Sandbox
 			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
 			_alphaBlendState = new BlendState(blendDesc);
 
-			/*fonty = new Font("C:\\Windows\\Fonts\\arial.ttf", 64, true, 'A', 16);
-			var japanese = new Font("C:\\Windows\\Fonts\\YuGothM.ttc", 64, true, '\0', 1);
-			var emojis = new Font("C:\\Windows\\Fonts\\seguiemj.ttf", 64, true, '😂' - 10, 1);
-			var mathstuff = new Font("C:\\Windows\\Fonts\\cambria.ttc", 64, true, 'α', 1);
-			var cascadiaCode = new Font("C:\\Windows\\Fonts\\CascadiaCode.ttf", 64, true, 'A', 1);
-			fonty.Fallback = japanese..ReleaseRefNoDelete();
-			japanese.Fallback = emojis..ReleaseRefNoDelete();
-			emojis.Fallback = mathstuff..ReleaseRefNoDelete();
-			mathstuff.Fallback = cascadiaCode..ReleaseRefNoDelete();*/
-
 			_textureViewer = new TextureViewer();
 
 			cameraController = new OrthographicCameraController(_context.SwapChain.AspectRatio);
@@ -83,9 +75,14 @@ namespace Sandbox
 					DepthEnabled = false
 				};
 			_depthStencilState = new DepthStencilState(dssDesc);
-		}
 
-		String text = new .() ~ delete _;
+
+			_spriteSheet = new Texture2D("content/Rpg/textures/spritesheet.png");
+			_spriteSheet.SamplerState = SamplerStateManager.PointClamp;
+
+			_treeSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(5, 10), Vector2(128), .(1, 2));
+			_barrelSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(9, 11), Vector2(128));
+		}
 
 		public override void Update(GameTime gameTime)
 		{
@@ -102,11 +99,12 @@ namespace Sandbox
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 
 			Renderer2D.Stats.Reset();
-
-			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
-
+			
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
+
+#if FALSE
+			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
 
 			float rotation = (float)gameTime.TotalTime.TotalSeconds;
 
@@ -139,6 +137,14 @@ namespace Sandbox
 			//var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
 			//FontRenderer.DrawText(prepared, 0, 0);
 			//prepared.ReleaseRef();
+
+			Renderer2D.EndScene();
+#endif
+
+			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
+			
+			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(1, 2), 0, _treeSprite);
+			Renderer2D.DrawQuad(Vector3(1, 0, 1), Vector2(1, 1), 0, _barrelSprite);
 
 			Renderer2D.EndScene();
 		}
