@@ -11,6 +11,7 @@ using GlitchyEngine.World;
 using GlitchyEngine.Renderer.Text;
 using System.IO;
 using msdfgen;
+using System.Collections;
 
 namespace Sandbox
 {
@@ -38,6 +39,53 @@ namespace Sandbox
 		Texture2D _spriteSheet ~ _.ReleaseRef();
 		SubTexture2D _treeSprite ~ _.ReleaseRef();
 		SubTexture2D _barrelSprite ~ _.ReleaseRef();
+
+		SubTexture2D _grassSprite ~ _.ReleaseRef();
+		SubTexture2D _dirtSprite ~ _.ReleaseRef();
+		SubTexture2D _waterSprite ~ _.ReleaseRef();
+
+		static String s_MapTiles = """
+			WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+			WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+			WWWWWWWWWDDDDDDDWWWWWWWWWWWWWWWW
+			WWWWWWDDDDDDDDDDDDDDDWWWWWWWWWWW
+			WWWWWDDDDDDDDDDDDDDDDDDDDDWWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDDDWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDDDWWWW
+			WWWWWWDDDDDDDDDDDDDDDDDDDDDDWWWW
+			WWWWWWDDDDDDDDDDDDDDDDDDDDDDWWWW
+			WWWWWWWWDDDDDDDDDDDDDDDDDDDDWWWW
+			WWWWWWWWDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWWWWWDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWWWWWDDDDDDDDDDDDDDDDDDWWWWWW
+			WWWWWWWWDDDDDDDDDDDDDDDDDDWWWWWW
+			WWWWWWDDDDDDDDDDDDDDDDDDDDWWWWWW
+			WWWWWDDDDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDDWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDDWWWWWW
+			WWWWDDDDDDDDDDDDDDDDDDDDDWWWWWWW
+			WWWWWDDDDDDDDDDDDDDDDDDDWWWWWWWW
+			WWWWWWDDDDDDDDDDDDDDDDDWWWWWWWWW
+			WWWWWWWDDDDDDDDDDDDDDDDWWWWWWWWW
+			WWWWWWWWDDDDDDDDDDDDDDWWWWWWWWWW
+			WWWWWWWWWDDDDDDDDDDDWWWWWWWWWWWW
+			WWWWWWWWWWDDDDDDDDWWWWWWWWWWWWWW
+			WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+			WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+			WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW
+			""";
+
+		Dictionary<char8, SubTexture2D> _mapMap ~ {
+			for (var value in _.Values)
+			{
+				value.ReleaseRef();
+			}
+			delete _;
+		};
 
 		[AllowAppend]
 		public this() : base("Example")
@@ -82,6 +130,15 @@ namespace Sandbox
 
 			_treeSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(5, 10), Vector2(128), .(1, 2));
 			_barrelSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(9, 11), Vector2(128));
+
+			_grassSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(1, 1), Vector2(128));
+			_dirtSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(6, 1), Vector2(128));
+			_waterSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(11, 1), Vector2(128));
+
+			_mapMap = new Dictionary<char8, SubTexture2D>();
+			_mapMap['W'] = _waterSprite..AddRef();
+			_mapMap['D'] = _dirtSprite..AddRef();
+			_mapMap['G'] = _grassSprite..AddRef();
 		}
 
 		public override void Update(GameTime gameTime)
@@ -144,7 +201,25 @@ namespace Sandbox
 			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
 			
 			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(1, 2), 0, _treeSprite);
-			Renderer2D.DrawQuad(Vector3(1, 0, 1), Vector2(1, 1), 0, _barrelSprite);
+			Renderer2D.DrawQuad(Vector3(1, 0, 1), Vector2(1, 1), 0, _grassSprite);
+
+			Vector2 position = Vector2.Zero;
+
+			for(char8 c in s_MapTiles.RawChars)
+			{
+				if (c == '\n')
+				{
+					position.X = 0;
+					position.Y += 1.0f;
+					continue;
+				}
+
+				SubTexture2D tile = _mapMap[c];
+
+				Renderer2D.DrawQuad(Vector3(position, -5), Vector2.One, 0, tile);
+
+				position.X += 1.0f;
+			}
 
 			Renderer2D.EndScene();
 		}
