@@ -2,4 +2,4 @@ FileVersion = 1
 Projects = {Sandbox = {Path = "Sandbox"}, GlitchyEngine = {Path = "GlitchyEngine"}, GlitchLog = {Path = "GlitchLog"}, DirectX = {Path = "GlitchyEngine/vendor/directx/DirectX"}, DirectXTK = {Path = "GlitchyEngine/vendor/DirectXTK/DirectXTK-beef"}, LodePng = {Path = "vendor/lodepng-beef/lodepng-beef"}, FreeType = {Path = "GlitchyEngine/vendor/freetype"}, cgltf-beef = {Path = "GlitchyEngine/vendor/gltf/cgltf-beef"}, GlitchyEditor = {Path = "GlitchyEditor"}, msdfgen-beef = {Path = "GlitchyEngine/vendor/msdfgen/msdfgen-beef"}, ImGui = {Path = "GlitchyEngine/vendor/imgui/ImGui"}, ImGuiImplDX11 = {Path = "GlitchyEngine/vendor/imgui/ImGuiImplDX11"}, ImGuiImplWin32 = {Path = "GlitchyEngine/vendor/imgui/ImGuiImplWin32"}, ImGuizmo = {Path = "GlitchyEngine/vendor/imgui/ImGuizmo"}}
 
 [Workspace]
-StartupProject = "Sandbox"
+StartupProject = "GlitchyEditor"

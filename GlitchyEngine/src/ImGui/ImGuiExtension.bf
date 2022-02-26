@@ -23,5 +23,17 @@ namespace ImGui
 
 		/// Releases references that accumulated calls like ImGui::Image
 		protected internal static extern void CleanupFrame();
+
+		extension Vec2
+		{
+			public static explicit operator Vector2(Vec2 v) => .(v.x, v.y);
+			public static explicit operator Vec2(Vector2 v) => .(v.X, v.Y);
+		}
+
+		extension Vec4
+		{
+			public static explicit operator Vector4(Vec4 v) => .(v.x, v.y, v.z, v.w);
+			public static explicit operator Vec4(Vector4 v) => .(v.X, v.Y, v.Z, v.W);
+		}
 	}
 }

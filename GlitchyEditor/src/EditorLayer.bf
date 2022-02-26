@@ -16,7 +16,6 @@ namespace GlitchyEditor
 		RasterizerState _rasterizerStateClockWise ~ _?.ReleaseRef();
 
 		GraphicsContext _context ~ _?.ReleaseRef();
-		DepthStencilTarget _swapchainDepthBuffer ~ _?.ReleaseRef();
 		
 		BlendState _alphaBlendState ~ _?.ReleaseRef();
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
@@ -27,7 +26,7 @@ namespace GlitchyEditor
 
 		PerspectiveCameraController _cameraController ~ delete _;
 		
-		RenderTarget2D _renderTarget2D ~ _?.ReleaseRef();
+		RenderTarget2D _viewportTarget ~ _?.ReleaseRef();
 
 		public this() : base("Example")
 		{
@@ -42,8 +41,6 @@ namespace GlitchyEditor
 		{
 			_context = Application.Get().Window.Context..AddRef();
 			
-			_swapchainDepthBuffer = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
-			
 			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(rsDesc);
 
@@ -55,15 +52,8 @@ namespace GlitchyEditor
 			_alphaBlendState = new BlendState(blendDesc);
 			_opaqueBlendState = new BlendState(.Default);
 
-			_renderTarget2D = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
-
-			SamplerStateDescription desc = .();
-
-			SamplerState sampler = new SamplerState(desc);
-
-			_renderTarget2D.SamplerState = sampler;
-
-			sampler.ReleaseRef();
+			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
+			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
 		}
 
 		private void InitEcs()
@@ -83,8 +73,7 @@ namespace GlitchyEditor
 			_editor = new Editor(_world);
 			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
 
-			_cameraController = new .(Application.Get().Window.Context.SwapChain.BackbufferViewport.Width /
-									Application.Get().Window.Context.SwapChain.BackbufferViewport.Height);
+			_cameraController = new .(_context.SwapChain.AspectRatio);
 			_cameraController.CameraPosition = .(0, 0, -5);
 			_cameraController.TranslationSpeed = 10;
 
@@ -100,12 +89,12 @@ namespace GlitchyEditor
 
 			TransformSystem.Update(_world);
 
-			RenderCommand.Clear(_renderTarget2D, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
+			RenderCommand.Clear(_viewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
-			_context.SetRenderTarget(_renderTarget2D);
-			_context.BindRenderTargets();
+			RenderCommand.SetRenderTarget(_viewportTarget);
+			RenderCommand.BindRenderTargets();
 
-			RenderCommand.SetViewport(Viewport(0, 0, _renderTarget2D.Width, _renderTarget2D.Height));
+			RenderCommand.SetViewport(Viewport(0, 0, _viewportTarget.Width, _viewportTarget.Height));
 
 			RenderCommand.SetBlendState(_opaqueBlendState);
 
@@ -115,12 +104,10 @@ namespace GlitchyEditor
 			
 			Renderer.EndScene();
 
-			RenderCommand.Clear(null, .(0.2f, 0.2f, 0.2f));
-			RenderCommand.Clear(_swapchainDepthBuffer, .Depth, 1.0f, 0);
+			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
-			_context.SetRenderTarget(null);
-			_context.SetDepthStencilTarget(_swapchainDepthBuffer);
-			_context.BindRenderTargets();
+			RenderCommand.SetRenderTarget(null);
+			RenderCommand.BindRenderTargets();
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
 		}
@@ -144,7 +131,7 @@ namespace GlitchyEditor
 
 			DrawMainMenuBar();
 
-			_editor.SceneViewportWindow.RenderTarget = _renderTarget2D;
+			_editor.SceneViewportWindow.RenderTarget = _viewportTarget;
 
 			_editor.Update();
 
@@ -186,9 +173,6 @@ namespace GlitchyEditor
 
 		private bool OnWindowResize(WindowResizeEvent e)
 		{
-			_swapchainDepthBuffer.ReleaseRef();
-			_swapchainDepthBuffer = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
-
 			return false;
 		}
 
@@ -200,7 +184,7 @@ namespace GlitchyEditor
 			if(sizeX == 0 || sizeY == 0)
 				return;
 
-			_renderTarget2D.Resize(sizeX, sizeY);
+			_viewportTarget.Resize(sizeX, sizeY);
 
 			_cameraController.AspectRatio = (float)sizeX / (float)sizeY;
 		}

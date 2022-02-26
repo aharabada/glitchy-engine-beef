@@ -83,45 +83,41 @@ namespace GlitchyEditor.EditWindows
 				ImGui.Image(_renderTarget, viewportSize);
 			}
 
+			ImGuizmo.SetDrawlist();
+			
+			var topLeft = ImGui.GetWindowPos();
+			var cntMin = ImGui.GetWindowContentRegionMin();
+
+			topLeft.x += cntMin.x;
+			topLeft.y += cntMin.y;
+			ImGuizmo.SetRect(topLeft.x, topLeft.y, viewportSize.x, viewportSize.y);
+
+			var view = _camera.View;
+			var projection = _camera.Projection;
+
+			Matrix mat = .Identity;
+			ImGuizmo.DrawGrid((.)&view, (.)&projection, (.)&mat, 10);
+
 			if(_editor.SelectedEntities.Count > 0)
 			{
-				ImGuizmo.SetDrawlist();
-
-				var entity = _editor.SelectedEntities.Back;
+				var entity = _editor.SelectedEntities.Front;
 
 				var transformCmp = _editor.World.GetComponent<TransformComponent>(entity);
 
 				var transform = transformCmp.LocalTransform;
 
-				var view = _camera.View;
-				var projection = _camera.Projection;
+				ImGuizmo.SetRect(topLeft.x, topLeft.y, viewportSize.x, viewportSize.y);
 
-				var v = ImGui.GetWindowPos();
-				var cntMin = ImGui.GetWindowContentRegionMin();
-
-				v.x += cntMin.x;
-				v.y += cntMin.y;
-				
-				ImGuizmo.SetRect(v.x, v.y, viewportSize.x, viewportSize.y);
-
-				Color c = .(0,0,0,255);
-				
-				//ImGuizmo.DrawCubes((.)&view, (.)&projection, (.)&transform, 1);
 				ImGuizmo.Manipulate((.)&view, (.)&projection, .TRANSLATE, .LOCAL, (.)&transform);
 
-				Matrix mat = .Identity;
-
-				ImGuizmo.DrawGrid((.)&view, (.)&projection, (.)&mat, 10);
-
 				transformCmp.LocalTransform = transform;
-				//ImGuizmo.ViewManipulate((.)&view, , .TRANSLATE, .LOCAL, (.)&transform);
 			}
 			
 			ImGui.End();
 
 			if(oldViewportSize != viewportSize)
 			{
-				ViewportSizeChangedEvent.Invoke(this, *(Vector2*)&oldViewportSize);
+				ViewportSizeChangedEvent.Invoke(this, (Vector2)viewportSize);
 				viewPortChanged = true;
 				oldViewportSize = viewportSize;
 			}
