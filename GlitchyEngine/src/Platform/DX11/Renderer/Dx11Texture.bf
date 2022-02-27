@@ -20,13 +20,6 @@ namespace GlitchyEngine.Renderer
 	{
 		protected internal ID3D11ShaderResourceView* nativeResourceView ~ _?.Release();
 
-		protected override void ImplBind(uint32 slot)
-		{
-			// TODO: textures don't bind themselves!
-			NativeContext.VertexShader.SetShaderResources(slot, 1, &nativeResourceView);
-			NativeContext.PixelShader.SetShaderResources(slot, 1, &nativeResourceView);
-		}
-
 		/** \brief Loads the texture from the specified path.
 		 * @param path The path of the texture to load.
 		 * @param texture The reference to the pointer that will hold the texture.

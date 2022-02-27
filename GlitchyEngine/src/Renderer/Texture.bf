@@ -29,16 +29,6 @@ namespace GlitchyEngine.Renderer
 		public abstract uint32 Depth {get;}
 		public abstract uint32 ArraySize {get;}
 		public abstract uint32 MipLevels {get;}
-
-		public void Bind(uint32 slot = 0)
-		{
-			ImplBind(slot);
-
-			if(_samplerState != null)
-				_samplerState.Bind(slot);
-		}
-
-		protected extern void ImplBind(uint32 slot);
 	}
 
 	public struct Texture2DDesc
