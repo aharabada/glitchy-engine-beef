@@ -5,32 +5,19 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEditor.EditWindows
 {
-	class ComponentEditWindow
+	class ComponentEditWindow : EditorWindow
 	{
 		public const String s_WindowTitle = "Components";
 
-		private Editor _editor;
-		
-		private bool _open = true;
-
 		public Editor Editor => _editor;
 		
-		public bool Open
-		{
-			get => _open;
-			set => _open = value;
-		}
-
 		public this(Editor editor)
 		{
 			_editor = editor;
 		}
 
-		public void Show()
+		protected override void InternalShow()
 		{
-			if(!_open)
-				return;
-
 			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
 			{
 				ImGui.End();

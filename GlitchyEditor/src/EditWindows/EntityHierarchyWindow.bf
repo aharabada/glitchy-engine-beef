@@ -10,35 +10,22 @@ namespace GlitchyEditor.EditWindows
 	using internal GlitchyEditor;
 
 	/// A window for viewing and editing the scene hierarchy
-	class EntityHierarchyWindow
+	class EntityHierarchyWindow : EditorWindow
 	{
 		public const String s_WindowTitle = "Entity Hierarchy";
 
-		private Editor _editor;
-		
 		/// Buffer for the entity search string.
 		private char8[64] _entitySearchChars;
 
-		private bool _open = true;
-
 		public Editor Editor => _editor;
 		
-		public bool Open
-		{
-			get => _open;
-			set => _open = value;
-		}
-
 		public this(Editor editor)
 		{
 			_editor = editor;
 		}
 		
-		public void Show()
+		protected override void InternalShow()
 		{
-			if(!_open)
-				return;
-
 			if(!ImGui.Begin(s_WindowTitle, &_open, .MenuBar))
 			{
 				ImGui.End();
