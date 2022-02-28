@@ -1,12 +1,13 @@
 #if GE_GRAPHICS_DX11
 
 #if !BF_PLATFORM_WINDOWS
-#error DirectX 11 (GE_GRAPHICS_DX11) can on be used on Windows.
+#error DirectX 11 (GE_GRAPHICS_DX11) can only be used on Windows.
 #endif
 
 using DirectX.Common;
 using DirectX.D3D11;
 using DirectX.D3D11.SDKLayers;
+using System.Diagnostics;
 
 namespace GlitchyEngine.Platform.DX11
 {
@@ -83,7 +84,21 @@ namespace GlitchyEngine.Platform.DX11
 			NativeDevice.Release();
 			NativeContext.Release();
 #if DEBUG
-			DebugDevice.ReportLiveDeviceObjects(.Detail);
+			Debug.WriteLine("""
+
+				-------------------------
+				 Live DX Objects Report:
+
+				""");
+
+			DebugDevice.ReportLiveDeviceObjects(.Detail | .IgnoreInternal);
+
+			Debug.WriteLine("""
+
+				-------------------------
+
+				""");
+
 			DebugDevice.Release();
 #endif
 		}
