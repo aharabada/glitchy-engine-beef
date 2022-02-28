@@ -20,7 +20,7 @@ namespace GlitchyEditor
 		BlendState _alphaBlendState ~ _?.ReleaseRef();
 		BlendState _opaqueBlendState ~ _?.ReleaseRef();
 		
-		EcsWorld _world = new EcsWorld() ~ delete _;
+		Scene _scene = new Scene() ~ delete _;
 
 		Editor _editor ~ delete _;
 
@@ -33,7 +33,7 @@ namespace GlitchyEditor
 			Application.Get().Window.IsVSync = false;
 
 			InitGraphics();
-			InitEcs();
+			//InitEcs();
 			InitEditor();
 		}
 
@@ -56,7 +56,7 @@ namespace GlitchyEditor
 			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
 		}
 
-		private void InitEcs()
+		/*private void InitEcs()
 		{
 			_world.Register<DebugNameComponent>();
 			_world.Register<TransformComponent>();
@@ -66,18 +66,18 @@ namespace GlitchyEditor
 			_world.Register<SkinnedMeshRendererComponent>();
 			_world.Register<CameraComponent>();
 			_world.Register<AnimationComponent>();
-		}
+		}*/
 
 		private void InitEditor()
 		{
-			_editor = new Editor(_world);
+			_editor = new Editor(_scene);
 			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
 
 			_cameraController = new .(_context.SwapChain.AspectRatio);
 			_cameraController.CameraPosition = .(0, 0, -5);
 			_cameraController.TranslationSpeed = 10;
 
-			_editor.[Friend]CreateEntityWithTransform();
+			//_editor.[Friend]CreateEntityWithTransform();
 
 			_editor.SceneViewportWindow._camera = _cameraController.Camera;
 		}
@@ -87,7 +87,7 @@ namespace GlitchyEditor
 			if(_editor.SceneViewportWindow.HasFocus && Input.IsMouseButtonPressed(.RightButton))
 				_cameraController.Update(gameTime);
 
-			TransformSystem.Update(_world);
+			//TransformSystem.Update(_world);
 
 			RenderCommand.Clear(_viewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
@@ -98,11 +98,18 @@ namespace GlitchyEditor
 
 			RenderCommand.SetBlendState(_opaqueBlendState);
 
-			Renderer.BeginScene(_cameraController.Camera);
+			//Renderer.BeginScene(_cameraController.Camera);
 
-			DebugRenderer.Render(_world);
+			//DebugRenderer.Render(_scene.[Friend]_ecsWorld);
 			
-			Renderer.EndScene();
+			//Renderer.EndScene();
+
+			Renderer2D.BeginScene(_cameraController.Camera);
+			
+			_scene.Update(gameTime);
+			
+			Renderer2D.EndScene();
+
 
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 

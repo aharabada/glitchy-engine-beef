@@ -249,8 +249,8 @@ namespace Sandbox
 				}
 			}
 
-			Entity evenCrazierParent;
-			Entity crazyParent;
+			EcsEntity evenCrazierParent;
+			EcsEntity crazyParent;
 
 			Material testMaterial1 ~ _?.ReleaseRef();
 			Material testMaterial2 ~ _?.ReleaseRef();

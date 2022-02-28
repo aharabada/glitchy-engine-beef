@@ -111,7 +111,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private void ImGuiPrintEntityTree(TreeNode<Entity> tree)
+		private void ImGuiPrintEntityTree(TreeNode<EcsEntity> tree)
 		{
 			String name = null;
 
@@ -140,7 +140,7 @@ namespace GlitchyEditor.EditWindows
 
 			if(ImGui.BeginDragDropSource())
 			{
-				ImGui.SetDragDropPayload("DND_Entity", &tree.Value, sizeof(Entity));
+				ImGui.SetDragDropPayload("DND_Entity", &tree.Value, sizeof(EcsEntity));
 
 				ImGui.Text(name);
 
@@ -153,13 +153,13 @@ namespace GlitchyEditor.EditWindows
 
 				if(payload != null)
 				{
-					Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(Entity));
+					Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(EcsEntity));
 
-					Entity movedEntity = *(Entity*)payload.Data;
+					EcsEntity movedEntity = *(EcsEntity*)payload.Data;
 
 					bool dropLegal = true;
 
-					Entity walker = tree.Value;
+					EcsEntity walker = tree.Value;
 
 					// make sure the dropped entity is not a parent of the entity we dropped it on.
 					while(true)
@@ -230,9 +230,9 @@ namespace GlitchyEditor.EditWindows
 			{
 				// Show entity hierarchy as tree
 				
-				TreeNode<Entity> root = scope .(.InvalidEntity);
+				TreeNode<EcsEntity> root = scope .(.InvalidEntity);
 
-				TreeNode<Entity> AddEntity(Entity entity)
+				TreeNode<EcsEntity> AddEntity(EcsEntity entity)
 				{
 					var parent = _editor.World.GetComponent<ParentComponent>(entity);
 
@@ -264,9 +264,9 @@ namespace GlitchyEditor.EditWindows
 
 						if(payload != null)
 						{
-							Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(Entity));
+							Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(EcsEntity));
 
-							Entity movedEntity = *(Entity*)payload.Data;
+							EcsEntity movedEntity = *(EcsEntity*)payload.Data;
 
 							_editor.World.RemoveComponent<ParentComponent>(movedEntity);
 

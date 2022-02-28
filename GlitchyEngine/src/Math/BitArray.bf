@@ -18,6 +18,11 @@ namespace GlitchyEngine.Math
 
 		public this(int initialCapacity = sizeof(uint))
 		{
+			var initialCapacity;
+
+			if (initialCapacity < sizeof(uint))
+				initialCapacity = sizeof(uint);
+
 			EnsureCapacity(initialCapacity);
 		}
 

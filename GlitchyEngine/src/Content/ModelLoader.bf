@@ -33,9 +33,9 @@ namespace GlitchyEngine.Content
 			CGLTF.Free(data);
 		}
 
-		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, Entity? parentEntity, EcsWorld world, Effect validationEffect, Material material, List<AnimationClip> clips)
+		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity? parentEntity, EcsWorld world, Effect validationEffect, Material material, List<AnimationClip> clips)
 		{
-			Entity entity = world.NewEntity();
+			EcsEntity entity = world.NewEntity();
 
 #if DEBUG
 			var nameComponent = world.AssignComponent<DebugNameComponent>(entity);
@@ -122,7 +122,7 @@ namespace GlitchyEngine.Content
 				{
 					for(var primitive in node.Mesh.Primitives)
 					{
-						Entity meshEntity = world.NewEntity();
+						EcsEntity meshEntity = world.NewEntity();
 
 						var meshParent = world.AssignComponent<ParentComponent>(meshEntity);
 						meshParent.Entity = entity;

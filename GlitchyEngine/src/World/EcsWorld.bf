@@ -10,7 +10,7 @@ namespace GlitchyEngine.World
 	{
 		const int MaxEntities = 1024;
 		
-		internal typealias BitmaskEntry = (Entity ID, BitArray ComponentMask);
+		internal typealias BitmaskEntry = (EcsEntity ID, BitArray ComponentMask);
 		internal List<BitmaskEntry> _entities = new .();
 
 		List<uint32> _freeIndices = new List<uint32>() ~ delete _;
@@ -40,11 +40,11 @@ namespace GlitchyEngine.World
 
 			delete _componentPools;
 		}
-		
+
 		/**
 		 * Registers a new Component.
 		 */
-		public void Register<T>() where T: struct
+		public void Register<T>() where T: struct, new
 		{
 			uint32 id = (uint32)_componentPools.Count;
 			ComponentPool<T> componentPool = new ComponentPool<T>(MaxEntities);
@@ -55,7 +55,7 @@ namespace GlitchyEngine.World
 		/**
 		 * Registers a new Component.
 		 */
-		public void Register<T>() where T: struct, IDisposableComponent
+		public void Register<T>() where T: struct, new, IDisposableComponent
 		{
 			uint32 id = (uint32)_componentPools.Count;
 			ComponentPool<T> componentPool = new ComponentPool<T>(MaxEntities);
@@ -88,23 +88,23 @@ namespace GlitchyEngine.World
 		/**
 		 * Creates a new Entity and returns its ID.
 		 */
-		public Entity NewEntity()
+		public EcsEntity NewEntity()
 		{
-			Entity entity;
+			EcsEntity entity;
 
 			// Reuse freed entity slot
 			if(_freeIndices.Count > 0)
 			{
 				uint32 index = _freeIndices.PopBack();
 
-				entity = Entity.CreateEntityID(index, _entities[index].ID.Version);
+				entity = EcsEntity.CreateEntityID(index, _entities[index].ID.Version);
 
 				_entities[index].ID = entity;
 			}
 			// Create new entity slot
 			else
 			{
-				entity = Entity.CreateEntityID((.)_entities.Count, 0);
+				entity = EcsEntity.CreateEntityID((.)_entities.Count, 0);
 				_entities.Add((entity, new BitArray(_componentPools.Count)));
 			}
 
@@ -114,7 +114,7 @@ namespace GlitchyEngine.World
 		/**
 		 * Removes the specified Entity from the World.
 		 */
-		public void RemoveEntity(Entity entity)
+		public void RemoveEntity(EcsEntity entity)
 		{
 			var listEntity = ref _entities[entity.Index];
 			if(entity != listEntity.ID)
@@ -123,7 +123,7 @@ namespace GlitchyEngine.World
 			DisposeComponents(listEntity);
 
 			// Invalidate entry and increment version
-			listEntity.ID = Entity.CreateEntityID(Entity.InvalidEntity.Index, entity.Version + 1);
+			listEntity.ID = EcsEntity.CreateEntityID(EcsEntity.InvalidEntity.Index, entity.Version + 1);
 
 			_entities[entity.Index].ComponentMask.Clear();
 			_freeIndices.Add(entity.Index);
@@ -152,7 +152,7 @@ namespace GlitchyEngine.World
 		/**
 		 * Assigns a component of type T to the specified entity and returns it.
 		 */
-		public T* AssignComponent<T>(Entity entity) where T : struct, new
+		public T* AssignComponent<T>(EcsEntity entity, T value = T()) where T : struct, new
 		{
 			if(entity.Index > _entities.Count)
 				return null;
@@ -165,8 +165,12 @@ namespace GlitchyEngine.World
 			ComponentPoolEntry entry;
 			if(!_componentPools.TryGetValue(typeof(T), out entry))
 			{
-				Log.EngineLogger.AssertDebug(false, scope $"Tried to assign unregistered component type {typeof(T)}");
-				return null;
+				Register<T>();
+
+				entry = _componentPools[typeof(T)];
+
+				//Log.EngineLogger.AssertDebug(false, scope $"Tried to assign unregistered component type {typeof(T)}");
+				//return null;
 			}
 			
 			// TODO: is it a problem to assign a component again?
@@ -177,7 +181,7 @@ namespace GlitchyEngine.World
 
 			T* component = (T*)entry.Pool.Get(entity.Index);
 
-			*component = T();
+			*component = value;
 
 			return component;
 		}
@@ -185,7 +189,7 @@ namespace GlitchyEngine.World
 		/**
 		 * Removes a component of type T from the specified entity.
 		 */
-		public void RemoveComponent<T>(Entity entity) where T : struct
+		public void RemoveComponent<T>(EcsEntity entity) where T : struct, new
 		{
 			if(entity.Index > _entities.Count)
 				return;
@@ -205,7 +209,7 @@ namespace GlitchyEngine.World
 			listEntity.ComponentMask[entry.Id] = false;
 		}
 		
-		public void RemoveComponent<T>(Entity entity) where T : struct, IDisposableComponent
+		public void RemoveComponent<T>(EcsEntity entity) where T : struct, new, IDisposableComponent
 		{
 			if(entity.Index > _entities.Count)
 				return;
@@ -228,7 +232,21 @@ namespace GlitchyEngine.World
 			DisposeComponent<T>(entry.Pool.Get(entity.Index));
 		}
 
-		public T* GetComponent<T>(Entity entity) where T : struct
+		/// Returns whether or not the given entity has the specified component.
+		public bool HasComponent<T>(EcsEntity entity) where T : struct, new
+		{
+			var listEntity = ref _entities[entity.Index];
+			if(entity != listEntity.ID)
+				return false;
+			
+			ComponentPoolEntry entry;
+			if(!_componentPools.TryGetValue(typeof(T), out entry))
+				return false;
+
+			return listEntity.ComponentMask[entry.Id];
+		}
+
+		public T* GetComponent<T>(EcsEntity entity) where T : struct, new
 		{
 			var listEntity = ref _entities[entity.Index];
 			if(entity != listEntity.ID)
@@ -244,7 +262,7 @@ namespace GlitchyEngine.World
 
 			return (.)entry.Pool.Get(entity.Index);
 		}
-		
+
 		public WorldEnumerator Enumerate(params Type[] componentTypes)
 		{
 			return WorldEnumerator(this, componentTypes);
@@ -279,7 +297,7 @@ namespace GlitchyEngine.World
 
 			world.Register<TransformComponent>();
 
-			Entity entity = world.NewEntity();
+			EcsEntity entity = world.NewEntity();
 
 			TransformComponent* myComp = world.AssignComponent<TransformComponent>(entity);
 			myComp.LocalTransform = Matrix.Identity;
@@ -289,7 +307,7 @@ namespace GlitchyEngine.World
 
 			world.RemoveComponent<TransformComponent>(entity);
 
-			Entity entity2 = world.NewEntity();
+			EcsEntity entity2 = world.NewEntity();
 			world.AssignComponent<TransformComponent>(entity2);
 
 			world.RemoveEntity(entity);
@@ -330,7 +348,7 @@ namespace GlitchyEngine.World
 			// Test dispose on component removal
 			{
 				// Create entity with disposable component.
-				Entity entity = world.NewEntity();
+				EcsEntity entity = world.NewEntity();
 				var component = world.AssignComponent<TestDisposingComponent>(entity);
 				component.IsDisposed = false;
 	
@@ -342,7 +360,7 @@ namespace GlitchyEngine.World
 			// Test dispose on entity removal
 			{
 				// Create entity with disposable component.
-				Entity entity = world.NewEntity();
+				EcsEntity entity = world.NewEntity();
 				var component = world.AssignComponent<TestDisposingComponent>(entity);
 				component.IsDisposed = false;
 	

@@ -79,7 +79,7 @@ namespace GlitchyEngine.Renderer
 			LineGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
 		}
 
-		public static void BeginScene(EcsWorld world, Entity cameraEntity)
+		public static void BeginScene(EcsWorld world, EcsEntity cameraEntity)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 

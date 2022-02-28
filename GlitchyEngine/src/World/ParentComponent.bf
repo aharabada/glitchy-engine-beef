@@ -5,6 +5,6 @@ namespace GlitchyEngine.World
 	 */
 	public struct ParentComponent
 	{
-		public Entity Entity;
+		public EcsEntity Entity;
 	}
 }

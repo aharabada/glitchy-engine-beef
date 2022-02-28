@@ -16,7 +16,7 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		private static void UpdateEntity(Entity entity, TransformComponent* transform, EcsWorld world)
+		private static void UpdateEntity(EcsEntity entity, TransformComponent* transform, EcsWorld world)
 		{
 			// Todo: test scaling with deep hierarchies!
 

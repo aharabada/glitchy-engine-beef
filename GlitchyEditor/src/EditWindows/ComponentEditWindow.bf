@@ -26,7 +26,7 @@ namespace GlitchyEditor.EditWindows
 
 			if(_editor.SelectedEntities.Count == 1)
 			{
-				Entity entity = _editor.SelectedEntities.Front;
+				EcsEntity entity = _editor.SelectedEntities.Front;
 
 				ShowComponents(entity);
 			}
@@ -34,7 +34,7 @@ namespace GlitchyEditor.EditWindows
 			ImGui.End();
 		}
 
-		private void ShowComponents(Entity entity)
+		private void ShowComponents(EcsEntity entity)
 		{
 			NameComponentEditor.Show(_editor.World, entity);
 			TransformComponentEditor.Show(_editor.World, entity);		
@@ -43,7 +43,7 @@ namespace GlitchyEditor.EditWindows
 
 	static class NameComponentEditor
 	{
-		public static void Show(EcsWorld world, Entity entity)
+		public static void Show(EcsWorld world, EcsEntity entity)
 		{
 			char8[128] nameBuffer = default;
 
@@ -78,7 +78,7 @@ namespace GlitchyEditor.EditWindows
 
 	static class TransformComponentEditor
 	{
-		public static void Show(EcsWorld world, Entity entity)
+		public static void Show(EcsWorld world, EcsEntity entity)
 		{
 			TransformComponent* component = world.GetComponent<TransformComponent>(entity);
 

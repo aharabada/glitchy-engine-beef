@@ -9,26 +9,28 @@ namespace GlitchyEditor
 {
 	class Editor
 	{
-		private EcsWorld _world;
+		private EcsWorld _ecsWorld;
+		private Scene _scene;
 		
 		private EntityHierarchyWindow _entityHierarchyWindow = new .(this) ~ delete _;
 		private ComponentEditWindow _componentEditWindow = new .(this) ~ delete _;
 		private SceneViewportWindow _sceneViewportWindow = new .(this) ~ delete _;
 
-		private List<Entity> _selectedEntities = new .() ~ delete _;
+		private List<EcsEntity> _selectedEntities = new .() ~ delete _;
 
-		public EcsWorld World => _world;
+		public EcsWorld World => _ecsWorld;
 
-		public List<Entity> SelectedEntities => _selectedEntities;
+		public List<EcsEntity> SelectedEntities => _selectedEntities;
 
 		public EntityHierarchyWindow EntityHierarchyWindow => _entityHierarchyWindow;
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
 		public SceneViewportWindow SceneViewportWindow => _sceneViewportWindow;
 
 		/// Creates a new editor for the given world
-		public this(EcsWorld world)
+		public this(Scene scene)
 		{
-			_world = world;
+			_scene = scene;
+			_ecsWorld = _scene.[Friend]_ecsWorld;
 		}
 
 		public void Update()
@@ -39,14 +41,14 @@ namespace GlitchyEditor
 		}
 
 		/// Creates a new entity with a transform component.
-		internal Entity CreateEntityWithTransform()
+		internal EcsEntity CreateEntityWithTransform()
 		{
-			var entity = _world.NewEntity();
+			var entity = _ecsWorld.NewEntity();
 
-			var transformComponent = ref *_world.AssignComponent<TransformComponent>(entity);
+			var transformComponent = ref *_ecsWorld.AssignComponent<TransformComponent>(entity);
 			transformComponent = TransformComponent();
 
-			var nameComponent = ref *_world.AssignComponent<DebugNameComponent>(entity);
+			var nameComponent = ref *_ecsWorld.AssignComponent<DebugNameComponent>(entity);
 			nameComponent.SetName("Entity");
 
 			return entity;
@@ -56,11 +58,11 @@ namespace GlitchyEditor
 		/// Returns whether or not all selected entities have the same parent.
 		internal bool AllSelectionsOnSameLevel()
 		{
-			Entity? parent = .InvalidEntity;
+			EcsEntity? parent = .InvalidEntity;
 
 			for(var selectedEntity in _selectedEntities)
 			{
-				var parentComponent = _world.GetComponent<ParentComponent>(selectedEntity);
+				var parentComponent = _ecsWorld.GetComponent<ParentComponent>(selectedEntity);
 
 				if(parent == .InvalidEntity)
 				{
@@ -76,9 +78,9 @@ namespace GlitchyEditor
 		}
 
 		/// Finds all children of the given entity and stores their IDs in the given list.
-		internal void FindChildren(Entity entity, List<Entity> entities)
+		internal void FindChildren(EcsEntity entity, List<EcsEntity> entities)
 		{
-			for(var (child, childParent) in _world.Enumerate<ParentComponent>())
+			for(var (child, childParent) in _ecsWorld.Enumerate<ParentComponent>())
 			{
 				if(childParent.Entity == entity)
 				{
@@ -93,7 +95,7 @@ namespace GlitchyEditor
 		/// Deletes all selected entities and their children.
 		internal void DeleteSelectedEntities()
 		{
-			List<Entity> entities = scope .();
+			List<EcsEntity> entities = scope .();
 
 			for(var entity in _selectedEntities)
 			{
@@ -104,7 +106,7 @@ namespace GlitchyEditor
 
 			for(var entity in entities)
 			{
-				_world.RemoveEntity(entity);
+				_ecsWorld.RemoveEntity(entity);
 			}
 
 			_selectedEntities.Clear();

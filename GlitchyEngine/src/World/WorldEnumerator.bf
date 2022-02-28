@@ -6,7 +6,7 @@ using internal GlitchyEngine.World;
 
 namespace GlitchyEngine.World
 {
-	public struct WorldEnumerator : IEnumerator<Entity>, IDisposable
+	public struct WorldEnumerator : IEnumerator<EcsEntity>, IDisposable
 	{
 		internal EcsWorld _world;
 		internal BitArray _bitMask;
@@ -37,14 +37,14 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public Result<Entity> GetNext() mut
+		public Result<EcsEntity> GetNext() mut
 		{
 			while(_currentEntry < _endEntry)
 			{
 				EcsWorld.BitmaskEntry* entry = _currentEntry++;
 
 				// Skip deleted entities
-				if(entry.ID.Index == Entity.InvalidEntity.Index)
+				if(entry.ID.Index == EcsEntity.InvalidEntity.Index)
 					continue;
 
 				// Check whether or not mask matches
@@ -61,7 +61,7 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	public struct WorldEnumerator<TComponent> : WorldEnumerator, IEnumerator<(Entity Entity, TComponent* Component)> where TComponent : struct
+	public struct WorldEnumerator<TComponent> : WorldEnumerator, IEnumerator<(EcsEntity Entity, TComponent* Component)> where TComponent : struct
 	{
 		internal EcsWorld.ComponentPoolEntry* _componentPool;
 
@@ -70,9 +70,9 @@ namespace GlitchyEngine.World
 			_componentPool = &world.GetComponentPool<TComponent>();
 		}
 
-		public new Result<(Entity Entity, TComponent* Component)> GetNext() mut
+		public new Result<(EcsEntity Entity, TComponent* Component)> GetNext() mut
 		{
-			Result<Entity> entity = base.GetNext();
+			Result<EcsEntity> entity = base.GetNext();
 
 			if(entity case .Err)
 				return .Err;
@@ -84,7 +84,7 @@ namespace GlitchyEngine.World
 	}
 
 	public struct WorldEnumerator<TComponent0, TComponent1> : WorldEnumerator,
-		IEnumerator<(Entity Entity, TComponent0* Component0, TComponent1* Component1)>
+		IEnumerator<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1)>
 		where TComponent0 : struct where TComponent1 : struct
 	{
 		internal EcsWorld.ComponentPoolEntry* _componentPool0;
@@ -96,9 +96,9 @@ namespace GlitchyEngine.World
 			_componentPool1 = &world.GetComponentPool<TComponent1>();
 		}
 
-		public new Result<(Entity Entity, TComponent0* Component0, TComponent1* Component1)> GetNext() mut
+		public new Result<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1)> GetNext() mut
 		{
-			Result<Entity> entity = base.GetNext();
+			Result<EcsEntity> entity = base.GetNext();
 
 			if(entity case .Err)
 				return .Err;
@@ -111,7 +111,7 @@ namespace GlitchyEngine.World
 	}
 
 	public struct WorldEnumerator<TComponent0, TComponent1, TComponent2> : WorldEnumerator,
-		IEnumerator<(Entity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2)>
+		IEnumerator<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2)>
 		where TComponent0 : struct where TComponent1 : struct where TComponent2 : struct
 	{
 		internal EcsWorld.ComponentPoolEntry* _componentPool0;
@@ -125,9 +125,9 @@ namespace GlitchyEngine.World
 			_componentPool2 = &world.GetComponentPool<TComponent2>();
 		}
 
-		public new Result<(Entity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2)> GetNext() mut
+		public new Result<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2)> GetNext() mut
 		{
-			Result<Entity> entity = base.GetNext();
+			Result<EcsEntity> entity = base.GetNext();
 
 			if(entity case .Err)
 				return .Err;
@@ -141,7 +141,7 @@ namespace GlitchyEngine.World
 	}
 
 	public struct WorldEnumerator<TComponent0, TComponent1, TComponent2, TComponent3> : WorldEnumerator,
-		IEnumerator<(Entity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2, TComponent3* Component3)>
+		IEnumerator<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2, TComponent3* Component3)>
 		where TComponent0 : struct where TComponent1 : struct where TComponent2 : struct where TComponent3 : struct
 	{
 		internal EcsWorld.ComponentPoolEntry* _componentPool0;
@@ -157,9 +157,9 @@ namespace GlitchyEngine.World
 			_componentPool3 = &world.GetComponentPool<TComponent3>();
 		}
 
-		public new Result<(Entity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2, TComponent3* Component3)> GetNext() mut
+		public new Result<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2, TComponent3* Component3)> GetNext() mut
 		{
-			Result<Entity> entity = base.GetNext();
+			Result<EcsEntity> entity = base.GetNext();
 
 			if(entity case .Err)
 				return .Err;
