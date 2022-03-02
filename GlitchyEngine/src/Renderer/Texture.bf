@@ -59,11 +59,11 @@ namespace GlitchyEngine.Renderer
 	{
 		protected String _path ~ delete _;
 
-		public override extern uint32 Width {get;}
-		public override extern uint32 Height {get;}
+		//public override extern uint32 Width {get;}
+		//public override extern uint32 Height {get;}
 		public override uint32 Depth => 1;
-		public override extern uint32 ArraySize {get;}
-		public override extern uint32 MipLevels {get;}
+		//public override extern uint32 ArraySize {get;}
+		//public override extern uint32 MipLevels {get;}
 		
 		public this(StringView path)
 		{
@@ -177,11 +177,11 @@ namespace GlitchyEngine.Renderer
 	{
 		protected String _path ~ delete _;
 		
-		public override extern uint32 Width {get;}
-		public override extern uint32 Height {get;}
+		// public override extern uint32 Width {get;}
+		// public override extern uint32 Height {get;}
 		public override uint32 Depth => 1;
-		public override extern uint32 ArraySize {get;}
-		public override extern uint32 MipLevels {get;}
+		// public override extern uint32 ArraySize {get;}
+		// public override extern uint32 MipLevels {get;}
 
 		public this(String path)
 		{
