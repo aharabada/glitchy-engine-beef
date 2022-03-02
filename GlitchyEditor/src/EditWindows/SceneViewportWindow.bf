@@ -10,7 +10,7 @@ namespace GlitchyEditor.EditWindows
 {
 	class SceneViewportWindow : EditorWindow
 	{
-		public Camera _camera;
+		public OldCamera _camera;
 
 		public const String s_WindowTitle = "Scene";
 

@@ -6,7 +6,7 @@ namespace GlitchyEngine.Renderer
 	/**
 	 * If FarPlane is float.PositiveInfinity the projection matrix will be an infinite projection (that means no far plane)
 	 */
-	public class PerspectiveCamera : Camera
+	public class PerspectiveCamera : OldCamera
 	{
 		public enum ProjectionType
 		{

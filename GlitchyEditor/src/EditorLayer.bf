@@ -28,6 +28,9 @@ namespace GlitchyEditor
 		
 		RenderTarget2D _viewportTarget ~ _?.ReleaseRef();
 
+		Entity _cameraEntity;
+		Entity _otherCameraEntity;
+
 		public this() : base("Example")
 		{
 			Application.Get().Window.IsVSync = false;
@@ -35,6 +38,26 @@ namespace GlitchyEditor
 			InitGraphics();
 			//InitEcs();
 			InitEditor();
+
+			{
+				_cameraEntity = _scene.CreateEntity("Camera Entity");
+				let camera = _cameraEntity.AddComponent<CameraComponent>();
+				camera.Camera.SetPerspective(0.1f, 1000f, MathHelper.ToRadians(75));
+				camera.Primary = true;
+				camera.FixedAspectRatio = false;
+				let transform = _cameraEntity.GetComponent<SimpleTransformComponent>();
+				transform.Transform = Matrix.Translation(0, 0, -5);
+			}
+
+			{
+				_otherCameraEntity = _scene.CreateEntity("Other Camera Entity");
+				let camera = _otherCameraEntity.AddComponent<CameraComponent>();
+				camera.Camera.SetPerspective(0.1f, 1000f, MathHelper.ToRadians(45));
+				camera.Primary = false;
+				camera.FixedAspectRatio = false;
+				let transform = _otherCameraEntity.GetComponent<SimpleTransformComponent>();
+				transform.Transform = Matrix.Translation(0, 0, -5);
+			}
 		}
 
 		private void InitGraphics()
@@ -55,18 +78,6 @@ namespace GlitchyEditor
 			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
 			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
 		}
-
-		/*private void InitEcs()
-		{
-			_world.Register<DebugNameComponent>();
-			_world.Register<TransformComponent>();
-			_world.Register<ParentComponent>();
-			_world.Register<MeshComponent>();
-			_world.Register<MeshRendererComponent>();
-			_world.Register<SkinnedMeshRendererComponent>();
-			_world.Register<CameraComponent>();
-			_world.Register<AnimationComponent>();
-		}*/
 
 		private void InitEditor()
 		{
@@ -104,12 +115,7 @@ namespace GlitchyEditor
 			
 			//Renderer.EndScene();
 
-			Renderer2D.BeginScene(_cameraController.Camera);
-			
 			_scene.Update(gameTime);
-			
-			Renderer2D.EndScene();
-
 
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
@@ -133,6 +139,18 @@ namespace GlitchyEditor
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
+			ImGui.Begin("Test");
+
+			static bool cameraA = true;
+
+			if (ImGui.Checkbox("Camera A", &cameraA))
+			{
+				_cameraEntity.GetComponent<CameraComponent>().Primary = cameraA;
+				_otherCameraEntity.GetComponent<CameraComponent>().Primary = !cameraA;
+			}
+
+			ImGui.End();
+
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
 
@@ -194,6 +212,8 @@ namespace GlitchyEditor
 			_viewportTarget.Resize(sizeX, sizeY);
 
 			_cameraController.AspectRatio = (float)sizeX / (float)sizeY;
+
+			_scene.OnViewportResize(sizeX, sizeY);
 		}
 	}
 }

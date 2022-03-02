@@ -3,6 +3,7 @@ using System.Collections;
 using System;
 using System.Diagnostics;
 using GlitchyEngine.Renderer.Text;
+using GlitchyEngine.World;
 
 namespace GlitchyEngine.Renderer
 {
@@ -362,7 +363,8 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
-		public static void BeginScene(Camera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
+		// TODO: remove?
+		public static void BeginScene(OldCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
@@ -394,6 +396,48 @@ namespace GlitchyEngine.Renderer
 			
 			s_currentEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 			s_currentCircleEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
+
+			s_drawOrder = drawOrder;
+			
+#if DEBUG
+			s_sceneRunning = true;
+#endif
+		}
+
+		public static void BeginScene(Camera camera, Matrix transform, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+#if DEBUG
+			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
+			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
+#endif
+
+			//s_textureColorEffect.Bind(Renderer._context);
+			
+			s_currentEffect?.ReleaseRef();
+			if(effect != null)
+			{
+				s_currentEffect = effect..AddRef();
+			}
+			else
+			{
+				s_currentEffect = s_batchEffect..AddRef();
+			}
+
+			s_currentCircleEffect?.ReleaseRef();
+			if(circleEffect != null)
+			{
+				s_currentCircleEffect = effect..AddRef();
+			}
+			else
+			{
+				s_currentCircleEffect = s_circleBatchEffect..AddRef();
+			}
+
+			Matrix viewProjection = camera.Projection * Matrix.Invert(transform);
+			
+			s_currentEffect.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentCircleEffect.Variables["ViewProjection"].SetData(viewProjection);
 
 			s_drawOrder = drawOrder;
 			

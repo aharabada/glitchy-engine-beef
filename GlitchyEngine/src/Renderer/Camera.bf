@@ -3,7 +3,25 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
-	public abstract class Camera
+	struct Camera
+	{
+		protected Matrix _projection;
+
+		public Matrix Projection => _projection;
+
+		protected this()
+		{
+			_projection = .Identity;
+		}
+
+		public this(Matrix projection)
+		{
+			_projection = projection;
+		}
+	}
+
+
+	public abstract class OldCamera
 	{
 		protected Matrix _view;
 		protected Matrix _transform;

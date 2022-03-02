@@ -79,7 +79,8 @@ namespace GlitchyEngine.Renderer
 			LineGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
 		}
 
-		public static void BeginScene(EcsWorld world, EcsEntity cameraEntity)
+		// TODO
+		/*public static void BeginScene(EcsWorld world, EcsEntity cameraEntity)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -91,9 +92,9 @@ namespace GlitchyEngine.Renderer
 			var proj = camera.Projection;
 
 			_sceneConstants.ViewProjection = proj * view;
-		}
+		}*/
 
-		public static void BeginScene(Camera camera)
+		public static void BeginScene(OldCamera camera)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 

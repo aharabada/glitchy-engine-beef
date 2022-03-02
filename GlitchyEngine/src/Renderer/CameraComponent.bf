@@ -2,7 +2,7 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
-	public struct CameraComponent
+	public struct OldCameraComponent
 	{
 		public enum Projection
 		{
@@ -29,10 +29,11 @@ namespace GlitchyEngine.Renderer
 			 */
 			Orthographic
 		}
-
+		
 		float _nearPlane;
 		float _farPlane;
 		Projection _projectionType;
+
 		float _fovY;
 		float _aspect;
 

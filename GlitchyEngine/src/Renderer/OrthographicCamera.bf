@@ -2,7 +2,7 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
-	public class OrthographicCamera : Camera
+	public class OrthographicCamera : OldCamera
 	{
 		protected float _bottom, _left, _right, _top;
 
