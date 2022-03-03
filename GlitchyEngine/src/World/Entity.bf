@@ -51,6 +51,5 @@ namespace GlitchyEngine.World
 
 			_scene._ecsWorld.RemoveComponent<T>(_entity);
 		}
-
 	}
 }

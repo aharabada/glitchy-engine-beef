@@ -31,6 +31,41 @@ namespace GlitchyEditor
 		Entity _cameraEntity;
 		Entity _otherCameraEntity;
 
+		class CameraController : ScriptableEntity
+		{
+			protected override void OnCreate()
+			{
+				Log.EngineLogger.Trace("Cam controller created!");
+			}
+
+			protected override void OnUpdate(GameTime gameTime)
+			{
+				var transformCmp = GetComponent<SimpleTransformComponent>();
+
+				if (Input.IsKeyPressed(Key.A))
+				{
+					transformCmp.Transform.Translation.X -= gameTime.DeltaTime;
+				}
+				if (Input.IsKeyPressed(Key.D))
+				{
+					transformCmp.Transform.Translation.X += gameTime.DeltaTime;
+				}
+				if (Input.IsKeyPressed(Key.W))
+				{
+					transformCmp.Transform.Translation.Y += gameTime.DeltaTime;
+				}
+				if (Input.IsKeyPressed(Key.S))
+				{
+					transformCmp.Transform.Translation.Y -= gameTime.DeltaTime;
+				}
+			}
+
+			protected override void OnDestroy()
+			{
+				Log.EngineLogger.Trace("Cam controller destroyed!");
+			}
+		}
+
 		public this() : base("Example")
 		{
 			Application.Get().Window.IsVSync = false;
@@ -47,6 +82,8 @@ namespace GlitchyEditor
 				camera.FixedAspectRatio = false;
 				let transform = _cameraEntity.GetComponent<SimpleTransformComponent>();
 				transform.Transform = Matrix.Translation(0, 0, -5);
+
+				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 			}
 
 			{
@@ -57,6 +94,8 @@ namespace GlitchyEditor
 				camera.FixedAspectRatio = false;
 				let transform = _otherCameraEntity.GetComponent<SimpleTransformComponent>();
 				transform.Transform = Matrix.Translation(0, 0, -5);
+
+				_otherCameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
 			}
 		}
 

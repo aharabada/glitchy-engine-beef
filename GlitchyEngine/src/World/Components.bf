@@ -115,12 +115,40 @@ namespace GlitchyEngine.World
 	struct CameraComponent
 	{
 		public SceneCamera Camera;
-		public bool Primary = true; // Todo: probably move into scene
+		public bool Primary = true;  // Todo: probably move into scene
 		public bool FixedAspectRatio = false;
 
 		public this()
 		{
 			Camera = .();
 		}	
+	}
+
+	struct NativeScriptComponent : IDisposableComponent
+	{
+		public ScriptableEntity Instance = null;
+		
+		public function void (mut NativeScriptComponent this) Func;
+
+		public function ScriptableEntity () InstantiateFunction;
+		public function void (NativeScriptComponent* self) DestroyInstanceFunction;
+
+		public void Bind<T>() mut where T : ScriptableEntity
+		{
+			InstantiateFunction = () =>
+				{
+					return new T();
+				};
+
+			DestroyInstanceFunction = (self) =>
+				{
+					delete self.Instance;
+				};
+		}
+
+		public void Dispose() mut
+		{
+			DestroyInstanceFunction(&this);
+		}
 	}
 }

@@ -4,6 +4,8 @@ using System;
 
 namespace GlitchyEngine.World
 {
+	using internal ScriptableEntity;
+
 	class Scene
 	{
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
@@ -21,6 +23,18 @@ namespace GlitchyEngine.World
 		public void Update(GameTime gameTime)
 		{
 			//TransformSystem.Update(_ecsWorld);
+
+			for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
+			{
+				if (script.Instance == null)
+				{
+					script.Instance = script.InstantiateFunction();
+					script.Instance._entity = Entity(entity, this);
+					script.Instance.[Friend]OnCreate();
+				}
+
+				script.Instance.[Friend]OnUpdate(gameTime);
+			}
 
 			Camera* primaryCamera = null;
 			Matrix* primaryCameraTransform = null;
