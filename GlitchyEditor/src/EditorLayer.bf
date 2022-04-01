@@ -15,10 +15,11 @@ namespace GlitchyEditor
 		RasterizerState _rasterizerState ~ _?.ReleaseRef();
 		RasterizerState _rasterizerStateClockWise ~ _?.ReleaseRef();
 
-		GraphicsContext _context ~ _?.ReleaseRef();
+		GraphicsContext _context ~ _.ReleaseRef();
 		
-		BlendState _alphaBlendState ~ _?.ReleaseRef();
-		BlendState _opaqueBlendState ~ _?.ReleaseRef();
+		BlendState _alphaBlendState ~ _.ReleaseRef();
+		BlendState _opaqueBlendState ~ _.ReleaseRef();
+		DepthStencilState _depthStencilState ~ _.ReleaseRef();
 		
 		Scene _scene = new Scene() ~ delete _;
 
@@ -116,6 +117,9 @@ namespace GlitchyEditor
 			_alphaBlendState = new BlendState(blendDesc);
 			_opaqueBlendState = new BlendState(.Default);
 
+			DepthStencilStateDescription dsDesc = .();
+			_depthStencilState = new DepthStencilState(dsDesc);
+
 			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
 			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
 		}
@@ -143,12 +147,13 @@ namespace GlitchyEditor
 
 			RenderCommand.Clear(_viewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
-			RenderCommand.SetRenderTarget(_viewportTarget);
+			RenderCommand.SetRenderTarget(_viewportTarget, 0, true);
 			RenderCommand.BindRenderTargets();
 
 			RenderCommand.SetViewport(Viewport(0, 0, _viewportTarget.Width, _viewportTarget.Height));
 
-			RenderCommand.SetBlendState(_opaqueBlendState);
+			RenderCommand.SetBlendState(_alphaBlendState);
+			RenderCommand.SetDepthStencilState(_depthStencilState);
 
 			//Renderer.BeginScene(_cameraController.Camera);
 
@@ -160,7 +165,7 @@ namespace GlitchyEditor
 
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
-			RenderCommand.SetRenderTarget(null);
+			RenderCommand.SetRenderTarget(null, 0, true);
 			RenderCommand.BindRenderTargets();
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);

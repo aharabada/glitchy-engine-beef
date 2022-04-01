@@ -39,6 +39,7 @@ namespace GlitchyEditor.EditWindows
 			ShowNameComponentEditor(entity);
 			ShowTransformComponentEditor(entity);
 			ShowCameraComponentEditor(entity);
+			ShowSpriteRendererComponentEditor(entity);
 		}
 
 		private static void ShowNameComponentEditor(Entity entity)
@@ -275,6 +276,21 @@ namespace GlitchyEditor.EditWindows
 					if (ImGui.DragFloat("Aspect Ratio", &aspect, 0.1f))
 						camera.AspectRatio = aspect;
 				}
+
+				ImGui.TreePop();
+			}
+		}
+
+		private static void ShowSpriteRendererComponentEditor(Entity entity)
+		{
+			if (!entity.HasComponent<SpriterRendererComponent>())
+				return;
+			
+			var spriterRendererComponent = entity.GetComponent<SpriterRendererComponent>();
+
+			if(ImGui.TreeNodeEx("Sprite Renderer", .DefaultOpen))
+			{
+				ImGui.ColorEdit4("Color", ref spriterRendererComponent.Color);
 
 				ImGui.TreePop();
 			}

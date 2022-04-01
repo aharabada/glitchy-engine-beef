@@ -12,8 +12,11 @@ namespace GlitchyEngine.World
 
 		public this()
 		{
-			Entity entity = CreateEntity();
+			Entity entity = CreateEntity("Green Quad");
 			entity.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.2f, 0.9f, 0.15f)));
+
+			Entity entity2 = CreateEntity("Red Square");
+			entity2.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.95f, 0.1f, 0.3f)));
 		}
 
 		public ~this()
