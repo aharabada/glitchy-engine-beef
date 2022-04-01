@@ -9,11 +9,11 @@ namespace GlitchyEditor.EditWindows
 	{
 		public const String s_WindowTitle = "Components";
 
-		public Editor Editor => _editor;
-		
-		public this(Editor editor)
+		private EntityHierarchyWindow _entityHierarchyWindow;
+
+		public this(EntityHierarchyWindow entityHierarchyWindow)
 		{
-			_editor = editor;
+			_entityHierarchyWindow = entityHierarchyWindow;
 		}
 
 		protected override void InternalShow()
@@ -24,9 +24,9 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
-			if(_editor.SelectedEntities.Count == 1)
+			if(_entityHierarchyWindow.SelectedEntities.Count == 1)
 			{
-				EcsEntity entity = _editor.SelectedEntities.Front;
+				Entity entity = _entityHierarchyWindow.SelectedEntities.Front;
 
 				ShowComponents(entity);
 			}
@@ -34,20 +34,21 @@ namespace GlitchyEditor.EditWindows
 			ImGui.End();
 		}
 
-		private void ShowComponents(EcsEntity entity)
+		private void ShowComponents(Entity entity)
 		{
-			NameComponentEditor.Show(_editor.World, entity);
-			TransformComponentEditor.Show(_editor.World, entity);		
+			ShowNameComponentEditor(entity);
+			ShowTransformComponentEditor(entity);
+			ShowCameraComponentEditor(entity);
 		}
-	}
 
-	static class NameComponentEditor
-	{
-		public static void Show(EcsWorld world, EcsEntity entity)
+		private static void ShowNameComponentEditor(Entity entity)
 		{
-			char8[128] nameBuffer = default;
+			if (!entity.HasComponent<DebugNameComponent>())
+				return;
 
-			DebugNameComponent* component = world.GetComponent<DebugNameComponent>(entity);
+			char8[256] nameBuffer = default;
+
+			DebugNameComponent* component = entity.GetComponent<DebugNameComponent>();
 
 			String name = null;
 
@@ -57,7 +58,7 @@ namespace GlitchyEditor.EditWindows
 			}
 			else
 			{
-				name = scope:: $"Entity {entity.[Friend]Index}";
+				name = scope:: $"Entity {entity.Handle.[Friend]Index}";
 			}
 
 			// Copy name to buffer
@@ -67,27 +68,75 @@ namespace GlitchyEditor.EditWindows
 			{
 				if(component == null)
 				{
-					component = world.AssignComponent<DebugNameComponent>(entity);
+					component = entity.AddComponent<DebugNameComponent>();
 				}
 
 				component.DebugName.Clear();
 				component.DebugName.Append(&nameBuffer);
 			}
 		}
-	}
 
-	static class TransformComponentEditor
-	{
-		public static void Show(EcsWorld world, EcsEntity entity)
+		private static void ShowTransformComponentEditor(Entity entity)
 		{
-			TransformComponent* component = world.GetComponent<TransformComponent>(entity);
-
-			if(component == null)
+			if (!entity.HasComponent<SimpleTransformComponent>())
 				return;
+
+			var transform = entity.GetComponent<SimpleTransformComponent>();
 
 			if(ImGui.TreeNodeEx("Transform", .DefaultOpen))
 			{
-				Vector3 position = component.Position;
+				bool ShowValue(String text, ref float value, String id)
+				{
+					ImGui.Text(text);
+					ImGui.SameLine();
+					ImGui.PushID(id);
+					bool valueChanged = ImGui.DragFloat(String.Empty, &value, 0.1f);
+					ImGui.PopID();
+
+					return valueChanged;
+				}
+
+				bool ShowTableRow(String name, ref Vector3 value)
+				{
+					bool changed = false;
+
+					ImGui.TableNextColumn();
+
+					ImGui.Text(name);
+					ImGui.TableNextColumn();
+					changed |= ShowValue("X: ", ref value.X, scope $"{name}X");
+					ImGui.TableNextColumn();
+					changed |= ShowValue("Y: ", ref value.Y, scope $"{name}Y");
+					ImGui.TableNextColumn();
+					changed |= ShowValue("Z: ", ref value.Z, scope $"{name}Z");
+					
+					ImGui.TableNextRow();
+
+					return changed;
+				}
+
+				Matrix.Decompose(transform.Transform, var position, var rotation, var scale);
+
+				ImGui.BeginTable("posRotScaleTable", 4);
+
+				if (ShowTableRow("Position", ref position))
+				{
+					transform.Transform.Translation = position;
+				}
+
+				var oldScale = scale;
+				if (ShowTableRow("Scale", ref scale))
+				{
+					Vector3 v = 1.0f / oldScale * scale;
+
+					transform.Transform.Scale = (Vector3)transform.Transform.Scale * v;
+				}
+
+
+				ImGui.EndTable();
+
+				/*
+				Vector3 position = transform.Position;
 				bool positionChanged = false;
 				
 				Vector3 rotationEuler = MathHelper.ToDegrees(component.RotationEuler);
@@ -136,6 +185,96 @@ namespace GlitchyEditor.EditWindows
 
 				if(scaleChanged)
 					component.Scale = scale;
+
+				*/
+				ImGui.TreePop();
+			}
+		}
+		
+		static String[] strings = new String[]("Orthographic", "Perspective", "Perspective (Infinite)") ~ delete _;
+
+		private static void ShowCameraComponentEditor(Entity entity)
+		{
+			if (!entity.HasComponent<CameraComponent>())
+				return;
+
+			if(ImGui.TreeNodeEx("Camera", .DefaultOpen))
+			{
+				var cameraComponent = entity.GetComponent<CameraComponent>();
+
+				ImGui.Checkbox("Primary", &cameraComponent.Primary);
+
+				var camera = ref cameraComponent.Camera;
+
+				String typeName = strings[camera.ProjectionType.Underlying];
+
+				if (ImGui.BeginCombo("Projection", typeName.CStr()))
+				{
+					for (int i = 0; i < 3; i++)
+					{
+						bool isSelected = (typeName == strings[i]);
+
+						if (ImGui.Selectable(strings[i], isSelected))
+						{
+							camera.ProjectionType = (.)i;
+						}
+
+						if (isSelected)
+							ImGui.SetItemDefaultFocus();
+					}
+
+					ImGui.EndCombo();
+				}
+
+				if (camera.ProjectionType == .Perspective)
+				{
+					float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
+					if (ImGui.DragFloat("Fov Y", &fovY, 0.1f))
+						camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
+					
+					float near = camera.PerspectiveNearPlane;
+					if (ImGui.DragFloat("Near", &near, 0.1f))
+						camera.PerspectiveNearPlane = near;
+
+					float far = camera.PerspectiveFarPlane;
+					if (ImGui.DragFloat("Far", &far, 0.1f))
+						camera.PerspectiveFarPlane = far;
+				}
+				else if (camera.ProjectionType == .InfinitePerspective)
+				{
+					float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
+					if (ImGui.DragFloat("Vertical FOV", &fovY, 0.1f))
+						camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
+					
+					float near = camera.PerspectiveNearPlane;
+					if (ImGui.DragFloat("Near", &near, 0.1f))
+						camera.PerspectiveNearPlane = near;
+				}
+				else if (camera.ProjectionType == .Orthographic)
+				{
+					float size = camera.OrthographicHeight;
+					if (ImGui.DragFloat("Size", &size, 0.1f))
+						camera.OrthographicHeight = size;
+					
+					float near = camera.OrthographicNearPlane;
+					if (ImGui.DragFloat("Near", &near, 0.1f))
+						camera.OrthographicNearPlane = near;
+
+					float far = camera.OrthographicFarPlane;
+					if (ImGui.DragFloat("Far", &far, 0.1f))
+						camera.OrthographicFarPlane = far;
+				}
+
+				bool fixedAspectRatio = camera.FixedAspectRatio;
+				if (ImGui.Checkbox("Fixed Aspect Ratio", &fixedAspectRatio))
+					camera.FixedAspectRatio = fixedAspectRatio;
+
+				if (fixedAspectRatio)
+				{
+					float aspect = camera.AspectRatio;
+					if (ImGui.DragFloat("Aspect Ratio", &aspect, 0.1f))
+						camera.AspectRatio = aspect;
+				}
 
 				ImGui.TreePop();
 			}

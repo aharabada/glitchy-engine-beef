@@ -17,11 +17,20 @@ namespace GlitchyEditor.EditWindows
 		/// Buffer for the entity search string.
 		private char8[64] _entitySearchChars;
 
-		public Editor Editor => _editor;
-		
-		public this(Editor editor)
+		private Scene _scene;
+
+		private List<Entity> _selectedEntities = new .() ~ delete _;
+
+		public List<Entity> SelectedEntities => _selectedEntities;
+
+		public this(Scene scene)
 		{
-			_editor = editor;
+			SetContext(scene);
+		}
+
+		public void SetContext(Scene scene)
+		{
+			_scene = scene;
 		}
 		
 		protected override void InternalShow()
@@ -39,6 +48,64 @@ namespace GlitchyEditor.EditWindows
 			ImGui.End();
 		}
 		
+		/// Returns whether or not all selected entities have the same parent.
+		internal bool AllSelectionsOnSameLevel()
+		{
+			EcsEntity? parent = .InvalidEntity;
+
+			for(var selectedEntity in _selectedEntities)
+			{
+				var transformComponent = selectedEntity.GetComponent<SimpleTransformComponent>();
+
+				if(parent == .InvalidEntity)
+				{
+					parent = transformComponent.Parent;
+				}
+				else if(transformComponent.Parent != parent)
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+		
+		/// Finds all children of the given entity and stores their IDs in the given list.
+		internal void FindChildren(EcsEntity entity, List<EcsEntity> entities)
+		{
+			for(var (child, childTransform) in _scene.[Friend]_ecsWorld.Enumerate<SimpleTransformComponent>())
+			{
+				if(childTransform.Parent == entity)
+				{
+					if(!entities.Contains(child))
+						entities.Add(child);
+
+					FindChildren(child, entities);
+				}
+			}
+		}
+
+		/// Deletes all selected entities and their children.
+		internal void DeleteSelectedEntities()
+		{
+			List<EcsEntity> entities = scope .();
+
+			for(var entity in _selectedEntities)
+			{
+				entities.Add(entity.Handle);
+
+				FindChildren(entity.Handle, entities);
+			}
+
+			for(var entityId in entities)
+			{
+				Entity entity = .(entityId, _scene);
+				_scene.DestroyEntity(entity);
+			}
+
+			_selectedEntities.Clear();
+		}
+
 		private void ShowEntityHierarchyMenuBar()
 		{
 			if(ImGui.BeginMenuBar())
@@ -47,42 +114,43 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.MenuItem("Empty Entity"))
 					{
-						_editor.CreateEntityWithTransform();
+						_scene.CreateEntity();
 					}
 
 					if(ImGui.IsItemHovered())
-						ImGui.SetTooltip("Create a new Entity with a transform component.");
+						ImGui.SetTooltip("Create a new Entity.");
 
-					if(ImGui.MenuItem("Empty Child", null, false, !_editor.SelectedEntities.IsEmpty))
+					if(ImGui.MenuItem("Empty Child", null, false, !_selectedEntities.IsEmpty))
 					{
-						var newEntity = _editor.CreateEntityWithTransform();
-						var parent = _editor.World.AssignComponent<ParentComponent>(newEntity);
+						var newEntity = _scene.CreateEntity();
+
+						var transformCmp = newEntity.GetComponent<SimpleTransformComponent>();
 						// Last entity in list is the entity that has been selected last.
-						parent.Entity = _editor.SelectedEntities.Back;
+						transformCmp.Parent = _selectedEntities.Back.Handle;
 					}
 					
 					if(ImGui.IsItemHovered())
 						ImGui.SetTooltip("Create a new Entity that is a child of the currently selected entity.");
 
-					if(ImGui.MenuItem("Empty Parent", null, false, !_editor.SelectedEntities.IsEmpty && _editor.AllSelectionsOnSameLevel()))
+					if(ImGui.MenuItem("Empty Parent", null, false, !_selectedEntities.IsEmpty && AllSelectionsOnSameLevel()))
 					{
-						var commonParent = _editor.World.GetComponent<ParentComponent>(_editor.SelectedEntities.Front);
+						var commonParent = _selectedEntities.Front.GetComponent<SimpleTransformComponent>();
 
-						var newEntity = _editor.CreateEntityWithTransform();
+						var newEntity = _scene.CreateEntity();
 
 						if(commonParent != null)
 						{
 							// parent of selected entities is parent of the new entity.
 							// (which is why this doesn't work if the entities don't have the same parent)
-							var newEntityParent = _editor.World.AssignComponent<ParentComponent>(newEntity);
-							newEntityParent.Entity = commonParent.Entity;
+							var newEntityTransform = newEntity.GetComponent<SimpleTransformComponent>();
+							newEntityTransform.Parent = commonParent.Parent;
 						}
 
 						// new entity is parent of all selected entities.
-						for(var selectedEntity in _editor.SelectedEntities)
+						for(var selectedEntity in _selectedEntities)
 						{
-							var selectedEntityParent = _editor.World.AssignComponent<ParentComponent>(selectedEntity);
-							selectedEntityParent.Entity = newEntity;
+							var selectedTransform = selectedEntity.GetComponent<SimpleTransformComponent>();
+							selectedTransform.Parent = newEntity.Handle;
 						}
 					}
 					
@@ -95,9 +163,9 @@ namespace GlitchyEditor.EditWindows
 				if(ImGui.IsItemHovered())
 					ImGui.SetTooltip("Create a new Entity.");
 
-				if(ImGui.MenuItem("Delete", null, false, !_editor.SelectedEntities.IsEmpty) || Input.IsKeyPressed(.Delete))
+				if(ImGui.MenuItem("Delete", null, false, !_selectedEntities.IsEmpty) || Input.IsKeyPressed(.Delete))
 				{
-					_editor.DeleteSelectedEntities();
+					DeleteSelectedEntities();
 				}
 
 				if(ImGui.IsItemHovered())
@@ -111,11 +179,11 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private void ImGuiPrintEntityTree(TreeNode<EcsEntity> tree)
+		private void ImGuiPrintEntityTree(TreeNode<Entity> tree)
 		{
 			String name = null;
 
-			var nameComponent = _editor.World.GetComponent<DebugNameComponent>(tree.Value);
+			var nameComponent = tree.Value.GetComponent<DebugNameComponent>();
 
 			if(nameComponent != null)
 			{
@@ -123,24 +191,24 @@ namespace GlitchyEditor.EditWindows
 			}
 			else
 			{
-				name = scope:: $"Entity {(tree.Value.[Friend]Index)}";
+				name = scope:: $"Entity {(tree.Value.Handle.[Friend]Index)}";
 			}
 
-			ImGui.TreeNodeFlags flags = .OpenOnArrow;
+			ImGui.TreeNodeFlags flags = .OpenOnArrow | .DefaultOpen;
 
 			if(tree.Children.Count == 0)
 				flags |= .Leaf;
 			
-			bool inSelectedList = _editor.SelectedEntities.Contains(tree.Value);
+			bool inSelectedList = _selectedEntities.Contains(tree.Value);
 			
 			if(inSelectedList)
 				flags |= .Selected;
 
-			bool isOpen = ImGui.TreeNodeEx(name, flags);
+			bool isOpen = ImGui.TreeNodeEx((void*)(uint)tree.Value.Handle.[Friend]Index, flags, $"{name}");
 
 			if(ImGui.BeginDragDropSource())
 			{
-				ImGui.SetDragDropPayload("DND_Entity", &tree.Value, sizeof(EcsEntity));
+				ImGui.SetDragDropPayload("DND_Entity", &tree.Value, sizeof(Entity));
 
 				ImGui.Text(name);
 
@@ -153,37 +221,37 @@ namespace GlitchyEditor.EditWindows
 
 				if(payload != null)
 				{
-					Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(EcsEntity));
+					Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(Entity));
 
-					EcsEntity movedEntity = *(EcsEntity*)payload.Data;
+					Entity movedEntity = *(Entity*)payload.Data;
 
 					bool dropLegal = true;
 
-					EcsEntity walker = tree.Value;
+					Entity walker = tree.Value;
 
 					// make sure the dropped entity is not a parent of the entity we dropped it on.
 					while(true)
 					{
-						var walkerParent = _editor.World.GetComponent<ParentComponent>(walker);
-
-						if(walkerParent == null)
+						var parentTransform = walker.GetComponent<SimpleTransformComponent>();
+						
+						if(parentTransform.Parent == .InvalidEntity)
 						{
 							dropLegal = true;
 							break;
 						}
-						else if(walkerParent.Entity == movedEntity)
+						else if(parentTransform.Parent == movedEntity.Handle)
 						{
 							dropLegal = false;
 							break;
 						}
 
-						walker = walkerParent.Entity;
+						walker = .(parentTransform.Parent, _scene);
 					}
 
 					if(dropLegal)
 					{
-						var movedEntityParent = _editor.World.AssignComponent<ParentComponent>(movedEntity);
-						movedEntityParent.Entity = tree.Value;
+						var movedEntityTransform = movedEntity.GetComponent<SimpleTransformComponent>();
+						movedEntityTransform.Parent = tree.Value.Handle;
 					}
 				}
 
@@ -206,16 +274,16 @@ namespace GlitchyEditor.EditWindows
 			{
 				if(inSelectedList)
 				{
-					_editor.SelectedEntities.Remove(tree.Value);
+					_selectedEntities.Remove(tree.Value);
 				}
 				else
 				{
 					if(!ImGui.GetIO().KeyCtrl)
 					{
-						_editor.SelectedEntities.Clear();
+						_selectedEntities.Clear();
 					}
 
-					_editor.SelectedEntities.Add(tree.Value);
+					_selectedEntities.Add(tree.Value);
 				}
 
 				inSelectedList = !inSelectedList;
@@ -226,34 +294,39 @@ namespace GlitchyEditor.EditWindows
 		{
 			StringView searchString = StringView(&_entitySearchChars);
 
-			if(searchString.Length == 0)
+			if(searchString.IsWhiteSpace)
 			{
 				// Show entity hierarchy as tree
 				
-				TreeNode<EcsEntity> root = scope .(.InvalidEntity);
+				TreeNode<Entity> root = scope .(Entity(.InvalidEntity, _scene));
 
-				TreeNode<EcsEntity> AddEntity(EcsEntity entity)
+				TreeNode<Entity> InsertIntoTree(Entity entity)
 				{
-					var parent = _editor.World.GetComponent<ParentComponent>(entity);
+					var transform = entity.GetComponent<SimpleTransformComponent>();
 
-					if(parent == null)
+					if(transform == null)
 					{
 						return root.AddChild(entity);
 					}
 					else
 					{
-						var parentNode = root.FindNode(parent.Entity);
+						var parentEntity = Entity(transform.Parent, _scene);
+
+						var parentNode = root.FindNode(parentEntity);
 
 						if(parentNode == null)
-							parentNode = AddEntity(parent.Entity);
+							parentNode = InsertIntoTree(parentEntity);
 
 						return parentNode.AddChild(entity);
 					}
 				}
 				
-				for(var entity in _editor.World.Enumerate())
+				for(var entityId in _scene.[Friend]_ecsWorld.Enumerate())
 				{
-					AddEntity(entity);
+					Entity entity = .(entityId, _scene);
+
+					//if (!entity.HasComponent<EditorComponent>())
+						InsertIntoTree(entity);
 				}
 				
 				if(ImGui.TreeNodeEx("Scene", .DefaultOpen))
@@ -264,15 +337,14 @@ namespace GlitchyEditor.EditWindows
 
 						if(payload != null)
 						{
-							Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(EcsEntity));
+							Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(Entity));
 
-							EcsEntity movedEntity = *(EcsEntity*)payload.Data;
-
-							_editor.World.RemoveComponent<ParentComponent>(movedEntity);
+							Entity movedEntity = *(Entity*)payload.Data;
 
 							// Also mark transform as dirty
-							var transformComponent = _editor.World.GetComponent<TransformComponent>(movedEntity);
-							transformComponent?.IsDirty = true;
+							var transformComponent = movedEntity.GetComponent<SimpleTransformComponent>();
+							transformComponent.Parent = .InvalidEntity;
+							//transformComponent?.IsDirty = true;
 						}
 
 						ImGui.EndDragDropTarget();
@@ -294,11 +366,13 @@ namespace GlitchyEditor.EditWindows
 				List<StringView> searchTokens = new:ScopedAlloc! .(searchString.Split(' ', .RemoveEmptyEntries));
 				
 				worldEnumeration:
-				for(var entity in _editor.World.Enumerate())
+				for(var entityId in _scene.[Friend]_ecsWorld.Enumerate())
 				{
+					Entity entity = .(entityId, _scene);
+
 					String name = null;
 
-					var nameComponent = _editor.World.GetComponent<DebugNameComponent>(entity);
+					var nameComponent = entity.GetComponent<DebugNameComponent>();
 
 					if(nameComponent != null)
 					{
@@ -306,7 +380,7 @@ namespace GlitchyEditor.EditWindows
 					}
 					else
 					{
-						name = scope:worldEnumeration $"Entity {entity.[Friend]Index}";
+						name = scope:worldEnumeration $"Entity {entityId.[Friend]Index}";
 					}
 
 					StringView nameView = StringView(name);

@@ -77,25 +77,27 @@ namespace GlitchyEditor
 			{
 				_cameraEntity = _scene.CreateEntity("Camera Entity");
 				let camera = _cameraEntity.AddComponent<CameraComponent>();
-				camera.Camera.SetPerspective(0.1f, 1000f, MathHelper.ToRadians(75));
+				camera.Camera.SetPerspective(MathHelper.ToRadians(75), 0.1f, 10000.0f);
 				camera.Primary = true;
 				camera.FixedAspectRatio = false;
 				let transform = _cameraEntity.GetComponent<SimpleTransformComponent>();
 				transform.Transform = Matrix.Translation(0, 0, -5);
 
 				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+				_cameraEntity.AddComponent<EditorComponent>();
 			}
 
 			{
 				_otherCameraEntity = _scene.CreateEntity("Other Camera Entity");
 				let camera = _otherCameraEntity.AddComponent<CameraComponent>();
-				camera.Camera.SetPerspective(0.1f, 1000f, MathHelper.ToRadians(45));
+				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 1000.0f);
 				camera.Primary = false;
 				camera.FixedAspectRatio = false;
 				let transform = _otherCameraEntity.GetComponent<SimpleTransformComponent>();
 				transform.Transform = Matrix.Translation(0, 0, -5);
 
 				_otherCameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+				_otherCameraEntity.AddComponent<EditorComponent>();
 			}
 		}
 

@@ -12,8 +12,8 @@ namespace GlitchyEditor
 		private EcsWorld _ecsWorld;
 		private Scene _scene;
 		
-		private EntityHierarchyWindow _entityHierarchyWindow = new .(this) ~ delete _;
-		private ComponentEditWindow _componentEditWindow = new .(this) ~ delete _;
+		private EntityHierarchyWindow _entityHierarchyWindow ~ delete _;
+		private ComponentEditWindow _componentEditWindow ~ delete _;
 		private SceneViewportWindow _sceneViewportWindow = new .(this) ~ delete _;
 
 		private List<EcsEntity> _selectedEntities = new .() ~ delete _;
@@ -31,6 +31,9 @@ namespace GlitchyEditor
 		{
 			_scene = scene;
 			_ecsWorld = _scene.[Friend]_ecsWorld;
+
+			_entityHierarchyWindow = new EntityHierarchyWindow(_scene);
+			_componentEditWindow = new ComponentEditWindow(_entityHierarchyWindow);
 		}
 
 		public void Update()
