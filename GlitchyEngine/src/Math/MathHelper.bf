@@ -18,10 +18,10 @@ namespace GlitchyEngine.Math
 		public const float PiOverFour = 0.785398163f;
 
 		/// Converts radians to degrees
-		const float RadToDeg = 180.0f / Pi;
+		public const float RadToDeg = 180.0f / Pi;
 
 		/// Converts radians to degrees
-		const float DegToRad = Pi / 180.0f;
+		public const float DegToRad = Pi / 180.0f;
 
 		// Converts the given radians to degrees
 		public static float ToDegrees(float radians)

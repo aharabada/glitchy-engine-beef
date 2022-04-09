@@ -55,7 +55,7 @@ namespace GlitchyEditor.EditWindows
 
 			for(var selectedEntity in _selectedEntities)
 			{
-				var transformComponent = selectedEntity.GetComponent<SimpleTransformComponent>();
+				var transformComponent = selectedEntity.GetComponent<TransformComponent>();
 
 				if(parent == .InvalidEntity)
 				{
@@ -73,7 +73,7 @@ namespace GlitchyEditor.EditWindows
 		/// Finds all children of the given entity and stores their IDs in the given list.
 		internal void FindChildren(EcsEntity entity, List<EcsEntity> entities)
 		{
-			for(var (child, childTransform) in _scene.[Friend]_ecsWorld.Enumerate<SimpleTransformComponent>())
+			for(var (child, childTransform) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent>())
 			{
 				if(childTransform.Parent == entity)
 				{
@@ -124,7 +124,7 @@ namespace GlitchyEditor.EditWindows
 					{
 						var newEntity = _scene.CreateEntity();
 
-						var transformCmp = newEntity.GetComponent<SimpleTransformComponent>();
+						var transformCmp = newEntity.GetComponent<TransformComponent>();
 						// Last entity in list is the entity that has been selected last.
 						transformCmp.Parent = _selectedEntities.Back.Handle;
 					}
@@ -134,7 +134,7 @@ namespace GlitchyEditor.EditWindows
 
 					if(ImGui.MenuItem("Empty Parent", null, false, !_selectedEntities.IsEmpty && AllSelectionsOnSameLevel()))
 					{
-						var commonParent = _selectedEntities.Front.GetComponent<SimpleTransformComponent>();
+						var commonParent = _selectedEntities.Front.GetComponent<TransformComponent>();
 
 						var newEntity = _scene.CreateEntity();
 
@@ -142,14 +142,14 @@ namespace GlitchyEditor.EditWindows
 						{
 							// parent of selected entities is parent of the new entity.
 							// (which is why this doesn't work if the entities don't have the same parent)
-							var newEntityTransform = newEntity.GetComponent<SimpleTransformComponent>();
+							var newEntityTransform = newEntity.GetComponent<TransformComponent>();
 							newEntityTransform.Parent = commonParent.Parent;
 						}
 
 						// new entity is parent of all selected entities.
 						for(var selectedEntity in _selectedEntities)
 						{
-							var selectedTransform = selectedEntity.GetComponent<SimpleTransformComponent>();
+							var selectedTransform = selectedEntity.GetComponent<TransformComponent>();
 							selectedTransform.Parent = newEntity.Handle;
 						}
 					}
@@ -163,7 +163,8 @@ namespace GlitchyEditor.EditWindows
 				if(ImGui.IsItemHovered())
 					ImGui.SetTooltip("Create a new Entity.");
 
-				if(ImGui.MenuItem("Delete", null, false, !_selectedEntities.IsEmpty) || Input.IsKeyPressed(.Delete))
+				if(ImGui.MenuItem("Delete", null, false, !_selectedEntities.IsEmpty) ||
+					(Input.IsKeyPressed(.Delete) && ImGui.IsWindowHovered()))
 				{
 					DeleteSelectedEntities();
 				}
@@ -232,7 +233,7 @@ namespace GlitchyEditor.EditWindows
 					// make sure the dropped entity is not a parent of the entity we dropped it on.
 					while(true)
 					{
-						var parentTransform = walker.GetComponent<SimpleTransformComponent>();
+						var parentTransform = walker.GetComponent<TransformComponent>();
 						
 						if(parentTransform.Parent == .InvalidEntity)
 						{
@@ -250,7 +251,7 @@ namespace GlitchyEditor.EditWindows
 
 					if(dropLegal)
 					{
-						var movedEntityTransform = movedEntity.GetComponent<SimpleTransformComponent>();
+						var movedEntityTransform = movedEntity.GetComponent<TransformComponent>();
 						movedEntityTransform.Parent = tree.Value.Handle;
 					}
 				}
@@ -302,7 +303,7 @@ namespace GlitchyEditor.EditWindows
 
 				TreeNode<Entity> InsertIntoTree(Entity entity)
 				{
-					var transform = entity.GetComponent<SimpleTransformComponent>();
+					var transform = entity.GetComponent<TransformComponent>();
 
 					if(transform == null)
 					{
@@ -342,7 +343,7 @@ namespace GlitchyEditor.EditWindows
 							Entity movedEntity = *(Entity*)payload.Data;
 
 							// Also mark transform as dirty
-							var transformComponent = movedEntity.GetComponent<SimpleTransformComponent>();
+							var transformComponent = movedEntity.GetComponent<TransformComponent>();
 							transformComponent.Parent = .InvalidEntity;
 							//transformComponent?.IsDirty = true;
 						}

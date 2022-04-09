@@ -3,6 +3,7 @@ using GlitchyEngine.Events;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Debug;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine
 {
@@ -24,11 +25,15 @@ namespace GlitchyEngine
 #endif
 
 		private GameTime _gameTime;
+		
+		private IContentManager _contentManager;
 
 		public bool IsRunning => _running;
 		public Window Window => _window;
 
 		public EffectLibrary EffectLibrary => _effectLibrary;
+
+		public IContentManager ContentManager => _contentManager;
 
 		public bool IsMinimized => _isMinimized;
 
@@ -50,6 +55,8 @@ namespace GlitchyEngine
 
 			_rendererApi = new RendererAPI();
 			_rendererApi.Context = _window.Context;
+
+			_contentManager = new ContentManager("./content");
 
 			SamplerStateManager.Init();
 
@@ -73,6 +80,9 @@ namespace GlitchyEngine
 			Renderer.Deinit();
 
 			delete _effectLibrary;
+
+			delete _contentManager;
+
 			delete _rendererApi;
 			delete _window;
 			

@@ -22,3 +22,6 @@
 [submodule "GlitchyEngine/vendor/imgui"]
 	path = GlitchyEngine/vendor/imgui
 	url = https://github.com/aharabada/ImGui_GlitchyEngine.git
+[submodule "GlitchyEngineHelper/vendor/xxHash"]
+	path = GlitchyEngineHelper/vendor/xxHash
+	url = https://github.com/Cyan4973/xxHash.git

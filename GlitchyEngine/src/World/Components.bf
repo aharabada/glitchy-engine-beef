@@ -13,35 +13,24 @@ namespace GlitchyEngine.World
 
 		}
 	}
-
-	struct SimpleTransformComponent
-	{
-		public EcsEntity Parent = .InvalidEntity;
-		public Matrix Transform = Matrix.Identity;
-
-		public this()
-		{
-
-		}	
-
-		public this(Matrix transform)
-		{
-			Transform = transform;
-		}
-	}
 	
-	struct SpriterRendererComponent
+	struct SpriterRendererComponent : IDisposableComponent
 	{
+		public Texture2D Sprite = null;
 		public ColorRGBA Color = .White;
 
 		public this()
 		{
-
 		}
 
 		public this(ColorRGBA color)
 		{
 			Color = color;
+		}
+
+		public void Dispose()
+		{
+			Sprite?.ReleaseRef();
 		}
 	}
 
@@ -229,7 +218,7 @@ namespace GlitchyEngine.World
 
 		private void CalculateProjection() mut
 		{
-			if (_projectionType case .Orthographic)//(let nearPlane, let farPlane, let projectionHeight))
+			if (_projectionType case .Orthographic)
 			{
 				float halfHeight = _orthographicHeight / 2.0f;
 				float halfWidth = halfHeight * _aspectRatio;
@@ -237,11 +226,11 @@ namespace GlitchyEngine.World
 				_projection = Matrix.OrthographicProjectionOffCenter(-halfWidth, halfWidth, halfHeight, -halfHeight,
 					_orthographicNearPlane, _orthographicFarPlane);
 			}
-			else if (_projectionType case .Perspective)//(let nearPlane, let farPlane, let fovY))
+			else if (_projectionType case .Perspective)
 			{
 				_projection = Matrix.PerspectiveProjection(_perspectiveFovY, _aspectRatio, _perspectiveNearPlane, _perspectiveFarPlane);
 			}
-			else if (_projectionType case .InfinitePerspective)//(let nearPlane, let fovY))
+			else if (_projectionType case .InfinitePerspective)
 			{
 				_projection = Matrix.InfinitePerspectiveProjection(_perspectiveFovY, _aspectRatio, _perspectiveNearPlane);
 			}

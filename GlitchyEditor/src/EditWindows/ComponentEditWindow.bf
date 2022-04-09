@@ -5,6 +5,8 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEditor.EditWindows
 {
+	using internal GlitchyEngine.World.TransformComponent;
+
 	class ComponentEditWindow : EditorWindow
 	{
 		public const String s_WindowTitle = "Components";
@@ -77,117 +79,109 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
+		private static bool Vector3Control(StringView label, ref Vector3 value, Vector3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f)
+		{
+			bool changed = false;
+
+			ImGui.PushID(label);
+			defer ImGui.PopID();
+
+			ImGui.Columns(2);
+			defer ImGui.Columns(1);
+			ImGui.SetColumnWidth(0, columnWidth);
+
+			ImGui.TextUnformatted(label);
+
+			ImGui.NextColumn();
+
+			ImGui.PushMultiItemsWidths(3, ImGui.CalcItemWidth());
+			ImGui.PushStyleVar(.ItemSpacing, ImGui.Vec2.Zero);
+			defer ImGui.PopStyleVar();
+
+			float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.y * 2.0f;
+			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
+
+			ImGui.PushStyleColor(.Button, ImGui.Color(230, 25, 45).Value);
+			ImGui.PushStyleColor(.ButtonHovered, ImGui.Color(150, 25, 45).Value);
+			ImGui.PushStyleColor(.ButtonActive, ImGui.Color(230, 120, 130).Value);
+
+			if (ImGui.Button("X", buttonSize))
+			{
+				value.X = resetValues.X;
+				changed = true;
+			}
+
+			ImGui.SameLine();
+
+			if (ImGui.DragFloat("##X", &value.X, dragSpeed))
+				changed = true;
+
+			ImGui.PopItemWidth();
+			ImGui.SameLine();
+
+			ImGui.PopStyleColor(3);
+			ImGui.PushStyleColor(.Button, ImGui.Color(50, 190, 15).Value);
+			ImGui.PushStyleColor(.ButtonHovered, ImGui.Color(50, 120, 15).Value);
+			ImGui.PushStyleColor(.ButtonActive, ImGui.Color(116, 190, 99).Value);
+
+			if (ImGui.Button("Y", buttonSize))
+			{
+				value.Y = resetValues.Y;
+				changed = true;
+			}
+			
+			ImGui.SameLine();
+
+			if (ImGui.DragFloat("##Y", &value.Y, dragSpeed))
+				changed = true;
+			
+			ImGui.PopItemWidth();
+			ImGui.SameLine();
+			
+			ImGui.PopStyleColor(3);
+			ImGui.PushStyleColor(.Button, ImGui.Color(55, 55, 230).Value);
+			ImGui.PushStyleColor(.ButtonHovered, ImGui.Color(55, 55, 150).Value);
+			ImGui.PushStyleColor(.ButtonActive, ImGui.Color(90, 90, 230).Value);
+
+			if (ImGui.Button("Z", buttonSize))
+			{
+				value.Z = resetValues.Z;
+				changed = true;
+			}
+			
+			ImGui.SameLine();
+
+			if (ImGui.DragFloat("##Z", &value.Z, dragSpeed))
+				changed = true;
+			
+			ImGui.PopItemWidth();
+
+			ImGui.PopStyleColor(3);
+
+			return changed;
+		}
+
 		private static void ShowTransformComponentEditor(Entity entity)
 		{
-			if (!entity.HasComponent<SimpleTransformComponent>())
+			if (!entity.HasComponent<TransformComponent>())
 				return;
 
-			var transform = entity.GetComponent<SimpleTransformComponent>();
+			var transform = entity.GetComponent<TransformComponent>();
 
 			if(ImGui.TreeNodeEx("Transform", .DefaultOpen))
 			{
-				bool ShowValue(String text, ref float value, String id)
-				{
-					ImGui.Text(text);
-					ImGui.SameLine();
-					ImGui.PushID(id);
-					bool valueChanged = ImGui.DragFloat(String.Empty, &value, 0.1f);
-					ImGui.PopID();
-
-					return valueChanged;
-				}
-
-				bool ShowTableRow(String name, ref Vector3 value)
-				{
-					bool changed = false;
-
-					ImGui.TableNextColumn();
-
-					ImGui.Text(name);
-					ImGui.TableNextColumn();
-					changed |= ShowValue("X: ", ref value.X, scope $"{name}X");
-					ImGui.TableNextColumn();
-					changed |= ShowValue("Y: ", ref value.Y, scope $"{name}Y");
-					ImGui.TableNextColumn();
-					changed |= ShowValue("Z: ", ref value.Z, scope $"{name}Z");
-					
-					ImGui.TableNextRow();
-
-					return changed;
-				}
-
-				Matrix.Decompose(transform.Transform, var position, var rotation, var scale);
-
-				ImGui.BeginTable("posRotScaleTable", 4);
-
-				if (ShowTableRow("Position", ref position))
-				{
-					transform.Transform.Translation = position;
-				}
-
-				var oldScale = scale;
-				if (ShowTableRow("Scale", ref scale))
-				{
-					Vector3 v = 1.0f / oldScale * scale;
-
-					transform.Transform.Scale = (Vector3)transform.Transform.Scale * v;
-				}
-
-
-				ImGui.EndTable();
-
-				/*
 				Vector3 position = transform.Position;
-				bool positionChanged = false;
+				if (Vector3Control("Position", ref position))
+					transform.Position = position;
+
+				Vector3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
+				if (Vector3Control("Rotation", ref rotationEuler))
+					transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
 				
-				Vector3 rotationEuler = MathHelper.ToDegrees(component.RotationEuler);
-				bool rotationChanged = false;
-				
-				Vector3 scale = component.Scale;
-				bool scaleChanged = false;
+				Vector3 scale = transform.Scale;
+				if (Vector3Control("Scale", ref scale, .One))
+					transform.Scale = scale;
 
-				void ShowValue(String text, ref float value, ref bool valueChanged, String id)
-				{
-					ImGui.Text(text);
-					ImGui.SameLine();
-					ImGui.PushID(id);
-					valueChanged |= ImGui.DragFloat(String.Empty, &value, 0.1f);
-					ImGui.PopID();
-				}
-
-				void ShowTableRow(String name, ref Vector3 value, ref bool valueChanged)
-				{
-					ImGui.TableNextColumn();
-
-					ImGui.Text(name);
-					ImGui.TableNextColumn();
-					ShowValue("X: ", ref value.X, ref valueChanged, scope $"{name}X");
-					ImGui.TableNextColumn();
-					ShowValue("Y: ", ref value.Y, ref valueChanged, scope $"{name}Y");
-					ImGui.TableNextColumn();
-					ShowValue("Z: ", ref value.Z, ref valueChanged, scope $"{name}Z");
-					
-					ImGui.TableNextRow();
-				}
-				
-				ImGui.BeginTable("posRotScaleTable", 4);
-
-				ShowTableRow("Position", ref position, ref positionChanged);
-				ShowTableRow("Rotation", ref rotationEuler, ref rotationChanged);
-				ShowTableRow("Scale", ref scale, ref scaleChanged);
-
-				ImGui.EndTable();
-
-				if(positionChanged)
-					component.Position = position;
-
-				if(rotationChanged)
-					component.RotationEuler = MathHelper.ToRadians(rotationEuler);
-
-				if(scaleChanged)
-					component.Scale = scale;
-
-				*/
 				ImGui.TreePop();
 			}
 		}

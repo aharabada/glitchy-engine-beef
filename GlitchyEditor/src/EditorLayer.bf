@@ -25,8 +25,6 @@ namespace GlitchyEditor
 
 		Editor _editor ~ delete _;
 
-		PerspectiveCameraController _cameraController ~ delete _;
-		
 		RenderTarget2D _viewportTarget ~ _?.ReleaseRef();
 
 		Entity _cameraEntity;
@@ -41,24 +39,28 @@ namespace GlitchyEditor
 
 			protected override void OnUpdate(GameTime gameTime)
 			{
-				var transformCmp = GetComponent<SimpleTransformComponent>();
+				var transformCmp = GetComponent<TransformComponent>();
+
+				Vector3 position = transformCmp.Position;
 
 				if (Input.IsKeyPressed(Key.A))
 				{
-					transformCmp.Transform.Translation.X -= gameTime.DeltaTime;
+					position.X -= gameTime.DeltaTime;
 				}
 				if (Input.IsKeyPressed(Key.D))
 				{
-					transformCmp.Transform.Translation.X += gameTime.DeltaTime;
+					position.X += gameTime.DeltaTime;
 				}
 				if (Input.IsKeyPressed(Key.W))
 				{
-					transformCmp.Transform.Translation.Y += gameTime.DeltaTime;
+					position.Y += gameTime.DeltaTime;
 				}
 				if (Input.IsKeyPressed(Key.S))
 				{
-					transformCmp.Transform.Translation.Y -= gameTime.DeltaTime;
+					position.Y -= gameTime.DeltaTime;
 				}
+
+				transformCmp.Position = position;
 			}
 
 			protected override void OnDestroy()
@@ -72,8 +74,6 @@ namespace GlitchyEditor
 			Application.Get().Window.IsVSync = false;
 
 			InitGraphics();
-			//InitEcs();
-			InitEditor();
 
 			{
 				_cameraEntity = _scene.CreateEntity("Camera Entity");
@@ -81,10 +81,10 @@ namespace GlitchyEditor
 				camera.Camera.SetPerspective(MathHelper.ToRadians(75), 0.1f, 10000.0f);
 				camera.Primary = true;
 				camera.FixedAspectRatio = false;
-				let transform = _cameraEntity.GetComponent<SimpleTransformComponent>();
-				transform.Transform = Matrix.Translation(0, 0, -5);
+				let transform = _cameraEntity.GetComponent<TransformComponent>();
+				transform.Position = .(0, 0, -5);
 
-				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
 				_cameraEntity.AddComponent<EditorComponent>();
 			}
 
@@ -94,12 +94,14 @@ namespace GlitchyEditor
 				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 1000.0f);
 				camera.Primary = false;
 				camera.FixedAspectRatio = false;
-				let transform = _otherCameraEntity.GetComponent<SimpleTransformComponent>();
-				transform.Transform = Matrix.Translation(0, 0, -5);
+				let transform = _otherCameraEntity.GetComponent<TransformComponent>();
+				transform.Position = .(0, 0, -5);
 
-				_otherCameraEntity.AddComponent<NativeScriptComponent>().Bind<CameraController>();
+				_otherCameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
 				_otherCameraEntity.AddComponent<EditorComponent>();
 			}
+
+			InitEditor();
 		}
 
 		private void InitGraphics()
@@ -129,19 +131,19 @@ namespace GlitchyEditor
 			_editor = new Editor(_scene);
 			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
 
-			_cameraController = new .(_context.SwapChain.AspectRatio);
-			_cameraController.CameraPosition = .(0, 0, -5);
-			_cameraController.TranslationSpeed = 10;
-
 			//_editor.[Friend]CreateEntityWithTransform();
 
-			_editor.SceneViewportWindow._camera = _cameraController.Camera;
+			_editor.SceneViewportWindow.CameraEntity = _cameraEntity;
 		}
 		
 		public override void Update(GameTime gameTime)
 		{
-			if(_editor.SceneViewportWindow.HasFocus && Input.IsMouseButtonPressed(.RightButton))
-				_cameraController.Update(gameTime);
+			var scriptComponent = _cameraEntity.GetComponent<NativeScriptComponent>();
+
+			if (var camController = scriptComponent.Instance as EditorCameraController)
+			{
+				camController.IsEnabled = (_editor.SceneViewportWindow.HasFocus && Input.IsMouseButtonPressed(.RightButton));
+			}
 
 			//TransformSystem.Update(_world);
 
@@ -173,8 +175,6 @@ namespace GlitchyEditor
 
 		public override void OnEvent(Event event)
 		{
-			_cameraController.OnEvent(event);
-
 			EventDispatcher dispatcher = EventDispatcher(event);
 
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
@@ -256,8 +256,6 @@ namespace GlitchyEditor
 				return;
 
 			_viewportTarget.Resize(sizeX, sizeY);
-
-			_cameraController.AspectRatio = (float)sizeX / (float)sizeY;
 
 			_scene.OnViewportResize(sizeX, sizeY);
 		}

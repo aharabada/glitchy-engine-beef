@@ -284,5 +284,10 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 		public static explicit operator Self(float value) => Self(value);
+
+		public bool Equals(Vector2 v, float epsilon = Math.[Friend]sMachineEpsilonFloat)
+		{
+			return (Math.Abs(v.X - X) < epsilon) && (Math.Abs(v.Y - Y) < epsilon);
+		}
 	}
 }

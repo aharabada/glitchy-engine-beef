@@ -16,7 +16,10 @@ namespace GlitchyEngine.World
 			entity.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.2f, 0.9f, 0.15f)));
 
 			Entity entity2 = CreateEntity("Red Square");
-			entity2.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.95f, 0.1f, 0.3f)));
+			var v = entity2.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.95f, 0.1f, 0.3f)));
+			v.Sprite = new Texture2D("Textures/rocket.png");
+			v.Sprite.SamplerState = SamplerStateManager.PointClamp;
+
 		}
 
 		public ~this()
@@ -25,7 +28,7 @@ namespace GlitchyEngine.World
 
 		public void Update(GameTime gameTime)
 		{
-			//TransformSystem.Update(_ecsWorld);
+			TransformSystem.Update(_ecsWorld);
 
 			for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
 			{
@@ -40,25 +43,25 @@ namespace GlitchyEngine.World
 			}
 
 			Camera* primaryCamera = null;
-			Matrix* primaryCameraTransform = null;
+			Matrix primaryCameraTransform = default;
 
-			for (var (entity, transform, camera) in _ecsWorld.Enumerate<SimpleTransformComponent, CameraComponent>())
+			for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, CameraComponent>())
 			{
 				if (camera.Primary)
 				{
 					primaryCamera = &camera.Camera;
-					primaryCameraTransform = &transform.Transform;
+					primaryCameraTransform = transform.WorldTransform;
 				}
 			}
 			
 			// Sprite renderer
 			if (primaryCamera != null)
 			{ 
-				Renderer2D.BeginScene(*primaryCamera, *primaryCameraTransform);
+				Renderer2D.BeginScene(*primaryCamera, primaryCameraTransform);
 	
-				for (var (entity, transform, sprite) in _ecsWorld.Enumerate<SimpleTransformComponent, SpriterRendererComponent>())
+				for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
 				{
-					Renderer2D.DrawQuad(transform.Transform, sprite.Color);
+					Renderer2D.DrawQuad(transform.WorldTransform, sprite.Sprite, sprite.Color);
 				}
 	
 				Renderer2D.EndScene();
@@ -68,7 +71,7 @@ namespace GlitchyEngine.World
 		public Entity CreateEntity(String name = "")
 		{
 			Entity entity = Entity(_ecsWorld.NewEntity(), this);
-			entity.AddComponent<SimpleTransformComponent>(.(.Identity));
+			entity.AddComponent<TransformComponent>();
 
 			let nameComponent = entity.AddComponent<DebugNameComponent>();
 			nameComponent.SetName(name.IsEmpty ? "Entity" : name);

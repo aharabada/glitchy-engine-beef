@@ -314,35 +314,65 @@ namespace GlitchyEngine.Math
 			return result;
 		}
 
-		public static Vector3 ToEulerAngles(Quaternion q1)
+		public static Vector3 ToEulerAngles(Quaternion q)
 		{
 			// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
-
+			
 			Vector3 result;
 
-		    float sqw = q1.W*q1.W;
-		    float sqx = q1.X*q1.X;
-		    float sqy = q1.Y*q1.Y;
-		    float sqz = q1.Z*q1.Z;
+		    float sqw = q.W*q.W;
+		    float sqx = q.X*q.X;
+		    float sqy = q.Y*q.Y;
+		    float sqz = q.Z*q.Z;
 			float unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
-			float test = q1.X*q1.Y + q1.Z*q1.W;
-			if (test > 0.499f*unit) { // singularity at north pole
-				result.Y = 2.0f * Math.Atan2(q1.X,q1.W);
+			float test = q.X*q.Y + q.Z*q.W;
+			if (test > 0.4999f*unit) { // singularity at north pole
+				result.Y = 2.0f * Math.Atan2(q.X,q.W);
 				result.Z = Math.PI_f / 2.0f;
 				result.X = 0.0f;
 				return result;
 			}
-			if (test < -0.499f*unit) { // singularity at south pole
-				result.Y = -2.0f * Math.Atan2(q1.X,q1.W);
+			if (test < -0.4999f*unit) { // singularity at south pole
+				result.Y = -2.0f * Math.Atan2(q.X,q.W);
 				result.Z = -Math.PI_f / 2.0f;
 				result.X = 0.0f;
 				return result;
 			}
-		    result.Y = Math.Atan2(2*q1.Y*q1.W-2*q1.X*q1.Z , sqx - sqy - sqz + sqw);
+		    result.Y = Math.Atan2(2*q.Y*q.W-2*q.X*q.Z , sqx - sqy - sqz + sqw);
 			result.Z = Math.Asin(2*test/unit);
-			result.X = Math.Atan2(2*q1.X*q1.W-2*q1.Y*q1.Z , -sqx + sqy - sqz + sqw);
+			result.X = Math.Atan2(2*q.X*q.W-2*q.Y*q.Z , -sqx + sqy - sqz + sqw);
 
 			return result;
+
+			//return .(q.Pitch(), q.Yaw(), q.Roll());
 		}
+		/*
+		public float Pitch()
+		{
+			float y = 2.0f * (Y * Z + W * X);
+			float x = W * W - X * X - Y * Y + Z * Z;
+
+			if (Vector2(x, y).Equals(.Zero)) //avoid atan2(0,0) - handle singularity - Matiis
+				return 2.0f * Math.Atan2(X, W);
+
+			return Math.Atan2(y, x);
+		}
+
+		public float Yaw()
+		{
+			return Math.Asin(Math.Clamp(-2.0f * (X * Z - W * Y), -1.0f, 1.0f));
+		}
+
+		public float Roll()
+		{
+			float y = 2.0f * (X * Y + W * Z);
+			float x = W * W + X * X - Y * Y - Z * Z;
+
+			if (Vector2(x, y).Equals(.Zero)) //avoid atan2(0,0) - handle singularity - Matiis
+				return 0;
+
+			return Math.Atan2(y, x);
+		}
+		*/
 	}
 }

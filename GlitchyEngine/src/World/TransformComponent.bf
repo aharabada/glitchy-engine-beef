@@ -4,9 +4,13 @@ namespace GlitchyEngine.World
 {
 	public struct TransformComponent
 	{
-		Vector3 _position = .Zero;
-		Quaternion _rotation = .Identity;
-		Vector3 _scale = .One;
+		EcsEntity _parent = .InvalidEntity;
+
+		Vector3 _position = .(0, 0, 0);
+		Quaternion _rotation = .(0, 0, 0, 1);
+		Vector3 _scale = .(1, 1, 1);
+
+		Vector3 _editorRotationEuler = .Zero;
 
 		Matrix _localTransform = .Identity;
 		public bool IsDirty = false;
@@ -15,6 +19,19 @@ namespace GlitchyEngine.World
 
 		/// The frame when the transform was recalculated
 		public uint Frame;
+
+		public EcsEntity Parent
+		{
+			get => _parent;
+			set mut
+			{
+				if (_parent == value)
+					return;
+
+				_parent = value;
+				IsDirty = true;
+			}
+		}
 
 		public Matrix LocalTransform
 		{
@@ -55,6 +72,24 @@ namespace GlitchyEngine.World
 
 				_rotation = value;
 				IsDirty = true;
+
+				_editorRotationEuler = Quaternion.ToEulerAngles(_rotation);
+			}
+		}
+
+		/// Allows the user to edit the euler angles in the editor without rotations getting funky because of singularities or ambiguity of angles.
+		internal Vector3 EditorRotationEuler
+		{
+			get => _editorRotationEuler;
+			set mut
+			{
+				if (_editorRotationEuler == value)
+					return;
+
+				_editorRotationEuler = value;
+
+				_rotation = Quaternion.FromEulerAngles(_editorRotationEuler.Y, _editorRotationEuler.X, _editorRotationEuler.Z);
+				IsDirty = true;
 			}
 		}
 		
@@ -65,16 +100,7 @@ namespace GlitchyEngine.World
 		public Vector3 RotationEuler
 		{
 			get => Quaternion.ToEulerAngles(_rotation);
-			set mut
-			{
-				Quaternion quat = Quaternion.FromEulerAngles(value.Y, value.X, value.Z);
-
-				if(_rotation == quat)
-					return;
-
-				_rotation = quat;
-				IsDirty = true;
-			}
+			set mut => Rotation = Quaternion.FromEulerAngles(value.Y, value.X, value.Z);
 		}
 		
 		/**

@@ -1,5 +1,6 @@
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
+using System;
 
 namespace ImGui
 {
@@ -20,6 +21,10 @@ namespace ImGui
 		public static extern void Image(Texture2D texture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero);
 		// Wouldn't be necesseary if RenderTarget2D was Texture2D
 		public static extern void Image(RenderTarget2D texture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero);
+
+		public static void TextUnformatted(StringView text) => TextUnformattedImpl(text.Ptr, text.Ptr + text.Length);
+		
+		public static void PushID(StringView id) => PushID(id.Ptr, id.Ptr + id.Length);
 
 		/// Releases references that accumulated calls like ImGui::Image
 		protected internal static extern void CleanupFrame();

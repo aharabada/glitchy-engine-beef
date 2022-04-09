@@ -10,7 +10,7 @@ namespace GlitchyEditor.EditWindows
 {
 	class SceneViewportWindow : EditorWindow
 	{
-		public OldCamera _camera;
+		//public OldCamera _camera;
 
 		public const String s_WindowTitle = "Scene";
 
@@ -37,6 +37,8 @@ namespace GlitchyEditor.EditWindows
 
 		private ImGui.Vec2 oldViewportSize;
 		private bool viewPortChanged;
+
+		public Entity CameraEntity { get; set; }
 
 		protected override void InternalShow()
 		{
@@ -87,8 +89,11 @@ namespace GlitchyEditor.EditWindows
 			topLeft.y += cntMin.y;
 			ImGuizmo.SetRect(topLeft.x, topLeft.y, viewportSize.x, viewportSize.y);
 
-			var view = _camera.View;
-			var projection = _camera.Projection;
+			var cameraTransformCmp = CameraEntity.GetComponent<TransformComponent>();
+			var view = cameraTransformCmp.WorldTransform.Invert();
+
+			var cameraCmp = CameraEntity.GetComponent<CameraComponent>();
+			var projection = cameraCmp.Camera.Projection;
 
 			Matrix mat = .Identity;
 			ImGuizmo.DrawGrid((.)&view, (.)&projection, (.)&mat, 10);

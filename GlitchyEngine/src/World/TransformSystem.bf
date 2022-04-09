@@ -26,7 +26,7 @@ namespace GlitchyEngine.World
 			
 			transform.Frame = _frame;
 
-			var parent = world.GetComponent<ParentComponent>(entity);
+			//var parent = world.GetComponent<ParentComponent>(entity);
 
 			if(transform.IsDirty)
 			{
@@ -35,18 +35,16 @@ namespace GlitchyEngine.World
 
 				transform.IsDirty = false;
 
-				if(parent == null)
+				if(transform.Parent == EcsEntity.InvalidEntity)
 				{
 					transform.WorldTransform = transform.LocalTransform;
 				}
 			}
 
-			if(parent != null)
+			if(transform.Parent != EcsEntity.InvalidEntity)
 			{
-				var parentEntity = parent.Entity;
-
-				var parentTransform = world.GetComponent<TransformComponent>(parentEntity);
-				UpdateEntity(parentEntity, parentTransform, world);
+				var parentTransform = world.GetComponent<TransformComponent>(transform.Parent);
+				UpdateEntity(transform.Parent, parentTransform, world);
 
 				// TODO: I think we unnecessarily recalculate world transform every frame
 				// Parent transform is newer than our transform or was updated this frame

@@ -4,6 +4,8 @@ namespace GlitchyEngine.World
 	{
 		internal Entity _entity;
 
+		protected TransformComponent* transform => GetComponent<TransformComponent>();
+
 		public T* AddComponent<T>(T value = T()) where T: struct, new
 		{
 			return _entity.AddComponent<T>(value);
