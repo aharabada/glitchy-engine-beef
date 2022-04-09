@@ -78,12 +78,12 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			FileStream fs = new FileStream();
+			Stream data = Application.Get().ContentManager.GetFile(_path);
+			defer delete data;
 
-			fs.Open(_path, .Read);
-			var readResult = fs.Read<char8[8]>();
+			var readResult = data.Read<char8[8]>();
 
-			delete fs;
+			data.Position = 0;
 
 			char8[8] magicWord;
 
@@ -93,7 +93,7 @@ namespace GlitchyEngine.Renderer
 
 				if (strView.StartsWith(PngMagicWord))
 				{
-					LoadPng();
+					LoadPng(data);
 				}
 				else if (strView.StartsWith(DdsMagicWord))
 				{
@@ -106,14 +106,23 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		protected void LoadPng()
+		protected void LoadPng(Stream stream)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
+			
+			uint8[] pngData = new:ScopedAlloc! uint8[stream.Length];
+
+			var result = stream.TryRead(pngData);
+
+			if (result case .Err(let err))
+			{
+				Log.EngineLogger.Error($"Failed to read data from stream. Texture: \"{_path}\", Error: {err}");
+			}
 
 			uint8* rawData = ?;
 			uint32 width = 0, height = 0;
 
-			uint32 errorCode = LodePng.LodePng.Decode32File(&rawData, &width, &height, _path.CStr());
+			uint32 errorCode = LodePng.LodePng.Decode32(&rawData, &width, &height, pngData.Ptr, (.)pngData.Count);
 
 			Debug.Assert(errorCode == 0, "Failed to load png File");
 
