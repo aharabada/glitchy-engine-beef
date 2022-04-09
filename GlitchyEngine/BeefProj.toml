@@ -1,5 +1,5 @@
 FileVersion = 1
-Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", DirectXTK = "*", FreeType = "*", cgltf-beef = "*", msdfgen-beef = "*", ImGui = "*", ImGuiImplDX11 = "*", ImGuiImplWin32 = "*", ImGuizmo = "*", Beefy2D = "*", LodePng = "*"}
+Dependencies = {GlitchLog = "*", corlib = "*", DirectX = "*", DirectXTK = "*", FreeType = "*", cgltf-beef = "*", msdfgen-beef = "*", ImGui = "*", ImGuiImplDX11 = "*", ImGuiImplWin32 = "*", ImGuizmo = "*", Beefy2D = "*", LodePng = "*", GlitchyEngineHelper = "*"}
 
 [Project]
 Name = "GlitchyEngine"

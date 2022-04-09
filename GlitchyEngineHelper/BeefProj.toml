@@ -1,0 +1,10 @@
+FileVersion = 1
+Dependencies = {corlib = "*", corlib = "*"}
+
+[Project]
+Name = "GlitchyEngineHelper"
+TargetType = "BeefLib"
+StartupObject = "GlitchyEngineHelper.Program"
+
+[Configs.Debug.Win64]
+LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib"]
