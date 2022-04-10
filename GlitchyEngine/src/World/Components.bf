@@ -4,6 +4,17 @@ using System;
 
 namespace GlitchyEngine.World
 {
+	[AttributeUsage(.Struct, .ReflectAttribute, ReflectUser=.Methods | .NonStaticFields)]
+	struct ComponentAttribute : Attribute
+	{
+		public String Name;
+
+		public this(String name)
+		{
+			Name = name;
+		}
+	}
+
 	/// If an entity has the EditorComponent it won't be displayed in the scene hierarchy.
 	struct EditorComponent
 	{
@@ -13,7 +24,8 @@ namespace GlitchyEngine.World
 
 		}
 	}
-	
+
+	[Component("Sprite Renderer")]
 	struct SpriterRendererComponent : IDisposableComponent
 	{
 		public Texture2D Sprite = null;

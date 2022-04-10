@@ -2,6 +2,7 @@ using ImGui;
 using GlitchyEngine.World;
 using System;
 using GlitchyEngine.Math;
+using System.Collections;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -13,9 +14,19 @@ namespace GlitchyEditor.EditWindows
 
 		private EntityHierarchyWindow _entityHierarchyWindow;
 
+		private List<(Type, ComponentAttribute attribute)> _componentTypes = new .() ~ delete _;
+
 		public this(EntityHierarchyWindow entityHierarchyWindow)
 		{
 			_entityHierarchyWindow = entityHierarchyWindow;
+
+			for (let type in Type.Types)
+			{
+				if (let componentAttribute = type.GetCustomAttribute<ComponentAttribute>())
+				{
+					_componentTypes.Add((type, componentAttribute));
+				}
+			}
 		}
 
 		protected override void InternalShow()
@@ -39,9 +50,56 @@ namespace GlitchyEditor.EditWindows
 		private void ShowComponents(Entity entity)
 		{
 			ShowNameComponentEditor(entity);
-			ShowTransformComponentEditor(entity);
-			ShowCameraComponentEditor(entity);
-			ShowSpriteRendererComponentEditor(entity);
+
+			ShowComponentEditor<TransformComponent>("Transform", entity, => ShowTransformComponentEditor);
+			ShowComponentEditor<CameraComponent>("Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
+			ShowComponentEditor<SpriterRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriterRendererComponent>);
+
+			ShowAddComponentButton(entity);
+		}
+
+		private static void ShowComponentContextMenu<TComponent>(Entity entity, TComponent* component) where TComponent: struct, new
+		{
+			if (ImGui.Selectable("Remove Component"))
+				entity.RemoveComponent<TComponent>();
+		}
+
+		private static void ShowComponentEditor<TComponent>(String header, Entity entity, function void(Entity, TComponent*) showComponentEditor, function void(Entity, TComponent*) showComponentContextMenu = null) where TComponent: struct, new
+		{
+			if (!entity.HasComponent<TComponent>())
+				return;
+
+			TComponent* component = entity.GetComponent<TComponent>();
+
+			ImGui.PushID(header);
+
+			bool nodeOpen = ImGui.TreeNodeEx(header.CStr(), .DefaultOpen | .AllowItemOverlap | .Framed);
+
+			if (showComponentContextMenu != null)
+			{
+				ImGui.SameLine(ImGui.GetWindowContentRegionMax().x - ImGui.CalcTextSize("...").x);
+
+				if (ImGui.SmallButton("..."))
+				{
+					ImGui.OpenPopup("component_popup");
+				}
+
+				if (ImGui.BeginPopup("component_popup"))
+				{
+					showComponentContextMenu(entity, component);
+					
+					ImGui.EndPopup();
+				}
+			}
+
+			if (nodeOpen)
+			{
+				showComponentEditor(entity, component);
+
+				ImGui.TreePop();
+			}
+
+			ImGui.PopID();
 		}
 
 		private static void ShowNameComponentEditor(Entity entity)
@@ -79,215 +137,152 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private static bool Vector3Control(StringView label, ref Vector3 value, Vector3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f)
+		private static void ShowTransformComponentEditor(Entity entity, TransformComponent* transform)
 		{
-			bool changed = false;
+			Vector3 position = transform.Position;
+			if (ImGui.EditVector3("Position", ref position))
+				transform.Position = position;
 
-			ImGui.PushID(label);
-			defer ImGui.PopID();
-
-			ImGui.Columns(2);
-			defer ImGui.Columns(1);
-			ImGui.SetColumnWidth(0, columnWidth);
-
-			ImGui.TextUnformatted(label);
-
-			ImGui.NextColumn();
-
-			ImGui.PushMultiItemsWidths(3, ImGui.CalcItemWidth());
-			ImGui.PushStyleVar(.ItemSpacing, ImGui.Vec2.Zero);
-			defer ImGui.PopStyleVar();
-
-			float lineHeight = ImGui.GetFont().FontSize + ImGui.GetStyle().FramePadding.y * 2.0f;
-			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
-
-			ImGui.PushStyleColor(.Button, ImGui.Color(230, 25, 45).Value);
-			ImGui.PushStyleColor(.ButtonHovered, ImGui.Color(150, 25, 45).Value);
-			ImGui.PushStyleColor(.ButtonActive, ImGui.Color(230, 120, 130).Value);
-
-			if (ImGui.Button("X", buttonSize))
-			{
-				value.X = resetValues.X;
-				changed = true;
-			}
-
-			ImGui.SameLine();
-
-			if (ImGui.DragFloat("##X", &value.X, dragSpeed))
-				changed = true;
-
-			ImGui.PopItemWidth();
-			ImGui.SameLine();
-
-			ImGui.PopStyleColor(3);
-			ImGui.PushStyleColor(.Button, ImGui.Color(50, 190, 15).Value);
-			ImGui.PushStyleColor(.ButtonHovered, ImGui.Color(50, 120, 15).Value);
-			ImGui.PushStyleColor(.ButtonActive, ImGui.Color(116, 190, 99).Value);
-
-			if (ImGui.Button("Y", buttonSize))
-			{
-				value.Y = resetValues.Y;
-				changed = true;
-			}
+			Vector3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
+			if (ImGui.EditVector3("Rotation", ref rotationEuler))
+				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
 			
-			ImGui.SameLine();
-
-			if (ImGui.DragFloat("##Y", &value.Y, dragSpeed))
-				changed = true;
-			
-			ImGui.PopItemWidth();
-			ImGui.SameLine();
-			
-			ImGui.PopStyleColor(3);
-			ImGui.PushStyleColor(.Button, ImGui.Color(55, 55, 230).Value);
-			ImGui.PushStyleColor(.ButtonHovered, ImGui.Color(55, 55, 150).Value);
-			ImGui.PushStyleColor(.ButtonActive, ImGui.Color(90, 90, 230).Value);
-
-			if (ImGui.Button("Z", buttonSize))
-			{
-				value.Z = resetValues.Z;
-				changed = true;
-			}
-			
-			ImGui.SameLine();
-
-			if (ImGui.DragFloat("##Z", &value.Z, dragSpeed))
-				changed = true;
-			
-			ImGui.PopItemWidth();
-
-			ImGui.PopStyleColor(3);
-
-			return changed;
-		}
-
-		private static void ShowTransformComponentEditor(Entity entity)
-		{
-			if (!entity.HasComponent<TransformComponent>())
-				return;
-
-			var transform = entity.GetComponent<TransformComponent>();
-
-			if(ImGui.TreeNodeEx("Transform", .DefaultOpen))
-			{
-				Vector3 position = transform.Position;
-				if (Vector3Control("Position", ref position))
-					transform.Position = position;
-
-				Vector3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
-				if (Vector3Control("Rotation", ref rotationEuler))
-					transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
-				
-				Vector3 scale = transform.Scale;
-				if (Vector3Control("Scale", ref scale, .One))
-					transform.Scale = scale;
-
-				ImGui.TreePop();
-			}
+			Vector3 scale = transform.Scale;
+			if (ImGui.EditVector3("Scale", ref scale, .One))
+				transform.Scale = scale;
 		}
 		
 		static String[] strings = new String[]("Orthographic", "Perspective", "Perspective (Infinite)") ~ delete _;
 
-		private static void ShowCameraComponentEditor(Entity entity)
+		private static void ShowCameraComponentEditor(Entity entity, CameraComponent* cameraComponent)
 		{
-			if (!entity.HasComponent<CameraComponent>())
-				return;
+			ImGui.Checkbox("Primary", &cameraComponent.Primary);
 
-			if(ImGui.TreeNodeEx("Camera", .DefaultOpen))
+			var camera = ref cameraComponent.Camera;
+
+			String typeName = strings[camera.ProjectionType.Underlying];
+
+			if (ImGui.BeginCombo("Projection", typeName.CStr()))
 			{
-				var cameraComponent = entity.GetComponent<CameraComponent>();
-
-				ImGui.Checkbox("Primary", &cameraComponent.Primary);
-
-				var camera = ref cameraComponent.Camera;
-
-				String typeName = strings[camera.ProjectionType.Underlying];
-
-				if (ImGui.BeginCombo("Projection", typeName.CStr()))
+				for (int i = 0; i < 3; i++)
 				{
-					for (int i = 0; i < 3; i++)
+					bool isSelected = (typeName == strings[i]);
+
+					if (ImGui.Selectable(strings[i], isSelected))
 					{
-						bool isSelected = (typeName == strings[i]);
-
-						if (ImGui.Selectable(strings[i], isSelected))
-						{
-							camera.ProjectionType = (.)i;
-						}
-
-						if (isSelected)
-							ImGui.SetItemDefaultFocus();
+						camera.ProjectionType = (.)i;
 					}
 
-					ImGui.EndCombo();
+					if (isSelected)
+						ImGui.SetItemDefaultFocus();
 				}
 
-				if (camera.ProjectionType == .Perspective)
-				{
-					float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
-					if (ImGui.DragFloat("Fov Y", &fovY, 0.1f))
-						camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
-					
-					float near = camera.PerspectiveNearPlane;
-					if (ImGui.DragFloat("Near", &near, 0.1f))
-						camera.PerspectiveNearPlane = near;
+				ImGui.EndCombo();
+			}
 
-					float far = camera.PerspectiveFarPlane;
-					if (ImGui.DragFloat("Far", &far, 0.1f))
-						camera.PerspectiveFarPlane = far;
-				}
-				else if (camera.ProjectionType == .InfinitePerspective)
-				{
-					float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
-					if (ImGui.DragFloat("Vertical FOV", &fovY, 0.1f))
-						camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
-					
-					float near = camera.PerspectiveNearPlane;
-					if (ImGui.DragFloat("Near", &near, 0.1f))
-						camera.PerspectiveNearPlane = near;
-				}
-				else if (camera.ProjectionType == .Orthographic)
-				{
-					float size = camera.OrthographicHeight;
-					if (ImGui.DragFloat("Size", &size, 0.1f))
-						camera.OrthographicHeight = size;
-					
-					float near = camera.OrthographicNearPlane;
-					if (ImGui.DragFloat("Near", &near, 0.1f))
-						camera.OrthographicNearPlane = near;
+			if (camera.ProjectionType == .Perspective)
+			{
+				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
+				if (ImGui.DragFloat("Fov Y", &fovY, 0.1f))
+					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
+				
+				float near = camera.PerspectiveNearPlane;
+				if (ImGui.DragFloat("Near", &near, 0.1f))
+					camera.PerspectiveNearPlane = near;
 
-					float far = camera.OrthographicFarPlane;
-					if (ImGui.DragFloat("Far", &far, 0.1f))
-						camera.OrthographicFarPlane = far;
-				}
+				float far = camera.PerspectiveFarPlane;
+				if (ImGui.DragFloat("Far", &far, 0.1f))
+					camera.PerspectiveFarPlane = far;
+			}
+			else if (camera.ProjectionType == .InfinitePerspective)
+			{
+				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
+				if (ImGui.DragFloat("Vertical FOV", &fovY, 0.1f))
+					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
+				
+				float near = camera.PerspectiveNearPlane;
+				if (ImGui.DragFloat("Near", &near, 0.1f))
+					camera.PerspectiveNearPlane = near;
+			}
+			else if (camera.ProjectionType == .Orthographic)
+			{
+				float size = camera.OrthographicHeight;
+				if (ImGui.DragFloat("Size", &size, 0.1f))
+					camera.OrthographicHeight = size;
+				
+				float near = camera.OrthographicNearPlane;
+				if (ImGui.DragFloat("Near", &near, 0.1f))
+					camera.OrthographicNearPlane = near;
 
-				bool fixedAspectRatio = camera.FixedAspectRatio;
-				if (ImGui.Checkbox("Fixed Aspect Ratio", &fixedAspectRatio))
-					camera.FixedAspectRatio = fixedAspectRatio;
+				float far = camera.OrthographicFarPlane;
+				if (ImGui.DragFloat("Far", &far, 0.1f))
+					camera.OrthographicFarPlane = far;
+			}
 
-				if (fixedAspectRatio)
-				{
-					float aspect = camera.AspectRatio;
-					if (ImGui.DragFloat("Aspect Ratio", &aspect, 0.1f))
-						camera.AspectRatio = aspect;
-				}
+			bool fixedAspectRatio = camera.FixedAspectRatio;
+			if (ImGui.Checkbox("Fixed Aspect Ratio", &fixedAspectRatio))
+				camera.FixedAspectRatio = fixedAspectRatio;
 
-				ImGui.TreePop();
+			if (fixedAspectRatio)
+			{
+				float aspect = camera.AspectRatio;
+				if (ImGui.DragFloat("Aspect Ratio", &aspect, 0.1f))
+					camera.AspectRatio = aspect;
 			}
 		}
 
-		private static void ShowSpriteRendererComponentEditor(Entity entity)
+		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriterRendererComponent* spriteRendererComponent)
 		{
-			if (!entity.HasComponent<SpriterRendererComponent>())
-				return;
+			ImGui.ColorEdit4("Color", ref spriteRendererComponent.Color);
+		}
+
+		private static void ShowAddComponentButton(Entity entity)
+		{
+			static char8[128] searchBuffer = .();
+			static StringView searchFilter = .();
 			
-			var spriterRendererComponent = entity.GetComponent<SpriterRendererComponent>();
+			static float buttonWidth = 100;
 
-			if(ImGui.TreeNodeEx("Sprite Renderer", .DefaultOpen))
+			ImGui.NewLine();
+			ImGui.Separator();
+			ImGui.NewLine();
+
+			void ShowComponentButton<TComponent>(String name) where TComponent : struct, new
 			{
-				ImGui.ColorEdit4("Color", ref spriterRendererComponent.Color);
+				float textWidth = ImGui.CalcTextSize(name.CStr()).x;
+				buttonWidth = Math.Max(buttonWidth, textWidth + ImGui.GetStyle().FramePadding.x * 2);
 
-				ImGui.TreePop();
+				if (name.Contains(searchFilter, true) && ImGui.Selectable(name))
+				{
+					if (!entity.HasComponent<TComponent>())
+						entity.AddComponent<TComponent>();
+				}
 			}
+
+			float textWidth = ImGui.CalcTextSize("Add Component...").x;
+			buttonWidth = Math.Max(buttonWidth, textWidth + ImGui.GetStyle().FramePadding.x * 2);
+
+			ImGui.PushItemWidth(buttonWidth);
+
+			ImGui.NewLine();
+			ImGui.SameLine(ImGui.GetContentRegionMax().x / 2 - buttonWidth / 2);
+
+			if (ImGui.BeginCombo("##add_component_combo", "Add Component...", .NoArrowButton))
+			{
+				if (ImGui.InputText("##search_component_name", &searchBuffer, (.)searchBuffer.Count))
+				{
+					searchFilter = .(&searchBuffer);
+				}
+
+				ImGui.Separator();
+
+				ShowComponentButton<CameraComponent>("Camera");
+				ShowComponentButton<SpriterRendererComponent>("Sprite Renderer");
+
+				ImGui.EndCombo();
+			}
+
+			ImGui.PopItemWidth();
 		}
 	}
 }
