@@ -27,6 +27,8 @@ namespace GlitchyEditor
 
 		RenderTarget2D _viewportTarget ~ _?.ReleaseRef();
 
+		SettingsWindow _settingsWindow = new .() ~ delete _;
+
 		Entity _cameraEntity;
 		Entity _otherCameraEntity;
 
@@ -206,6 +208,8 @@ namespace GlitchyEditor
 
 			_editor.Update();
 
+			_settingsWindow.Show();
+
 			return false;
 		}
 
@@ -213,8 +217,11 @@ namespace GlitchyEditor
 		{
 			ImGui.BeginMainMenuBar();
 
-			if(ImGui.BeginMenu("File", false))
+			if(ImGui.BeginMenu("File", true))
 			{
+				if (ImGui.MenuItem("Settings"))
+					_settingsWindow.Open = true;
+
 				ImGui.EndMenu();
 			}
 			

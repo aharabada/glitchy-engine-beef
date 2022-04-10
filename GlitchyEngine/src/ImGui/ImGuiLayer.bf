@@ -2,13 +2,14 @@ using System;
 using ImGui;
 using GlitchyEngine.Events;
 using ImGuizmo;
+using GlitchyEngine.Renderer;
+using System.IO;
 
 using internal ImGui;
 
 #if GE_GRAPHICS_DX11
 
 using GlitchyEngine.Platform.DX11;
-using GlitchyEngine.Renderer;
 using internal GlitchyEngine.Platform.DX11;
 
 #endif
@@ -18,6 +19,8 @@ namespace GlitchyEngine.ImGui
 	public class ImGuiLayer : Layer
 	{
 		ImGui.IO* _io;
+
+		public bool SettingsInvalid;
 
 		public this() : base("ImGuiLayer") {  }
 
@@ -86,6 +89,30 @@ namespace GlitchyEngine.ImGui
 		public void ImGuiRender()
 		{
 			Debug.Profiler.ProfileFunction!();
+
+			if (SettingsInvalid)
+			{
+				var settings = Application.Get().Settings.ImGuiSettings;
+				
+				ImGui.GetIO().Fonts.Clear();
+
+				String fullpath = scope String();
+				Application.Get().ContentManager.GetFilePath(fullpath, settings.FontName);
+				if (File.Exists(fullpath))
+				{
+					ImGui.GetIO().Fonts.AddFontFromFileTTF(fullpath, settings.FontSize);
+				}
+				else
+				{
+					ImGui.GetIO().Fonts.AddFontDefault();
+				}
+
+#if GE_GRAPHICS_DX11
+				ImGuiImplDX11.CreateDeviceObjects();
+#endif
+
+				SettingsInvalid = false;
+			}
 
 			Begin();
 

@@ -40,6 +40,8 @@ namespace GlitchyEngine
 		[Inline]
 		public static Application Get() => s_Instance;
 
+		public Settings Settings {get; private set;} = new .() ~ delete _;
+
 		public this()
 		{
 			Profiler.ProfileFunction!();
@@ -70,6 +72,9 @@ namespace GlitchyEngine
 			_imGuiLayer = new ImGuiLayer();
 			PushOverlay(_imGuiLayer);
 #endif
+
+			GlitchyEngine.Settings.Load();
+			Settings.Apply();
 		}
 
 		public ~this()

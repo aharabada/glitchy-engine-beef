@@ -25,6 +25,8 @@ namespace GlitchyEngine.Content
 
 	interface IContentManager
 	{
+		void GetFilePath(String outFilename, String filename);
+
 		Stream GetFile(String filename);
 	}
 
@@ -41,10 +43,15 @@ namespace GlitchyEngine.Content
 			Runtime.Assert(Directory.Exists(contentRoot), "Content root directory doesn't exist.");
 		}
 
+		public void GetFilePath(String outFilename, String filename)
+		{
+			Path.InternalCombine(outFilename, _contentRoot, filename);
+		}
+
 		public Stream GetFile(String filename)
 		{
 			String fullpath = scope .(_contentRoot.Length + 1 + filename.Length);
-			Path.InternalCombine(fullpath, _contentRoot, filename);
+			GetFilePath(fullpath, filename);
 
 			FileStream stream = new FileStream();
 			var result = stream.Open(fullpath, .Read, .Read);
