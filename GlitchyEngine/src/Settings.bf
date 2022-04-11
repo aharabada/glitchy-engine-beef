@@ -107,7 +107,7 @@ namespace GlitchyEngine
 	class ImGuiSettings
 	{
 		[Setting("UI", "Font Size"), BonInclude]
-		public int32 FontSize = 16;
+		public int32 FontSize = 14;
 
 		[Setting("UI", "Font name"), BonInclude]
 		public readonly String FontName = new .("Fonts/CascadiaCode.ttf") ~ delete _;

@@ -31,19 +31,23 @@ namespace GlitchyEditor.EditWindows
 
 		protected override void InternalShow()
 		{
+			ImGui.PushStyleVar(.WindowMinSize, ImGui.Vec2(1000, 100));
+
 			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
 			{
+				ImGui.PopStyleVar();
 				ImGui.End();
 				return;
 			}
-
+			
 			if(_entityHierarchyWindow.SelectedEntities.Count == 1)
 			{
 				Entity entity = _entityHierarchyWindow.SelectedEntities.Front;
 
 				ShowComponents(entity);
 			}
-
+			
+			ImGui.PopStyleVar();
 			ImGui.End();
 		}
 
@@ -73,11 +77,11 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.PushID(header);
 
-			bool nodeOpen = ImGui.TreeNodeEx(header.CStr(), .DefaultOpen | .AllowItemOverlap | .Framed);
+			bool nodeOpen = ImGui.TreeNodeEx(header.CStr(), .DefaultOpen | .AllowItemOverlap | .Framed | .SpanFullWidth);
 
 			if (showComponentContextMenu != null)
 			{
-				ImGui.SameLine(ImGui.GetWindowContentRegionMax().x - ImGui.CalcTextSize("...").x);
+				ImGui.SameLine(ImGui.GetWindowContentRegionMax().x - ImGui.CalcTextSize("...").x - 2 * ImGui.GetStyle().FramePadding.x);
 
 				if (ImGui.SmallButton("..."))
 				{
@@ -139,16 +143,22 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowTransformComponentEditor(Entity entity, TransformComponent* transform)
 		{
+			float textWidth = ImGui.CalcTextSize("Position".CStr()).x;
+			textWidth = Math.Max(textWidth, ImGui.CalcTextSize("Rotation".CStr()).x);
+			textWidth = Math.Max(textWidth, ImGui.CalcTextSize("Scale".CStr()).x);
+
+			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
+
 			Vector3 position = transform.Position;
-			if (ImGui.EditVector3("Position", ref position))
+			if (ImGui.EditVector3("Position", ref position, .Zero, 0.1f, textWidth))
 				transform.Position = position;
 
 			Vector3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
-			if (ImGui.EditVector3("Rotation", ref rotationEuler))
+			if (ImGui.EditVector3("Rotation", ref rotationEuler, .Zero, 0.1f, textWidth))
 				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
 			
 			Vector3 scale = transform.Scale;
-			if (ImGui.EditVector3("Scale", ref scale, .One))
+			if (ImGui.EditVector3("Scale", ref scale, .One, 0.1f, textWidth))
 				transform.Scale = scale;
 		}
 		

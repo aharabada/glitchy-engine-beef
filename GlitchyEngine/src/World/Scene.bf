@@ -1,6 +1,7 @@
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using System;
+using System.Collections;
 
 namespace GlitchyEngine.World
 {
@@ -9,6 +10,8 @@ namespace GlitchyEngine.World
 	class Scene
 	{
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
+		
+		private Dictionary<Type, function void(Entity entity, Type componentType, void* component)> _onComponentAddedHandlers = new .() ~ delete _;
 
 		public this()
 		{
@@ -20,6 +23,11 @@ namespace GlitchyEngine.World
 			v.Sprite = new Texture2D("Textures/rocket.png");
 			v.Sprite.SamplerState = SamplerStateManager.PointClamp;
 
+			_onComponentAddedHandlers.Add(typeof(CameraComponent), (e, t, c) => {
+				CameraComponent* cameraComponent = (.)c;
+
+				cameraComponent.Camera.SetViewportSize(e.Scene.ViewportWidth, e.Scene.ViewportHeight);
+			});
 		}
 
 		public ~this()
@@ -68,6 +76,7 @@ namespace GlitchyEngine.World
 			}
 		}
 
+		/// Creates a new Entity with the given name.
 		public Entity CreateEntity(String name = "")
 		{
 			Entity entity = Entity(_ecsWorld.NewEntity(), this);
@@ -79,8 +88,20 @@ namespace GlitchyEngine.World
 			return entity;
 		}
 
-		public void DestroyEntity(Entity entity)
+		/** Deletes the given entity.
+		 * @param entity The entity to delete.
+		 * @param destroyChildren If set to true all children of entity will be destroyed.
+		*/
+		public void DestroyEntity(Entity entity, bool destroyChildren = false)
 		{
+			if (destroyChildren)
+			{
+				for (Entity child in entity.EnumerateChildren)
+				{
+					DestroyEntity(child, true);
+				}
+			}
+			
 			_ecsWorld.RemoveEntity(entity.Handle);
 		}
 
@@ -98,6 +119,14 @@ namespace GlitchyEngine.World
 				{
 					cameraComponent.Camera.SetViewportSize(width, height);
 				}
+			}
+		}
+
+		private void OnComponentAdded(Entity entity, Type componentType, void* component)
+		{
+			if (_onComponentAddedHandlers.TryGetValue(componentType, let handler))
+			{
+				handler(entity, componentType, component);
 			}
 		}
 	}

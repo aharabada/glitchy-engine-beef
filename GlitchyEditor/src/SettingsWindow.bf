@@ -51,6 +51,8 @@ namespace GlitchyEditor
 
 		public this()
 		{
+			_open = false;
+
 			_settings = Application.Get().Settings;
 
 			Create();
@@ -117,6 +119,9 @@ namespace GlitchyEditor
 
 		protected override void InternalShow()
 		{
+			ImGui.Begin("Settings", &_open, .NoDocking);
+			defer ImGui.End();
+
 			// Leave room for 1 line below us
 			ImGui.BeginChild("item view", ImGui.Vec2(0, -ImGui.GetFrameHeightWithSpacing()));
 

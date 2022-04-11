@@ -114,6 +114,5 @@ namespace GlitchyEditor
 
 			_selectedEntities.Clear();
 		}
-
 	}
 }
