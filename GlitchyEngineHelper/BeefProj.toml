@@ -7,4 +7,7 @@ TargetType = "BeefLib"
 StartupObject = "GlitchyEngineHelper.Program"
 
 [Configs.Debug.Win64]
+BuildCommandsOnCompile = "IfFilesChanged"
+BuildCommandsOnRun = "IfFilesChanged"
 LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib"]
+PostBuildCmds = ["$(ProjectDir)\\..\\bin\\vscmake.bat x64 $(ProjectDir) x64-debug"]
