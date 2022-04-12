@@ -97,7 +97,7 @@ namespace GlitchyEngine.Renderer
 				}
 				else if (strView.StartsWith(DdsMagicWord))
 				{
-					LoadTexturePlatform();
+					LoadDds(data);
 				}
 				else
 				{
@@ -137,6 +137,11 @@ namespace GlitchyEngine.Renderer
 			LodePng.LodePng.Free(rawData);
 		}
 
+		protected void LoadDds(Stream stream)
+		{
+			LoadDdsPlatform(stream);
+		}
+
 		public this(Texture2DDesc desc)
 		{
 			PrepareTexturePlatform(desc, false);
@@ -157,7 +162,7 @@ namespace GlitchyEngine.Renderer
 		uint32 mipLevels = 1, uint32 arraySize = 1, Usage usage = .Default, CPUAccessFlags cpuAccess = .None
 		*/
 
-		protected extern void LoadTexturePlatform();
+		protected extern void LoadDdsPlatform(Stream stream);
 		
 		protected extern void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch);
 
@@ -195,9 +200,19 @@ namespace GlitchyEngine.Renderer
 		public this(String path)
 		{
 			this._path = new String(path);
-			LoadTexturePlatform();
+			LoadTexture();
+		}
+		
+		private void LoadTexture()
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			Stream data = Application.Get().ContentManager.GetFile(_path);
+			defer delete data;
+
+			LoadTexturePlatform(data);
 		}
 
-		protected extern void LoadTexturePlatform();
+		protected extern void LoadTexturePlatform(Stream stream);
 	}
 }

@@ -28,3 +28,6 @@
 [submodule "GlitchyEngine/vendor/bon"]
 	path = GlitchyEngine/vendor/bon
 	url = https://github.com/EinScott/bon.git
+[submodule "GlitchyEngineHelper/vendor/DirectXTK"]
+	path = GlitchyEngineHelper/vendor/DirectXTK
+	url = https://github.com/microsoft/DirectXTK.git

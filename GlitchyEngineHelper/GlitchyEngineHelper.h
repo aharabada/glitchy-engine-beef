@@ -4,8 +4,7 @@
 #pragma once
 
 #define GE_EXPORT extern "C" __declspec(dllexport)
-#define GE_CALLTYPE __stdcall
+#define GE_CALLTYPE __cdecl
 
 #include "vendor/xxHash/xxhash.h"
-
-// TODO: Reference additional headers your program requires here.
+#include "vendor/DirectXTK/Inc/DDSTextureLoader.h"

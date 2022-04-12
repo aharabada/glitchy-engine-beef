@@ -20,7 +20,7 @@ namespace GlitchyEngine.World
 
 			Entity entity2 = CreateEntity("Red Square");
 			var v = entity2.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.95f, 0.1f, 0.3f)));
-			v.Sprite = new Texture2D("Textures/rocket.png");
+			v.Sprite = new Texture2D("Textures/rocket.dds");
 			v.Sprite.SamplerState = SamplerStateManager.PointClamp;
 
 			_onComponentAddedHandlers.Add(typeof(CameraComponent), (e, t, c) => {

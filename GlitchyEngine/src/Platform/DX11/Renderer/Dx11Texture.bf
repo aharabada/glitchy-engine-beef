@@ -1,21 +1,21 @@
 #if GE_GRAPHICS_DX11
 
 using System;
+using System.IO;
 using DirectX.D3D11;
 using DirectX.Common;
 using DirectXTK;
 using GlitchyEngine.Math;
+using GlitchyEngine.Platform.DX11;
 using System.Collections;
 
 using internal GlitchyEngine.Renderer;
-
-typealias NativeTex2DDesc = DirectX.D3D11.Texture2DDescription;
-
-using GlitchyEngine.Platform.DX11;
 using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
+	internal typealias NativeTex2DDesc = DirectX.D3D11.Texture2DDescription;
+
 	extension Texture
 	{
 		protected internal ID3D11ShaderResourceView* nativeResourceView ~ _?.Release();
@@ -25,19 +25,28 @@ namespace GlitchyEngine.Renderer
 		 * @param texture The reference to the pointer that will hold the texture.
 		 * @returns true if the texture was loaded successfully; false otherwise.
 		 */
-		protected bool LoadResourcePlatform<T>(StringView path, ref T* texture) where T : ID3D11Resource
+		protected bool LoadDdsResourcePlatform<T>(Stream stream, ref T* texture) where T : ID3D11Resource
 		{
 			Debug.Profiler.ProfileResourceFunction!();
+
+			uint8[] ddsData = new:ScopedAlloc! uint8[stream.Length];
+
+			var result = stream.TryRead(ddsData);
+
+			if (result case .Err(let err))
+			{
+				Log.EngineLogger.Error($"Failed to read texture data from stream. Error: {err}");
+			}
 
 			((ID3D11Resource*)texture)?.Release();
 			nativeResourceView?.Release();
 
-			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromFile(NativeDevice, path.ToScopedNativeWChar!(),
-				(.)&texture, &nativeResourceView);
+			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromMemory(NativeDevice,
+				ddsData.Ptr, (uint)ddsData.Count, (.)&texture, &nativeResourceView);
 
 			if(loadResult.Failed)
 			{
-				Log.EngineLogger.Error($"Failed to load texture \"{path}\". Error({(int)loadResult}): {loadResult}");
+				Log.EngineLogger.Error($"Failed to load texture. Error({(int)loadResult}): {loadResult}");
 
 				ReleaseAndNullify!(texture);
 				ReleaseAndNullify!(nativeResourceView);
@@ -85,11 +94,11 @@ namespace GlitchyEngine.Renderer
 		public override uint32 ArraySize => nativeDesc.ArraySize;
 		public override uint32 MipLevels => nativeDesc.MipLevels;
 
-		protected override void LoadTexturePlatform()
+		protected override void LoadDdsPlatform(Stream stream)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			LoadResourcePlatform(_path, ref nativeTexture);
+			LoadDdsResourcePlatform(stream, ref nativeTexture);
 
 			let resType = nativeTexture.GetResourceType();
 			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture \"{_path}\" is not a 2D texture (it is {resType}).");
@@ -259,11 +268,11 @@ namespace GlitchyEngine.Renderer
 		public override uint32 ArraySize => nativeDesc.ArraySize / 6;
 		public override uint32 MipLevels => nativeDesc.MipLevels;
 
-		protected override void LoadTexturePlatform()
+		protected override void LoadTexturePlatform(Stream stream)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
-
-			LoadResourcePlatform(_path, ref nativeTexture);
+			
+			LoadDdsResourcePlatform(stream, ref nativeTexture);
 
 			let resType = nativeTexture.GetResourceType();
 			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture \"{_path}\" is not a texture cube (it is {resType}).");
