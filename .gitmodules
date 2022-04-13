@@ -4,9 +4,6 @@
 [submodule "vendor/lodepng-beef"]
 	path = vendor/lodepng-beef
 	url = https://github.com/aharabada/lodepng-beef.git
-[submodule "GlitchyEngine\\vendor\\freetype"]
-	path = GlitchyEngine\\vendor\\freetype
-	url = https://github.com/aharabada/FreeType-beef.git
 [submodule "GlitchyEngine/vendor/freetype"]
 	path = GlitchyEngine/vendor/freetype
 	url = https://github.com/aharabada/FreeType-beef.git
