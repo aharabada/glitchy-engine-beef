@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using GlitchyEngine.Collections;
 using GlitchyEditor.EditWindows;
+using GlitchyEngineHelper;
 
 namespace GlitchyEditor
 {
@@ -29,6 +30,14 @@ namespace GlitchyEditor
 		/// Creates a new editor for the given world
 		public this(Scene scene)
 		{
+			String str = @"D:\Development\Projects\Beef\GlitchyEngine\build\Debug_Win64\GlitchyEditor\";
+
+			char16* ptr = str.ToScopedNativeWChar!();
+
+			DotNetRuntime.Init();
+
+			DotNetRuntime.TestRunDotNet(1, &ptr);
+
 			_scene = scene;
 			_ecsWorld = _scene.[Friend]_ecsWorld;
 

@@ -2,6 +2,8 @@
 //
 
 #include "GlitchyEngineHelper.h"
+#include "vendor/xxHash/xxhash.h"
+#include "vendor/DirectXTK/Inc/DDSTextureLoader.h"
 
 using namespace std;
 
