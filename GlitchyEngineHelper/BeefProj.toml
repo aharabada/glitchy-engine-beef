@@ -9,5 +9,5 @@ StartupObject = "GlitchyEngineHelper.Program"
 [Configs.Debug.Win64]
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
-LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEngineHelper\\vendor\\dotnethost\\nethost.lib"]
+LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib"]
 PreBuildCmds = ["$(ProjectDir)\\..\\bin\\vscmake.bat x64 $(ProjectDir) x64-debug", "CopyToDependents(\"$(ProjectDir)/out/build/x64-debug/*.dll\")"]

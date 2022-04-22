@@ -27,16 +27,94 @@ namespace GlitchyEditor
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
 		public SceneViewportWindow SceneViewportWindow => _sceneViewportWindow;
 
+		[CRepr]
+		struct lib_args
+		{
+		    public char16* Message;
+		    public int32 number;
+		};
+
+		[CRepr]
+		struct CreateInstanceArgs
+		{
+		    //public StringView TypeName;
+			public char8* TypeName;
+			public int TypeNameLength;
+		};
+		
+		struct ManagedReference;
+
+		public typealias CreateInstanceDelegate = function [CallingConvention(.Stdcall)] ManagedReference*(CreateInstanceArgs* arg, int32 arg_size_in_bytes);
+
+		public typealias FreeInstanceDelegate = function [CallingConvention(.Stdcall)] void(ManagedReference* arg);
+
+		public typealias InstanceMethodDelegate = function [CallingConvention(.Stdcall)] void(ManagedReference* arg);
+
 		/// Creates a new editor for the given world
 		public this(Scene scene)
 		{
 			String str = @"D:\Development\Projects\Beef\GlitchyEngine\build\Debug_Win64\GlitchyEditor\";
+			//char16* ptr = str.ToScopedNativeWChar!();
 
-			char16* ptr = str.ToScopedNativeWChar!();
+			String runtimeConfig = scope String(str, "DotNetTest.runtimeconfig.json");
+			String assemblyPath = scope String(str, "DotNetTest.dll");
 
 			DotNetRuntime.Init();
 
-			DotNetRuntime.TestRunDotNet(1, &ptr);
+			DotNetRuntime.LoadRuntime(runtimeConfig);
+
+
+
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.Lib, DotNetTest", "Hello", let hello);
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.ScriptableEntity, DotNetTest", "Hello2", let hello2);
+
+
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "Test", let test);
+
+			CreateInstanceDelegate createInstance;
+			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "CreateInstance", "DotNetTest.InteropHelper+CreateInstanceEntryPoint, DotNetTest", out createInstance);
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "CreateInstance", out createInstance);
+			
+			FreeInstanceDelegate freeInstance;
+			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "FreeInstance", "DotNetTest.InteropHelper+FreeInstanceEntryPoint, DotNetTest", out freeInstance);
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "FreeInstance", out freeInstance);
+			
+			InstanceMethodDelegate update;
+			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.ScriptableEntity, DotNetTest", "InvokeUpdate", "DotNetTest.ScriptableEntity+InstanceMethodEntryPoint, DotNetTest", out update);
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.ScriptableEntity, DotNetTest", "InvokeUpdate", out update);
+
+			//DotNetRuntime.TestRunDotNet(1, &ptr);
+
+			lib_args args = .
+			{
+			    Message = "from host!".ToScopedNativeWChar!(),
+			    number = 1337
+			};
+
+			hello(&args, sizeof(lib_args));
+
+			hello2(&args, sizeof(lib_args));
+
+			test(null, 0);
+
+			String typeName = "DotNetTest.ScriptableEntity, DotNetTest";
+
+			CreateInstanceArgs instanceArgs = .
+			{
+				TypeName = typeName.Ptr,
+				TypeNameLength = typeName.Length
+			};
+
+			ManagedReference* instance = createInstance(&instanceArgs, sizeof(CreateInstanceArgs));
+
+			for (int i < 10)
+			{
+				update(instance);
+			}
+
+			freeInstance(instance);
+
+			DotNetRuntime.Deinit();
 
 			_scene = scene;
 			_ecsWorld = _scene.[Friend]_ecsWorld;

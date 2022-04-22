@@ -48,20 +48,43 @@ namespace
     hostfxr_get_runtime_delegate_fn get_delegate_fptr;
     hostfxr_close_fn close_fptr;
 
+    load_assembly_and_get_function_pointer_fn load_assembly_and_get_function_pointer;
+
+    hostfxr_handle hostContext;
+
     // Forward declarations
     bool load_hostfxr();
     load_assembly_and_get_function_pointer_fn get_dotnet_load_assembly(const char_t* assembly);
 }
 
-GE_EXPORT int GE_CALLTYPE DotNet_Init()
+struct lib_args
 {
-    if (!load_hostfxr())
-    {
-        assert(false && "Failure: load_hostfxr()");
-        return EXIT_FAILURE;
-    }
+    const char_t* message;
+    int number;
+};
 
-    return 0;
+typedef void (CORECLR_DELEGATE_CALLTYPE* custom_entry_point_fn)(lib_args args);
+
+custom_entry_point_fn GetFunctionPointer(load_assembly_and_get_function_pointer_fn load_assembly_and_get_function_pointer, const string_t& dotnetlib_path, const char_t* dotnet_type, const char_t* method_name)
+{
+    // Function pointer to managed delegate with non-default signature
+    custom_entry_point_fn custom = nullptr;
+    int rc = load_assembly_and_get_function_pointer(
+        dotnetlib_path.c_str(),
+        dotnet_type,
+        STR("CustomEntryPointUnmanaged") /*method_name*/,
+        UNMANAGEDCALLERSONLY_METHOD,
+        nullptr,
+        (void**)&custom);
+    assert(rc == 0 && custom != nullptr && "Failure: load_assembly_and_get_function_pointer()");
+
+    return custom;
+}
+
+void LoadRuntime(const char_t* configPath)
+{
+    load_assembly_and_get_function_pointer = get_dotnet_load_assembly(configPath);
+    assert(load_assembly_and_get_function_pointer != nullptr && "Failure: get_dotnet_load_assembly()");
 }
 
 GE_EXPORT int GE_CALLTYPE TestRunDotNet(int argc, wchar_t* argv[])
@@ -121,11 +144,11 @@ GE_EXPORT int GE_CALLTYPE TestRunDotNet(int argc, wchar_t* argv[])
     //
     // STEP 4: Run managed code
     //
-    struct lib_args
+    /*struct lib_args
     {
         const char_t* message;
         int number;
-    };
+    };*/
     for (int i = 0; i < 3; ++i)
     {
         // <SnippetCallManaged>
@@ -140,18 +163,24 @@ GE_EXPORT int GE_CALLTYPE TestRunDotNet(int argc, wchar_t* argv[])
     }
 
     // Function pointer to managed delegate with non-default signature
-    typedef void (CORECLR_DELEGATE_CALLTYPE* custom_entry_point_fn)(lib_args args);
-    custom_entry_point_fn custom = nullptr;
-    rc = load_assembly_and_get_function_pointer(
-        dotnetlib_path.c_str(),
-        dotnet_type,
-        STR("CustomEntryPointUnmanaged") /*method_name*/,
-        UNMANAGEDCALLERSONLY_METHOD,
-        nullptr,
-        (void**)&custom);
-    assert(rc == 0 && custom != nullptr && "Failure: load_assembly_and_get_function_pointer()");
+    //typedef void (CORECLR_DELEGATE_CALLTYPE* custom_entry_point_fn)(lib_args args);
+    //custom_entry_point_fn custom = nullptr;
+    //rc = load_assembly_and_get_function_pointer(
+    //    dotnetlib_path.c_str(),
+    //    dotnet_type,
+    //    STR("CustomEntryPointUnmanaged") /*method_name*/,
+    //    UNMANAGEDCALLERSONLY_METHOD,
+    //    nullptr,
+    //    (void**)&custom);
+    //assert(rc == 0 && custom != nullptr && "Failure: load_assembly_and_get_function_pointer()");
 
-    lib_args args
+    custom_entry_point_fn custom = GetFunctionPointer(
+        load_assembly_and_get_function_pointer,
+        dotnetlib_path,
+        dotnet_type,
+        STR("CustomEntryPointUnmanaged") /*method_name*/);
+
+	lib_args args
     {
         STR("from host!"),
         -1
@@ -227,25 +256,65 @@ namespace
     {
         // Load .NET Core
         void* load_assembly_and_get_function_pointer = nullptr;
-        hostfxr_handle cxt = nullptr;
-        int rc = init_fptr(config_path, nullptr, &cxt);
-        if (rc != 0 || cxt == nullptr)
+        hostContext = nullptr;
+        int rc = init_fptr(config_path, nullptr, &hostContext);
+        if (rc != 0 || hostContext == nullptr)
         {
             std::cerr << "Init failed: " << std::hex << std::showbase << rc << std::endl;
-            close_fptr(cxt);
+            close_fptr(hostContext);
             return nullptr;
         }
 
         // Get the load assembly function pointer
         rc = get_delegate_fptr(
-            cxt,
+            hostContext,
             hdt_load_assembly_and_get_function_pointer,
             &load_assembly_and_get_function_pointer);
         if (rc != 0 || load_assembly_and_get_function_pointer == nullptr)
             std::cerr << "Get delegate failed: " << std::hex << std::showbase << rc << std::endl;
 
-        close_fptr(cxt);
+        // TODO: close_fptr(hostContext); ???
         return (load_assembly_and_get_function_pointer_fn)load_assembly_and_get_function_pointer;
     }
     // </SnippetInitialize>
+}
+
+
+GE_EXPORT int GE_CALLTYPE DotNet_Init()
+{
+    if (!load_hostfxr())
+    {
+        assert(false && "Failure: load_hostfxr()");
+        return EXIT_FAILURE;
+    }
+
+    return 0;
+}
+
+GE_EXPORT int GE_CALLTYPE DotNet_Deinit()
+{
+    int result = close_fptr(hostContext);
+    hostContext = nullptr;
+
+    return result;
+}
+
+GE_EXPORT void GE_CALLTYPE DotNet_LoadRuntime(const char_t* configPath)
+{
+    LoadRuntime(configPath);
+}
+
+GE_EXPORT int GE_CALLTYPE DotNet_LoadAssemblyAndGetFunctionPointer(const char_t* assemblyPath, const char_t* typeName, const char_t* methodName, const char_t* delegateTypeName, void** outDelegate)
+{
+    int rc = load_assembly_and_get_function_pointer(
+        assemblyPath,
+        typeName,
+        methodName,
+        delegateTypeName,
+        nullptr,
+        outDelegate);
+
+    assert(rc == 0 && outDelegate != nullptr && "Failure: load_assembly_and_get_function_pointer()");
+
+    return rc;
 }
