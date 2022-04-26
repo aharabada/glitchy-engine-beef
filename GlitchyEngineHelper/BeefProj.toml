@@ -10,4 +10,4 @@ StartupObject = "GlitchyEngineHelper.Program"
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
 LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib"]
-PreBuildCmds = ["$(ProjectDir)\\..\\bin\\vscmake.bat x64 $(ProjectDir) x64-debug", "CopyToDependents(\"$(ProjectDir)/out/build/x64-debug/*.dll\")"]
+PreBuildCmds = ["$(ProjectDir)\\..\\bin\\vscmake.bat x64 $(ProjectDir) x64-debug", "CopyToDependents(\"$(ProjectDir)/out/build/x64-debug/*.dll\")", "dotnet build $(ProjectDir)/DotNetScriptingHelper/DotNetScriptingHelper.csproj -c Debug", "CopyToDependents(\"$(ProjectDir)/DotNetScriptingHelper/bin/Debug/*\")"]

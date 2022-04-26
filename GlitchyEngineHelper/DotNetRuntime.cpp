@@ -49,6 +49,7 @@ namespace
     hostfxr_close_fn close_fptr;
 
     load_assembly_and_get_function_pointer_fn load_assembly_and_get_function_pointer;
+    get_function_pointer_fn get_function_pointer;
 
     hostfxr_handle hostContext;
 
@@ -79,12 +80,6 @@ custom_entry_point_fn GetFunctionPointer(load_assembly_and_get_function_pointer_
     assert(rc == 0 && custom != nullptr && "Failure: load_assembly_and_get_function_pointer()");
 
     return custom;
-}
-
-void LoadRuntime(const char_t* configPath)
-{
-    load_assembly_and_get_function_pointer = get_dotnet_load_assembly(configPath);
-    assert(load_assembly_and_get_function_pointer != nullptr && "Failure: get_dotnet_load_assembly()");
 }
 
 GE_EXPORT int GE_CALLTYPE TestRunDotNet(int argc, wchar_t* argv[])
@@ -279,6 +274,46 @@ namespace
     // </SnippetInitialize>
 }
 
+// Load and initialize .NET Core and get desired function pointer for scenario
+void InitDotNet(const char_t* config_path)
+{
+    // Load .NET Core
+    load_assembly_and_get_function_pointer = nullptr;
+    hostContext = nullptr;
+    int rc = init_fptr(config_path, nullptr, &hostContext);
+    if (rc != 0 || hostContext == nullptr)
+    {
+        std::cerr << "Init failed: " << std::hex << std::showbase << rc << std::endl;
+        close_fptr(hostContext);
+        return;
+    }
+
+    // Get the load assembly function pointer
+    rc = get_delegate_fptr(
+        hostContext,
+        hdt_load_assembly_and_get_function_pointer,
+        (void**)&load_assembly_and_get_function_pointer);
+
+    if (rc != 0 || load_assembly_and_get_function_pointer == nullptr)
+        std::cerr << "Get delegate failed: " << std::hex << std::showbase << rc << std::endl;
+
+    rc = get_delegate_fptr(
+        hostContext,
+        hdt_get_function_pointer,
+        (void**)&get_function_pointer);
+
+    if (rc != 0 || get_function_pointer == nullptr)
+        std::cerr << "Get delegate failed: " << std::hex << std::showbase << rc << std::endl;
+
+    // TODO: close_fptr(hostContext); ???
+}
+
+void LoadRuntime(const char_t* configPath)
+{
+    InitDotNet(configPath);
+    
+    assert(load_assembly_and_get_function_pointer != nullptr && get_function_pointer != nullptr && "Failure: get_dotnet_load_assembly()");
+}
 
 GE_EXPORT int GE_CALLTYPE DotNet_Init()
 {
@@ -315,6 +350,21 @@ GE_EXPORT int GE_CALLTYPE DotNet_LoadAssemblyAndGetFunctionPointer(const char_t*
         outDelegate);
 
     assert(rc == 0 && outDelegate != nullptr && "Failure: load_assembly_and_get_function_pointer()");
+
+    return rc;
+}
+
+GE_EXPORT int GE_CALLTYPE DotNet_GetFunctionPointer(const char_t* typeName, const char_t* methodName, const char_t* delegateTypeName, void** outDelegate)
+{
+    int rc = get_function_pointer(
+        typeName,
+        methodName,
+        delegateTypeName,
+        nullptr,
+        nullptr,
+        outDelegate);
+
+    //assert(rc == 0 && outDelegate != nullptr && "Failure: DotNet_GetFunctionPointer()");
 
     return rc;
 }

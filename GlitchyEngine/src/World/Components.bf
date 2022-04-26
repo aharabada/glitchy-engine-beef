@@ -288,4 +288,35 @@ namespace GlitchyEngine.World
 			DestroyInstanceFunction(&this);
 		}
 	}
+
+	struct DotNetScriptComponent : IDisposableComponent
+	{
+		public void* InstanceHandlePtr = null;
+
+		private String TypeName = null;
+
+		typealias CreateInstanceDelegate = function void*(void* typeNamePtr, int32 typeNameLength, EcsEntity entity);
+
+		public static CreateInstanceDelegate DelCreateInstance;
+
+		public void Bind(StringView dotNetAssemblyQualifiedTypeName) mut
+		{
+			TypeName = new String(dotNetAssemblyQualifiedTypeName);
+		}
+
+		internal void CreateInstance(EcsEntity entity) mut
+		{
+			//IntPtr CreateInstance(IntPtr typeNamePtr, int typeNameLength, EcsEntity entity)
+			InstanceHandlePtr = DelCreateInstance(TypeName.Ptr, (int32)TypeName.Length, entity);
+		}
+		
+		internal void UpdateInstance()
+		{
+		}
+
+		public void Dispose() mut
+		{
+			delete TypeName;
+		}
+	}
 }

@@ -14,12 +14,16 @@ namespace GlitchyEngineHelper
 		[LinkName("DotNet_Deinit"), CallingConvention(.Cdecl)]
 		public static extern c_int Deinit();
 
-		[LinkName("DotNet_LoadRuntime"), CallingConvention(.Cdecl)]
 #if BF_PLATFORM_WINDOWS
-		private static extern void Internal_LoadRuntime(char16* configPath);
+		private typealias char_t = char16;
 #else
-		private static extern void Internal_LoadRuntime(char8* configPath);
+		private typealias char_t = char8;
 #endif
+
+		[LinkName("DotNet_LoadRuntime"), CallingConvention(.Cdecl)]
+		private static extern void Internal_LoadRuntime(char_t* configPath);
+
+		private static char_t* UNMANAGEDCALLERSONLY_METHOD = (char_t*)(void*)-1;
 
 		public static void LoadRuntime(StringView configPath)
 		{
@@ -31,44 +35,66 @@ namespace GlitchyEngineHelper
 		}
 		
 		[LinkName("DotNet_LoadAssemblyAndGetFunctionPointer"), CallingConvention(.Cdecl)]
-#if BF_PLATFORM_WINDOWS
-		private static extern c_int DotNet_LoadAssemblyAndGetFunctionPointer(char16* assemblyPath, char16* typeName, char16* methodName, char16* delegateName, void** outDelegate);
-#else
-		private static extern c_int DotNet_LoadAssemblyAndGetFunctionPointer(char8* assemblyPath, char8* typeName, char8* methodName, char8* delegateName, void** outDelegate);
-#endif
+		private static extern c_int DotNet_LoadAssemblyAndGetFunctionPointer(char_t* assemblyPath, char_t* typeName, char_t* methodName, char_t* delegateName, void** outDelegate);
 
 		public typealias ManagedDelegate = function int32(void *arg, int32 arg_size_in_bytes);
 
+		public static c_int LoadAssemblyAndGetFunctionPointer<T>(StringView assemblyPath, StringView typeName, StringView methodName, StringView? delegateName, out T outDelegate) where T : var
+ 		{
+			outDelegate = null;
+
+#if BF_PLATFORM_WINDOWS
+			return DotNet_LoadAssemblyAndGetFunctionPointer(assemblyPath.ToScopedNativeWChar!(), typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), delegateName?.ToScopedNativeWChar!(), (void**)&outDelegate);
+#else
+			Runtime.NotImplemented();
+#endif
+		}
+
 		public static c_int LoadAssemblyAndGetFunctionPointer(StringView assemblyPath, StringView typeName, StringView methodName, out ManagedDelegate outDelegate)
  		{
-			 outDelegate = ?;
+			 return LoadAssemblyAndGetFunctionPointer<ManagedDelegate>(assemblyPath, typeName, methodName, null, out outDelegate);
+		}
+
+		public static c_int LoadAssemblyAndGetFunctionPointerUnmanagedCallersOnly<T>(StringView assemblyPath, StringView typeName, StringView methodName, out T outDelegate) where T : var
+ 		{
+			outDelegate = null;
 
 #if BF_PLATFORM_WINDOWS
-			return DotNet_LoadAssemblyAndGetFunctionPointer(assemblyPath.ToScopedNativeWChar!(), typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), null, (void**)&outDelegate);
+			return DotNet_LoadAssemblyAndGetFunctionPointer(assemblyPath.ToScopedNativeWChar!(), typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), UNMANAGEDCALLERSONLY_METHOD, (void**)&outDelegate);
 #else
-
+			Runtime.NotImplemented();
 #endif
 		}
 
-		public static c_int LoadAssemblyAndGetFunctionPointer<T>(StringView assemblyPath, StringView typeName, StringView methodName, StringView delegateName, out T outDelegate) where T : var
- 		{
-			 outDelegate = ?;
+
+
+		[LinkName("DotNet_GetFunctionPointer"), CallingConvention(.Cdecl)]
+		private static extern c_int DotNet_GetFunctionPointer(char_t* typeName, char_t* methodName, char_t* delegateName, void** outDelegate);
+		
+		public static c_int GetFunctionPointer<T>(StringView typeName, StringView methodName, StringView delegateName, out T outDelegate) where T : var
+		{
+			 outDelegate = null;
 
 #if BF_PLATFORM_WINDOWS
-			return DotNet_LoadAssemblyAndGetFunctionPointer(assemblyPath.ToScopedNativeWChar!(), typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), delegateName.ToScopedNativeWChar!(), (void**)&outDelegate);
+			return DotNet_GetFunctionPointer(typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), delegateName.ToScopedNativeWChar!(), (void**)&outDelegate);
 #else
-
+			Runtime.NotImplemented();
 #endif
 		}
 
-		public static c_int LoadAssemblyAndGetFunctionPointer<T>(StringView assemblyPath, StringView typeName, StringView methodName, out T outDelegate) where T : var
- 		{
-			 outDelegate = ?;
+		public static c_int GetFunctionPointer(StringView typeName, StringView methodName, out ManagedDelegate outDelegate)
+		{
+			return GetFunctionPointer<ManagedDelegate>(typeName, methodName, null, out outDelegate);
+		}
+
+		public static c_int GetFunctionPointerUnmanagedCallersOnly<T>(StringView typeName, StringView methodName, out T outDelegate) where T : var
+		{
+			 outDelegate = null;
 
 #if BF_PLATFORM_WINDOWS
-			return DotNet_LoadAssemblyAndGetFunctionPointer(assemblyPath.ToScopedNativeWChar!(), typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), (char16*)(void*)-1, (void**)&outDelegate);
+			return DotNet_GetFunctionPointer(typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), UNMANAGEDCALLERSONLY_METHOD, (void**)&outDelegate);
 #else
-
+			Runtime.NotImplemented();
 #endif
 		}
 	}

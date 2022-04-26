@@ -5,6 +5,7 @@ using System.Collections;
 using GlitchyEngine.Collections;
 using GlitchyEditor.EditWindows;
 using GlitchyEngineHelper;
+using System.IO;
 
 namespace GlitchyEditor
 {
@@ -53,51 +54,40 @@ namespace GlitchyEditor
 		/// Creates a new editor for the given world
 		public this(Scene scene)
 		{
-			String str = @"D:\Development\Projects\Beef\GlitchyEngine\build\Debug_Win64\GlitchyEditor\";
-			//char16* ptr = str.ToScopedNativeWChar!();
+			String exePath = Environment.GetExecutableFilePath(.. scope String());
 
-			String runtimeConfig = scope String(str, "DotNetTest.runtimeconfig.json");
-			String assemblyPath = scope String(str, "DotNetTest.dll");
+			String exeDir = Path.GetDirectoryPath(exePath, .. scope String());
+
+			String runtimeConfig = scope String(exeDir, "/DotNetScriptingHelper.runtimeconfig.json");
+			String assemblyPath = scope String(exeDir, "/DotNetScriptingHelper.dll");
 
 			DotNetRuntime.Init();
 
 			DotNetRuntime.LoadRuntime(runtimeConfig);
 
-
-
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.Lib, DotNetTest", "Hello", let hello);
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.ScriptableEntity, DotNetTest", "Hello2", let hello2);
-
-
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "Test", let test);
-
 			CreateInstanceDelegate createInstance;
-			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "CreateInstance", "DotNetTest.InteropHelper+CreateInstanceEntryPoint, DotNetTest", out createInstance);
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "CreateInstance", out createInstance);
-			
-			FreeInstanceDelegate freeInstance;
-			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "FreeInstance", "DotNetTest.InteropHelper+FreeInstanceEntryPoint, DotNetTest", out freeInstance);
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.InteropHelper, DotNetTest", "FreeInstance", out freeInstance);
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointerUnmanagedCallersOnly(assemblyPath, "DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "CreateInstance", out createInstance);
+
+			DotNetRuntime.ManagedDelegate someDel1;
+			DotNetRuntime.ManagedDelegate someDel2;
+
+			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "SomeMethod", out someDel1);
+
+			someDel1(null, 0); // System.Runtime.InteropServices.Marshal, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e
+
+			int32 iy = DotNetRuntime.GetFunctionPointer("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null", "SomeMethod", out someDel2);
+			//DotNetRuntime.GetFunctionPointer("System", DotNetScriptingHelper", "SomeMethod", out someDel2);
+			/*
+			FreeInstanceDelegate freeInstance = null;
+			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "FreeInstance", "DotNetScriptingHelper.InteropHelper+FreeInstanceEntryPoint, DotNetScriptingHelper", out freeInstance);
+			DotNetRuntime.GetFunctionPointer("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "FreeInstance", "DotNetScriptingHelper.InteropHelper+FreeInstanceEntryPoint, DotNetScriptingHelper", out freeInstance);
 			
 			InstanceMethodDelegate update;
-			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.ScriptableEntity, DotNetTest", "InvokeUpdate", "DotNetTest.ScriptableEntity+InstanceMethodEntryPoint, DotNetTest", out update);
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetTest.ScriptableEntity, DotNetTest", "InvokeUpdate", out update);
+			DotNetRuntime.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "UpdateEntity", out update);
+			
+			DotNetRuntime.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "CreateInstance", out DotNetScriptComponent.DelCreateInstance);
 
-			//DotNetRuntime.TestRunDotNet(1, &ptr);
-
-			lib_args args = .
-			{
-			    Message = "from host!".ToScopedNativeWChar!(),
-			    number = 1337
-			};
-
-			hello(&args, sizeof(lib_args));
-
-			hello2(&args, sizeof(lib_args));
-
-			test(null, 0);
-
-			String typeName = "DotNetTest.ScriptableEntity, DotNetTest";
+			String typeName = "DotNetScriptingHelper.TestEntityScript, DotNetScriptingHelper";
 
 			CreateInstanceArgs instanceArgs = .
 			{
@@ -107,14 +97,25 @@ namespace GlitchyEditor
 
 			ManagedReference* instance = createInstance(&instanceArgs, sizeof(CreateInstanceArgs));
 
+			void* reffy = DotNetScriptComponent.DelCreateInstance(typeName.Ptr, (int32)typeName.Length, EcsEntity.[Friend]CreateEntityID(1337, 420));
+
 			for (int i < 10)
 			{
 				update(instance);
+				update((.)reffy);
 			}
 
 			freeInstance(instance);
+			freeInstance((.)reffy);
 
 			DotNetRuntime.Deinit();
+
+			*/
+
+			while(true)
+			{
+
+			}
 
 			_scene = scene;
 			_ecsWorld = _scene.[Friend]_ecsWorld;

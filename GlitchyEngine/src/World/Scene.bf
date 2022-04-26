@@ -49,6 +49,16 @@ namespace GlitchyEngine.World
 
 				script.Instance.[Friend]OnUpdate(gameTime);
 			}
+			
+			for (var (entity, script) in _ecsWorld.Enumerate<DotNetScriptComponent>())
+			{
+				if (script.InstanceHandlePtr == null)
+				{
+					script.[Friend]CreateInstance(entity);
+				}
+
+				script.[Friend]UpdateInstance(); // TODO: Gametime
+			}
 
 			Camera* primaryCamera = null;
 			Matrix primaryCameraTransform = default;
