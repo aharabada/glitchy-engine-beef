@@ -61,7 +61,48 @@ namespace GlitchyEditor
 			String runtimeConfig = scope String(exeDir, "/DotNetScriptingHelper.runtimeconfig.json");
 			String assemblyPath = scope String(exeDir, "/DotNetScriptingHelper.dll");
 
-			DotNetRuntime.Init();
+			DotNet dotty = new DotNet(assemblyPath);
+			defer delete dotty;
+
+			dotty.Init();
+
+			///int res = dotty.SetRuntimePropertyValue("APP_PATH", exeDir);
+
+			CreateInstanceDelegate createInstance;
+			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "CreateInstance", out createInstance);
+			
+			String typeName = "DotNetScriptingHelper.TestEntityScript, DotNetScriptingHelper";
+
+			CreateInstanceArgs instanceArgs = .
+			{
+				TypeName = typeName.Ptr,
+				TypeNameLength = typeName.Length
+			};
+
+			ManagedReference* instance = createInstance(&instanceArgs, sizeof(CreateInstanceArgs));
+			
+			InstanceMethodDelegate update;
+			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "UpdateEntity", out update);
+			
+			InstanceMethodDelegate freeInstance;
+			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, InteropHelper", "FreeInstance", out freeInstance);
+
+			//void* reffy = DotNetScriptComponent.DelCreateInstance(typeName.Ptr, (int32)typeName.Length, EcsEntity.[Friend]CreateEntityID(1337, 420));
+
+			for (int i < 10)
+			{
+				update(instance);
+				//update((.)reffy);
+			}
+
+			freeInstance(instance);
+			/*
+			freeInstance(instance);
+			freeInstance((.)reffy);*/
+
+			//DotNetRuntime.Deinit();
+
+			/*DotNetRuntime.Init();
 
 			DotNetRuntime.LoadRuntime(runtimeConfig);
 
@@ -110,7 +151,7 @@ namespace GlitchyEditor
 
 			DotNetRuntime.Deinit();
 
-			*/
+			*/*/
 
 			while(true)
 			{

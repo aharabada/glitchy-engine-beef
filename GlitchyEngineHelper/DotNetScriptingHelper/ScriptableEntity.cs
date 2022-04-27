@@ -14,8 +14,10 @@ public abstract class ScriptableEntity
     [UnmanagedCallersOnly]
     public static void UpdateEntity(IntPtr entityPtr)
     {
-        GCHandle entityHandle = GCHandle.FromIntPtr(entityPtr);
+        Console.WriteLine("Trying to do stuff!");
 
+        GCHandle entityHandle = GCHandle.FromIntPtr(entityPtr);
+        
         if (entityHandle.Target is ScriptableEntity entity)
         {
             entity.OnUpdate();
