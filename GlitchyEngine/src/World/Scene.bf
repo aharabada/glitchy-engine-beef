@@ -28,6 +28,11 @@ namespace GlitchyEngine.World
 
 				cameraComponent.Camera.SetViewportSize(e.Scene.ViewportWidth, e.Scene.ViewportHeight);
 			});
+
+			Entity dotNetEntity = CreateEntity("DotNet rocks!");
+			dotNetEntity.AddComponent<SpriterRendererComponent>(.(Color(81, 43, 212)));
+			var vv = dotNetEntity.AddComponent<DotNetScriptComponent>();
+			vv.Bind("DotNetScriptingHelper.TestEntityScript, DotNetScriptingHelper");
 		}
 
 		public ~this()
@@ -52,7 +57,7 @@ namespace GlitchyEngine.World
 			
 			for (var (entity, script) in _ecsWorld.Enumerate<DotNetScriptComponent>())
 			{
-				if (script.InstanceHandlePtr == null)
+				if (script.InstanceHandlePtr == 0)
 				{
 					script.[Friend]CreateInstance(entity);
 				}

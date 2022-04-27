@@ -12,19 +12,6 @@ public abstract class ScriptableEntity
     protected virtual void OnUpdate() { }
 
     [UnmanagedCallersOnly]
-    public static void UpdateEntity(IntPtr entityPtr)
-    {
-        Console.WriteLine("Trying to do stuff!");
-
-        GCHandle entityHandle = GCHandle.FromIntPtr(entityPtr);
-        
-        if (entityHandle.Target is ScriptableEntity entity)
-        {
-            entity.OnUpdate();
-        }
-    }
-
-    [UnmanagedCallersOnly]
     public static IntPtr CreateInstance(IntPtr typeNamePtr, int typeNameLength, EcsEntity entity)
     {
         try
@@ -32,14 +19,12 @@ public abstract class ScriptableEntity
             string typeName = Marshal.PtrToStringUTF8(typeNamePtr, typeNameLength);
             
             Type? type = Type.GetType(typeName, true);
-            
-            if (type == null)
-                return IntPtr.Zero;
-            
-            object? instance = Activator.CreateInstance(type);
 
-            if (type == null)
-                return IntPtr.Zero;
+            Debug.Assert(type != null, "Type not found.");
+
+            object? instance = Activator.CreateInstance(type);
+            
+            Debug.Assert(instance != null, "Instance could not be created");
 
             Debug.Assert(instance is ScriptableEntity, "Activated instance doesn't inherit from ScriptableEntity");
 
@@ -56,6 +41,30 @@ public abstract class ScriptableEntity
         {
             Console.WriteLine(e);
             throw;
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    public static void DestroyEntity(IntPtr entityPtr)
+    {
+        GCHandle entityHandle = GCHandle.FromIntPtr(entityPtr);
+
+        if (entityHandle.Target is ScriptableEntity entity)
+        {
+            entity.OnDestroy();
+        }
+
+        entityHandle.Free();
+    }
+
+    [UnmanagedCallersOnly]
+    public static void UpdateEntity(IntPtr entityPtr)
+    {
+        GCHandle entityHandle = GCHandle.FromIntPtr(entityPtr);
+
+        if (entityHandle.Target is ScriptableEntity entity)
+        {
+            entity.OnUpdate();
         }
     }
 }

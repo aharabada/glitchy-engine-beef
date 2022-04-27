@@ -61,7 +61,7 @@ namespace GlitchyEditor
 			String runtimeConfig = scope String(exeDir, "/DotNetScriptingHelper.runtimeconfig.json");
 			String assemblyPath = scope String(exeDir, "/DotNetScriptingHelper.dll");
 
-			DotNet dotty = new DotNet(assemblyPath);
+			DotNetContext dotty = new DotNetContext(assemblyPath);
 			defer delete dotty;
 
 			dotty.Init();
@@ -84,19 +84,20 @@ namespace GlitchyEditor
 			InstanceMethodDelegate update;
 			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "UpdateEntity", out update);
 			
-			InstanceMethodDelegate freeInstance;
-			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, InteropHelper", "FreeInstance", out freeInstance);
-
-			//void* reffy = DotNetScriptComponent.DelCreateInstance(typeName.Ptr, (int32)typeName.Length, EcsEntity.[Friend]CreateEntityID(1337, 420));
+			FreeInstanceDelegate freeInstance;
+			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "FreeInstance", out freeInstance);
+			
+			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "CreateInstance", out DotNetScriptComponent.CreateInstanceFn);
+			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "UpdateEntity", out DotNetScriptComponent.UpdateInstanceFn);
+			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "DestroyEntity", out DotNetScriptComponent.DestroyInstanceFn);
+			/*void* reffy = DotNetScriptComponent.DelCreateInstance(typeName.Ptr, (int32)typeName.Length, EcsEntity.[Friend]CreateEntityID(1337, 420));
 
 			for (int i < 10)
 			{
 				update(instance);
-				//update((.)reffy);
+				update((.)reffy);
 			}
 
-			freeInstance(instance);
-			/*
 			freeInstance(instance);
 			freeInstance((.)reffy);*/
 
@@ -152,11 +153,6 @@ namespace GlitchyEditor
 			DotNetRuntime.Deinit();
 
 			*/*/
-
-			while(true)
-			{
-
-			}
 
 			_scene = scene;
 			_ecsWorld = _scene.[Friend]_ecsWorld;

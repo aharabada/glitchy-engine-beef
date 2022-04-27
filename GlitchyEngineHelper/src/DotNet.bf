@@ -2,12 +2,11 @@ using System;
 using System.IO;
 using System.Interop;
 using System.Diagnostics;
-
-using internal GlitchyEngineHelper.DotNet;
+using GlitchyEngineHelper.DotNet;
 
 namespace GlitchyEngineHelper
 {
-	class DotNet
+	class DotNetContext
 	{
 #if BF_PLATFORM_WINDOWS
 		internal typealias char = char16;
@@ -25,8 +24,6 @@ namespace GlitchyEngineHelper
 		CoreClr.LoadAssemblyAndGetFunctionPointerFn LoadAssemblyAndGetFunctionPointerFn;
 		CoreClr.GetFunctionPointerFn GetFunctionPointerFn;
 		
-		private const char* UNMANAGEDCALLERSONLY_METHOD = (char*)(void*)-1;
-
 		private String _configPath ~ delete _;
 
 		public this(String configPath)
@@ -108,13 +105,11 @@ namespace GlitchyEngineHelper
 			return SetRuntimePropertyValueFn(cxt, RawPointer!(property), RawPointer!(value));
 		}
 
-		public int LoadAssemblyAndGetFunctionPointer<T>(String libraryPath, String typeName, String methodName, String delegateName, out T outDelegate) where T: operator explicit void*
+		public int LoadAssemblyAndGetFunctionPointer<T>(StringView libraryPath, StringView typeName, StringView methodName, StringView delegateName, out T outDelegate) where T: operator explicit void*
 		{
 			void* funPtr = null;
 
-#if BF_PLATFORM_WINDOWS
-			int rc = LoadAssemblyAndGetFunctionPointerFn(libraryPath.ToScopedNativeWChar!(), typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), delegateName.ToScopedNativeWChar!(), null, out funPtr);
-#endif
+			int rc = LoadAssemblyAndGetFunctionPointerFn(RawPointer!(libraryPath), RawPointer!(typeName), RawPointer!(methodName), RawPointer!(delegateName), null, out funPtr);
 
 			outDelegate = (T)funPtr;
 
@@ -125,9 +120,7 @@ namespace GlitchyEngineHelper
 		{
 			void* funPtr = null;
 
-#if BF_PLATFORM_WINDOWS
-			int rc = LoadAssemblyAndGetFunctionPointerFn(libraryPath.ToScopedNativeWChar!(), typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), UNMANAGEDCALLERSONLY_METHOD, null, out funPtr);
-#endif
+			int rc = LoadAssemblyAndGetFunctionPointerFn(RawPointer!(libraryPath), RawPointer!(typeName), RawPointer!(methodName), CoreClr.UNMANAGEDCALLERSONLY_METHOD, null, out funPtr);
 
 			outDelegate = (T)funPtr;
 
@@ -138,9 +131,7 @@ namespace GlitchyEngineHelper
 		{
 			void* funPtr = null;
 
-#if BF_PLATFORM_WINDOWS
-			int rc = GetFunctionPointerFn(typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), delegateName.ToScopedNativeWChar!(), null, null, out funPtr);
-#endif
+			int rc = GetFunctionPointerFn(RawPointer!(typeName), RawPointer!(methodName), RawPointer!(delegateName), null, null, out funPtr);
 
 			outDelegate = (T)funPtr;
 
@@ -151,9 +142,7 @@ namespace GlitchyEngineHelper
 		{
 			void* funPtr = null;
 
-#if BF_PLATFORM_WINDOWS
-			int rc = GetFunctionPointerFn(typeName.ToScopedNativeWChar!(), methodName.ToScopedNativeWChar!(), UNMANAGEDCALLERSONLY_METHOD, null, null, out funPtr);
-#endif
+			int rc = GetFunctionPointerFn(RawPointer!(typeName), RawPointer!(methodName), CoreClr.UNMANAGEDCALLERSONLY_METHOD, null, null, out funPtr);
 
 			outDelegate = (T)funPtr;
 
@@ -184,83 +173,5 @@ namespace GlitchyEngineHelper
 			// TODO!
 		}
 #endif
-	}
-
-	static class HostFxr
-	{
-#if BF_PLATFORM_WINDOWS
-		internal typealias char = char16;
-#else
-		internal typealias char = char8;
-#endif
-
-		public enum DelegateType : c_int
-		{
-		    ComActivation,
-		    LoadInMemoryAssembly,
-		    WinrtActivation,
-		    ComRegister,
-		    ComUnregister,
-		    LoadAssemblyAndGetFunctionPointer,
-		    GetFunctionPointer,
-		}
-		
-		public typealias Handle = void*;
-
-		[CRepr]
-		public struct InitializeParameters
-		{
-		    public c_size Size = sizeof(InitializeParameters);
-		    public char* HostPath;
-		    public char* DotnetRoot;
-		};
-
-		public typealias InitializeForRuntimeConfigFn = function [CallingConvention(.Cdecl)] int32(char* runtimeConfigPath, InitializeParameters* parameters, Handle* hostContextHandle);
-		public typealias InitializeForDotnetCommandLineFn = function [CallingConvention(.Cdecl)] int32(c_int argc, char** argv, InitializeParameters* parameters, Handle* hostContextHandle);
-		public typealias GetRuntimeDelegateFn = function [CallingConvention(.Cdecl)] int32(Handle host_context_handle, DelegateType type, void** outDelegate);
-		public typealias SetRuntimePropertyValueFn = function [CallingConvention(.Cdecl)] int32(Handle host_context_handle, char* name, char* value);
-		public typealias CloseFn = function [CallingConvention(.Cdecl)] int32(Handle host_context_handle);
-	}
-
-	static class CoreClr
-	{
-#if BF_PLATFORM_WINDOWS
-		internal typealias char = char16;
-#else
-		internal typealias char = char8;
-#endif
-
-		public typealias LoadAssemblyAndGetFunctionPointerFn = function [CallingConvention(.Stdcall)] c_int(
-			char* assemblyPath,
-    		char* typeName,
-    		char* methodName,
-    		char* delegateTypeName,
-    		void* reserved,
-    		out void* outDelegate);
-
-		public typealias GetFunctionPointerFn = function [CallingConvention(.Stdcall)] c_int(
-			char* typeName,
-			char* MethodName,
-			char* delegateTypeName,
-			void* loadContext,
-			void* reserved,
-			out void* outDelegate
-			);
-	}
-
-	static class NetHost
-	{
-		public struct get_hostfxr_parameters
-		{
-		    public c_size size;
-		    public DotNet.char* assembly_path;
-		    public DotNet.char* dotnet_root;
-		};
-
-		[CallingConvention(.Stdcall), LinkName("get_hostfxr_path")]
-		public static extern int get_hostfxr_path(
-			DotNet.char * buffer,
-			c_size * buffer_size,
-			get_hostfxr_parameters *parameters);
 	}
 }

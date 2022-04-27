@@ -32,7 +32,7 @@ namespace GlitchyEngine.World
 				}
 				else
 				{
-					Log.EngineLogger.AssertDebug(false, "Queried component is not registered for this world. This is invalid because the query would never return any results.");
+					//Log.EngineLogger.AssertDebug(false, "Queried component is not registered for this world. This is invalid because the query would never return any results.");
 				}
 			}
 		}

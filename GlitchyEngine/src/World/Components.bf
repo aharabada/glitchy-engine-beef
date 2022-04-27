@@ -291,13 +291,20 @@ namespace GlitchyEngine.World
 
 	struct DotNetScriptComponent : IDisposableComponent
 	{
-		public void* InstanceHandlePtr = null;
+		public struct Instance : int {}
+
+		public Instance InstanceHandlePtr = 0;
 
 		private String TypeName = null;
 
-		typealias CreateInstanceDelegate = function void*(void* typeNamePtr, int32 typeNameLength, EcsEntity entity);
+		typealias CreateInstanceDelegate = function Instance(void* typeNamePtr, int32 typeNameLength, EcsEntity entity);
+		typealias InstanceDelegate = function void(Instance instance);
 
-		public static CreateInstanceDelegate DelCreateInstance;
+		public static CreateInstanceDelegate CreateInstanceFn;
+		public static InstanceDelegate UpdateInstanceFn;
+		public static InstanceDelegate DestroyInstanceFn;
+
+		public const Self ss = Self();
 
 		public void Bind(StringView dotNetAssemblyQualifiedTypeName) mut
 		{
@@ -306,12 +313,17 @@ namespace GlitchyEngine.World
 
 		internal void CreateInstance(EcsEntity entity) mut
 		{
-			//IntPtr CreateInstance(IntPtr typeNamePtr, int typeNameLength, EcsEntity entity)
-			InstanceHandlePtr = DelCreateInstance(TypeName.Ptr, (int32)TypeName.Length, entity);
+			InstanceHandlePtr = CreateInstanceFn(TypeName.Ptr, (int32)TypeName.Length, entity);
 		}
 		
 		internal void UpdateInstance()
 		{
+			UpdateInstanceFn(InstanceHandlePtr);
+		}
+		
+		internal void DestroyInstance()
+		{
+			DestroyInstanceFn(InstanceHandlePtr);
 		}
 
 		public void Dispose() mut
