@@ -1,7 +1,9 @@
+using System;
 using GlitchyEngine.Math;
 
 namespace GlitchyEngine.World
 {
+	[Ordered]
 	public struct TransformComponent
 	{
 		EcsEntity _parent = .InvalidEntity;

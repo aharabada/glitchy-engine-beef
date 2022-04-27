@@ -2,14 +2,15 @@
 
 public struct Entity
 {
-    public EcsEntity Handle { get; private set; }
-    // TODO: Scene
+    public EcsEntity Handle { get; }
+    public IntPtr Scene { get; }
 
     public bool IsValid => Handle.IsValid;
 
-    public Entity(EcsEntity handle)
+    public Entity(EcsEntity handle, IntPtr scene)
     {
         Handle = handle;
+        Scene = scene;
     }
 
     // TODO: Get Parent, Children

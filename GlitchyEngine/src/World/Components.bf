@@ -297,12 +297,13 @@ namespace GlitchyEngine.World
 
 		private String TypeName = null;
 
-		typealias CreateInstanceDelegate = function Instance(void* typeNamePtr, int32 typeNameLength, EcsEntity entity);
-		typealias InstanceDelegate = function void(Instance instance);
+		typealias CreateInstanceDelegate = function Instance(void* typeNamePtr, int32 typeNameLength, EcsEntity entity, void* scene);
+		typealias UpdateInstanceDelegate = function void(Instance instance, uint64 frameCount, TimeSpan totalTime, TimeSpan frameTime);
+		typealias DestroyInstanceDelegate = function void(Instance instance);
 
 		public static CreateInstanceDelegate CreateInstanceFn;
-		public static InstanceDelegate UpdateInstanceFn;
-		public static InstanceDelegate DestroyInstanceFn;
+		public static UpdateInstanceDelegate UpdateInstanceFn;
+		public static DestroyInstanceDelegate DestroyInstanceFn;
 
 		public const Self ss = Self();
 
@@ -311,14 +312,16 @@ namespace GlitchyEngine.World
 			TypeName = new String(dotNetAssemblyQualifiedTypeName);
 		}
 
-		internal void CreateInstance(EcsEntity entity) mut
+		internal void CreateInstance(EcsEntity entity, Scene scene) mut
 		{
-			InstanceHandlePtr = CreateInstanceFn(TypeName.Ptr, (int32)TypeName.Length, entity);
+			void* scenePtr = Internal.UnsafeCastToPtr(scene);
+
+			InstanceHandlePtr = CreateInstanceFn(TypeName.Ptr, (int32)TypeName.Length, entity, scenePtr);
 		}
 		
-		internal void UpdateInstance()
+		internal void UpdateInstance(GameTime gameTime)
 		{
-			UpdateInstanceFn(InstanceHandlePtr);
+			UpdateInstanceFn(InstanceHandlePtr, gameTime.FrameCount, gameTime.TotalTime, gameTime.FrameTime);
 		}
 		
 		internal void DestroyInstance()
@@ -329,6 +332,24 @@ namespace GlitchyEngine.World
 		public void Dispose() mut
 		{
 			delete TypeName;
+		}
+
+		[Export(), LinkName("GE_DoStuff")]
+		public static int32 DoStuff()
+		{
+			return 69;
+		}
+		
+		[Export, LinkName("GE_DotNetScript_GetComponent")]
+		private static void* GetComponent(EcsEntity entity, void* scenePtr)
+		{
+			Scene scene = (Scene)Internal.UnsafeCastToObject(scenePtr);
+
+			Entity e = .(entity, scene);
+
+			TransformComponent* ptr = e.GetComponent<TransformComponent>();
+
+			return ptr;
 		}
 	}
 }

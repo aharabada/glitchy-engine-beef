@@ -59,10 +59,10 @@ namespace GlitchyEngine.World
 			{
 				if (script.InstanceHandlePtr == 0)
 				{
-					script.[Friend]CreateInstance(entity);
+					script.[Friend]CreateInstance(entity, this);
 				}
 
-				script.[Friend]UpdateInstance(); // TODO: Gametime
+				script.[Friend]UpdateInstance(gameTime);
 			}
 
 			Camera* primaryCamera = null;

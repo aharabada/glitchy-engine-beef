@@ -20,4 +20,14 @@ public readonly struct EcsEntity
     public bool IsValid => Index != InvalidEntity.Index;
 
     public static readonly EcsEntity InvalidEntity = new(uint.MaxValue, 0);
+
+    public static bool operator ==(EcsEntity left, EcsEntity right)
+    {
+        return left._id == right._id;
+    }
+
+    public static bool operator !=(EcsEntity left, EcsEntity right)
+    {
+        return left._id != right._id;
+    }
 }
