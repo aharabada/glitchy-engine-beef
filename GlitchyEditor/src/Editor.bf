@@ -6,6 +6,7 @@ using GlitchyEngine.Collections;
 using GlitchyEditor.EditWindows;
 using GlitchyEngineHelper;
 using System.IO;
+using GlitchyEngineHelper.DotNet;
 
 namespace GlitchyEditor
 {
@@ -28,29 +29,6 @@ namespace GlitchyEditor
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
 		public SceneViewportWindow SceneViewportWindow => _sceneViewportWindow;
 
-		[CRepr]
-		struct lib_args
-		{
-		    public char16* Message;
-		    public int32 number;
-		};
-
-		[CRepr]
-		struct CreateInstanceArgs
-		{
-		    //public StringView TypeName;
-			public char8* TypeName;
-			public int TypeNameLength;
-		};
-		
-		struct ManagedReference;
-
-		public typealias CreateInstanceDelegate = function [CallingConvention(.Stdcall)] ManagedReference*(CreateInstanceArgs* arg, int32 arg_size_in_bytes);
-
-		public typealias FreeInstanceDelegate = function [CallingConvention(.Stdcall)] void(ManagedReference* arg);
-
-		public typealias InstanceMethodDelegate = function [CallingConvention(.Stdcall)] void(ManagedReference* arg);
-
 		/// Creates a new editor for the given world
 		public this(Scene scene)
 		{
@@ -58,7 +36,6 @@ namespace GlitchyEditor
 
 			String exeDir = Path.GetDirectoryPath(exePath, .. scope String());
 
-			String runtimeConfig = scope String(exeDir, "/DotNetScriptingHelper.runtimeconfig.json");
 			String assemblyPath = scope String(exeDir, "/DotNetScriptingHelper.dll");
 
 			DotNetContext dotty = new DotNetContext(assemblyPath);
@@ -66,93 +43,9 @@ namespace GlitchyEditor
 
 			dotty.Init();
 
-			///int res = dotty.SetRuntimePropertyValue("APP_PATH", exeDir);
-
-			CreateInstanceDelegate createInstance;
-			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "CreateInstance", out createInstance);
-			
-			String typeName = "DotNetScriptingHelper.TestEntityScript, DotNetScriptingHelper";
-
-			CreateInstanceArgs instanceArgs = .
-			{
-				TypeName = typeName.Ptr,
-				TypeNameLength = typeName.Length
-			};
-
-			ManagedReference* instance = createInstance(&instanceArgs, sizeof(CreateInstanceArgs));
-			
-			InstanceMethodDelegate update;
-			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "UpdateEntity", out update);
-			
-			FreeInstanceDelegate freeInstance;
-			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "FreeInstance", out freeInstance);
-			
 			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "CreateInstance", out DotNetScriptComponent.CreateInstanceFn);
 			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "UpdateEntity", out DotNetScriptComponent.UpdateInstanceFn);
 			dotty.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "DestroyEntity", out DotNetScriptComponent.DestroyInstanceFn);
-			/*void* reffy = DotNetScriptComponent.DelCreateInstance(typeName.Ptr, (int32)typeName.Length, EcsEntity.[Friend]CreateEntityID(1337, 420));
-
-			for (int i < 10)
-			{
-				update(instance);
-				update((.)reffy);
-			}
-
-			freeInstance(instance);
-			freeInstance((.)reffy);*/
-
-			//DotNetRuntime.Deinit();
-
-			/*DotNetRuntime.Init();
-
-			DotNetRuntime.LoadRuntime(runtimeConfig);
-
-			CreateInstanceDelegate createInstance;
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointerUnmanagedCallersOnly(assemblyPath, "DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "CreateInstance", out createInstance);
-
-			DotNetRuntime.ManagedDelegate someDel1;
-			DotNetRuntime.ManagedDelegate someDel2;
-
-			DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "SomeMethod", out someDel1);
-
-			someDel1(null, 0); // System.Runtime.InteropServices.Marshal, System.Private.CoreLib, Version=6.0.0.0, Culture=neutral, PublicKeyToken=7cec85d7bea7798e
-
-			int32 iy = DotNetRuntime.GetFunctionPointer("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper, Version=1.0.0.0, Culture=neutral, PublicKeyToken=null", "SomeMethod", out someDel2);
-			//DotNetRuntime.GetFunctionPointer("System", DotNetScriptingHelper", "SomeMethod", out someDel2);
-			/*
-			FreeInstanceDelegate freeInstance = null;
-			//DotNetRuntime.LoadAssemblyAndGetFunctionPointer(assemblyPath, "DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "FreeInstance", "DotNetScriptingHelper.InteropHelper+FreeInstanceEntryPoint, DotNetScriptingHelper", out freeInstance);
-			DotNetRuntime.GetFunctionPointer("DotNetScriptingHelper.InteropHelper, DotNetScriptingHelper", "FreeInstance", "DotNetScriptingHelper.InteropHelper+FreeInstanceEntryPoint, DotNetScriptingHelper", out freeInstance);
-			
-			InstanceMethodDelegate update;
-			DotNetRuntime.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "UpdateEntity", out update);
-			
-			DotNetRuntime.GetFunctionPointerUnmanagedCallersOnly("DotNetScriptingHelper.ScriptableEntity, DotNetScriptingHelper", "CreateInstance", out DotNetScriptComponent.DelCreateInstance);
-
-			String typeName = "DotNetScriptingHelper.TestEntityScript, DotNetScriptingHelper";
-
-			CreateInstanceArgs instanceArgs = .
-			{
-				TypeName = typeName.Ptr,
-				TypeNameLength = typeName.Length
-			};
-
-			ManagedReference* instance = createInstance(&instanceArgs, sizeof(CreateInstanceArgs));
-
-			void* reffy = DotNetScriptComponent.DelCreateInstance(typeName.Ptr, (int32)typeName.Length, EcsEntity.[Friend]CreateEntityID(1337, 420));
-
-			for (int i < 10)
-			{
-				update(instance);
-				update((.)reffy);
-			}
-
-			freeInstance(instance);
-			freeInstance((.)reffy);
-
-			DotNetRuntime.Deinit();
-
-			*/*/
 
 			_scene = scene;
 			_ecsWorld = _scene.[Friend]_ecsWorld;

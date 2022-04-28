@@ -16,8 +16,8 @@ namespace GlitchyEngineHelper.DotNet
 
 		[CallingConvention(.Stdcall), LinkName("get_hostfxr_path")]
 		public static extern int get_hostfxr_path(
-			DotNet.char * buffer,
-			c_size * buffer_size,
+			char* buffer,
+			c_size* buffer_size,
 			get_hostfxr_parameters *parameters);
 	}
 }

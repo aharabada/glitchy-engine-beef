@@ -4,7 +4,7 @@ using System.Interop;
 using System.Diagnostics;
 using GlitchyEngineHelper.DotNet;
 
-namespace GlitchyEngineHelper
+namespace GlitchyEngineHelper.DotNet
 {
 	class DotNetContext
 	{
@@ -13,8 +13,6 @@ namespace GlitchyEngineHelper
 #else
 		internal typealias char = char8;
 #endif
-
-		HostFxr.Handle cxt = null;
 		
 		HostFxr.InitializeForDotnetCommandLineFn InitFn;
 		HostFxr.GetRuntimeDelegateFn GetDelegate;
@@ -74,7 +72,8 @@ namespace GlitchyEngineHelper
 				null
 			);
 
-			//int rc = InitFn(ptr, null, &cxt);
+			HostFxr.Handle cxt = null;
+
 			int rc = InitFn(1, &args, null, &cxt);
 
 			if (rc != 0 || cxt == null)
@@ -100,10 +99,10 @@ namespace GlitchyEngineHelper
 			Close(cxt);
 		}
 
-		public int SetRuntimePropertyValue(StringView property, StringView value)
+		/*public int SetRuntimePropertyValue(StringView property, StringView value)
 		{
 			return SetRuntimePropertyValueFn(cxt, RawPointer!(property), RawPointer!(value));
-		}
+		}*/
 
 		public int LoadAssemblyAndGetFunctionPointer<T>(StringView libraryPath, StringView typeName, StringView methodName, StringView delegateName, out T outDelegate) where T: operator explicit void*
 		{

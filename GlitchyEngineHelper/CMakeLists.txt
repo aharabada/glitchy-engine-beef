@@ -38,7 +38,7 @@ configure_file("${DOTNET_APP_HOST}/${NET_HOST_DLL_NAME}" "${CMAKE_CURRENT_BINARY
 
 # Add source to this project's executable.
 add_library (GlitchyEngineHelper STATIC
-	"GlitchyEngineHelper.cpp" "GlitchyEngineHelper.h" "vendor/xxHash/xxhash.c" "vendor/xxHash/xxhash.h" "vendor/DirectXTK/Src/DDSTextureLoader.cpp" "DotNetRuntime.h" "DotNetRuntime.cpp"
+	"GlitchyEngineHelper.cpp" "GlitchyEngineHelper.h" "vendor/xxHash/xxhash.c" "vendor/xxHash/xxhash.h" "vendor/DirectXTK/Src/DDSTextureLoader.cpp" 
 	# Link object files from nethost into library (kinda dirty I think, but avoids linking to nethost.lib when compiling in beef)
 	$<TARGET_OBJECTS:NetHost>
 )

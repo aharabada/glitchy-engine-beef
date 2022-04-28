@@ -3,4 +3,5 @@ Dependencies = {corlib = "*", GlitchLog = "*", GlitchyEngine = "*"}
 
 [Project]
 Name = "GlitchyEditor"
+TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
