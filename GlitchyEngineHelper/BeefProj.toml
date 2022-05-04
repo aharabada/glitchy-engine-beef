@@ -10,4 +10,10 @@ StartupObject = "GlitchyEngineHelper.Program"
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
 LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib"]
-PostBuildCmds = ["$(ProjectDir)\\..\\bin\\vscmake.bat x64 $(ProjectDir) x64-debug"]
+PreBuildCmds = ["$(ProjectDir)/../bin/vscmake.bat x64 $(ProjectDir) x64-debug"]
+
+[Configs.Release.Win64]
+BuildCommandsOnCompile = "IfFilesChanged"
+BuildCommandsOnRun = "IfFilesChanged"
+LibPaths = ["$(ProjectDir)/out/build/x64-release/GlitchyEngineHelper.lib"]
+PreBuildCmds = ["$(ProjectDir)/../bin/vscmake.bat x64 $(ProjectDir) x64-release"]

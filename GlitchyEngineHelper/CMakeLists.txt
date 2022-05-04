@@ -11,5 +11,4 @@ add_library (GlitchyEngineHelper "GlitchyEngineHelper.cpp" "GlitchyEngineHelper.
 include_directories("vendor/DirectXTK/Inc")
 
 # Use statically linked multithreaded MSVC runtime
-set_property(TARGET GlitchyEngineHelper PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreadedDebug")
-#$<$<CONFIG:Debug>:Debug>
+set_property(TARGET GlitchyEngineHelper PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
