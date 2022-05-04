@@ -31,7 +31,7 @@ namespace GlitchyEngine.Math
 			Z = value;
 		}
 
-		public this(Vector2 value, float z)
+		public this(Vector2 value, float z = 0.0f)
 		{
 			X = value.X;
 			Y = value.Y;
@@ -43,6 +43,20 @@ namespace GlitchyEngine.Math
 			X = x;
 			Y = y;
 			Z = z;
+		}
+
+		public this(Vector3 value)
+		{
+			X = value.X;
+			Y = value.Y;
+			Z = value.Z;
+		}
+
+		public this(Vector4 value)
+		{
+			X = value.X;
+			Y = value.Y;
+			Z = value.Z;
 		}
 		
 		public ref float this[int index]
@@ -87,24 +101,17 @@ namespace GlitchyEngine.Math
 
 		/**
 		 * Calculates the magnitude (length) of this vector.
-		 * @remarks MagnitudeSquared might be used if only the relative length is relevant.
+		 * @remarks If the exact magnitude isn't needed (e.g. for comparisons) consider using MagnitudeSquared which doesn't use the square root operation.
 		 */
-		public float Magnitude()
-		{
-			return Math.Sqrt(X * X + Y * Y + Z * Z);
-		}
+		public float Magnitude() => Math.Sqrt(X * X + Y * Y + Z * Z);
 		
 		/**
 		 * Calculates the squared magnitude (length) of this vector.
+		 * @remarks This function avoids the square root operation to calculate the magnitude and is thus more suitable for comparisons where the exact magnitude isn't needed.
 		 */
-		public float MagnitudeSquared()
-		{
-			return X * X + Y * Y + Z * Z;
-		}
-		
-		/**
-		 * Normalizes this vector.
-		 */
+		public float MagnitudeSquared() => X * X + Y * Y + Z * Z;
+
+		/// Normalizes this vector.
 		[Checked]
 		public void Normalize() mut
 		{
@@ -114,17 +121,13 @@ namespace GlitchyEngine.Math
 			this /= Magnitude();
 		}
 
-		/**
-		 * Normalizes this vector.
-		 */
+		/// Normalizes this vector.
 		public void Normalize() mut
 		{
 			this /= Magnitude();
 		}
 		
-		/**
-		 * Returns a copy of this Vector with a magnitude of 1.
-		 */
+		/// Returns a copy of this Vector with a magnitude of 1.
 		[Checked]
 		public Vector3 Normalized()
 		{
@@ -134,24 +137,28 @@ namespace GlitchyEngine.Math
 			return this / Magnitude();
 		}
 
-		/**
-		 * Returns a copy of this Vector with a magnitude of 1.
-		 */
+		/// Returns a copy of this Vector with a magnitude of 1.
 		public Vector3 Normalized()
 		{
 			return this / Magnitude();
 		}
-
+		
+		/// Returns a copy of the given Vector with a magnitude of 1.
 		public static Vector3 Normalize(Vector3 v)
 		{
 			return v / v.Magnitude();
 		}
 
-		public static float Dot(Vector3 l, Vector3 r)
-		{
-			return l.X * r.X + l.Y * r.Y + l.Z * r.Z;
-		}
+		/// Calculates the dot product of two vectors.
+		public static float Dot(Vector3 l, Vector3 r) => l.X * r.X + l.Y * r.Y + l.Z * r.Z;
 
+		/// Calculates the distance between two vectors.
+		public static float Distance(Vector3 a, Vector3 b) => (a - b).[Inline]Magnitude();
+
+		/// Calculates the squared distance between two vectors.
+		public static float DistanceSquared(Vector3 a, Vector3 b) => (a - b).[Inline]MagnitudeSquared();
+		
+		/// Calculates the cross product of two vectors.
 		public static Vector3 Cross(Vector3 l, Vector3 r)
 		{
 			return .(l.Y * r.Z - l.Z * r.Y,
@@ -159,27 +166,21 @@ namespace GlitchyEngine.Math
 					 l.X * r.Y - l.Y * r.X);
 		}
 
-		/**
-		* Calculates the projection of a onto b
-		*/
+		/// Calculates the projection of a onto b.
 		public static Vector3 Project(Vector3 a, Vector3 b)
 		{
 			return (b * (Dot(a, b) / Dot(b, b)));
 		}
 
-
-		/**
-		* Calculates the rejection of a from b
-		*/
+		/// Calculates the rejection of a from b.
 		public static Vector3 Reject(Vector3 a, Vector3 b)
 		{
 			return (a - b * (Dot(a, b) / Dot(b, b)));
 		}
 
-		public static Vector3 Floor(Vector3 value)
-		{
-			return .(Math.Floor(value.X), Math.Floor(value.Y), Math.Floor(value.Z));
-		}
+		public static Vector3 Floor(Vector3 value) => .(Math.Floor(value.X), Math.Floor(value.Y), Math.Floor(value.Z));
+
+		public static Vector3 Ceiling(Vector3 value) => .(Math.Ceiling(value.X), Math.Ceiling(value.Y), Math.Ceiling(value.Z));
 		
 		/**
 		 * Interpolates linearly between two given vectors.
@@ -194,14 +195,17 @@ namespace GlitchyEngine.Math
 			return a + interpolationValue * (b - a);
 		}
 		
-		public static Vector3 Min(Vector3 a, Vector3 b)
-		{
-			return .(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
-		}
+		public static Vector3 Min(Vector3 a, Vector3 b) => .(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
 
-		public static Vector3 Max(Vector3 a, Vector3 b)
+		public static Vector3 Max(Vector3 a, Vector3 b) => .(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Min(a.Z, b.Z));
+		
+		public static Vector3 Abs(Vector3 v) => .(Math.Abs(v.X), Math.Abs(v.Y), Math.Abs(v.Z));
+
+		public static Vector3 Clamp(Vector3 v, Vector3 min, Vector3 max)
 		{
-			return .(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Min(a.Z, b.Z));
+			return .(Math.Clamp(v.X, min.X, max.X),
+			         Math.Clamp(v.Y, min.Y, max.Y),
+			         Math.Clamp(v.X, min.Z, max.Z));
 		}
 
 		//
@@ -225,7 +229,6 @@ namespace GlitchyEngine.Math
 		}
 
 		// Subtraction
-
 
 		public void operator -=(Vector3 value) mut
 		{
