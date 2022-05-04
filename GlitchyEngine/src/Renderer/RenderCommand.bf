@@ -63,6 +63,11 @@ namespace GlitchyEngine.Renderer
 			_rendererAPI.SetDepthStencilTarget(target);
 		}
 
+		public static void UnbindRenderTargets()
+		{
+			_rendererAPI.UnbindRenderTargets();
+		}
+
 		public static void BindRenderTargets()
 		{
 			_rendererAPI.BindRenderTargets();

@@ -34,6 +34,11 @@ namespace GlitchyEngine.Renderer
 		 * @param setDepthTarget If set to true the depth stencil target of the given renderTarget will be bound (only applies if slot is 0).
 		 */
 		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0, bool setDepthTarget = true);
+		
+		/**
+		 * Unbinds all rendertargets.
+		 */
+		public extern void UnbindRenderTargets();
 
 		/**
 		 * Binds all.

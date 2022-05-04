@@ -129,6 +129,14 @@ namespace GlitchyEngine.Renderer
 				SetDepthStencilTarget((renderTarget ?? _swapChain.BackBuffer).DepthStencilTarget);
 			}
 		}
+		
+		public override void UnbindRenderTargets()
+		{
+			for (var rt in ref _renderTargets)
+			{
+				rt = null;
+			}
+		}
 
 		public override void BindRenderTargets()
 		{
@@ -193,7 +201,7 @@ namespace GlitchyEngine.Renderer
 
 			for(let entry in shader.Textures)
 			{
-				_textures[entry.Index] = entry.Texture?.nativeResourceView;
+				_textures[entry.Index] = entry.Texture?._nativeResourceView;
 				_samplers[entry.Index] = entry.Texture?.SamplerState?.nativeSamplerState;
 				
 				if(entry.Index >= _textureCount)

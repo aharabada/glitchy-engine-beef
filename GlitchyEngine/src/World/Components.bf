@@ -249,16 +249,31 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct CameraComponent
+	struct CameraComponent : IDisposableComponent
 	{
 		public SceneCamera Camera;
 		public bool Primary = true;  // Todo: probably move into scene
 		public bool FixedAspectRatio = false;
+		private RenderTarget2D _renderTarget = null;
+
+		public RenderTarget2D RenderTarget
+		{
+			get => _renderTarget;
+			set mut
+			{
+				SetReference!(_renderTarget, value);
+			}
+		}
 
 		public this()
 		{
 			Camera = .();
-		}	
+		}
+
+		public void Dispose()
+		{
+			_renderTarget?.ReleaseRef();
+		}
 	}
 
 	struct NativeScriptComponent : IDisposableComponent

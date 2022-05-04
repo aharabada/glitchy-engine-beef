@@ -52,6 +52,7 @@ namespace GlitchyEngine.World
 
 			Camera* primaryCamera = null;
 			Matrix primaryCameraTransform = default;
+			RenderTarget2D renderTarget = null;
 
 			for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, CameraComponent>())
 			{
@@ -59,12 +60,23 @@ namespace GlitchyEngine.World
 				{
 					primaryCamera = &camera.Camera;
 					primaryCameraTransform = transform.WorldTransform;
+					renderTarget = camera.RenderTarget..AddRef();
 				}
 			}
 			
-			// Sprite renderer
 			if (primaryCamera != null)
-			{ 
+			{
+				// 3D render
+				Renderer.BeginScene(*primaryCamera, primaryCameraTransform, renderTarget);
+
+				for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
+				{
+					Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
+				}
+
+				Renderer.EndScene();
+
+				// Sprite renderer
 				Renderer2D.BeginScene(*primaryCamera, primaryCameraTransform);
 	
 				for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
@@ -73,6 +85,8 @@ namespace GlitchyEngine.World
 				}
 	
 				Renderer2D.EndScene();
+
+				renderTarget?.ReleaseRef();
 			}
 		}
 

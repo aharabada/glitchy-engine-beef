@@ -49,6 +49,8 @@ namespace GlitchyEngine.Renderer
 				StringView str = StringView((char8*)errorBlob.GetBufferPointer(), (int)errorBlob.GetBufferSize());
 				Log.EngineLogger.Error($"Failed to compile Shader: Error Code({(int)result}): {result} | Error Message: {str}");
 			}
+			
+			Log.EngineLogger.Assert(shaderBlob != null, "Shader compilation failed.");
 		}
 
 		protected internal void Reflect(ID3DBlob* shaderCode)

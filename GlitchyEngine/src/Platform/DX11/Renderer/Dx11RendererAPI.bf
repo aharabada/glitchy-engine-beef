@@ -75,6 +75,13 @@ namespace GlitchyEngine.Renderer
 			_context.SetDepthStencilTarget(target);
 		}
 
+		public override void UnbindRenderTargets()
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			_context.UnbindRenderTargets();
+		}
+
 		public override void BindRenderTargets()
 		{
 			Debug.Profiler.ProfileRendererFunction!();

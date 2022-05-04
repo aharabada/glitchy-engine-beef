@@ -7,6 +7,9 @@ using GlitchyEngine.ImGui;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.World;
+using GlitchyEngine.Content;
+using System.Collections;
+using GlitchyEngine.Renderer.Animation;
 
 namespace GlitchyEditor
 {
@@ -83,6 +86,7 @@ namespace GlitchyEditor
 				camera.Camera.SetPerspective(MathHelper.ToRadians(75), 0.1f, 10000.0f);
 				camera.Primary = true;
 				camera.FixedAspectRatio = false;
+				camera.RenderTarget = _viewportTarget;
 				let transform = _cameraEntity.GetComponent<TransformComponent>();
 				transform.Position = .(0, 0, -5);
 
@@ -96,6 +100,7 @@ namespace GlitchyEditor
 				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 1000.0f);
 				camera.Primary = false;
 				camera.FixedAspectRatio = false;
+				camera.RenderTarget = _viewportTarget;
 				let transform = _otherCameraEntity.GetComponent<TransformComponent>();
 				transform.Position = .(0, 0, -5);
 
@@ -104,6 +109,31 @@ namespace GlitchyEditor
 			}
 
 			InitEditor();
+
+			TestEntitiesWithModels();
+		}
+
+		private void TestEntitiesWithModels()
+		{
+			Effect myEffect = new Effect("content/Shaders/myEffect.hlsl")..ReleaseRefNoDelete();
+
+			Material mat = new Material(myEffect)..ReleaseRefNoDelete();
+			mat.SetVariable("BaseColor", Vector4(1, 0, 1, 1));
+			//mat.SetVariable("LightDir", Vector3(1, 1, 0).Normalized());
+
+			List<AnimationClip> clips = scope .();
+
+			ModelLoader.LoadModel("content/Models/plane.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
+			
+			mat = new Material(myEffect)..ReleaseRefNoDelete();
+			mat.SetVariable("BaseColor", Vector4(1, 1, 0, 1));
+			//mat.SetVariable("LightDir", Vector3(0, 1, 0).Normalized());
+
+			clips = scope .();
+
+			ModelLoader.LoadModel("content/Models/plane.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
+
+			ClearAndReleaseItems!(clips);
 		}
 
 		private void InitGraphics()
@@ -184,9 +214,13 @@ namespace GlitchyEditor
 		}
 
 		ImGui.ID _mainDockspaceId;
+		
+		TextureViewer viewer = new TextureViewer() ~ delete _;
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
+			viewer.ViewTexture(Renderer.[Friend]_gBuffer.Normal);
+
 			ImGui.Begin("Test");
 
 			static bool cameraA = true;

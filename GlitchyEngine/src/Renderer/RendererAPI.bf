@@ -38,6 +38,8 @@ namespace GlitchyEngine.Renderer
 
 		public extern void SetDepthStencilTarget(DepthStencilTarget target);
 
+		public extern void UnbindRenderTargets();
+
 		public extern void BindRenderTargets();
 
 		public extern void SetRasterizerState(RasterizerState rasterizerState);

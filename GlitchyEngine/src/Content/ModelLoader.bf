@@ -37,7 +37,7 @@ namespace GlitchyEngine.Content
 		{
 			EcsEntity entity = world.NewEntity();
 
-#if DEBUG
+//#if DEBUG
 			var nameComponent = world.AssignComponent<DebugNameComponent>(entity);
 
 			if (node.Name != null)
@@ -48,7 +48,7 @@ namespace GlitchyEngine.Content
 			{
 				nameComponent.SetName("Unnamed Node");
 			}
-#endif
+//#endif
 
 			if(parentEntity.HasValue)
 			{
