@@ -33,33 +33,22 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public class RenderTarget2D : RefCounter
+	public class RenderTarget2D : Texture
 	{
 		private RenderTarget2DDescription _description;
 
 		public RenderTarget2DDescription Description => _description;
 
-		public uint32 Width => _description.Width;
-		public uint32 Height => _description.Height;
-
+		public override uint32 Width => _description.Width;
+		public override uint32 Height => _description.Height;
+		public override uint32 Depth => 1;
+		public override uint32 ArraySize => _description.ArraySize;
+		public override uint32 MipLevels => _description.MipLevels;
+		
 		protected internal DepthStencilTarget _depthStenilTarget ~ _?.ReleaseRef();
 		
 		// TODO: DepthStencilTarget is just a renderTarget
 		public DepthStencilTarget DepthStencilTarget => _depthStenilTarget;
-
-		protected SamplerState _samplerState ~ _?.ReleaseRef();
-
-		public SamplerState SamplerState
-		{
-			get => _samplerState;
-			set
-			{
-				if(_samplerState == value)
-					return;
-
-				SetReference!(_samplerState, value);
-			}
-		}
 
 		public this(RenderTarget2DDescription description)
 		{

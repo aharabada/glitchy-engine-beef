@@ -17,10 +17,8 @@ namespace GlitchyEngine.Renderer
 			{
 				if(_samplerState == value)
 					return;
-
-				_samplerState?.ReleaseRef();
-				_samplerState = value;
-				_samplerState?.AddRef();
+				
+				SetReference!(_samplerState, value);
 			}
 		}
 

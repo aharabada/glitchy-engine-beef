@@ -18,7 +18,7 @@ namespace GlitchyEngine.Renderer
 
 	extension Texture
 	{
-		protected internal ID3D11ShaderResourceView* nativeResourceView ~ _?.Release();
+		protected internal ID3D11ShaderResourceView* _nativeResourceView ~ _?.Release();
 
 		/** \brief Loads the texture from the specified path.
 		 * @param path The path of the texture to load.
@@ -39,17 +39,17 @@ namespace GlitchyEngine.Renderer
 			}
 
 			((ID3D11Resource*)texture)?.Release();
-			nativeResourceView?.Release();
+			_nativeResourceView?.Release();
 
 			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromMemory(NativeDevice,
-				ddsData.Ptr, (uint)ddsData.Count, (.)&texture, &nativeResourceView);
+				ddsData.Ptr, (uint)ddsData.Count, (.)&texture, &_nativeResourceView);
 
 			if(loadResult.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to load texture. Error({(int)loadResult}): {loadResult}");
 
 				ReleaseAndNullify!(texture);
-				ReleaseAndNullify!(nativeResourceView);
+				ReleaseAndNullify!(_nativeResourceView);
 
 				return false;
 			}
@@ -126,7 +126,7 @@ namespace GlitchyEngine.Renderer
 			var result = NativeDevice.CreateTexture2D(ref nativeDesc, resDataPtr, &nativeTexture);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture 2D. Error ({result.Underlying}): {result}");
 
-			result = NativeDevice.CreateShaderResourceView(nativeTexture, null, &nativeResourceView);
+			result = NativeDevice.CreateShaderResourceView(nativeTexture, null, &_nativeResourceView);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture view. Error ({result.Underlying}): {result}");
 		}
 
@@ -136,8 +136,8 @@ namespace GlitchyEngine.Renderer
 
 			nativeTexture?.Release();
 			nativeTexture = null;
-			nativeResourceView?.Release();
-			nativeResourceView = null;
+			_nativeResourceView?.Release();
+			_nativeResourceView = null;
 
 			nativeDesc = (NativeTex2DDesc)desc;
 

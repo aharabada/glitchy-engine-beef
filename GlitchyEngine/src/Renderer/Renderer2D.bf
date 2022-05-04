@@ -91,13 +91,13 @@ namespace GlitchyEngine.Renderer
 			FrontToBack
 		}
 
-		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture2D Texture, float Depth, Vector4 uvTransform) { }
+		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform) { }
 
 		struct QueueCircle : QueueQuad
 		{
 			public float InnerRadius;
 
-			public this(Matrix Transform, ColorRGBA Color, Texture2D Texture, float Depth, Vector4 uvTransform, float innerRadius)
+			public this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform, float innerRadius)
 				 : base(Transform, Color, Texture, Depth, uvTransform)
 			{
 				InnerRadius = innerRadius;
@@ -472,7 +472,7 @@ namespace GlitchyEngine.Renderer
 
 		/// Adds a quad instance to the instance queue.
 		[Inline]
-		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform)
+		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture texture, float depth, Vector4 uvTransform)
 		{
 			s_QuadinstanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform));
 			s_statistics.QuadCount++;
@@ -593,7 +593,7 @@ namespace GlitchyEngine.Renderer
 			if(s_QuadinstanceQueue.IsEmpty)
 				return;
 
-			Texture2D texture = s_QuadinstanceQueue[0].Texture;
+			Texture texture = s_QuadinstanceQueue[0].Texture;
 			s_currentEffect.SetTexture("Texture", texture);
 
 			s_setInstances = 0;
@@ -631,7 +631,7 @@ namespace GlitchyEngine.Renderer
 			if(s_circleInstanceQueue.IsEmpty)
 				return;
 
-			Texture2D texture = s_circleInstanceQueue[0].Texture;
+			Texture texture = s_circleInstanceQueue[0].Texture;
 			s_currentCircleEffect.SetTexture("Texture", texture);
 
 			s_setInstances = 0;
@@ -764,19 +764,19 @@ namespace GlitchyEngine.Renderer
 		
 		// Textured Quad
 
-		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			DrawQuad(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
 		}
 
-		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			Matrix transform = Calculate2DTransform(position, size, rotation);
 
 			DrawQuad(transform, texture, color, uvTransform);
 		}
 
-		public static void DrawQuad(Matrix transform, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(Matrix transform, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 

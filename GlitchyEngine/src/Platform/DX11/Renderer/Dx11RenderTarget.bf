@@ -14,7 +14,6 @@ namespace GlitchyEngine.Renderer
 	extension RenderTarget2D
 	{
 		protected internal ID3D11Texture2D* _nativeTexture ~ _?.Release();
-		protected internal ID3D11ShaderResourceView* _nativeResourceView ~ _?.Release();
 		protected internal ID3D11RenderTargetView* _nativeRenderTargetView ~ _?.Release();
 
 		private void ReleaseAndNullify()
