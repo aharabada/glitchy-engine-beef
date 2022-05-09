@@ -49,15 +49,19 @@ namespace GlitchyEngine.Renderer
 
 		public void EnsureTypeMatch(int rows, int cols, ShaderVariableType type)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 #if GE_SHADER_MATRIX_MISMATCH_IS_ERROR
-	   		Log.EngineLogger.Assert(rows == _rows || cols == _columns, scope $"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
+			if (rows != _rows || cols != _columns)
+				Log.EngineLogger.Assert(false, scope $"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #elif GE_SHADER_MATRIX_MISMATCH_IS_WARNING
 			if (rows != _rows || cols != _columns)
 	   			Log.EngineLogger.Warning($"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #endif
 
 #if GE_SHADER_VAR_TYPE_MISMATCH_IS_ERROR
-	   		Log.EngineLogger.Assert(type == _type, scope $"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
+			if (type != _type)
+				Log.EngineLogger.Assert(false, scope $"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #elif GE_SHADER_VAR_TYPE_MISMATCH_IS_WARNING
 			if (type != _type)
 	   			Log.EngineLogger.Warning($"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
