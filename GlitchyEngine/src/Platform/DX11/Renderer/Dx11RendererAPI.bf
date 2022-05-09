@@ -142,6 +142,11 @@ namespace GlitchyEngine.Renderer
 
 			_context.SetViewport(viewport);
 		}
+
+		public override void UnbindTextures()
+		{
+			_context.UnbindTextures();
+		}
 	}
 }
 

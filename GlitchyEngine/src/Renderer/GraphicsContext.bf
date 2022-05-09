@@ -117,5 +117,7 @@ namespace GlitchyEngine.Renderer
 		public extern void SetVertexShader(VertexShader vertexShader);
 
 		public extern void SetPixelShader(PixelShader pixelShader);
+
+		public extern void UnbindTextures();
 	}
 }

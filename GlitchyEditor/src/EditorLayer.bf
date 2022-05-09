@@ -116,16 +116,18 @@ namespace GlitchyEditor
 
 		private void TestEntitiesWithModels()
 		{
-			using (Effect myEffect = new Effect("content/Shaders/myEffect.hlsl"))
+			var fxLib = Application.Get().EffectLibrary;
+
+			using (Effect myEffect = fxLib.Load("content/Shaders/myEffect.hlsl"))
 			using (Texture2D albedo = new Texture2D("Textures/TestMat/rustediron2_albedo.png", true))
 			using (Texture2D normal = new Texture2D("Textures/TestMat/rustediron2_normal.png"))
 			using (Texture2D rough = new Texture2D("Textures/TestMat/rustediron2_roughness.png"))
 			using (Texture2D metal = new Texture2D("Textures/TestMat/rustediron2_metallic.png"))
 			{
-				albedo.SamplerState = SamplerStateManager.AnisotropicClamp;
-				normal.SamplerState = SamplerStateManager.AnisotropicClamp;
-				rough.SamplerState = SamplerStateManager.AnisotropicClamp;
-				metal.SamplerState = SamplerStateManager.AnisotropicClamp;
+				albedo.SamplerState = SamplerStateManager.AnisotropicWrap;
+				normal.SamplerState = SamplerStateManager.AnisotropicWrap;
+				rough.SamplerState = SamplerStateManager.AnisotropicWrap;
+				metal.SamplerState = SamplerStateManager.AnisotropicWrap;
 				
 				List<AnimationClip> clips = scope .();
 
@@ -138,10 +140,14 @@ namespace GlitchyEditor
 					//mat.SetVariable("BaseColor", Vector4(1, 0, 1, 1));
 					//mat.SetVariable("LightDir", Vector3(1, 1, 0).Normalized());
 		
-					ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
+					EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips, "Sphere 1");
+					
+					Entity entity = .(e, _scene);
+					var transform = entity.GetComponent<TransformComponent>();
+					transform.Position = .(5, 0, 5);
 				}
 				
-				using (Material mat = new .(myEffect))
+				/*using (Material mat = new .(myEffect))
 				{
 					mat.SetTexture("AlbedoTexture", albedo);
 					mat.SetTexture("NormalTexture", normal);
@@ -152,6 +158,41 @@ namespace GlitchyEditor
 		
 		
 					ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
+				}*/
+
+				ClearAndReleaseItems!(clips);
+			}
+
+			using (Effect myEffect = fxLib.Get("myEffect"))
+			using (Texture2D white = new Texture2D("Textures/White.png"))
+			using (Texture2D normal = new Texture2D("Textures/DefaultNormal.png"))
+			{
+				white.SamplerState = SamplerStateManager.PointClamp;
+				normal.SamplerState = SamplerStateManager.PointClamp;
+
+				List<AnimationClip> clips = scope .();
+
+				for (int x < 10)
+				for (int y < 10)
+				{
+					using (Material mat = new .(myEffect))
+					{
+						mat.SetTexture("AlbedoTexture", white);
+						mat.SetTexture("NormalTexture", normal);
+						mat.SetTexture("MetallicTexture", white);
+						mat.SetTexture("RoughnessTexture", white);
+
+						mat.SetVariable("AlbedoColor", Vector4(1, 0, 0, 1));
+						mat.SetVariable("NormalScaling", Vector2(1.0f));
+						mat.SetVariable("RoughnessFactor", (x + 1) / 10.0f);
+						mat.SetVariable("MetallicFactor", y / 9.0f);
+			
+						EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips, scope $"Sphere {x} {y}");
+
+						Entity entity = .(e, _scene);
+						var transform = entity.GetComponent<TransformComponent>();
+						transform.Position = .(x * 1.5f, y * 1.5f, 0);
+					}
 				}
 
 				ClearAndReleaseItems!(clips);
@@ -241,7 +282,7 @@ namespace GlitchyEditor
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
-			viewer.ViewTexture(Renderer.[Friend]_gBuffer.Normal);
+			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Normal);
 
 			ImGui.Begin("Test");
 

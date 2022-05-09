@@ -109,5 +109,10 @@ namespace GlitchyEngine.Renderer
 		{
 			SetViewport(.(left, top, width, height, minDepth, maxDepth));
 		}
+
+		public static void UnbindTextures()
+		{
+			_rendererAPI.UnbindTextures();
+		}
 	}
 }

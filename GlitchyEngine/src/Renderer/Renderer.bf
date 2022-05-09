@@ -48,10 +48,10 @@ namespace GlitchyEngine.Renderer
 					RenderTarget2DDescription albedoDesc = .(.R8G8B8A8_UNorm, width, height, 1, 1, .D24_UNorm_S8_UInt);
 					Albedo = new RenderTarget2D(albedoDesc);
 
-					RenderTarget2DDescription normalDesc = .(.R8G8B8A8_SNorm, width, height);
+					RenderTarget2DDescription normalDesc = .(.R16G16B16A16_SNorm, width, height);
 					Normal = new RenderTarget2D(normalDesc);
 					
-					RenderTarget2DDescription tangentDesc = .(.R8G8B8A8_SNorm, width, height);
+					RenderTarget2DDescription tangentDesc = .(.R16G16B16A16_SNorm, width, height);
 					Tangent = new RenderTarget2D(tangentDesc);
 
 					RenderTarget2DDescription positionDesc = .(.R32G32B32A32_Float, width, height);
@@ -289,6 +289,7 @@ namespace GlitchyEngine.Renderer
 			// {
 			_gBuffer.EnsureSize(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
 			_gBuffer.Clear();
+			RenderCommand.UnbindRenderTargets();
 			_gBuffer.Bind();
 
 			RenderCommand.SetViewport(0, 0, _sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
@@ -333,6 +334,8 @@ namespace GlitchyEngine.Renderer
 
 			s_quadGeometry.Bind();
 			RenderCommand.DrawIndexed(s_quadGeometry);
+
+			RenderCommand.UnbindTextures();
 
 			// TODO: Draw lights to camera target
 			// }

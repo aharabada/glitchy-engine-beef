@@ -12,8 +12,8 @@ namespace GlitchyEngine.Content
 	{
 		static readonly Matrix RightToLeftHand = .Scaling(1, 1, -1);
 
-		public static void LoadModel(String filename, Effect validationEffect, Material material, EcsWorld world,
-			List<AnimationClip> outClips)
+		public static EcsEntity LoadModel(String filename, Effect validationEffect, Material material, EcsWorld world,
+			List<AnimationClip> outClips, StringView entityName = StringView())
 		{
 			CGLTF.Options options = .();
 			CGLTF.Data* data;
@@ -24,39 +24,48 @@ namespace GlitchyEngine.Content
 			result = CGLTF.LoadBuffers(options, data, filename);
 
 			Log.EngineLogger.Assert(result == .Success, "Failed to load buffers");
+			
+			(EcsEntity entity, ?) = CreateEntity(world, entityName, .InvalidEntity);
 
 			for(var node in data.Scenes[0].Nodes)
 			{
-				NodesToEntities(data, node, null, world, validationEffect, material, outClips);
+				NodesToEntities(data, node, entity, world, validationEffect, material, outClips);
 			}
 			
 			CGLTF.Free(data);
+
+			return entity;
 		}
 
-		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity? parentEntity, EcsWorld world, Effect validationEffect, Material material, List<AnimationClip> clips)
+		private static (EcsEntity Entity, TransformComponent* Transform) CreateEntity(EcsWorld world, StringView? name, EcsEntity parent)
 		{
 			EcsEntity entity = world.NewEntity();
 
-//#if DEBUG
 			var nameComponent = world.AssignComponent<DebugNameComponent>(entity);
 
-			if (node.Name != null)
+			if (name != null && name.Value.Ptr != null)
 			{
-				nameComponent.SetName(StringView(node.Name));
+				nameComponent.SetName(name.Value);
 			}
 			else
 			{
 				nameComponent.SetName("Unnamed Node");
 			}
-//#endif
 
-			if(parentEntity.HasValue)
-			{
-				var childParent = world.AssignComponent<ParentComponent>(entity);
-				childParent.Entity = parentEntity.Value;
-			}
+			/////TODO: !!!!!!!!REPORT!!!!!!!!!!!!!
+			// This works
+			TransformComponent cmp = .();
+			var childTransform = world.AssignComponent<TransformComponent>(entity, cmp);
+			// This trashes the stack
+			//var childTransform = world.AssignComponent<TransformComponent>(entity);
+			childTransform.Parent = parent;
 
-			var childTransform = world.AssignComponent<TransformComponent>(entity);
+			return (entity, childTransform);
+		}
+
+		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity parentEntity, EcsWorld world, Effect validationEffect, Material material, List<AnimationClip> clips)
+		{
+			(EcsEntity entity, TransformComponent* childTransform) = CreateEntity(world, node.Name == null ? null : StringView(node.Name), parentEntity);
 
 			if(node.HasMatrix)
 			{

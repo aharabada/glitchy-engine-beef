@@ -1,3 +1,5 @@
+#include "ShaderHelpers.hlsl"
+
 Texture2D AlbedoTexture : register(t0);
 SamplerState AlbedoSampler : register(s0);
 
@@ -25,8 +27,11 @@ cbuffer ObjectConstants
 
 cbuffer Constants
 {
-    //float4 BaseColor = float4(1, 0, 1, 1);
-    //float3 LightDir = float3(0, 1, 0);
+    float4 AlbedoColor = float4(1.0, 1.0, 1.0, 1.0);
+    float2 NormalScaling = float2(1.0, 1.0);
+    float MetallicFactor = 1.0;
+    float RoughnessFactor = 1.0;
+    // float AmbientFactor = 1.0;
 }
 
 struct VS_IN
@@ -98,6 +103,10 @@ PS_OUT PS(PS_IN input)
     //float3 objectNormal = mul(tangentTransform, texNormal);
     //float3 worldNormal = mul(objectNormal, (float3x3)Transform);
 
+    float4 finalAlbedo = texAlbedo * AlbedoColor;
+    float3 finalNormal = ScaleNormal(texNormal, NormalScaling);
+    float finalMetallic = texMetallic * MetallicFactor;
+    float finalRoughness = texRoughness * RoughnessFactor;
 
 /////////////TODO: REMOVEME
 
@@ -109,12 +118,12 @@ PS_OUT PS(PS_IN input)
 /////////////TODO: END_REMOVEME
 
     PS_OUT output;
-    output.Albedo = texAlbedo;
+    output.Albedo = finalAlbedo;
     //output.Normal = float4(objectNormal, 1.0);
-    output.Normal = float4(texNormal.xy, normal.xy);
+    output.Normal = float4(finalNormal.xy, normal.xy);
     output.Tangent = float4(normal.z, tangent.xyz);
 	output.Position = float4(input.WorldPosition, 1.0); 
-    output.Material = float4(texMetallic, texRoughness, 1.0, 0);
+    output.Material = float4(finalMetallic, finalRoughness, 1.0, 0);
 
     return output;
 }

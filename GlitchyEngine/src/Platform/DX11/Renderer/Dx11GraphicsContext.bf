@@ -185,6 +185,11 @@ namespace GlitchyEngine.Renderer
 			NativeContext.InputAssembler.SetPrimitiveTopology((DirectX.Common.PrimitiveTopology)primitiveTopology);
 		}
 
+		private uint32 _ps_FirstTexture;
+		private uint32 _ps_BoundTextures;
+		private uint32 _vs_FirstTexture;
+		private uint32 _vs_BoundTextures;
+
 		/**
 		 * Binds the given shader to the corresponding shader stage.
 		 * @param shader The shader that will be bound to the graphics context.
@@ -219,9 +224,15 @@ namespace GlitchyEngine.Renderer
 					// TODO: bind uavs
 					NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
 					NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+
+					_ps_FirstTexture = _firstTexture;
+					_ps_BoundTextures = _textureCount;
 				case typeof(VertexShader):
 					NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
 					NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+					
+					_vs_FirstTexture = _firstTexture;
+					_vs_BoundTextures = _textureCount;
 				default:
 					Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
 				}
@@ -241,6 +252,14 @@ namespace GlitchyEngine.Renderer
 			default:
 				Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
 			}
+		}
+
+		public override void UnbindTextures()
+		{
+			void** voidArray = scope void*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT]*;
+
+			NativeContext.PixelShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
+			NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
 		}
 
 		public override void SetVertexShader(VertexShader vertexShader)

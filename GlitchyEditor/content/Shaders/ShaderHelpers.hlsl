@@ -1,3 +1,7 @@
+#ifndef __SHADER_HELPERS_HLSL__
+#define __SHADER_HELPERS_HLSL__
+
+#define PI 3.14159265358979323846f
 
 /*
 * Calculates the weighted sum of two normal vectors.
@@ -82,3 +86,5 @@ float GetBitangentHandedness(float tangentz)
     uint z = asuint(tangentz);
     return (z & 1) > 0 ? 1.0 : -1.0;
 }
+
+#endif // __SHADER_HELPERS_HLSL__

@@ -55,5 +55,7 @@ namespace GlitchyEngine.Renderer
 		public extern void DrawIndexedInstanced(GeometryBinding geometry);
 
 		public extern void SetViewport(Viewport viewport);
+
+		public extern void UnbindTextures();
 	}
 }
