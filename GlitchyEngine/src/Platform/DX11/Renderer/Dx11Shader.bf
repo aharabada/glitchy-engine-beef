@@ -25,7 +25,7 @@ namespace GlitchyEngine.Renderer
 			.OptimizationLevel3;
 #endif
 
-		internal static void PlattformCompileShaderFromSource(String code, ShaderDefine[] macros, String entryPoint, String target, ShaderCompileFlags compileFlags, out ID3DBlob* shaderBlob)
+		internal static void PlattformCompileShaderFromSource(StringView code, StringView? fileName, ShaderDefine[] macros, String entryPoint, String target, ShaderCompileFlags compileFlags, out ID3DBlob* shaderBlob)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -43,7 +43,7 @@ namespace GlitchyEngine.Renderer
 			ID3DBlob* errorBlob = null;
 
 			shaderBlob = null;
-			var result = D3DCompiler.D3DCompile(code.CStr(), (.)code.Length, null, nativeMacros, null, entryPoint, target, compileFlags, .None, &shaderBlob, &errorBlob);
+			var result = D3DCompiler.D3DCompile(code.Ptr, (.)code.Length, fileName?.ToScopeCStr!(), nativeMacros, ID3DInclude.StandardInclude, entryPoint, target, compileFlags, .None, &shaderBlob, &errorBlob);
 			if(result.Failed)
 			{
 				StringView str = StringView((char8*)errorBlob.GetBufferPointer(), (int)errorBlob.GetBufferSize());

@@ -30,7 +30,7 @@ namespace GlitchyEngine.Renderer
 		public ShaderTextureCollection Textures => _textures;
 
 		[AllowAppend]
-		public this(String source, String entryPoint, ShaderDefine[] macros = null)
+		public this(StringView code, StringView? fileName, String entryPoint, ShaderDefine[] macros = null)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -39,7 +39,7 @@ namespace GlitchyEngine.Renderer
 			_buffers = new BufferCollection();
 			_textures = new ShaderTextureCollection();
 
-			CompileFromSource(source, entryPoint);
+			CompileFromSource(code, fileName, entryPoint);
 		}
 
 		public ~this()
@@ -52,15 +52,14 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileResourceFunction!();
 
 			String fileContent = new String();
-
 			File.ReadAllText(fileName, fileContent, true);
-			T shader = new T(fileContent, entryPoint, macros);
+			T shader = new T(fileContent, (StringView)fileName, entryPoint, macros);
 
 			delete fileContent;
 
 			shader
 		}
 
-		public abstract void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null);
+		public abstract void CompileFromSource(StringView code, StringView? fileName, String entryPoint, ShaderDefine[] macros = null);
 	}
 }

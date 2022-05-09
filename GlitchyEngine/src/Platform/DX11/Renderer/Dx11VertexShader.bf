@@ -15,11 +15,11 @@ namespace GlitchyEngine.Renderer
 	{
 		internal ID3D11VertexShader* nativeShader ~ _?.Release();
 
-		public override void CompileFromSource(String code, String entryPoint, ShaderDefine[] macros = null)
+		public override void CompileFromSource(StringView code, StringView? fileName, String entryPoint, ShaderDefine[] macros = null)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			Shader.PlattformCompileShaderFromSource(code, macros, entryPoint, "vs_5_0", DefaultCompileFlags, out nativeCode);
+			Shader.PlattformCompileShaderFromSource(code, fileName, macros, entryPoint, "vs_5_0", DefaultCompileFlags, out nativeCode);
 
 			{
 				Debug.Profiler.ProfileResourceScope!("CreateNativeVertexShader");

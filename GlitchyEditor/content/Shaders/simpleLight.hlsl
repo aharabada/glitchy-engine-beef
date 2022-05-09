@@ -1,3 +1,5 @@
+#include "ShaderFunctions.hlsl"
+
 #define PI 3.14159265358979323846f
 
 SamplerState Sampler : register(s0);
@@ -109,10 +111,10 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
 * Reconstructs the z-component of a normalized normal vector from a two-component value
 * cnrm: The x- and y-components of a normalized normal vector
 */
-float3 DecompressNormal(float2 cnrm)
-{
-	return float3(cnrm, sqrt(1.0 - cnrm.x * cnrm.x - cnrm.y * cnrm.y));
-}
+//float3 DecompressNormal(float2 cnrm)
+//{
+//	return float3(cnrm, sqrt(1.0 - cnrm.x * cnrm.x - cnrm.y * cnrm.y));
+//}
 
 float4 PS(PS_IN input) : SV_TARGET
 {

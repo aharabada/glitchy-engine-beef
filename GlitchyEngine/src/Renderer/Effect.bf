@@ -169,7 +169,7 @@ namespace GlitchyEngine.Renderer
 
 			ProcessFile(filename, fileContent, vsName, psName);
 
-			Compile(fileContent, vsName, psName);
+			Compile(fileContent, filename, vsName, psName);
 
 			MergeResources();
 			
@@ -268,15 +268,15 @@ namespace GlitchyEngine.Renderer
 			ps.ReleaseRef();
 		}
 
-		private void Compile(String fileContent, String vsEntry, String psEntry)
+		private void Compile(String fileContent, String fileName, String vsEntry, String psEntry)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
 			// TODO: vsEntry and psEntry could be empty (which is a valid case.)
-			let vs = new VertexShader(fileContent, vsEntry);
+			let vs = new VertexShader(fileContent, (StringView)fileName, vsEntry);
 			VertexShader = vs;
 			vs.ReleaseRef();
-			let ps = new PixelShader(fileContent, psEntry);
+			let ps = new PixelShader(fileContent, (StringView)fileName, psEntry);
 			PixelShader = ps;
 			ps.ReleaseRef();
 		}
@@ -349,7 +349,7 @@ namespace GlitchyEngine.Renderer
 			fileContent.Remove(effectIndex, lineEndIndex - effectIndex);
 		}
 
-		protected extern void Compile(String vsPath, String vsEntry, String psPath, String psEntry);
+		//protected extern void Compile(String code, String fileName, String vsEntry, String psEntry);
 
 		private void MergeResources()
 		{
