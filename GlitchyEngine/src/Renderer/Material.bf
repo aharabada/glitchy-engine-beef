@@ -67,6 +67,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		public void Bind(GraphicsContext context)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			for(let (name, texture) in _textures)
 			{
 				_effect.SetTexture(name, texture);
@@ -106,11 +108,24 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		private void SetVariable<T>(String name, T value) where T : struct
 		{
-			if(_variables.TryGetValue(name, let entry))
+			bool b = false;
+			(uint32 Offset, BufferVariable Variable) entry;
+
+			{
+				Debug.Profiler.ProfileRendererScope!("TryGetValue");
+
+				b = _variables.TryGetValue(name, out entry);
+			}
+
+			if(b)
 			{
 				entry.Variable.EnsureTypeMatch<T>();
+				
+				{
+					Debug.Profiler.ProfileRendererScope!("RawPointer!");
 
-				RawPointer!<T>(entry.Offset) = value;
+					RawPointer!<T>(entry.Offset) = value;
+				}
 			}
 			else
 			{

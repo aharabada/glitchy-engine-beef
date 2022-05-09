@@ -279,63 +279,76 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			_queue.Sort(scope => SortMeshes);
+			{
+				Debug.Profiler.ProfileRendererScope!("Sort Meshes");
 
+				_queue.Sort(scope => SortMeshes);
+			}
 			// Deferred renderer:
 
 			// TODO: foreach light: draw shadow map
 			
 			// foreach camera:
 			// {
-			_gBuffer.EnsureSize(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
-			_gBuffer.Clear();
-			RenderCommand.UnbindRenderTargets();
-			_gBuffer.Bind();
 
-			RenderCommand.SetViewport(0, 0, _sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
-
-			RenderCommand.SetBlendState(_gBufferBlend);
-			
-			//RenderCommand.UnbindRenderTargets();
-			//RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
-			//RenderCommand.BindRenderTargets();
-
-			// TODO: Draw into GBuffer
-			for (SubmittedMesh entry in _queue)
 			{
-				entry.Material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
-				entry.Material.SetVariable("Transform", entry.Transform);
-	
-				entry.Material.Bind(_context);
-	
-				entry.Mesh.Bind();
-				RenderCommand.DrawIndexed(entry.Mesh);
+				Debug.Profiler.ProfileRendererScope!("Draw GBuffer");
+				
+				_gBuffer.EnsureSize(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
+				_gBuffer.Clear();
+				RenderCommand.UnbindRenderTargets();
+				_gBuffer.Bind();
+
+				RenderCommand.SetViewport(0, 0, _sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
+
+				RenderCommand.SetBlendState(_gBufferBlend);
+
+				for (SubmittedMesh entry in _queue)
+				{
+					Debug.Profiler.ProfileRendererScope!("Draw Mesh");
+
+					{
+						Debug.Profiler.ProfileRendererScope!("SetVariables");
+
+						entry.Material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
+						entry.Material.SetVariable("Transform", entry.Transform);
+					}
+
+					entry.Material.Bind(_context);
+
+					entry.Mesh.Bind();
+					RenderCommand.DrawIndexed(entry.Mesh);
+				}
 			}
 			
-			RenderCommand.UnbindRenderTargets();
-			RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
-			RenderCommand.BindRenderTargets();
-			
-			_gBuffer.Albedo.SamplerState = SamplerStateManager.PointClamp;
-
-			TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Albedo);
-			TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Normal);
-			TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Tangent);
-			TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Position);
-			TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Material);
-
-			TestFullscreenEffect.Variables["LightColor"].SetData(Vector3(1, 1, 1));
-			TestFullscreenEffect.Variables["Illuminance"].SetData(5.0f);
-			TestFullscreenEffect.Variables["LightDir"].SetData(Vector3(0, 1, 0));
-			TestFullscreenEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
-			TestFullscreenEffect.Variables["Scaling"].SetData(Vector2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height) / Vector2(_gBuffer.Albedo.Width, _gBuffer.Albedo.Height));
-
-			TestFullscreenEffect.Bind(_context);
-
-			s_quadGeometry.Bind();
-			RenderCommand.DrawIndexed(s_quadGeometry);
-
-			RenderCommand.UnbindTextures();
+			{
+				Debug.Profiler.ProfileRendererScope!("Draw Lights");
+				
+				RenderCommand.UnbindRenderTargets();
+				RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
+				RenderCommand.BindRenderTargets();
+				
+				_gBuffer.Albedo.SamplerState = SamplerStateManager.PointClamp;
+	
+				TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Albedo);
+				TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Normal);
+				TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Tangent);
+				TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Position);
+				TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Material);
+	
+				TestFullscreenEffect.Variables["LightColor"].SetData(Vector3(1, 1, 1));
+				TestFullscreenEffect.Variables["Illuminance"].SetData(5.0f);
+				TestFullscreenEffect.Variables["LightDir"].SetData(Vector3(0, 1, 0));
+				TestFullscreenEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
+				TestFullscreenEffect.Variables["Scaling"].SetData(Vector2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height) / Vector2(_gBuffer.Albedo.Width, _gBuffer.Albedo.Height));
+	
+				TestFullscreenEffect.Bind(_context);
+	
+				s_quadGeometry.Bind();
+				RenderCommand.DrawIndexed(s_quadGeometry);
+	
+				RenderCommand.UnbindTextures();
+			}
 
 			// TODO: Draw lights to camera target
 			// }
