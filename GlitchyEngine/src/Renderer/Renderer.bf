@@ -25,9 +25,17 @@ namespace GlitchyEngine.Renderer
 			private uint32 _height;
 			
 			public DepthStencilTarget DepthStencil;
-			public RenderTarget2D Color ~ _?.ReleaseRef();
+
+			// RGB: Albedo.rgb A: ?
+			public RenderTarget2D Albedo ~ _?.ReleaseRef();
+			// RGB: Normal.xyz(Worldspace) A: Ambient
 			public RenderTarget2D Normal ~ _?.ReleaseRef();
+			// ????
+			public RenderTarget2D Tangent ~ _?.ReleaseRef();
+			// RGB: Worldspace Position A: ?
 			public RenderTarget2D Position ~ _?.ReleaseRef();
+			// R: Metallicity G: Roughness B: Ambient A: ?
+			public RenderTarget2D Material ~ _?.ReleaseRef();
 
 			public void EnsureSize(uint32 width, uint32 height)
 			{
@@ -37,24 +45,32 @@ namespace GlitchyEngine.Renderer
 				if (_width == 0 || _height == 0)
 				{
 					// Note: Depth-Buffer in Color-Target for convenience
-					RenderTarget2DDescription colorDesc = .(.R8G8B8A8_UNorm, width, height, 1, 1, .D24_UNorm_S8_UInt);
-					Color = new RenderTarget2D(colorDesc);
+					RenderTarget2DDescription albedoDesc = .(.R8G8B8A8_UNorm, width, height, 1, 1, .D24_UNorm_S8_UInt);
+					Albedo = new RenderTarget2D(albedoDesc);
 
-					RenderTarget2DDescription normalDesc = .(.R32G32B32A32_Float, width, height);
+					RenderTarget2DDescription normalDesc = .(.R8G8B8A8_SNorm, width, height);
 					Normal = new RenderTarget2D(normalDesc);
+					
+					RenderTarget2DDescription tangentDesc = .(.R8G8B8A8_SNorm, width, height);
+					Tangent = new RenderTarget2D(tangentDesc);
 
 					RenderTarget2DDescription positionDesc = .(.R32G32B32A32_Float, width, height);
 					Position = new RenderTarget2D(positionDesc);
+
+					RenderTarget2DDescription materialDesc = .(.R8G8B8A8_UNorm, width, height);
+					Material = new RenderTarget2D(materialDesc);
 				}
 
 				_width = width;
 				_height = height;
 
-				Color.Resize(_width, _height);
+				Albedo.Resize(_width, _height);
 				Normal.Resize(_width, _height);
+				Tangent.Resize(_width, _height);
 				Position.Resize(_width, _height);
+				Material.Resize(_width, _height);
 
-				DepthStencil = Color.DepthStencilTarget;
+				DepthStencil = Albedo.DepthStencilTarget;
 			}
 
 			public void Bind()
@@ -62,11 +78,22 @@ namespace GlitchyEngine.Renderer
 				RenderCommand.SetDepthStencilTarget(DepthStencil);
 
 				RenderCommand.UnbindRenderTargets();
-				RenderCommand.SetRenderTarget(Color, 0);
+				RenderCommand.SetRenderTarget(Albedo, 0);
 				RenderCommand.SetRenderTarget(Normal, 1);
-				RenderCommand.SetRenderTarget(Position, 2);
+				RenderCommand.SetRenderTarget(Tangent, 2);
+				RenderCommand.SetRenderTarget(Position, 3);
+				RenderCommand.SetRenderTarget(Material, 4);
 
 				RenderCommand.BindRenderTargets();
+			}
+
+			public void Clear()
+			{
+				RenderCommand.Clear(_gBuffer.Albedo, .Color | .Depth, .HotPink, 1, 0);
+				RenderCommand.Clear(_gBuffer.Normal, .HotPink);
+				RenderCommand.Clear(_gBuffer.Tangent, .HotPink);
+				RenderCommand.Clear(_gBuffer.Position, .HotPink);
+				RenderCommand.Clear(_gBuffer.Material, .HotPink);
 			}
 		}
 
@@ -84,6 +111,8 @@ namespace GlitchyEngine.Renderer
 
 		static GBuffer _gBuffer ~ delete _;
 		static Effect TestFullscreenEffect ~ _?.ReleaseRef();
+
+		static BlendState _gBufferBlend ~ _?.ReleaseRef();
 
 		public static void Init(GraphicsContext context, EffectLibrary effectLibrary)
 		{
@@ -105,6 +134,8 @@ namespace GlitchyEngine.Renderer
 			InitDeferredRenderer(effectLibrary);
 
 			_gBuffer = new GBuffer();
+			BlendStateDescription gBufferBlendDesc = .Default;
+			_gBufferBlend = new BlendState(gBufferBlendDesc);
 		}
 
 		public static void Deinit()
@@ -152,10 +183,10 @@ namespace GlitchyEngine.Renderer
 			using(var quadVertices = new VertexBuffer(typeof(Vector4), 4, .Immutable))
 			{
 				Vector4[4] vertices = .(
-					.(-0.5f,-0.5f, 0, 1),
-					.(-0.5f, 0.5f, 0, 0),
-					.( 0.5f, 0.5f, 1, 0),
-					.( 0.5f,-0.5f, 1, 1)
+					.(-1,-1, 0, 1),
+					.(-1, 1, 0, 0),
+					.( 1, 1, 1, 0),
+					.( 1,-1, 1, 1)
 					);
 
 				quadVertices.SetData(vertices);
@@ -257,14 +288,16 @@ namespace GlitchyEngine.Renderer
 			// foreach camera:
 			// {
 			_gBuffer.EnsureSize(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
+			_gBuffer.Clear();
 			_gBuffer.Bind();
-			RenderCommand.Clear(_gBuffer.Color, .Color | .Depth, .Blue, 1, 0);
-			RenderCommand.Clear(_gBuffer.Normal, Color.Beige);
-			RenderCommand.Clear(_gBuffer.Position, Color.Black);
+
+			RenderCommand.SetViewport(0, 0, _sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
+
+			RenderCommand.SetBlendState(_gBufferBlend);
 			
-			/*RenderCommand.UnbindRenderTargets();
-			RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
-			RenderCommand.BindRenderTargets();*/
+			//RenderCommand.UnbindRenderTargets();
+			//RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
+			//RenderCommand.BindRenderTargets();
 
 			// TODO: Draw into GBuffer
 			for (SubmittedMesh entry in _queue)
@@ -281,14 +314,20 @@ namespace GlitchyEngine.Renderer
 			RenderCommand.UnbindRenderTargets();
 			RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
 			RenderCommand.BindRenderTargets();
+			
+			_gBuffer.Albedo.SamplerState = SamplerStateManager.PointClamp;
 
-			_gBuffer.Color.SamplerState = SamplerStateManager.PointClamp;
+			TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Albedo);
+			TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Normal);
+			TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Tangent);
+			TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Position);
+			TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Material);
 
-			TestFullscreenEffect.SetTexture("Colors", _gBuffer.Color);
-			TestFullscreenEffect.SetTexture("Normals", _gBuffer.Normal);
-			//TestFullscreenEffect.SetTexture("Positions", _gBuffer.Position);
-
-			//TestFullscreenEffect.SetVariable("LightDir");
+			TestFullscreenEffect.Variables["LightColor"].SetData(Vector3(1, 1, 1));
+			TestFullscreenEffect.Variables["Illuminance"].SetData(5.0f);
+			TestFullscreenEffect.Variables["LightDir"].SetData(Vector3(0, 1, 0));
+			TestFullscreenEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
+			TestFullscreenEffect.Variables["Scaling"].SetData(Vector2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height) / Vector2(_gBuffer.Albedo.Width, _gBuffer.Albedo.Height));
 
 			TestFullscreenEffect.Bind(_context);
 

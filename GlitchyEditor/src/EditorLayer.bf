@@ -88,7 +88,8 @@ namespace GlitchyEditor
 				camera.FixedAspectRatio = false;
 				camera.RenderTarget = _viewportTarget;
 				let transform = _cameraEntity.GetComponent<TransformComponent>();
-				transform.Position = .(0, 0, -5);
+				transform.Position = .(-1.5f, 1.5f, -2.5f);
+				transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
 
 				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
 				_cameraEntity.AddComponent<EditorComponent>();
@@ -117,23 +118,42 @@ namespace GlitchyEditor
 		{
 			Effect myEffect = new Effect("content/Shaders/myEffect.hlsl")..ReleaseRefNoDelete();
 
-			Material mat = new Material(myEffect)..ReleaseRefNoDelete();
-			mat.SetVariable("BaseColor", Vector4(1, 0, 1, 1));
-			//mat.SetVariable("LightDir", Vector3(1, 1, 0).Normalized());
+			using (Texture2D albedo = new Texture2D("Textures/TestMat/rustediron2_albedo.png", true))
+			using (Texture2D normal = new Texture2D("Textures/TestMat/rustediron2_normal.png"))
+			using (Texture2D rough = new Texture2D("Textures/TestMat/rustediron2_roughness.png"))
+			using (Texture2D metal = new Texture2D("Textures/TestMat/rustediron2_metallic.png"))
+			{
+				albedo.SamplerState = SamplerStateManager.AnisotropicClamp;
+				normal.SamplerState = SamplerStateManager.AnisotropicClamp;
+				rough.SamplerState = SamplerStateManager.AnisotropicClamp;
+				metal.SamplerState = SamplerStateManager.AnisotropicClamp;
 
-			List<AnimationClip> clips = scope .();
-
-			ModelLoader.LoadModel("content/Models/plane.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
-			
-			mat = new Material(myEffect)..ReleaseRefNoDelete();
-			mat.SetVariable("BaseColor", Vector4(1, 1, 0, 1));
-			//mat.SetVariable("LightDir", Vector3(0, 1, 0).Normalized());
-
-			clips = scope .();
-
-			ModelLoader.LoadModel("content/Models/plane.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
-
-			ClearAndReleaseItems!(clips);
+				Material mat = new Material(myEffect)..ReleaseRefNoDelete();
+				mat.SetTexture("AlbedoTexture", albedo);
+				mat.SetTexture("NormalTexture", normal);
+				mat.SetTexture("MetallicTexture", metal);
+				mat.SetTexture("RoughnessTexture", rough);
+				//mat.SetVariable("BaseColor", Vector4(1, 0, 1, 1));
+				//mat.SetVariable("LightDir", Vector3(1, 1, 0).Normalized());
+	
+				List<AnimationClip> clips = scope .();
+	
+				ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
+				
+				mat = new Material(myEffect)..ReleaseRefNoDelete();
+				mat.SetTexture("AlbedoTexture", albedo);
+				mat.SetTexture("NormalTexture", normal);
+				mat.SetTexture("MetallicTexture", metal);
+				mat.SetTexture("RoughnessTexture", rough);
+				//mat.SetVariable("BaseColor", Vector4(1, 1, 0, 1));
+				//mat.SetVariable("LightDir", Vector3(0, 1, 0).Normalized());
+	
+				clips = scope .();
+	
+				ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
+	
+				ClearAndReleaseItems!(clips);
+			}
 		}
 
 		private void InitGraphics()

@@ -265,7 +265,7 @@ namespace GlitchyEngine.Content
 					StringView strView = .(attribute.Name);
 
 					// Remove number from end of name
-					while((*(strView.EndPtr - 1)).IsDigit)
+					while((*(strView.EndPtr - 1)).IsDigit || (*(strView.EndPtr - 1)) == '_')
 					{
 						strView.Length--;
 					}

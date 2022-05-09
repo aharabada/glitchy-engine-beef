@@ -63,16 +63,16 @@ namespace GlitchyEngine.Renderer
 		//public override extern uint32 ArraySize {get;}
 		//public override extern uint32 MipLevels {get;}
 		
-		public this(StringView path)
+		public this(StringView path, bool pngSrgb = false)
 		{
 			_path = new String(path);
-			LoadTexture();
+			LoadTexture(pngSrgb);
 		}
 		
 		const String PngMagicWord = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A";
 		const String DdsMagicWord = "DDS ";
 
-		private void LoadTexture()
+		private void LoadTexture(bool pngSrgb)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -91,7 +91,7 @@ namespace GlitchyEngine.Renderer
 
 				if (strView.StartsWith(PngMagicWord))
 				{
-					LoadPng(data);
+					LoadPng(data, pngSrgb);
 				}
 				else if (strView.StartsWith(DdsMagicWord))
 				{
@@ -104,7 +104,7 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		protected void LoadPng(Stream stream)
+		protected void LoadPng(Stream stream, bool srgb)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 			
@@ -126,7 +126,7 @@ namespace GlitchyEngine.Renderer
 
 			// TODO: load as SRGB because PNGs are usually not stored as linear
 			//Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm_SRGB, 1, 1, .Immutable);
-			Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm, 1, 1, .Immutable);
+			Texture2DDesc desc = .(width, height, srgb? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
 			
 			PrepareTexturePlatform(desc, false);
 

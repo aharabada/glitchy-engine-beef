@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections;
 using GlitchyEngine.Core;
+using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
