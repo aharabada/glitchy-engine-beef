@@ -90,7 +90,7 @@ namespace GlitchyEngine.Content
 			}
 
 			// Invert the Z-Axis of the root Node to convert the coordinate system from right-handed to left-handed
-			if(parentEntity == null)
+			if(parentEntity == .InvalidEntity)
 				childTransform.Scale *= .(1, 1, -1);
 
 			Skeleton skeleton = null;
