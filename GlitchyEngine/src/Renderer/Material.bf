@@ -108,24 +108,13 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		private void SetVariable<T>(String name, T value) where T : struct
 		{
-			bool b = false;
-			(uint32 Offset, BufferVariable Variable) entry;
+			Debug.Profiler.ProfileRendererFunction!();
 
-			{
-				Debug.Profiler.ProfileRendererScope!("TryGetValue");
-
-				b = _variables.TryGetValue(name, out entry);
-			}
-
-			if(b)
+			if(_variables.TryGetValue(name, let entry))
 			{
 				entry.Variable.EnsureTypeMatch<T>();
 				
-				{
-					Debug.Profiler.ProfileRendererScope!("RawPointer!");
-
-					RawPointer!<T>(entry.Offset) = value;
-				}
+				RawPointer!<T>(entry.Offset) = value;
 			}
 			else
 			{
@@ -152,8 +141,13 @@ namespace GlitchyEngine.Renderer
 			if(_variables.TryGetValue(name, let entry))
 			{
 				entry.Variable.EnsureTypeMatch<Matrix3x3>();
+				
+				// TODO: I'm not sure how to handle Matrix3x3
+				// It seems to be 44 Bytes (11 Floats) large.
+				Log.EngineLogger.AssertDebug(entry.Variable._sizeInBytes == 44, "Made wrong assumption about the size of float3x3 in a hlsl constant-buffer.");
 
-				RawPointer!<Matrix4x3>(entry.Offset) = Matrix4x3(value);
+#unwarn
+				RawPointer!<float[11]>(entry.Offset) = *(float[11]*)&Matrix4x3(value);
 			}
 			else
 			{
@@ -210,6 +204,23 @@ namespace GlitchyEngine.Renderer
 		}
 
 		// public void Set(String name, VALUE)...
+		
+		public void GetVariable<T>(String name, out T value) where T : struct
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			if(_variables.TryGetValue(name, let entry))
+			{
+				entry.Variable.EnsureTypeMatch<T>();
+				
+				value = RawPointer!<T>(entry.Offset);
+			}
+			else
+			{
+				value = ?;
+				Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
+			}
+		}
 
 		// Float, Float2, Float3, Float4
 		// Color, ColorRGB, ColorRGBA
