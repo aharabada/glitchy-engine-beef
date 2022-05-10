@@ -40,9 +40,35 @@ namespace ImGui
 		/// Releases references that accumulated calls like ImGui::Image
 		protected internal static extern void CleanupFrame();
 
-		/// Control to edit a vector 3 with drag functionality and reset buttons
-		public static bool EditVector3(StringView label, ref Vector3 value, Vector3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f)
+		/// Control to edit a vector 2 with drag functionality and reset buttons
+		public static bool EditVector2(StringView label, ref Vector2 value, Vector2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector2 minValue = .Zero, Vector2 maxValue = .Zero)
 		{
+			return EditVector<2>(label, ref *(float[2]*)&value, (float[2])resetValues, dragSpeed, columnWidth, (float[2])minValue, (float[2])maxValue);
+		}
+
+		/// Control to edit a vector 3 with drag functionality and reset buttons
+		public static bool EditVector3(StringView label, ref Vector3 value, Vector3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector3 minValue = .Zero, Vector3 maxValue = .Zero)
+		{
+			return EditVector<3>(label, ref *(float[3]*)&value, (float[3])resetValues, dragSpeed, columnWidth, (float[3])minValue, (float[3])maxValue);
+		}
+
+		/// Control to edit a vector 4 with drag functionality and reset buttons
+		public static bool EditVector4(StringView label, ref Vector4 value, Vector4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector4 minValue = .Zero, Vector4 maxValue = .Zero)
+		{
+			return EditVector<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, columnWidth, (float[4])minValue, (float[4])maxValue);
+		}
+
+		public static bool EditVector<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float columnWidth = 100f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .()) where NumComponents : const int32
+		{
+			const String[?] componentNames = .("X", "Y", "Z", "W");
+			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
+
+			(Color Default, Color Hovered, Color Active)[?] ButtonColors = .(
+				(Color(230, 25, 45), Color(150, 25, 45), Color(230, 90, 90)),
+				(Color(50, 190, 15), Color(50, 120, 15), Color(116, 190, 99)),
+				(Color(55, 55, 230), Color(55, 55, 150), Color(90, 90, 230)),
+				(Color(230, 25, 45), Color(230, 25, 45), Color(230, 25, 45)));
+
 			bool changed = false;
 
 			PushID(label);
@@ -56,69 +82,40 @@ namespace ImGui
 
 			NextColumn();
 
-			PushMultiItemsWidths(3, CalcItemWidth());
-			PushStyleVar(.ItemSpacing, Vec2.Zero);
-			defer PopStyleVar();
-
+			PushMultiItemsWidths(NumComponents, CalcItemWidth());
+			
 			float lineHeight = GetFont().FontSize + GetStyle().FramePadding.y * 2.0f;
 			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
 
-			PushStyleColor(.Button, Color(230, 25, 45).Value);
-			PushStyleColor(.ButtonHovered, Color(150, 25, 45).Value);
-			PushStyleColor(.ButtonActive, Color(230, 120, 130).Value);
-
-			if (Button("X", buttonSize))
+			PushStyleVar(.ItemSpacing, Vec2.Zero);
+			
+			for (int i < NumComponents)
 			{
-				value.X = resetValues.X;
-				changed = true;
+				if (i > 0)
+				{
+					SameLine();
+				}
+
+				PushStyleColor(.Button, ButtonColors[i].Default.Value);
+				PushStyleColor(.ButtonHovered, ButtonColors[i].Hovered.Value);
+				PushStyleColor(.ButtonActive, ButtonColors[i].Active.Value);
+	
+				if (Button(componentNames[i], buttonSize))
+				{
+					value[i] = resetValues[i];
+					changed = true;
+				}
+	
+				SameLine();
+	
+				if (DragFloat(componentIds[i], &value[i], dragSpeed, minValue[i], maxValue[i]))
+					changed = true;
+	
+				PopItemWidth();
+				PopStyleColor(3);
 			}
 
-			SameLine();
-
-			if (DragFloat("##X", &value.X, dragSpeed))
-				changed = true;
-
-			PopItemWidth();
-			SameLine();
-
-			PopStyleColor(3);
-			PushStyleColor(.Button, Color(50, 190, 15).Value);
-			PushStyleColor(.ButtonHovered, Color(50, 120, 15).Value);
-			PushStyleColor(.ButtonActive, Color(116, 190, 99).Value);
-
-			if (Button("Y", buttonSize))
-			{
-				value.Y = resetValues.Y;
-				changed = true;
-			}
-			
-			SameLine();
-
-			if (DragFloat("##Y", &value.Y, dragSpeed))
-				changed = true;
-			
-			PopItemWidth();
-			SameLine();
-			
-			PopStyleColor(3);
-			PushStyleColor(.Button, Color(55, 55, 230).Value);
-			PushStyleColor(.ButtonHovered, Color(55, 55, 150).Value);
-			PushStyleColor(.ButtonActive, Color(90, 90, 230).Value);
-
-			if (Button("Z", buttonSize))
-			{
-				value.Z = resetValues.Z;
-				changed = true;
-			}
-			
-			SameLine();
-
-			if (DragFloat("##Z", &value.Z, dragSpeed))
-				changed = true;
-			
-			PopItemWidth();
-
-			PopStyleColor(3);
+			PopStyleVar();
 
 			return changed;
 		}

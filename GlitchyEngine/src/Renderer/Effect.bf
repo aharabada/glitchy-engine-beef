@@ -101,6 +101,25 @@ namespace GlitchyEngine.Renderer
 		internal PixelShader _ps ~ _?.ReleaseRef();
 		protected String _name ~ delete _;
 
+		typealias VariableDesc = Dictionary<String, Dictionary<String, Variant>>;
+
+		protected VariableDesc _variableDescriptions ~ {
+			for (var (key, value) in _)
+			{
+				delete key;
+
+				for (var (entryKey, entry) in value)
+				{
+					delete entryKey;
+					entry.Dispose();
+				}
+
+				delete value;
+			}
+
+			delete _;
+		};
+
 		BufferCollection _bufferCollection ~ delete _;
 
 		BufferVariableCollection _variables ~ delete _;
@@ -167,7 +186,9 @@ namespace GlitchyEngine.Renderer
 			String vsName = scope String();
 			String psName = scope String();
 
-			ProcessFile(filename, fileContent, vsName, psName);
+			_variableDescriptions = new VariableDesc();
+
+			ProcessFile(filename, fileContent, vsName, psName, _variableDescriptions);
 
 			Compile(fileContent, filename, vsName, psName);
 
@@ -282,21 +303,30 @@ namespace GlitchyEngine.Renderer
 		}
 
 		const String effectKeyword = "#effect";
+		
+		private static void CommentLine(StringView code, int commentPosition)
+		{
+			code[commentPosition] = '/';
+			code[commentPosition + 1] = '/';
+		}
 
 		/**
 		 * Loads the effect file and extracts the names of the vertex- and pixel-shader.
 		 * @param filename The path of the effect file.
 		 * @param fileContent The preprocessed effect file.
-		 * @param vsName The string that will receive the vertex shader entry point.
-		 * @param psName The string that will receive the pixel shader entry point.
+		 * @param outVsName The string that will receive the vertex shader entry point.
+		 * @param outPsName The string that will receive the pixel shader entry point.
+		 * @param outVarDescs The dictionary that will contain the Variable descriptions.
 		 */
-		private static void ProcessFile(String filename, String fileContent, String vsName, String psName)
+		private static void ProcessFile(String filename, String fileContent, String outVsName, String outPsName, VariableDesc outVarDescs)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
 			File.ReadAllText(filename, fileContent, true);
 			// append line ending just in case the file doesn't end with one.
 			fileContent.Append('\n');
+
+			ProcessEditorVariables(filename, fileContent, outVarDescs);
 
 			int effectIndex = fileContent.IndexOf(effectKeyword, true);
 
@@ -337,16 +367,173 @@ namespace GlitchyEngine.Renderer
 				switch(paramName)
 				{
 				case "VS", "VertexShader":
-					vsName.Append(paramValue);
+					outVsName.Append(paramValue);
 				case "PS", "PixelShader":
-					psName.Append(paramValue);
+					outPsName.Append(paramValue);
 				default:
 					Log.EngineLogger.Assert(false, scope $"Unknown parameter name \"{paramName}\".");
 				}
 			}
 
 			// remove preprocessor directive from string so that the compiler wont try process it
-			fileContent.Remove(effectIndex, lineEndIndex - effectIndex);
+			CommentLine(fileContent, effectIndex);
+		}
+
+		private static void ProcessEditorVariables(StringView fileName, StringView code, VariableDesc outVarDescs)
+		{
+			int index = 0;
+
+			while(true)
+			{
+				index = code.IndexOf("#EditorVariable", index);
+
+				if (index == -1)
+					break;
+				
+				CommentLine(code, index);
+
+				index = code.IndexOf('{', index);
+
+				Log.EngineLogger.AssertDebug(index != -1, "Missing '{'.");
+
+				index++;
+
+				int endIndex = code.IndexOf('}', index);
+				
+				Log.EngineLogger.AssertDebug(endIndex != -1, "Missing '}'.");
+
+				StringView variableInfo = StringView(code, index, endIndex - index);
+
+				Log.ClientLogger.Info($"Found variable: \"{variableInfo}\"");
+
+				Dictionary<String, Variant> parameters = new .();
+
+				String variableName = null;
+
+				for (StringView argument in variableInfo.Split(';', .RemoveEmptyEntries))
+				{
+					int equalsIndex = argument.IndexOf('=');
+
+					if (equalsIndex == -1)
+					{
+						Log.EngineLogger.Error($"Missing value for Argument \"{argument..Trim()}\".");
+					}
+					else
+					{
+						StringView argName = argument.Substring(0, equalsIndex)..Trim();
+						StringView argValue = argument.Substring(equalsIndex + 1)..Trim();
+
+						if (argValue.StartsWith('"') && argValue.EndsWith('"'))
+						{
+							argValue = argValue[1...^2];
+						}	
+
+						if (argName == "Name")
+							variableName = new String(argValue);
+						else
+						{
+							Variant value;
+
+							if (argName == "Min" || argName == "Max")
+							{
+								value = ParseVariableValue(argValue);
+							}
+							else
+							{
+								value = Variant.Create(new String(argValue), true);
+							}
+
+							parameters.Add(new String(argName), value);
+						}
+					}
+				}
+
+				Log.EngineLogger.AssertDebug(variableName != null, "Missing argument \"Name\" int variable description.");
+
+				outVarDescs.Add(variableName, parameters);
+
+				index = endIndex;
+			}
+		}
+
+		private static Variant ParseVariableValue(StringView valueString)
+		{
+			if (valueString[0].IsDigit || valueString[0] == '-')
+			{
+				var valueString;
+
+				if (valueString.EndsWith('f'))
+					valueString.Length--;
+
+				var result = float.Parse(valueString);
+
+				Log.EngineLogger.AssertDebug(result case .Ok);
+
+				if (result case .Ok(let value))
+					return Variant.Create(value);
+			}
+			else if (valueString.StartsWith("float"))
+			{
+				int index = 5;
+
+				int numComponents = valueString[index++] - '0';
+
+				while (valueString[index] != '(')
+				{
+					Log.EngineLogger.AssertDebug(valueString[index].IsWhiteSpace, "Expected '('.");
+
+					index++;
+				}
+
+				Log.EngineLogger.AssertDebug(numComponents >= 2 && numComponents <= 4, scope $"Unsupported component count {numComponents}. Value must be between 2 and 4");
+
+				float[] floats = scope float[numComponents];
+
+				for (int i < numComponents)
+				{
+					while (true)
+					{
+						char8 c = valueString[++index];
+
+						if (c.IsDigit || c == '.' || c == '-')
+							break;
+					}
+
+					int start = index;
+
+					while (true)
+					{
+						char8 c = valueString[++index];
+
+						if (!c.IsDigit && c != '.')
+							break;
+					}
+
+					int end = index;
+
+					StringView numberView = .(valueString, start, end - start);
+					
+					var result = float.Parse(numberView);
+
+					if (result case .Ok(let value))
+					{
+						floats[i] = value;
+					}
+				}
+
+				if (numComponents == 2)
+					return Variant.Create(*(Vector2*)floats.Ptr);
+				else if (numComponents == 3)
+					return Variant.Create(*(Vector3*)floats.Ptr);
+				else if (numComponents == 4)
+					return Variant.Create(*(Vector4*)floats.Ptr);
+			}
+			else
+			{
+				Log.EngineLogger.Error($"Unsupported variable value: \"{valueString}\"");
+			}
+
+			return Variant.Create(0.0f);
 		}
 
 		//protected extern void Compile(String code, String fileName, String vsEntry, String psEntry);

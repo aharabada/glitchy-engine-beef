@@ -29,6 +29,9 @@ namespace GlitchyEngine.Renderer
 
 		public bool IsUsed => _isUsed;
 
+		public uint32 Columns => _columns;
+		public uint32 Rows => _rows;
+
 		/**
 		 * Gets a pointer to the start of the variable in the constant buffers backing data.
 		 */

@@ -311,7 +311,11 @@ namespace GlitchyEngine.Renderer
 						Debug.Profiler.ProfileRendererScope!("SetVariables");
 
 						entry.Material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
+
 						entry.Material.SetVariable("Transform", entry.Transform);
+
+						Matrix3x3 mat = (Matrix3x3)(entry.Transform).Invert().Transpose();
+						entry.Material.SetVariable("Transform_InvT", mat);
 					}
 
 					entry.Material.Bind(_context);

@@ -320,5 +320,9 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 		public static explicit operator Self(float value) => Self(value);
+
+		[Inline]
+#unwarn
+		public static explicit operator float[4](Vector4 value) => *(float[4]*)&value;
 	}
 }

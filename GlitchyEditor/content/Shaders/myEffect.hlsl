@@ -23,13 +23,22 @@ cbuffer SceneConstants
 cbuffer ObjectConstants
 {
     float4x4 Transform;
+    /**
+     * \brief Inverted and transposed transform matrix.
+     * \remarks This matrix is used in order to correctly transform normal vectors.
+     */
+    float3x3 Transform_InvT;
 }
 
 cbuffer Constants
 {
+    #EditorVariable{ Name = "AlbedoColor"; Preview = "Albedo Color"; Type="Color" }
     float4 AlbedoColor = float4(1.0, 1.0, 1.0, 1.0);
+    #EditorVariable{ Name = "NormalScaling"; Preview = "Normal Scaling" }
     float2 NormalScaling = float2(1.0, 1.0);
+    #EditorVariable{ Name = "MetallicFactor"; Preview = "Metallic Factor"; Min = 0.0f; Max = 1.0f }
     float MetallicFactor = 1.0;
+    #EditorVariable{ Name = "RoughnessFactor"; Preview = "Rougness Factor"; Min = 0.0f; Max = 1.0f }
     float RoughnessFactor = 1.0;
     // float AmbientFactor = 1.0;
 }
@@ -62,7 +71,7 @@ PS_IN VS(VS_IN input)
 	output.Position = mul(ViewProjection, worldPosition);
     output.WorldPosition = worldPosition.xyz / worldPosition.w;
 
-	output.Normal = mul(input.Normal, (float3x3)Transform);
+    output.Normal = mul(Transform_InvT, input.Normal);
 	output.Tangent = mul((float3x3)Transform, input.Tangent);
 	// TODO: output.Handedness = input.Tangent.w
 
@@ -91,7 +100,7 @@ PS_OUT PS(PS_IN input)
     // TODO: float3 bitangent = input.Handedness * cross(normal, tangent);
     float3 bitangent = -cross(normal, tangent);
 
-    float3x3 tangentTransform = float3x3(tangent, bitangent, normal);
+    //float3x3 tangentTransform = float3x3(tangent, bitangent, normal);
     //tangentTransform = transpose(tangentTransform);
 
     float4 texAlbedo = AlbedoTexture.Sample(AlbedoSampler, input.TexCoord);
