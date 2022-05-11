@@ -308,9 +308,9 @@ namespace GlitchyEngine.World
 	{
 		public enum LightType
 		{
-			Directional,
-			Spot,
-			Point
+			Directional = 0,
+			Spot = 1,
+			Point = 2
 		}
 
 		private LightType _type = .Directional;
@@ -319,7 +319,11 @@ namespace GlitchyEngine.World
 
 		private ColorRGB _color = .(1, 1, 1);
 
-		public LightType LightType => _type;
+		public LightType LightType
+		{
+			get => _type;
+			set mut => _type = value;
+		}
 
 		public ColorRGB Color
 		{

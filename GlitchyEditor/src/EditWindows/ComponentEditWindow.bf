@@ -61,6 +61,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<CameraComponent>("Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
 			ShowComponentEditor<SpriterRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriterRendererComponent>);
 			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
+			ShowComponentEditor<LightComponent>("Mesh Renderer", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
 
 			ShowAddComponentButton(entity);
 		}
@@ -347,6 +348,58 @@ namespace GlitchyEditor.EditWindows
 					}
 				}
 			}
+		}
+
+		private static void LabelColumn(StringView label)
+		{
+			ImGui.TextUnformatted(label);
+			ImGui.NextColumn();
+		}
+
+		private static void ShowLightComponentEditor(Entity entity, LightComponent* lightComponent)
+		{
+			ImGui.Columns(2);
+			defer ImGui.Columns(1);
+
+			const String[?] strings = String[]("Directional", "Point", "Spot");
+
+			var light = ref lightComponent.SceneLight;
+
+			String typeName = strings[light.LightType.Underlying];
+			
+			LabelColumn("Type");
+
+			if (ImGui.BeginCombo("##Type", typeName.CStr()))
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					bool isSelected = (typeName == strings[i]);
+
+					if (ImGui.Selectable(strings[i], isSelected))
+					{
+						light.LightType = (.)i;
+					}
+
+					if (isSelected)
+						ImGui.SetItemDefaultFocus();
+				}
+
+				ImGui.EndCombo();
+			}
+			
+			ImGui.NextColumn();
+			LabelColumn("Color");
+
+			ColorRGB color = light.Color;
+			if (ImGui.ColorEdit3("##Color", ref color))
+				light.Color = color;
+
+			ImGui.NextColumn();
+			LabelColumn("Illuminance");
+
+			float illuminance = light.Illuminance;
+			if (ImGui.DragFloat("##Illuminance", &illuminance, 0.1f, 0.0f, float.MaxValue))
+				light.Illuminance = illuminance;
 		}
 
 		private static void ShowAddComponentButton(Entity entity)

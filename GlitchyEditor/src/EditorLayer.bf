@@ -28,8 +28,8 @@ namespace GlitchyEditor
 
 		Editor _editor ~ delete _;
 
-		RenderTarget2D _intermediateTarget ~ _?.ReleaseRef();
-		RenderTarget2D _viewportTarget ~ _?.ReleaseRef();
+		RenderTarget2D _cameraTarget ~ _.ReleaseRef();
+		RenderTarget2D _viewportTarget ~ _.ReleaseRef();
 
 		SettingsWindow _settingsWindow = new .() ~ delete _;
 
@@ -87,16 +87,18 @@ namespace GlitchyEditor
 				camera.Camera.SetPerspective(MathHelper.ToRadians(75), 0.1f, 10000.0f);
 				camera.Primary = true;
 				camera.FixedAspectRatio = false;
-				camera.RenderTarget = _viewportTarget;
+				camera.RenderTarget = _cameraTarget;
 				let transform = _cameraEntity.GetComponent<TransformComponent>();
-				transform.Position = .(-1.5f, 1.5f, -2.5f);
-				transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
+				//transform.Position = .(-1.5f, 1.5f, -2.5f);
+				transform.Position = .(3.5f, 1.25f, 2.75f);
+				//transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
+				transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(40), 0);
 
 				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
 				_cameraEntity.AddComponent<EditorComponent>();
 			}
 
-			{
+			/*{
 				_otherCameraEntity = _scene.CreateEntity("Other Camera Entity");
 				let camera = _otherCameraEntity.AddComponent<CameraComponent>();
 				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 1000.0f);
@@ -108,13 +110,13 @@ namespace GlitchyEditor
 
 				_otherCameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
 				_otherCameraEntity.AddComponent<EditorComponent>();
-			}
+			}*/
 
 			{
 				var lightNtt = _scene.CreateEntity("My Sexy Sun");
 				let transform = lightNtt.GetComponent<TransformComponent>();
 				transform.Position = .(0, 0, 0);
-				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-45), 0);
+				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-100), 0);
 
 				let light = lightNtt.AddComponent<LightComponent>();
 				light.SceneLight.Illuminance = 10.0f;
@@ -126,6 +128,17 @@ namespace GlitchyEditor
 				let transform = lightNtt.GetComponent<TransformComponent>();
 				transform.Position = .(0, 0, 0);
 				transform.RotationEuler = .(MathHelper.ToRadians(70), MathHelper.ToRadians(-30), 0);
+
+				let light = lightNtt.AddComponent<LightComponent>();
+				light.SceneLight.Illuminance = 10.0f;
+				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
+			}
+
+			{
+				var lightNtt = _scene.CreateEntity("My Sexy Sun 3");
+				let transform = lightNtt.GetComponent<TransformComponent>();
+				transform.Position = .(0, 0, 0);
+				transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(-55), 0);
 
 				let light = lightNtt.AddComponent<LightComponent>();
 				light.SceneLight.Illuminance = 10.0f;
@@ -160,8 +173,11 @@ namespace GlitchyEditor
 					mat.SetTexture("NormalTexture", normal);
 					mat.SetTexture("MetallicTexture", metal);
 					mat.SetTexture("RoughnessTexture", rough);
-					//mat.SetVariable("BaseColor", Vector4(1, 0, 1, 1));
-					//mat.SetVariable("LightDir", Vector3(1, 1, 0).Normalized());
+
+					mat.SetVariable("AlbedoColor", ColorRGBA.White);
+					mat.SetVariable("NormalScaling", Vector2.One);
+					mat.SetVariable("MetallicFactor", 1.0f);
+					mat.SetVariable("RoughnessFactor", 1.0f);
 		
 					EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips, "Sphere 1");
 					
@@ -239,8 +255,11 @@ namespace GlitchyEditor
 
 			DepthStencilStateDescription dsDesc = .();
 			_depthStencilState = new DepthStencilState(dsDesc);
+			
+			_cameraTarget = new RenderTarget2D(RenderTarget2DDescription(.R16G16B16A16_Float, 100, 100) {DepthStencilFormat = .D32_Float});
+			_cameraTarget.SamplerState = SamplerStateManager.LinearClamp;
 
-			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100) {DepthStencilFormat = .D32_Float});
+			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100));
 			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
 		}
 
@@ -281,7 +300,7 @@ namespace GlitchyEditor
 			
 			//Renderer.EndScene();
 
-			_scene.Update(gameTime);
+			_scene.Update(gameTime, _viewportTarget);
 
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
@@ -305,9 +324,9 @@ namespace GlitchyEditor
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
-			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Normal);
+			viewer.ViewTexture(_cameraTarget);
 
-			ImGui.Begin("Test");
+			/*ImGui.Begin("Test");
 
 			static bool cameraA = true;
 
@@ -317,7 +336,7 @@ namespace GlitchyEditor
 				_otherCameraEntity.GetComponent<CameraComponent>().Primary = !cameraA;
 			}
 
-			ImGui.End();
+			ImGui.End();*/
 
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
@@ -383,6 +402,7 @@ namespace GlitchyEditor
 				return;
 
 			_viewportTarget.Resize(sizeX, sizeY);
+			_cameraTarget.Resize(sizeX, sizeY);
 
 			_scene.OnViewportResize(sizeX, sizeY);
 		}

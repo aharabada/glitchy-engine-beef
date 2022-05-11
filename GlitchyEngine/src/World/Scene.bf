@@ -34,7 +34,7 @@ namespace GlitchyEngine.World
 		{
 		}
 
-		public void Update(GameTime gameTime)
+		public void Update(GameTime gameTime, RenderTarget2D finalTarget)
 		{
 			TransformSystem.Update(_ecsWorld);
 
@@ -67,7 +67,7 @@ namespace GlitchyEngine.World
 			if (primaryCamera != null)
 			{
 				// 3D render
-				Renderer.BeginScene(*primaryCamera, primaryCameraTransform, renderTarget);
+				Renderer.BeginScene(*primaryCamera, primaryCameraTransform, renderTarget, finalTarget);
 
 				for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
 				{

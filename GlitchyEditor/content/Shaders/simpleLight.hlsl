@@ -108,16 +108,8 @@ float4 PS(PS_IN input) : SV_TARGET
 
 	float3 luminanceColor = LightColor * Illuminance;
 
-	float3 cook = (kd * diffuse + specular) * luminanceColor * n_dot_l;
-
-	float3 final = cook;
-
-	// Tone mapping	// TODO: do in postprocessing
-	final = final / (final + 1.0f);
-
-	// Gamma correction // TODO: do in postprocessing/hardware
-	final = pow(final, 1.0f / 2.2f);
-
+	float3 final = (kd * diffuse + specular) * luminanceColor * n_dot_l;
+	
 #if OUTPUT == Inspect_NormalDistribution
 		final = max(final - 10000000, nrmDist.xxx);
 #elif OUTPUT == Inspect_GeometryFunction
