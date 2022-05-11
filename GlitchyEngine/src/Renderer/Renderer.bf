@@ -28,9 +28,9 @@ namespace GlitchyEngine.Renderer
 
 			// RGB: Albedo.rgb A: ?
 			public RenderTarget2D Albedo ~ _?.ReleaseRef();
-			// RGB: Normal.xyz(Worldspace) A: Ambient
+			// RG: TextureNormal.xy BA: GeometryNormal.xy
 			public RenderTarget2D Normal ~ _?.ReleaseRef();
-			// ????
+			// R: GeometryNormal.z GBA: GeometryTangent.xyz
 			public RenderTarget2D Tangent ~ _?.ReleaseRef();
 			// RGB: Worldspace Position A: ?
 			public RenderTarget2D Position ~ _?.ReleaseRef();
@@ -97,7 +97,7 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		static internal GraphicsContext _context ~ _?.ReleaseRef();
+		static internal GraphicsContext _context;
 
 		//static Buffer<SceneConstants> _sceneConstants ~ _?.ReleaseRef();
 
@@ -105,14 +105,19 @@ namespace GlitchyEngine.Renderer
 
 		static SceneConstants _sceneConstants;
 
-		static Effect LineEffect ~ _?.ReleaseRef();
-		static VertexBuffer LineVertices ~ _?.ReleaseRef();
-		static GeometryBinding LineGeometry ~ _?.ReleaseRef();
+		static Effect LineEffect;
+		static VertexBuffer LineVertices;
+		static GeometryBinding LineGeometry;
 
-		static GBuffer _gBuffer ~ delete _;
-		static Effect TestFullscreenEffect ~ _?.ReleaseRef();
 
-		static BlendState _gBufferBlend ~ _?.ReleaseRef();
+		static GeometryBinding s_fullscreenQuadGeometry;
+
+		static GBuffer _gBuffer;
+		static Effect TestFullscreenEffect;
+
+		static BlendState _gBufferBlend;
+		static BlendState _lightBlend;
+		static DepthStencilState _fullscreenDepthState;
 
 		public static void Init(GraphicsContext context, EffectLibrary effectLibrary)
 		{
@@ -132,17 +137,19 @@ namespace GlitchyEngine.Renderer
 
 			InitLineRenderer(effectLibrary);
 			InitDeferredRenderer(effectLibrary);
-
-			_gBuffer = new GBuffer();
-			BlendStateDescription gBufferBlendDesc = .Default;
-			_gBufferBlend = new BlendState(gBufferBlendDesc);
 		}
 
 		public static void Deinit()
 		{
 			Debug.Profiler.ProfileFunction!();
 
+			DeinitDeferredRenderer();
+
+			DeinitLineRenderer();
+
 			Renderer2D.Deinit();
+
+			_context.ReleaseRef();
 		}
 
 		static void InitLineRenderer(EffectLibrary effectLibrary)
@@ -170,15 +177,20 @@ namespace GlitchyEngine.Renderer
 			VertexLayout layout = new VertexLayout(vertexElements, true, LineEffect.VertexShader);
 			LineGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
 		}
-		
-		private static GeometryBinding s_quadGeometry ~ _?.ReleaseRef();
+
+		static void DeinitLineRenderer()
+		{
+			LineVertices.ReleaseRef();
+			LineGeometry.ReleaseRef();
+			LineEffect.ReleaseRef();
+		}
 
 		static void InitDeferredRenderer(EffectLibrary effectLibrary)
 		{
 			TestFullscreenEffect = effectLibrary.Load("content\\Shaders\\simpleLight.hlsl");
 
-			s_quadGeometry = new GeometryBinding();
-			s_quadGeometry.SetPrimitiveTopology(.TriangleList);
+			s_fullscreenQuadGeometry = new GeometryBinding();
+			s_fullscreenQuadGeometry.SetPrimitiveTopology(.TriangleList);
 
 			using(var quadVertices = new VertexBuffer(typeof(Vector4), 4, .Immutable))
 			{
@@ -190,7 +202,7 @@ namespace GlitchyEngine.Renderer
 					);
 
 				quadVertices.SetData(vertices);
-				s_quadGeometry.SetVertexBufferSlot(quadVertices, 0);
+				s_fullscreenQuadGeometry.SetVertexBufferSlot(quadVertices, 0);
 			}
 
 			using(var quadIndices = new IndexBuffer(6, .Immutable))
@@ -201,34 +213,51 @@ namespace GlitchyEngine.Renderer
 					);
 
 				quadIndices.SetData(indices);
-				s_quadGeometry.SetIndexBuffer(quadIndices);
+				s_fullscreenQuadGeometry.SetIndexBuffer(quadIndices);
 			}
 
 			VertexElement[] vertexElements = new .(
-				VertexElement(.R32G32_Float, "POSITION", false, 0, 0, 0, .PerVertexData, 0),
-				VertexElement(.R32G32_Float, "TEXCOORD", false, 0, 0, (.)-1, .PerVertexData, 0)
+				VertexElement(.R32G32_Float, "POSITION"),
+				VertexElement(.R32G32_Float, "TEXCOORD")
 			);
 
 			using (var quadBatchLayout = new VertexLayout(vertexElements, true, TestFullscreenEffect.VertexShader))
 			{
-				s_quadGeometry.SetVertexLayout(quadBatchLayout);
+				s_fullscreenQuadGeometry.SetVertexLayout(quadBatchLayout);
 			}
+			
+			_gBuffer = new GBuffer();
+			BlendStateDescription gBufferBlendDesc = .Default;
+			_gBufferBlend = new BlendState(gBufferBlendDesc);
+
+			BlendStateDescription lightBlendDesc = .Default;
+			lightBlendDesc.RenderTarget[0] = .(){
+				BlendEnable = true,
+				SourceBlend = .One,
+				DestinationBlend = .One,
+				BlendOperation = .Add,
+				SourceBlendAlpha = .One,
+				DestinationBlendAlpha = .Zero,
+				BlendOperationAlpha = .Add,
+				RenderTargetWriteMask = .All
+			};
+			_lightBlend = new BlendState(lightBlendDesc);
+
+			DepthStencilStateDescription dsDesc = .Default;
+			dsDesc.DepthEnabled = false;
+			_fullscreenDepthState = new DepthStencilState(dsDesc);
 		}
 
-		// TODO
-		/*public static void BeginScene(EcsWorld world, EcsEntity cameraEntity)
+		static void DeinitDeferredRenderer()
 		{
-			Debug.Profiler.ProfileRendererFunction!();
+			_fullscreenDepthState.ReleaseRef();
+			_lightBlend.ReleaseRef();
+			_gBufferBlend.ReleaseRef();
+			delete _gBuffer;
+			s_fullscreenQuadGeometry.ReleaseRef();
 
-			var camera = world.GetComponent<CameraComponent>(cameraEntity);
-			var transform = world.GetComponent<TransformComponent>(cameraEntity);
-
-			var trans = transform.WorldTransform;
-			var view = trans.Invert();
-			var proj = camera.Projection;
-
-			_sceneConstants.ViewProjection = proj * view;
-		}*/
+			TestFullscreenEffect.ReleaseRef();
+		}
 
 		public static void BeginScene(OldCamera camera)
 		{
@@ -327,29 +356,64 @@ namespace GlitchyEngine.Renderer
 			
 			{
 				Debug.Profiler.ProfileRendererScope!("Draw Lights");
-				
+
 				RenderCommand.UnbindRenderTargets();
 				RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
 				RenderCommand.BindRenderTargets();
-				
-				_gBuffer.Albedo.SamplerState = SamplerStateManager.PointClamp;
+
+				RenderCommand.SetBlendState(_lightBlend);
+				RenderCommand.SetDepthStencilState(_fullscreenDepthState);
+
+				for (SubmittedLight light in _lights)
+				{
+					Vector3 lightDir = light.Transform.Forward;
+
+					_gBuffer.Albedo.SamplerState = SamplerStateManager.PointClamp;
 	
+					TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Albedo);
+					TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Normal);
+					TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Tangent);
+					TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Position);
+					TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Material);
+		
+					TestFullscreenEffect.Variables["LightColor"].SetData(light.Light.Color);
+					TestFullscreenEffect.Variables["Illuminance"].SetData(light.Light.Illuminance);
+					TestFullscreenEffect.Variables["LightDir"].SetData(-lightDir);
+
+					TestFullscreenEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
+
+					TestFullscreenEffect.Variables["Scaling"].SetData(Vector2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height) / Vector2(_gBuffer.Albedo.Width, _gBuffer.Albedo.Height));
+		
+					TestFullscreenEffect.Bind(_context);
+		
+					s_fullscreenQuadGeometry.Bind();
+					RenderCommand.DrawIndexed(s_fullscreenQuadGeometry);
+				}
+
+				RenderCommand.SetBlendState(_gBufferBlend);
+
+				_lights.Clear();
+
+				/*
+				_gBuffer.Albedo.SamplerState = SamplerStateManager.PointClamp;
+
 				TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Albedo);
 				TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Normal);
 				TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Tangent);
 				TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Position);
 				TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Material);
-	
+
 				TestFullscreenEffect.Variables["LightColor"].SetData(Vector3(1, 1, 1));
 				TestFullscreenEffect.Variables["Illuminance"].SetData(5.0f);
 				TestFullscreenEffect.Variables["LightDir"].SetData(Vector3(0, 1, 0));
 				TestFullscreenEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
 				TestFullscreenEffect.Variables["Scaling"].SetData(Vector2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height) / Vector2(_gBuffer.Albedo.Width, _gBuffer.Albedo.Height));
-	
+
 				TestFullscreenEffect.Bind(_context);
-	
+
 				s_quadGeometry.Bind();
 				RenderCommand.DrawIndexed(s_quadGeometry);
+				*/
 	
 				RenderCommand.UnbindTextures();
 			}
@@ -403,13 +467,33 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
+		struct SubmittedLight
+		{
+			public SceneLight Light;
+			public Matrix Transform;
+
+			public this(SceneLight light, Matrix transform)
+			{
+				Light = light;
+				Transform = transform;
+			}
+		}
+
 		private static List<SubmittedMesh> _queue = new .(10000) ~ DeleteContainerAndDisposeItems!(_);
+		private static List<SubmittedLight> _lights = new .(100) ~ delete _;
 
 		public static void Submit(GeometryBinding geometry, Material material, Matrix transform = .Identity)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
 			_queue.Add(SubmittedMesh(geometry, material, transform));
+		}
+
+		public static void Submit(SceneLight light, Matrix transform = .Identity)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			_lights.Add(SubmittedLight(light, transform));
 		}
 
 		/** @brief Draws a line.

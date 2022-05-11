@@ -316,6 +316,9 @@ namespace GlitchyEngine.Renderer
 		public static void Init()
 		{
 			Debug.Profiler.ProfileFunction!();
+#if DEBUG
+			Log.EngineLogger.AssertDebug(!s_initialized, "Renderer2D is already initialized.");
+#endif
 
 			InitEffect();
 			InitGeometry();
@@ -333,7 +336,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 #if DEBUG
-			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
+			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D is not initialized.");
 #endif
 
 			FontRenderer.Deinit();

@@ -28,6 +28,7 @@ namespace GlitchyEditor
 
 		Editor _editor ~ delete _;
 
+		RenderTarget2D _intermediateTarget ~ _?.ReleaseRef();
 		RenderTarget2D _viewportTarget ~ _?.ReleaseRef();
 
 		SettingsWindow _settingsWindow = new .() ~ delete _;
@@ -107,6 +108,28 @@ namespace GlitchyEditor
 
 				_otherCameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
 				_otherCameraEntity.AddComponent<EditorComponent>();
+			}
+
+			{
+				var lightNtt = _scene.CreateEntity("My Sexy Sun");
+				let transform = lightNtt.GetComponent<TransformComponent>();
+				transform.Position = .(0, 0, 0);
+				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-45), 0);
+
+				let light = lightNtt.AddComponent<LightComponent>();
+				light.SceneLight.Illuminance = 10.0f;
+				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
+			}
+
+			{
+				var lightNtt = _scene.CreateEntity("My Sexy Sun 2");
+				let transform = lightNtt.GetComponent<TransformComponent>();
+				transform.Position = .(0, 0, 0);
+				transform.RotationEuler = .(MathHelper.ToRadians(70), MathHelper.ToRadians(-30), 0);
+
+				let light = lightNtt.AddComponent<LightComponent>();
+				light.SceneLight.Illuminance = 10.0f;
+				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
 			}
 
 			InitEditor();

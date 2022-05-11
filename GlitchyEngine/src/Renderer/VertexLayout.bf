@@ -61,7 +61,7 @@ namespace GlitchyEngine.Renderer
 
 		public this() => this = default;
 
-		public this(Format format, String semanticName, bool ownsName = false, uint32 semanticIndex = 0, uint32 inputSlot = 0, uint32 offset = (.)-1, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
+		public this(Format format, String semanticName, bool ownsName = false, uint32 semanticIndex = 0, uint32 inputSlot = 0, uint32 offset = VertexElement.AppendAligned, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
 		{
 			Format = format;
 			SemanticName = semanticName;

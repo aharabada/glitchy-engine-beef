@@ -303,4 +303,39 @@ namespace GlitchyEngine.World
 			DestroyInstanceFunction(&this);
 		}
 	}
+
+	struct SceneLight
+	{
+		public enum LightType
+		{
+			Directional,
+			Spot,
+			Point
+		}
+
+		private LightType _type = .Directional;
+
+		private float _illuminance = 10.0f;
+
+		private ColorRGB _color = .(1, 1, 1);
+
+		public LightType LightType => _type;
+
+		public ColorRGB Color
+		{
+			get => _color;
+			set mut => _color = value;
+		}
+		
+		public float Illuminance
+		{
+			get => _illuminance;
+			set mut => _illuminance = value;
+		}
+	}
+
+	struct LightComponent
+	{
+		public SceneLight SceneLight;
+	}
 }

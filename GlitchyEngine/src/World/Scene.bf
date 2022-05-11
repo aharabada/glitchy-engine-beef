@@ -74,6 +74,11 @@ namespace GlitchyEngine.World
 					Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
 				}
 
+				for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
+				{
+					Renderer.Submit(camera.SceneLight, transform.WorldTransform);
+				}
+
 				Renderer.EndScene();
 
 				// Sprite renderer
