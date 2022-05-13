@@ -245,10 +245,10 @@ namespace GlitchyEngine.Renderer
 				// TODO: Add remaining shader stages
 			case typeof(PixelShader):
 				NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-				[IgnoreErrors]{ NativeContext.PixelShader.SetShader(((PixelShader)shader).nativeShader); }
+				NativeContext.PixelShader.SetShader((ID3D11PixelShader*)shader.nativeShader);
 			case typeof(VertexShader):
 				NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-				[IgnoreErrors]{ NativeContext.VertexShader.SetShader(((VertexShader)shader).nativeShader); }
+				NativeContext.VertexShader.SetShader((ID3D11VertexShader*)shader.nativeShader);
 			default:
 				Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
 			}

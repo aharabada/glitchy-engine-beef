@@ -12,8 +12,6 @@ namespace GlitchyEngine.Renderer
 {
 	extension PixelShader
 	{
-		internal ID3D11PixelShader* nativeShader ~ _?.Release();
-
 		public override void CompileFromSource(StringView code, StringView? fileName, String entryPoint, ShaderDefine[] macros = null)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -23,7 +21,7 @@ namespace GlitchyEngine.Renderer
 			{
 				Debug.Profiler.ProfileResourceScope!("CreateNativePixelShader");
 
-				var result = NativeDevice.CreatePixelShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
+				var result = NativeDevice.CreatePixelShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, (ID3D11PixelShader**)&nativeShader);
 				if(result.Failed)
 				{
 					Log.EngineLogger.Error($"Failed to create pixel shader: Message ({(int)result}): {result}");

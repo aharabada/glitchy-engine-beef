@@ -13,8 +13,6 @@ namespace GlitchyEngine.Renderer
 {
 	extension VertexShader
 	{
-		internal ID3D11VertexShader* nativeShader ~ _?.Release();
-
 		public override void CompileFromSource(StringView code, StringView? fileName, String entryPoint, ShaderDefine[] macros = null)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
@@ -24,7 +22,7 @@ namespace GlitchyEngine.Renderer
 			{
 				Debug.Profiler.ProfileResourceScope!("CreateNativeVertexShader");
 
-				var result = NativeDevice.CreateVertexShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, &nativeShader);
+				var result = NativeDevice.CreateVertexShader(nativeCode.GetBufferPointer(), nativeCode.GetBufferSize(), null, (ID3D11VertexShader**)&nativeShader);
 				if(result.Failed)
 				{
 					Log.EngineLogger.Error($"Failed to create vertex shader: Message ({(int)result}): {result}");

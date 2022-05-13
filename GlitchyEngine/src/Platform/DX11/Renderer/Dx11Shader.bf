@@ -13,6 +13,8 @@ namespace GlitchyEngine.Renderer
 {
 	extension Shader
 	{
+		internal ID3D11DeviceChild* nativeShader ~ _?.Release();
+
 		/**
 		 * Internal compiled code of the shader.
 		 */
