@@ -56,7 +56,7 @@ namespace GlitchyEngine.World
 
 			for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, CameraComponent>())
 			{
-				if (camera.Primary)
+				if (camera.Primary && camera.RenderTarget != null)
 				{
 					primaryCamera = &camera.Camera;
 					primaryCameraTransform = transform.WorldTransform;
@@ -134,7 +134,7 @@ namespace GlitchyEngine.World
 
 			for (var (entity, cameraComponent) in _ecsWorld.Enumerate<CameraComponent>())
 			{
-				if (!cameraComponent.FixedAspectRatio)
+				if (!cameraComponent.Camera.FixedAspectRatio)
 				{
 					cameraComponent.Camera.SetViewportSize(width, height);
 				}

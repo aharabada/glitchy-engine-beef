@@ -1,7 +1,9 @@
+using Bon;
 using System;
 
 namespace GlitchyEngine.Math
 {
+	[BonTarget]
 	[SwizzleVector(2, "Vector")]
 	public struct Vector2
 	{

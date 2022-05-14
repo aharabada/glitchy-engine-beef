@@ -167,6 +167,12 @@ namespace GlitchyEngine
 			}
 		}
 
+		/// Closes the applcation.
+		public void Close()
+		{
+			_running = false;
+		}
+
 		public void PushLayer(Layer ownLayer)
 		{
 			Profiler.ProfileFunction!();

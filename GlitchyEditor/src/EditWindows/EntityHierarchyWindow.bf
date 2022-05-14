@@ -30,6 +30,7 @@ namespace GlitchyEditor.EditWindows
 
 		public void SetContext(Scene scene)
 		{
+			_selectedEntities.Clear();
 			_scene = scene;
 		}
 		

@@ -1,7 +1,9 @@
+using Bon;
 using System;
 
 namespace GlitchyEngine.Math
 {
+	[BonTarget]
 	public struct Quaternion
 	{
 		public const Quaternion Zero = .();

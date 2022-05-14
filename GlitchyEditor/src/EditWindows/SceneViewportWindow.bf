@@ -10,8 +10,6 @@ namespace GlitchyEditor.EditWindows
 {
 	class SceneViewportWindow : EditorWindow
 	{
-		//public OldCamera _camera;
-
 		public const String s_WindowTitle = "Scene";
 
 		private RenderTarget2D _renderTarget ~ _?.ReleaseRef();
@@ -37,8 +35,6 @@ namespace GlitchyEditor.EditWindows
 
 		private ImGui.Vec2 oldViewportSize;
 		private bool viewPortChanged;
-
-		public Entity CameraEntity { get; set; }
 
 		protected override void InternalShow()
 		{
@@ -89,20 +85,20 @@ namespace GlitchyEditor.EditWindows
 			topLeft.y += cntMin.y;
 			ImGuizmo.SetRect(topLeft.x, topLeft.y, viewportSize.x, viewportSize.y);
 
-			var cameraTransformCmp = CameraEntity.GetComponent<TransformComponent>();
+			var cameraTransformCmp = _editor.CurrentCamera.GetComponent<TransformComponent>();
 			var view = cameraTransformCmp.WorldTransform.Invert();
 
-			var cameraCmp = CameraEntity.GetComponent<CameraComponent>();
+			var cameraCmp = _editor.CurrentCamera.GetComponent<CameraComponent>();
 			var projection = cameraCmp.Camera.Projection;
 
 			Matrix mat = .Identity;
 			ImGuizmo.DrawGrid((.)&view, (.)&projection, (.)&mat, 10);
 
-			if(_editor.SelectedEntities.Count > 0)
+			if(_editor.EntityHierarchyWindow.SelectedEntities.Count > 0)
 			{
-				var entity = _editor.SelectedEntities.Front;
+				var entity = _editor.EntityHierarchyWindow.SelectedEntities.Front;
 
-				var transformCmp = _editor.World.GetComponent<TransformComponent>(entity);
+				var transformCmp = entity.GetComponent<TransformComponent>();
 
 				var transform = transformCmp.LocalTransform;
 

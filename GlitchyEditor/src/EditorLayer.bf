@@ -10,6 +10,7 @@ using GlitchyEngine.World;
 using GlitchyEngine.Content;
 using System.Collections;
 using GlitchyEngine.Renderer.Animation;
+using System.IO;
 
 namespace GlitchyEditor
 {
@@ -25,6 +26,19 @@ namespace GlitchyEditor
 		DepthStencilState _depthStencilState ~ _.ReleaseRef();
 		
 		Scene _scene = new Scene() ~ delete _;
+		String _sceneFilePath = new String() ~ delete _;
+
+		public String SceneFilePath
+		{
+			get => _sceneFilePath;
+			set
+			{
+				_sceneFilePath.Clear();
+
+				if (value != null)
+					_sceneFilePath.Append(value);
+			}
+		}
 
 		Editor _editor ~ delete _;
 
@@ -81,48 +95,112 @@ namespace GlitchyEditor
 
 			InitGraphics();
 
-			{
-				_cameraEntity = _scene.CreateEntity("Camera Entity");
-				let camera = _cameraEntity.AddComponent<CameraComponent>();
-				camera.Camera.SetPerspective(MathHelper.ToRadians(75), 0.1f, 10000.0f);
-				camera.Primary = true;
-				camera.FixedAspectRatio = false;
-				camera.RenderTarget = _cameraTarget;
-				let transform = _cameraEntity.GetComponent<TransformComponent>();
-				//transform.Position = .(-1.5f, 1.5f, -2.5f);
-				transform.Position = .(3.5f, 1.25f, 2.75f);
-				//transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
-				transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(40), 0);
+			NewScene();
 
-				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
-				_cameraEntity.AddComponent<EditorComponent>();
+			InitEditor();
+		}
+
+		private void InitGraphics()
+		{
+			_context = Application.Get().Window.Context..AddRef();
+			
+			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
+			_rasterizerState = new RasterizerState(rsDesc);
+
+			rsDesc.FrontCounterClockwise = false;
+			_rasterizerStateClockWise = new RasterizerState(rsDesc);
+
+			BlendStateDescription blendDesc = .();
+			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
+			_alphaBlendState = new BlendState(blendDesc);
+			_opaqueBlendState = new BlendState(.Default);
+
+			DepthStencilStateDescription dsDesc = .();
+			_depthStencilState = new DepthStencilState(dsDesc);
+			
+			_cameraTarget = new RenderTarget2D(RenderTarget2DDescription(.R16G16B16A16_Float, 100, 100) {DepthStencilFormat = .D32_Float});
+			_cameraTarget.SamplerState = SamplerStateManager.LinearClamp;
+
+			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100));
+			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
+		}
+
+		private void InitEditor()
+		{
+			_editor = new Editor(_scene);
+			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
+		}
+		
+		public override void Update(GameTime gameTime)
+		{
+			// Clear the swapchain-buffer
+			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
+
+			RenderCommand.Clear(_viewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
+
+			RenderCommand.SetRenderTarget(_viewportTarget, 0, true);
+			RenderCommand.BindRenderTargets();
+
+			RenderCommand.SetViewport(Viewport(0, 0, _viewportTarget.Width, _viewportTarget.Height));
+
+			RenderCommand.SetBlendState(_alphaBlendState);
+			RenderCommand.SetDepthStencilState(_depthStencilState);
+
+			_scene.Update(gameTime, _viewportTarget);
+
+			RenderCommand.UnbindRenderTargets();
+			RenderCommand.SetRenderTarget(null, 0, true);
+			RenderCommand.BindRenderTargets();
+
+			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
+		}
+
+		public override void OnEvent(Event event)
+		{
+			EventDispatcher dispatcher = EventDispatcher(event);
+
+			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
+			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
+			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
+		}
+
+		ImGui.ID _mainDockspaceId;
+		
+		TextureViewer viewer = new TextureViewer() ~ delete _;
+
+		private bool OnImGuiRender(ImGuiRenderEvent event)
+		{
+			viewer.ViewTexture(_cameraTarget);
+
+			/*ImGui.Begin("Test");
+
+			static bool cameraA = true;
+
+			if (ImGui.Checkbox("Camera A", &cameraA))
+			{
+				_cameraEntity.GetComponent<CameraComponent>().Primary = cameraA;
+				_otherCameraEntity.GetComponent<CameraComponent>().Primary = !cameraA;
 			}
 
-			/*{
-				_otherCameraEntity = _scene.CreateEntity("Other Camera Entity");
-				let camera = _otherCameraEntity.AddComponent<CameraComponent>();
-				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 1000.0f);
-				camera.Primary = false;
-				camera.FixedAspectRatio = false;
-				camera.RenderTarget = _viewportTarget;
-				let transform = _otherCameraEntity.GetComponent<TransformComponent>();
-				transform.Position = .(0, 0, -5);
+			ImGui.End();*/
 
-				_otherCameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
-				_otherCameraEntity.AddComponent<EditorComponent>();
-			}*/
+			ImGui.Viewport* viewport = ImGui.GetMainViewport();
+			ImGui.DockSpaceOverViewport(viewport);
 
-			{
-				var lightNtt = _scene.CreateEntity("My Sexy Sun");
-				let transform = lightNtt.GetComponent<TransformComponent>();
-				transform.Position = .(0, 0, 0);
-				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-100), 0);
+			DrawMainMenuBar();
 
-				let light = lightNtt.AddComponent<LightComponent>();
-				light.SceneLight.Illuminance = 10.0f;
-				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}
+			_editor.SceneViewportWindow.RenderTarget = _viewportTarget;
 
+			_editor.Update();
+
+			_settingsWindow.Show();
+
+			return false;
+		}
+
+		// Just for testing
+		private void TestEntitiesWithModels()
+		{
 			{
 				var lightNtt = _scene.CreateEntity("My Sexy Sun 2");
 				let transform = lightNtt.GetComponent<TransformComponent>();
@@ -145,20 +223,17 @@ namespace GlitchyEditor
 				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
 			}
 
-			InitEditor();
-
-			TestEntitiesWithModels();
-		}
-
-		private void TestEntitiesWithModels()
-		{
 			var fxLib = Application.Get().EffectLibrary;
 
 			using (Effect myEffect = fxLib.Load("content/Shaders/myEffect.hlsl"))
-			using (Texture2D albedo = new Texture2D("Textures/TestMat/rustediron2_albedo.png", true))
+			using (Texture2D albedo = new Texture2D("Textures/White.png", true))
+			using (Texture2D normal = new Texture2D("Textures/White.png"))
+			using (Texture2D rough = new Texture2D("Textures/White.png"))
+			using (Texture2D metal = new Texture2D("Textures/White.png"))
+			/*using (Texture2D albedo = new Texture2D("Textures/TestMat/rustediron2_albedo.png", true))
 			using (Texture2D normal = new Texture2D("Textures/TestMat/rustediron2_normal.png"))
 			using (Texture2D rough = new Texture2D("Textures/TestMat/rustediron2_roughness.png"))
-			using (Texture2D metal = new Texture2D("Textures/TestMat/rustediron2_metallic.png"))
+			using (Texture2D metal = new Texture2D("Textures/TestMat/rustediron2_metallic.png"))*/
 			{
 				albedo.SamplerState = SamplerStateManager.AnisotropicWrap;
 				normal.SamplerState = SamplerStateManager.AnisotropicWrap;
@@ -238,118 +313,100 @@ namespace GlitchyEditor
 			}
 		}
 
-		private void InitGraphics()
+		private void PrepareSceneForEditor()
 		{
-			_context = Application.Get().Window.Context..AddRef();
-			
-			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
-			_rasterizerState = new RasterizerState(rsDesc);
-
-			rsDesc.FrontCounterClockwise = false;
-			_rasterizerStateClockWise = new RasterizerState(rsDesc);
-
-			BlendStateDescription blendDesc = .();
-			blendDesc.RenderTarget[0] = .(true, .SourceAlpha, .InvertedSourceAlpha, .Add, .SourceAlpha, .InvertedSourceAlpha, .Add, .All);
-			_alphaBlendState = new BlendState(blendDesc);
-			_opaqueBlendState = new BlendState(.Default);
-
-			DepthStencilStateDescription dsDesc = .();
-			_depthStencilState = new DepthStencilState(dsDesc);
-			
-			_cameraTarget = new RenderTarget2D(RenderTarget2DDescription(.R16G16B16A16_Float, 100, 100) {DepthStencilFormat = .D32_Float});
-			_cameraTarget.SamplerState = SamplerStateManager.LinearClamp;
-
-			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100));
-			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
-		}
-
-		private void InitEditor()
-		{
-			_editor = new Editor(_scene);
-			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
-
-			//_editor.[Friend]CreateEntityWithTransform();
-
-			_editor.SceneViewportWindow.CameraEntity = _cameraEntity;
-		}
-		
-		public override void Update(GameTime gameTime)
-		{
-			var scriptComponent = _cameraEntity.GetComponent<NativeScriptComponent>();
-
-			if (var camController = scriptComponent.Instance as EditorCameraController)
+			// Create the editor camera
 			{
-				camController.IsEnabled = (_editor.SceneViewportWindow.HasFocus && Input.IsMouseButtonPressed(.RightButton));
+				_cameraEntity = _scene.CreateEntity("Editor Camera");
+				// Add EditorComponent so that the engine knows that this is not part of the game.
+				_cameraEntity.AddComponent<EditorComponent>();
+				// Script for controlling the camera.
+				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
+
+				let camera = _cameraEntity.AddComponent<CameraComponent>();
+				camera.Camera.SetPerspective(MathHelper.ToRadians(75), 0.1f, 10000.0f);
+				camera.Primary = true;
+				camera.RenderTarget = _cameraTarget;
+				let transform = _cameraEntity.GetComponent<TransformComponent>();
+				//transform.Position = .(-1.5f, 1.5f, -2.5f);
+				transform.Position = .(3.5f, 1.25f, 2.75f);
+				//transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
+				transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(40), 0);
+
+			}
+		}
+
+		/// Creates a new scene.
+		private void NewScene()
+		{
+			SceneFilePath = null;
+
+			// Create the default light source
+			{
+				var lightNtt = _scene.CreateEntity("Light");
+				let transform = lightNtt.GetComponent<TransformComponent>();
+				transform.Position = .(0, 0, 0);
+				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-100), 0);
+
+				let light = lightNtt.AddComponent<LightComponent>();
+				light.SceneLight.Illuminance = 10.0f;
+				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
 			}
 
-			//TransformSystem.Update(_world);
+			TestEntitiesWithModels();
 
-			RenderCommand.Clear(_viewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
-
-			RenderCommand.SetRenderTarget(_viewportTarget, 0, true);
-			RenderCommand.BindRenderTargets();
-
-			RenderCommand.SetViewport(Viewport(0, 0, _viewportTarget.Width, _viewportTarget.Height));
-
-			RenderCommand.SetBlendState(_alphaBlendState);
-			RenderCommand.SetDepthStencilState(_depthStencilState);
-
-			//Renderer.BeginScene(_cameraController.Camera);
-
-			//DebugRenderer.Render(_scene.[Friend]_ecsWorld);
-			
-			//Renderer.EndScene();
-
-			_scene.Update(gameTime, _viewportTarget);
-
-			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
-
-			RenderCommand.SetRenderTarget(null, 0, true);
-			RenderCommand.BindRenderTargets();
-
-			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
+			PrepareSceneForEditor();
 		}
-
-		public override void OnEvent(Event event)
-		{
-			EventDispatcher dispatcher = EventDispatcher(event);
-
-			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
-			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
-		}
-
-		ImGui.ID _mainDockspaceId;
 		
-		TextureViewer viewer = new TextureViewer() ~ delete _;
-
-		private bool OnImGuiRender(ImGuiRenderEvent event)
+		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
+		private void SaveScene()
 		{
-			viewer.ViewTexture(_cameraTarget);
-
-			/*ImGui.Begin("Test");
-
-			static bool cameraA = true;
-
-			if (ImGui.Checkbox("Camera A", &cameraA))
+			if (String.IsNullOrWhiteSpace(SceneFilePath))
 			{
-				_cameraEntity.GetComponent<CameraComponent>().Primary = cameraA;
-				_otherCameraEntity.GetComponent<CameraComponent>().Primary = !cameraA;
+				SaveSceneAs();
+				return;
 			}
+			
+			SceneSerializer serializer = scope .(_scene);
+			serializer.Serialize(SceneFilePath);
+		}
+		
+		/// Opens a save file dialog and saves the scene at the user specified location.
+		private void SaveSceneAs()
+		{
+			SaveFileDialog sfd = scope .();
+			if (sfd.ShowDialog() case .Ok(let val))
+			{
+				if (val == .OK)
+				{
+					SceneFilePath = sfd.FileNames[0];
 
-			ImGui.End();*/
+					SaveScene();
+				}
+			}
+		}
+		
+		/// Opens a open file dialog and load the scene selected by the user specified.
+		private void OpenScene()
+		{
+			OpenFileDialog ofd = scope .();
+			if (ofd.ShowDialog() case .Ok(let val))
+			{
+				if (val == .OK)
+				{
+					SceneFilePath = ofd.FileNames[0];
 
-			ImGui.Viewport* viewport = ImGui.GetMainViewport();
-			ImGui.DockSpaceOverViewport(viewport);
+					delete _scene;
+					_scene = new Scene();
 
-			DrawMainMenuBar();
+					SceneSerializer serializer = scope .(_scene);
+					serializer.Deserialize(SceneFilePath);
 
-			_editor.SceneViewportWindow.RenderTarget = _viewportTarget;
+					PrepareSceneForEditor();
 
-			_editor.Update();
-
-			_settingsWindow.Show();
-
-			return false;
+					_editor.CurrentScene = _scene;
+				}
+			}
 		}
 
 		private void DrawMainMenuBar()
@@ -358,8 +415,27 @@ namespace GlitchyEditor
 
 			if(ImGui.BeginMenu("File", true))
 			{
+				if (ImGui.MenuItem("New", "Ctrl+N"))
+					NewScene();
+
+				if (ImGui.MenuItem("Save", "Ctrl+S"))
+					SaveScene();
+
+				if (ImGui.MenuItem("Save as...", "Ctrl+Shift+N"))
+					SaveSceneAs();
+
+				if (ImGui.MenuItem("Open...", "Ctrl+O"))
+					OpenScene();
+
+				ImGui.Separator();
+
 				if (ImGui.MenuItem("Settings"))
 					_settingsWindow.Open = true;
+				
+				ImGui.Separator();
+				
+				if (ImGui.MenuItem("Exit"))
+					Application.Get().Close();
 
 				ImGui.EndMenu();
 			}
@@ -405,6 +481,35 @@ namespace GlitchyEditor
 			_cameraTarget.Resize(sizeX, sizeY);
 
 			_scene.OnViewportResize(sizeX, sizeY);
+		}
+
+		private bool OnKeyPressed(KeyPressedEvent e)
+		{
+			bool control = Input.IsKeyPressed(Key.Control);
+			bool shift = Input.IsKeyPressed(Key.Shift);
+			
+			if (control)
+			{
+				switch (e.KeyCode)
+				{
+				case .N:
+					NewScene();
+					return true;
+				case .O:
+					OpenScene();
+					return true;
+				case .S:
+					if (shift)
+						SaveSceneAs();
+					else
+						SaveScene();
+					
+					return true;
+				default:
+				}
+			}
+
+			return false;
 		}
 	}
 }

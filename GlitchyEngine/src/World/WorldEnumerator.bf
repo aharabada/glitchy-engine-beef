@@ -13,6 +13,8 @@ namespace GlitchyEngine.World
 		internal EcsWorld.BitmaskEntry* _currentEntry;
 		internal EcsWorld.BitmaskEntry* _endEntry;
 
+		public bool IsEmpty => _bitMask == null;
+
 		public this(EcsWorld world, Type[] componentTypes)
 		{
 			_world = world;
@@ -32,7 +34,11 @@ namespace GlitchyEngine.World
 				}
 				else
 				{
-					Log.EngineLogger.AssertDebug(false, "Queried component is not registered for this world. This is invalid because the query would never return any results.");
+#if GE_WORLD_ENUMERATOR_UNREGISTERED_COMPONENT_IS_WARNING
+					Log.EngineLogger.Warning($"Queried component of type \"{type}\" is not registered for this world. The query will never return any results.");
+#endif
+					DeleteAndNullify!(_bitMask);
+					_endEntry = _currentEntry;
 				}
 			}
 		}
@@ -67,7 +73,14 @@ namespace GlitchyEngine.World
 
 		public this(EcsWorld world) : base(world, scope Type[](typeof(TComponent)))
 		{
-			_componentPool = &world.GetComponentPool<TComponent>();
+			if (base.IsEmpty)
+			{
+				_componentPool = null;
+			}
+			else
+			{
+				_componentPool = &world.GetComponentPool<TComponent>();
+			}
 		}
 
 		public new Result<(EcsEntity Entity, TComponent* Component)> GetNext() mut
@@ -92,8 +105,16 @@ namespace GlitchyEngine.World
 
 		public this(EcsWorld world) : base(world, scope Type[](typeof(TComponent0), typeof(TComponent1)))
 		{
-			_componentPool0 = &world.GetComponentPool<TComponent0>();
-			_componentPool1 = &world.GetComponentPool<TComponent1>();
+			if (base.IsEmpty)
+			{
+				_componentPool0 = null;
+				_componentPool1 = null;
+			}
+			else
+			{
+				_componentPool0 = &world.GetComponentPool<TComponent0>();
+				_componentPool1 = &world.GetComponentPool<TComponent1>();
+			}
 		}
 
 		public new Result<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1)> GetNext() mut
@@ -120,9 +141,18 @@ namespace GlitchyEngine.World
 
 		public this(EcsWorld world) : base(world, scope Type[](typeof(TComponent0), typeof(TComponent1), typeof(TComponent2)))
 		{
-			_componentPool0 = &world.GetComponentPool<TComponent0>();
-			_componentPool1 = &world.GetComponentPool<TComponent1>();
-			_componentPool2 = &world.GetComponentPool<TComponent2>();
+			if (base.IsEmpty)
+			{
+				_componentPool0 = null;
+				_componentPool1 = null;
+				_componentPool2 = null;
+			}
+			else
+			{
+				_componentPool0 = &world.GetComponentPool<TComponent0>();
+				_componentPool1 = &world.GetComponentPool<TComponent1>();
+				_componentPool2 = &world.GetComponentPool<TComponent2>();
+			}
 		}
 
 		public new Result<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2)> GetNext() mut
@@ -151,10 +181,20 @@ namespace GlitchyEngine.World
 
 		public this(EcsWorld world) : base(world, scope Type[](typeof(TComponent0), typeof(TComponent1), typeof(TComponent2), typeof(TComponent3)))
 		{
-			_componentPool0 = &world.GetComponentPool<TComponent0>();
-			_componentPool1 = &world.GetComponentPool<TComponent1>();
-			_componentPool2 = &world.GetComponentPool<TComponent2>();
-			_componentPool3 = &world.GetComponentPool<TComponent3>();
+			if (base.IsEmpty)
+			{
+				_componentPool0 = null;
+				_componentPool1 = null;
+				_componentPool2 = null;
+				_componentPool3 = null;
+			}
+			else
+			{
+				_componentPool0 = &world.GetComponentPool<TComponent0>();
+				_componentPool1 = &world.GetComponentPool<TComponent1>();
+				_componentPool2 = &world.GetComponentPool<TComponent2>();
+				_componentPool3 = &world.GetComponentPool<TComponent3>();
+			}
 		}
 
 		public new Result<(EcsEntity Entity, TComponent0* Component0, TComponent1* Component1, TComponent2* Component2, TComponent3* Component3)> GetNext() mut

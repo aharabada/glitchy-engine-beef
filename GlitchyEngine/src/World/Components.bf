@@ -1,6 +1,6 @@
+using System;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
-using System;
 
 namespace GlitchyEngine.World
 {
@@ -251,9 +251,8 @@ namespace GlitchyEngine.World
 
 	struct CameraComponent : IDisposableComponent
 	{
-		public SceneCamera Camera;
+		public SceneCamera Camera = .();
 		public bool Primary = true;  // Todo: probably move into scene
-		public bool FixedAspectRatio = false;
 		private RenderTarget2D _renderTarget = null;
 
 		public RenderTarget2D RenderTarget
@@ -263,11 +262,6 @@ namespace GlitchyEngine.World
 			{
 				SetReference!(_renderTarget, value);
 			}
-		}
-
-		public this()
-		{
-			Camera = .();
 		}
 
 		public void Dispose()

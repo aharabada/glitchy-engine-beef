@@ -4,6 +4,7 @@
 #pragma warning disable 4204
 
 using System;
+using Bon;
 
 namespace GlitchyEngine.Math
 {
@@ -33,6 +34,18 @@ namespace GlitchyEngine.Math
 		[Inline]
 		public static implicit operator Self(in DirectX.Math.Vector4 value) => *(Self*)&value;
 	}
+}
+
+namespace DirectX
+{
+	[BonTarget]
+	extension Color;
+
+	[BonTarget]
+	extension ColorRGB;
+
+	[BonTarget]
+	extension ColorRGBA;
 }
 
 #endif
