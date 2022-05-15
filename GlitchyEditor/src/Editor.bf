@@ -28,7 +28,6 @@ namespace GlitchyEditor
 			{
 				_scene = value;
 				_entityHierarchyWindow.SetContext(_scene);
-				FindCurrentEditorCamera();
 			}
 		}
 
@@ -45,26 +44,20 @@ namespace GlitchyEditor
 
 		public void Update()
 		{
-			var scriptComponent = CurrentCamera.GetComponent<NativeScriptComponent>();
-
-			if (var camController = scriptComponent?.Instance as EditorCameraController)
+			_currentCamera = _scene.ActiveCamera;
+			if (_currentCamera.IsValid)
 			{
-				camController.IsEnabled = (SceneViewportWindow.HasFocus && Input.IsMouseButtonPressed(.RightButton));
+				var scriptComponent = _currentCamera.GetComponent<NativeScriptComponent>();
+	
+				if (var camController = scriptComponent?.Instance as EditorCameraController)
+				{
+					camController.IsEnabled = (SceneViewportWindow.HasFocus && Input.IsMouseButtonPressed(.RightButton));
+				}
 			}
 
 			_entityHierarchyWindow.Show();
 			_componentEditWindow.Show();
 			_sceneViewportWindow.Show();
-		}
-
-		private void FindCurrentEditorCamera()
-		{
-			_currentCamera = .(.InvalidEntity, _scene);
-			// TODO: a bit sketchy
-			for (var (entity, editComp, cam)  in _scene.[Friend]_ecsWorld.Enumerate<EditorComponent, CameraComponent>())
-			{
-				_currentCamera = .(entity, CurrentScene);
-			}
 		}
 	}
 }

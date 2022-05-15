@@ -27,7 +27,7 @@ namespace GlitchyEngine.World
 
 		public ChildEnumerator EnumerateChildren => .(this);
 
-		public bool IsValid => _entity.IsValid;
+		public bool IsValid => _entity.IsValid && _scene != null;
 
 		public Entity? Parent
 		{

@@ -226,14 +226,14 @@ namespace GlitchyEditor
 			var fxLib = Application.Get().EffectLibrary;
 
 			using (Effect myEffect = fxLib.Load("content/Shaders/myEffect.hlsl"))
-			using (Texture2D albedo = new Texture2D("Textures/White.png", true))
+			/*using (Texture2D albedo = new Texture2D("Textures/White.png", true))
 			using (Texture2D normal = new Texture2D("Textures/White.png"))
 			using (Texture2D rough = new Texture2D("Textures/White.png"))
-			using (Texture2D metal = new Texture2D("Textures/White.png"))
-			/*using (Texture2D albedo = new Texture2D("Textures/TestMat/rustediron2_albedo.png", true))
+			using (Texture2D metal = new Texture2D("Textures/White.png"))*/
+			using (Texture2D albedo = new Texture2D("Textures/TestMat/rustediron2_albedo.png", true))
 			using (Texture2D normal = new Texture2D("Textures/TestMat/rustediron2_normal.png"))
 			using (Texture2D rough = new Texture2D("Textures/TestMat/rustediron2_roughness.png"))
-			using (Texture2D metal = new Texture2D("Textures/TestMat/rustediron2_metallic.png"))*/
+			using (Texture2D metal = new Texture2D("Textures/TestMat/rustediron2_metallic.png"))
 			{
 				albedo.SamplerState = SamplerStateManager.AnisotropicWrap;
 				normal.SamplerState = SamplerStateManager.AnisotropicWrap;

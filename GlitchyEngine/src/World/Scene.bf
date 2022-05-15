@@ -12,6 +12,20 @@ namespace GlitchyEngine.World
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
 		
 		private Dictionary<Type, function void(Entity entity, Type componentType, void* component)> _onComponentAddedHandlers = new .() ~ delete _;
+		
+		public Entity ActiveCamera => {
+			Entity cameraEntity = .();
+
+		  	for (var (entity, camera) in _ecsWorld.Enumerate<CameraComponent>())
+			{
+				if (camera.Primary && camera.RenderTarget != null)
+				{
+					cameraEntity = .(entity, this);
+				}
+			}
+
+			cameraEntity
+		};
 
 		public this()
 		{

@@ -43,7 +43,10 @@ namespace GlitchyEngine.World
 
 				_localTransform = value;
 
-				Matrix.Decompose(_localTransform, out _position, out _rotation, out _scale);
+				Matrix.Decompose(_localTransform, out _position, let rotation, out _scale);
+
+				Rotation = rotation;
+
 				IsDirty = true;
 			}
 		}
