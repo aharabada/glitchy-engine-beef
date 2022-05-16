@@ -77,8 +77,10 @@ namespace GlitchyEditor.EditWindows
 		}
 
 		private ImGuizmo.OPERATION _gizmoType = .TRANSLATE;
-
 		private ImGuizmo.MODE _gizmoMode = .LOCAL;
+		private float _snap = 0.5f;
+		private float _angleSnap = 45.0f;
+		private bool _doSnap = false;
 
 		private void ShowMenuBar()
 		{
@@ -123,6 +125,22 @@ namespace GlitchyEditor.EditWindows
 						_gizmoMode = .WORLD;
 				}
 
+				_doSnap = Input.IsKeyPressed(.Shift);
+
+				ImGui.PushItemWidth(100);
+
+				if (_gizmoType.HasFlag(.ROTATE))
+				{
+					ImGui.DragFloat("Angle Snap", &_angleSnap, 1.0f, 0.0f, 180.0f);
+				}
+
+				if (_gizmoType.HasFlag(.TRANSLATE) || _gizmoType.HasFlag(.SCALE))
+				{
+					ImGui.DragFloat("Snap", &_snap, 0.1f, 0.0f, float.MaxValue);
+				}
+				
+				ImGui.PopItemWidth();
+
 				ImGui.EndMenuBar();
 			}
 		}
@@ -161,7 +179,11 @@ namespace GlitchyEditor.EditWindows
 				parentView = parentTransformCmp.WorldTransform.Invert();
 			}
 
-			if (ImGuizmo.Manipulate((.)&view, (.)&projection, _gizmoType, _gizmoMode, (.)&worldTransform))
+			Vector3 snap = .(_snap);
+			if (_gizmoType.HasFlag(.ROTATE))
+				snap = .(_angleSnap);
+			
+			if (ImGuizmo.Manipulate((.)&view, (.)&projection, _gizmoType, _gizmoMode, (.)&worldTransform, null, _doSnap ? (.)&snap : null))
 			{
 				// TODO: Fix when parent is scaled
 				// Seems to work fine for parent rotation and translation but scaled parent ruins everything
