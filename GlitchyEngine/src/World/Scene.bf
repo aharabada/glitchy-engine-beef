@@ -48,8 +48,10 @@ namespace GlitchyEngine.World
 		{
 		}
 
-		public void Update(GameTime gameTime, RenderTarget2D finalTarget)
+		public void UpdateRuntime(GameTime gameTime, RenderTarget2D finalTarget)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+			
 			TransformSystem.Update(_ecsWorld);
 
 			for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
@@ -88,9 +90,9 @@ namespace GlitchyEngine.World
 					Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
 				}
 
-				for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
+				for (var (entity, transform, light) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
 				{
-					Renderer.Submit(camera.SceneLight, transform.WorldTransform);
+					Renderer.Submit(light.SceneLight, transform.WorldTransform);
 				}
 
 				Renderer.EndScene();
@@ -107,6 +109,42 @@ namespace GlitchyEngine.World
 
 				renderTarget?.ReleaseRef();
 			}
+		}
+
+		public void UpdateEditor(GameTime gameTime, EditorCamera camera, RenderTarget2D viewportTarget)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			viewportTarget.AddRef();
+
+			TransformSystem.Update(_ecsWorld);
+
+			// 3D render
+			Renderer.BeginScene(camera, viewportTarget);
+
+			for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
+			{
+				Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
+			}
+
+			for (var (entity, transform, light) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
+			{
+				Renderer.Submit(light.SceneLight, transform.WorldTransform);
+			}
+
+			Renderer.EndScene();
+
+			// Sprite renderer
+			Renderer2D.BeginScene(camera);
+
+			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
+			{
+				Renderer2D.DrawQuad(transform.WorldTransform, sprite.Sprite, sprite.Color);
+			}
+
+			Renderer2D.EndScene();
+			
+			viewportTarget.ReleaseRef();
 		}
 
 		/// Creates a new Entity with the given name.

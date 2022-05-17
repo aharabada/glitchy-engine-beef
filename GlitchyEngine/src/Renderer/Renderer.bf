@@ -288,6 +288,17 @@ namespace GlitchyEngine.Renderer
 			_sceneConstants.CompositionTarget = finalTarget;
 		}
 
+		public static void BeginScene(EditorCamera camera, RenderTarget2D finalTarget)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+			
+			Matrix viewProjection = camera.Projection * camera.View;
+			_sceneConstants.ViewProjection = viewProjection;
+			_sceneConstants.CameraPosition = camera.Position;
+			_sceneConstants.CameraTarget = camera.RenderTarget;
+			_sceneConstants.CompositionTarget = finalTarget;
+		}
+
 		public static int SortMeshes(SubmittedMesh left, SubmittedMesh right)
 		{
 			// TODO: Once Material "inheritance" is ready we could perhaps check how similar materials are (e.g. shared textures/variables/etc...)

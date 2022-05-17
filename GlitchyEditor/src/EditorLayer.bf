@@ -47,8 +47,7 @@ namespace GlitchyEditor
 
 		SettingsWindow _settingsWindow = new .() ~ delete _;
 
-		Entity _cameraEntity;
-		Entity _otherCameraEntity;
+		EditorCamera _camera ~ _.Dispose();
 
 		class CameraController : ScriptableEntity
 		{
@@ -95,6 +94,9 @@ namespace GlitchyEditor
 
 			InitGraphics();
 
+			_camera = EditorCamera(Vector3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
+			_camera.RenderTarget = _cameraTarget;
+
 			NewScene();
 
 			InitEditor();
@@ -129,10 +131,13 @@ namespace GlitchyEditor
 		{
 			_editor = new Editor(_scene);
 			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
+			_editor.CurrentCamera = &_camera;
 		}
 		
 		public override void Update(GameTime gameTime)
 		{
+			_camera.Update(gameTime);
+
 			// Clear the swapchain-buffer
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
@@ -146,7 +151,7 @@ namespace GlitchyEditor
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
-			_scene.Update(gameTime, _viewportTarget);
+			_scene.UpdateEditor(gameTime, _camera, _viewportTarget);
 
 			RenderCommand.UnbindRenderTargets();
 			RenderCommand.SetRenderTarget(null, 0, true);
@@ -162,6 +167,7 @@ namespace GlitchyEditor
 			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
 			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
 			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
+			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));
 		}
 
 		ImGui.ID _mainDockspaceId;
@@ -171,18 +177,6 @@ namespace GlitchyEditor
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
 			viewer.ViewTexture(_cameraTarget);
-
-			/*ImGui.Begin("Test");
-
-			static bool cameraA = true;
-
-			if (ImGui.Checkbox("Camera A", &cameraA))
-			{
-				_cameraEntity.GetComponent<CameraComponent>().Primary = cameraA;
-				_otherCameraEntity.GetComponent<CameraComponent>().Primary = !cameraA;
-			}
-
-			ImGui.End();*/
 
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
@@ -313,33 +307,13 @@ namespace GlitchyEditor
 			}
 		}
 
-		private void PrepareSceneForEditor()
-		{
-			// Create the editor camera
-			{
-				_cameraEntity = _scene.CreateEntity("Editor Camera");
-				// Add EditorComponent so that the engine knows that this is not part of the game.
-				_cameraEntity.AddComponent<EditorComponent>();
-				// Script for controlling the camera.
-				_cameraEntity.AddComponent<NativeScriptComponent>().Bind<EditorCameraController>();
-
-				let camera = _cameraEntity.AddComponent<CameraComponent>();
-				camera.Camera.SetPerspective(MathHelper.ToRadians(75), 0.1f, 10000.0f);
-				camera.Primary = true;
-				camera.RenderTarget = _cameraTarget;
-				let transform = _cameraEntity.GetComponent<TransformComponent>();
-				//transform.Position = .(-1.5f, 1.5f, -2.5f);
-				transform.Position = .(3.5f, 1.25f, 2.75f);
-				//transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
-				transform.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(40), 0);
-
-			}
-		}
-
 		/// Creates a new scene.
 		private void NewScene()
 		{
 			SceneFilePath = null;
+
+			_camera.Position = .(-1.5f, 1.5f, -2.5f);
+			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
 
 			// Create the default light source
 			{
@@ -354,8 +328,6 @@ namespace GlitchyEditor
 			}
 
 			TestEntitiesWithModels();
-
-			PrepareSceneForEditor();
 		}
 		
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
@@ -401,8 +373,6 @@ namespace GlitchyEditor
 
 					SceneSerializer serializer = scope .(_scene);
 					serializer.Deserialize(SceneFilePath);
-
-					PrepareSceneForEditor();
 
 					_editor.CurrentScene = _scene;
 				}
@@ -481,6 +451,7 @@ namespace GlitchyEditor
 			_cameraTarget.Resize(sizeX, sizeY);
 
 			_scene.OnViewportResize(sizeX, sizeY);
+			_camera.OnViewportResize(sizeX, sizeY);
 		}
 
 		private bool OnKeyPressed(KeyPressedEvent e)
@@ -508,6 +479,14 @@ namespace GlitchyEditor
 				default:
 				}
 			}
+
+			return false;
+		}
+
+		private bool OnMouseScrolled(MouseScrolledEvent e)
+		{
+			if (_camera.OnMouseScrolled(e))
+				return true;
 
 			return false;
 		}

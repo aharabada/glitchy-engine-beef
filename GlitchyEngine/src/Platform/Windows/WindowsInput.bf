@@ -5,6 +5,7 @@ using GlitchyEngine.Events;
 using DirectX.Windows.VirtualKeyCodes;
 using DirectX.Windows;
 using GlitchyEngine.Math;
+using System.Interop;
 using static System.Windows;
 
 namespace GlitchyEngine
@@ -154,10 +155,14 @@ namespace GlitchyEngine
 		
 		public override static Point GetMouseMovement() => CurrentState.CursorPositionDifference;
 
+		public override static void SetMousePosition(Point pos) => SetCursorPos(pos.X, pos.Y);
+
 		//[CLink, CallingConvention(.Stdcall)]
 		//static extern int16 GetKeyState(int32 keycode);
 		[CLink, CallingConvention(.Stdcall)]
 		static extern IntBool GetCursorPos(out Point p);
+		[CLink, CallingConvention(.Stdcall)]
+		static extern IntBool SetCursorPos(c_int x, c_int y);
 		[CLink, CallingConvention(.Stdcall)]
 		static extern IntBool ScreenToClient(HWnd hWnd, ref Point p);
 

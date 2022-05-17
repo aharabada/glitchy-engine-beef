@@ -59,6 +59,38 @@ namespace GlitchyEditor.EditWindows
 
 			var viewportSize = ImGui.GetContentRegionAvail();
 
+			if (_editor.CurrentCamera.[Friend]BindMouse)
+			{
+				var mousePos = ImGui.GetMousePos();
+				var newMousePos = mousePos;
+				var winPos = ImGui.GetWindowPos();
+				var winSize = ImGui.GetWindowSize();
+
+				if (mousePos.x < winPos.x)
+				{
+					newMousePos.x = winPos.x + winSize.x - 1;
+				}
+				else if (mousePos.x > winPos.x + winSize.x)
+				{
+					newMousePos.x = winPos.x + 1;
+				}
+				
+				if (mousePos.y < winPos.y)
+				{
+					newMousePos.y = winPos.y + winSize.y - 1;
+				}
+				else if (mousePos.y > winPos.y + winSize.y)
+				{
+					newMousePos.y = winPos.y + 1;
+				}
+
+				if (newMousePos != mousePos)
+				{
+					Input.SetMousePosition(Point((int32)newMousePos.x, (int32)newMousePos.y));
+					_editor.CurrentCamera.[Friend]MouseCooldown = 2;
+				}
+			}
+
 			if(_renderTarget != null)
 			{
 				ImGui.Image(_renderTarget, viewportSize);
@@ -157,11 +189,8 @@ namespace GlitchyEditor.EditWindows
 			topLeft.y += cntMin.y;
 			ImGuizmo.SetRect(topLeft.x, topLeft.y, viewportSize.x, viewportSize.y);
 
-			var cameraTransformCmp = _editor.CurrentScene.ActiveCamera.GetComponent<TransformComponent>();
-			var view = cameraTransformCmp.WorldTransform.Invert();
-
-			var cameraCmp = _editor.CurrentCamera.GetComponent<CameraComponent>();
-			var projection = cameraCmp.Camera.Projection;
+			var view = _editor.CurrentCamera.View;
+			var projection = _editor.CurrentCamera.Projection;
 
 			if(_editor.EntityHierarchyWindow.SelectedEntities.Count == 0)
 				return;

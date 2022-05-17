@@ -11,7 +11,6 @@ namespace GlitchyEditor
 	class Editor
 	{
 		private Scene _scene;
-		private Entity _currentCamera;
 		
 		private EntityHierarchyWindow _entityHierarchyWindow ~ delete _;
 		private ComponentEditWindow _componentEditWindow ~ delete _;
@@ -31,7 +30,7 @@ namespace GlitchyEditor
 			}
 		}
 
-		public Entity CurrentCamera => _currentCamera;
+		public EditorCamera* CurrentCamera { get; set; }
 
 		/// Creates a new editor for the given world
 		public this(Scene scene)
@@ -44,17 +43,6 @@ namespace GlitchyEditor
 
 		public void Update()
 		{
-			_currentCamera = _scene.ActiveCamera;
-			if (_currentCamera.IsValid)
-			{
-				var scriptComponent = _currentCamera.GetComponent<NativeScriptComponent>();
-	
-				if (var camController = scriptComponent?.Instance as EditorCameraController)
-				{
-					camController.IsEnabled = (SceneViewportWindow.HasFocus && Input.IsMouseButtonPressed(.RightButton));
-				}
-			}
-
 			_entityHierarchyWindow.Show();
 			_componentEditWindow.Show();
 			_sceneViewportWindow.Show();

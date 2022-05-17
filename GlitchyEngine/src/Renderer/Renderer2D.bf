@@ -449,6 +449,48 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
+		public static void BeginScene(EditorCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+#if DEBUG
+			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
+			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
+#endif
+
+			//s_textureColorEffect.Bind(Renderer._context);
+			
+			s_currentEffect?.ReleaseRef();
+			if(effect != null)
+			{
+				s_currentEffect = effect..AddRef();
+			}
+			else
+			{
+				s_currentEffect = s_batchEffect..AddRef();
+			}
+
+			s_currentCircleEffect?.ReleaseRef();
+			if(circleEffect != null)
+			{
+				s_currentCircleEffect = effect..AddRef();
+			}
+			else
+			{
+				s_currentCircleEffect = s_circleBatchEffect..AddRef();
+			}
+
+			Matrix viewProjection = camera.Projection * camera.View;
+			
+			s_currentEffect.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentCircleEffect.Variables["ViewProjection"].SetData(viewProjection);
+
+			s_drawOrder = drawOrder;
+			
+#if DEBUG
+			s_sceneRunning = true;
+#endif
+		}
+
 		public static void EndScene()
 		{
 			Debug.Profiler.ProfileRendererFunction!();

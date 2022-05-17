@@ -30,6 +30,9 @@ namespace GlitchyEngine
 		public static extern Point GetMousePosition();
 		public static extern int32 GetMouseX();
 		public static extern int32 GetMouseY();
+
+		// TODO: Should Input be able to set mousepos?
+		public static extern void SetMousePosition(Point pos);
 		
 		public static extern bool WasMouseButtonPressed(MouseButton button);
 		public static extern bool WasMouseButtonReleased(MouseButton button);
