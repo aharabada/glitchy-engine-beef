@@ -527,7 +527,7 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the line.
 		 * @param transform A transform matrix transforming the line.
 		 */
-		public static void DrawLine(Vector3 start, Vector3 end, Color color, Matrix transform)
+		public static void DrawLine(Vector3 start, Vector3 end, ColorRGBA color, Matrix transform)
 		{
 			DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), color, transform);
 		}
@@ -537,7 +537,7 @@ namespace GlitchyEngine.Renderer
 		 * @param direction The direction of the ray.
 		 * @param color The color of the ray.
 		 */
-		public static void DrawRay(Vector3 start, Vector3 direction, Color color)
+		public static void DrawRay(Vector3 start, Vector3 direction, ColorRGBA color)
 		{
 			DrawLine(Vector4(start, 1.0f), Vector4(direction, 0.0f), color, .Identity);
 		}
@@ -548,7 +548,7 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the ray.
 		 * @param transform A transform matrix transforming the ray.
 		 */
-		public static void DrawRay(Vector3 start, Vector3 direction, Color color, Matrix transform)
+		public static void DrawRay(Vector3 start, Vector3 direction, ColorRGBA color, Matrix transform)
 		{
 			DrawLine(Vector4(start, 1.0f), Vector4(direction, 0.0f), color, transform);
 		}
@@ -559,12 +559,33 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the line.
 		 * @param transform A transform matrix transforming the line.
 		 */
-		public static void DrawLine(Vector4 start, Vector4 end, Color color, Matrix transform)
+		public static void DrawLine(Vector4 start, Vector4 end, ColorRGBA color, Matrix transform)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
 			LineVertices.SetData(Vector4[2](start, end), 0, .WriteDiscard);
 			LineEffect.Variables["ViewProjection"].SetData(_sceneConstants.ViewProjection * transform);
+			LineEffect.Variables["Color"].SetData(color);
+
+			LineEffect.Bind(_context);
+
+			LineGeometry.Bind();
+			RenderCommand.DrawIndexed(LineGeometry);
+		}
+		
+		/** @brief Draws a line.
+		 * @param start The start point of the line.
+		 * @param end The end point of the line.
+		 * @param color The color of the line.
+		* @param transform A transform matrix transforming the line.
+		 * @param viewProjection The observing cameras viewprojection
+		 */
+		public static void DrawLine(Vector4 start, Vector4 end, ColorRGBA color, Matrix transform, Matrix viewProjection)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			LineVertices.SetData(Vector4[2](start, end), 0, .WriteDiscard);
+			LineEffect.Variables["ViewProjection"].SetData(viewProjection * transform);
 			LineEffect.Variables["Color"].SetData(color);
 
 			LineEffect.Bind(_context);

@@ -781,7 +781,7 @@ namespace GlitchyEngine.Renderer
 		
 		public static void DrawQuad(Matrix transform, SubTexture2D texture, ColorRGBA color = .White)
 		{
-			DrawQuad(transform, texture.Texture, .White, texture.TexCoords);
+			DrawQuad(transform, texture.Texture, color, texture.TexCoords);
 		}
 
 		// Subtex + Texcoords

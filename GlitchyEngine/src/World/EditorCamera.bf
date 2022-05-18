@@ -219,8 +219,8 @@ namespace GlitchyEngine.World
 
 			float rotY = mouseDelta.X * _cameraRotationSpeedX;
 			float rotX = mouseDelta.Y * _cameraRotationSpeedY;
-
-			if (MouseCooldown == 0 && rotY != 0 && rotX != 0)
+			
+			if (MouseCooldown == 0)
 			{
 				Vector3 rotationEuler = RotationEuler + Vector3(rotX, rotY, 0);
 				_rotation = Quaternion.FromEulerAngles(rotationEuler.Y, rotationEuler.X, rotationEuler.Z);
@@ -298,7 +298,8 @@ namespace GlitchyEngine.World
 
 		private void UpdateProjection() mut
 		{
-			_projection = Matrix.InfinitePerspectiveProjection(_fovY, _aspectRatio, _nearPlane);
+			//_projection = Matrix.InfinitePerspectiveProjection(_fovY, _aspectRatio, _nearPlane);
+			_projection = Matrix.PerspectiveProjection(_fovY, _aspectRatio, _nearPlane, 10000);
 		}
 
 		public void OnViewportResize(uint32 sizeX, uint32 sizeY) mut

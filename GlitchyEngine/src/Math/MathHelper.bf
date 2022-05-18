@@ -77,5 +77,11 @@ namespace GlitchyEngine.Math
 		{
 			return Math.Abs(value) < epsilon;
 		}
+
+		/// Returns the point that lies on the unit circle at the specified angle.
+		public static Vector2 CirclePoint(float angle, float radius = 1.0f)
+		{
+			return .(Math.Cos(angle), Math.Sin(angle)) * radius;
+		}
 	}
 }

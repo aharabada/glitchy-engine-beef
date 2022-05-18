@@ -111,7 +111,7 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public void UpdateEditor(GameTime gameTime, EditorCamera camera, RenderTarget2D viewportTarget)
+		public void UpdateEditor(GameTime gameTime, EditorCamera camera, RenderTarget2D viewportTarget, delegate void() DebugDraw3D, delegate void() DrawDebug2D)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -132,15 +132,25 @@ namespace GlitchyEngine.World
 				Renderer.Submit(light.SceneLight, transform.WorldTransform);
 			}
 
+			DebugDraw3D();
+
 			Renderer.EndScene();
 
+			// TODO: alphablending
+
 			// Sprite renderer
-			Renderer2D.BeginScene(camera);
+			Renderer2D.BeginScene(camera, .BackToFront);
 
 			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
 			{
 				Renderer2D.DrawQuad(transform.WorldTransform, sprite.Sprite, sprite.Color);
 			}
+
+			Renderer2D.EndScene();
+
+			Renderer2D.BeginScene(camera, .BackToFront);
+
+			DrawDebug2D();
 
 			Renderer2D.EndScene();
 			

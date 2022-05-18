@@ -11,6 +11,7 @@ using GlitchyEngine.Content;
 using System.Collections;
 using GlitchyEngine.Renderer.Animation;
 using System.IO;
+using GlitchyEngine.Core;
 
 namespace GlitchyEditor
 {
@@ -49,44 +50,9 @@ namespace GlitchyEditor
 
 		EditorCamera _camera ~ _.Dispose();
 
-		class CameraController : ScriptableEntity
-		{
-			protected override void OnCreate()
-			{
-				Log.EngineLogger.Trace("Cam controller created!");
-			}
-
-			protected override void OnUpdate(GameTime gameTime)
-			{
-				var transformCmp = GetComponent<TransformComponent>();
-
-				Vector3 position = transformCmp.Position;
-
-				if (Input.IsKeyPressed(Key.A))
-				{
-					position.X -= gameTime.DeltaTime;
-				}
-				if (Input.IsKeyPressed(Key.D))
-				{
-					position.X += gameTime.DeltaTime;
-				}
-				if (Input.IsKeyPressed(Key.W))
-				{
-					position.Y += gameTime.DeltaTime;
-				}
-				if (Input.IsKeyPressed(Key.S))
-				{
-					position.Y -= gameTime.DeltaTime;
-				}
-
-				transformCmp.Position = position;
-			}
-
-			protected override void OnDestroy()
-			{
-				Log.EngineLogger.Trace("Cam controller destroyed!");
-			}
-		}
+		Texture2D _editorIcons ~ _.ReleaseRef();
+		SubTexture2D _iconDirectionalLight ~ _.ReleaseRef();
+		SubTexture2D _iconCamera ~ _.ReleaseRef();
 
 		public this() : base("Example")
 		{
@@ -125,6 +91,11 @@ namespace GlitchyEditor
 
 			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100));
 			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
+
+			_editorIcons = new Texture2D("Textures/EditorIcons.dds");
+			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;
+			_iconDirectionalLight = .CreateFromGrid(_editorIcons, .(0, 0), .(64, 64));
+			_iconCamera = .CreateFromGrid(_editorIcons, .(1, 0), .(64, 64));
 		}
 
 		private void InitEditor()
@@ -151,13 +122,70 @@ namespace GlitchyEditor
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
-			_scene.UpdateEditor(gameTime, _camera, _viewportTarget);
+			_scene.UpdateEditor(gameTime, _camera, _viewportTarget, scope => DebugDraw3D, scope => DebugDraw2D);
 
 			RenderCommand.UnbindRenderTargets();
 			RenderCommand.SetRenderTarget(null, 0, true);
 			RenderCommand.BindRenderTargets();
 
 			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
+		}
+
+		private void DebugDraw3D()
+		{
+			/*for (var (entity, transform, camera) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent, CameraComponent>())
+			{
+				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _scene)))
+				{
+					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection);
+				}
+			}*/
+		}
+
+		private void DebugDraw2D()
+		{
+			RenderCommand.SetBlendState(_alphaBlendState);
+			
+			Matrix billboard = _camera.View.Invert();
+			billboard.Translation = .Zero;
+
+			Matrix Billboard(Matrix transform)
+			{
+				Vector3 worldPos = transform.Translation;
+
+				return Matrix.Translation(worldPos) * billboard;
+			}
+
+			for (var (entity, transform, camera) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent, CameraComponent>())
+			{
+				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _scene)))
+				{
+					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection, _camera.Projection * _camera.View);
+				}
+				
+				Matrix world = Billboard(transform.WorldTransform);
+
+				Renderer2D.DrawQuad(world, _iconCamera);
+			}
+
+			for (var (entity, transform, light) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent, LightComponent>())
+			{
+				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _scene)))
+				{
+					Renderer.DrawRay(.Zero, .(0, 0, 20), ColorRGBA(light.SceneLight.Color, 1.0f), transform.WorldTransform);
+
+					for (float angle = 0; angle < MathHelper.TwoPi; angle += MathHelper.TwoPi / 5.0f)
+					{
+						Vector2 pos = MathHelper.CirclePoint(angle, 0.5f);
+
+						Renderer.DrawRay(.(pos, 0), .(pos, 20), .White, transform.WorldTransform);
+					}
+				}
+
+				Matrix world = Billboard(transform.WorldTransform);
+
+				Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color, 1.0f));
+			}
 		}
 
 		public override void OnEvent(Event event)
@@ -176,7 +204,7 @@ namespace GlitchyEditor
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
-			viewer.ViewTexture(_cameraTarget);
+			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Albedo);
 
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
@@ -215,6 +243,17 @@ namespace GlitchyEditor
 				let light = lightNtt.AddComponent<LightComponent>();
 				light.SceneLight.Illuminance = 10.0f;
 				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
+			}
+
+			{
+				var cameraNtt = _scene.CreateEntity("My Camera");
+				let transform = cameraNtt.GetComponent<TransformComponent>();
+				transform.Position = .(5, 5, -5);
+				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-45), 0);
+
+				let camera = cameraNtt.AddComponent<CameraComponent>();
+				camera.Primary = true;
+				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 10.0f);
 			}
 
 			var fxLib = Application.Get().EffectLibrary;
@@ -459,7 +498,7 @@ namespace GlitchyEditor
 			bool control = Input.IsKeyPressed(Key.Control);
 			bool shift = Input.IsKeyPressed(Key.Shift);
 			
-			if (control)
+			if (!_camera.[Friend]BindMouse && control)
 			{
 				switch (e.KeyCode)
 				{
