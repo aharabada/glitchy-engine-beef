@@ -256,6 +256,11 @@ namespace GlitchyEngine.Renderer
 					nativeTexture, D3D11.CalcSubresource(mipSlice, arraySlice, MipLevels), (.)&sourceBox);
 			}
 		}
+
+		protected override TextureViewBinding PlatformGetViewBinding()
+		{
+			return .(_nativeResourceView, _samplerState.nativeSamplerState);
+		}
 	}
 
 	extension TextureCube
@@ -281,6 +286,11 @@ namespace GlitchyEngine.Renderer
 
 			Log.EngineLogger.Assert(nativeDesc.MiscFlags.HasFlag(.TextureCube), scope $"The texture \"{_path}\" is not a texture cube.");
 			// TODO: load fallback texture
+		}
+
+		protected override TextureViewBinding PlatformGetViewBinding()
+		{
+			return .(_nativeResourceView, _samplerState.nativeSamplerState);
 		}
 	}
 }

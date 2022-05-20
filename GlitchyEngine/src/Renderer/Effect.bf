@@ -123,8 +123,8 @@ namespace GlitchyEngine.Renderer
 		BufferCollection _bufferCollection ~ delete _;
 
 		BufferVariableCollection _variables ~ delete _;
-		
-		typealias TextureEntry = (Texture Texture, ShaderTextureCollection.ResourceEntry* VsSlot, ShaderTextureCollection.ResourceEntry* PsSlot);
+
+		typealias TextureEntry = (TextureViewBinding BoundTexture, ShaderTextureCollection.ResourceEntry* VsSlot, ShaderTextureCollection.ResourceEntry* PsSlot);
 		Dictionary<String, TextureEntry> _textures ~ delete _;
 
 		public Dictionary<String, TextureEntry> Textures => _textures;
@@ -220,7 +220,7 @@ namespace GlitchyEngine.Renderer
 
 			for(let entry in _textures)
 			{
-				entry.value.Texture?.ReleaseRef();
+				entry.value.BoundTexture.ReleaseRef();
 			}
 		}
 
@@ -230,9 +230,32 @@ namespace GlitchyEngine.Renderer
 
 			ref TextureEntry entry = ref _textures[name];
 
-			entry.Texture?.ReleaseRef();
-			entry.Texture = texture;
-			entry.Texture?.AddRef();
+			entry.BoundTexture.ReleaseRef();
+			entry.BoundTexture = texture.GetViewBinding();
+		}
+		
+		public void SetTexture(String name, RenderTargetGroup renderTargetGroup, int32 firstTarget, uint32 targetCount = 1)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			if (targetCount != 1)
+				Runtime.NotImplemented("Binding multiple rendertargets to a slot is not yet implemented.");
+
+			ref TextureEntry entry = ref _textures[name];
+
+			entry.BoundTexture.ReleaseRef();
+			//entry.BoundTexture = .RenderTargetGroup(renderTargetGroup..AddRef(), firstTarget, targetCount);
+			entry.BoundTexture = renderTargetGroup.GetViewBinding(firstTarget);
+		}
+
+		public void SetTexture(String name, TextureViewBinding textureViewBinding)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			ref TextureEntry entry = ref _textures[name];
+
+			entry.BoundTexture.ReleaseRef();
+			entry.BoundTexture = textureViewBinding..AddRef();
 		}
 
 		private void ApplyTextures()
@@ -241,13 +264,13 @@ namespace GlitchyEngine.Renderer
 
 			for(let (name, entry) in _textures)
 			{
-				entry.VsSlot?.Texture?.ReleaseRef();
-				entry.VsSlot?.Texture = entry.Texture;
-				entry.VsSlot?.Texture?.AddRef();
+				entry.VsSlot?.BoundTexture.ReleaseRef();
+				entry.VsSlot?.BoundTexture = entry.BoundTexture;
+				entry.VsSlot?.BoundTexture.AddRef();
 				
-				entry.PsSlot?.Texture?.ReleaseRef();
-				entry.PsSlot?.Texture = entry.Texture;
-				entry.PsSlot?.Texture?.AddRef();
+				entry.PsSlot?.BoundTexture.ReleaseRef();
+				entry.PsSlot?.BoundTexture = entry.BoundTexture;
+				entry.PsSlot?.BoundTexture.AddRef();
 			}
 		}
 
@@ -650,8 +673,8 @@ namespace GlitchyEngine.Renderer
 				// Get existing entry or create new
 				if(!_textures.TryGetValue(shaderEntry.Name, out entry))
 				{
-					entry = (shaderEntry.Texture, null, null);
-					entry.Texture?.AddRef();
+					entry = (shaderEntry.BoundTexture, null, null);
+					entry.BoundTexture.AddRef();
 				}
 
 				// Set the corresponding shader resource slot
@@ -665,10 +688,10 @@ namespace GlitchyEngine.Renderer
 				}
 
 				// If the entry has no texture but the shader has one -> set texture
-				if(entry.Texture == null && shaderEntry.Texture != null)
+				if(entry.BoundTexture.IsEmpty && !shaderEntry.BoundTexture.IsEmpty)
 				{
-					entry.Texture = shaderEntry.Texture;
-					entry.Texture?.AddRef();
+					entry.BoundTexture = shaderEntry.BoundTexture;
+					entry.BoundTexture.AddRef();
 				}
 
 				// save entry

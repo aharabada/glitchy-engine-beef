@@ -100,7 +100,7 @@ namespace GlitchyEngine.Renderer
 						buffer.ReleaseRef();
 					}
 				case .Texture:
-					_textures.Add(scope String(bindDesc.Name), bindDesc.BindPoint, null);
+					_textures.Add(scope String(bindDesc.Name), bindDesc.BindPoint, TextureViewBinding(null, null));
 				case .Sampler:
 					// TODO: do we have to do something for samplers?
 				default:

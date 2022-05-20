@@ -61,13 +61,63 @@ namespace GlitchyEngine.Renderer
 			NativeContext.ClearDepthStencilView(target.nativeView, flags, depth, stencil);
 		}
 
+		public override void Clear(RenderTargetGroup renderTarget, ClearOptions options, ColorRGBA? color = null, float? depth = null, uint8? stencil = null)
+		{
+			if (options.HasFlag(.Color) && renderTarget._renderTargetViews != null)
+			{
+				for (int i < renderTarget._renderTargetViews.Count)
+				{
+					NativeContext.ClearRenderTargetView(renderTarget._renderTargetViews[i],
+						color ?? renderTarget._colorTargetDescriptions[i].ClearColor);
+				}
+			}
+
+			if (renderTarget._nativeDepthTargetView != null)
+			{
+				DirectX.D3D11.ClearFlag flags = default;
+	
+				if(options.HasFlag(.Depth))
+				{
+					flags |= .Depth;
+				}
+	
+				if(options.HasFlag(.Stencil))
+				{
+					flags |= .Stencil;
+				}
+	
+				if (flags != default)
+				{
+					NativeContext.ClearDepthStencilView(renderTarget._nativeDepthTargetView, flags,
+						renderTarget._depthTargetDescription.ClearColor.R,
+						(uint8)renderTarget._depthTargetDescription.ClearColor.G);
+				}
+			}
+		}
+
 		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthBuffer)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
 			_context.SetRenderTarget(renderTarget, slot, setDepthBuffer);
 		}
-		
+
+		public override void SetRenderTargetGroup(RenderTargetGroup renderTarget, bool setDepthBuffer)
+		{
+			if (renderTarget._renderTargetViews != null)
+			{
+				for (int i < renderTarget._renderTargetViews.Count)
+				{
+					_context.SetNativeRenderTargets(renderTarget._renderTargetViews, 0);
+				}
+			}
+
+			if (setDepthBuffer)
+			{
+				_context.SetNativeDepthStencilTarget(renderTarget._nativeDepthTargetView);
+			}
+		}
+
 		public override void SetDepthStencilTarget(DepthStencilTarget target)
 		{
 			Debug.Profiler.ProfileRendererFunction!();

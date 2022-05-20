@@ -1,4 +1,7 @@
 using GlitchyEngine.Core;
+using System;
+using System.Collections;
+using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
@@ -68,5 +71,161 @@ namespace GlitchyEngine.Renderer
 		public extern void Resize(uint32 width, uint32 height);
 
 		protected extern void PlatformApplyChanges();
+		
+		public override TextureViewBinding GetViewBinding()
+		{
+			return PlatformGetViewBinding();
+		}
+
+		protected extern TextureViewBinding PlatformGetViewBinding();
+	}
+
+	[AllowDuplicates]
+	public enum RenderTargetFormat : uint8
+	{
+		/// Sets the most significant bit to 1.
+		const uint8 DepthMarker = 1 << 7;
+
+		case None = 0;
+
+		case R8G8B8A8_UNorm;
+		case R8G8B8A8_SNorm;
+		
+		case R16G16B16A16_SNorm;
+		case R16G16B16A16_Float;
+
+		case R32G32B32A32_Float;
+
+		case D24_UNorm_S8_UInt = DepthMarker | 1;
+
+		/// Default depth format
+		case Depth = D24_UNorm_S8_UInt;
+
+		public bool IsDepth => HasFlag(DepthMarker);
+	}
+
+	public struct TargetDescription
+	{
+		public RenderTargetFormat Format = .None;
+
+		public bool IsSwapchainTarget = false;
+
+		public bool IsShaderReadable = true;
+
+		/// Clear color. For DepthStencilBuffers: R is Depth, G is Stencil
+		public ColorRGBA ClearColor = .Black;
+
+		public SamplerStateDescription SamplerDescription = .();
+
+		public this() {  }
+
+		public this(RenderTargetFormat format, bool isSwapchainTarget = false, bool isShaderReadable = true, ColorRGBA clearColor = .Black, SamplerStateDescription samplerDescription = .())
+		{
+			Format = format;
+			IsSwapchainTarget = isSwapchainTarget;
+			IsShaderReadable = isShaderReadable;
+			SamplerDescription = samplerDescription;
+			ClearColor = clearColor;
+		}
+
+		public static implicit operator Self(RenderTargetFormat format)
+		{
+			return Self(format);
+		}
+	}
+
+	public struct RenderTargetGroupDescription
+	{
+		public uint32 Width = 0, Height = 0, ArraySize = 1, MipLevels = 1;
+
+		public uint32 Samples = 1; // TODO: SampleQuality?
+
+		public Span<TargetDescription> ColorTargetDescriptions = null;
+
+		public TargetDescription DepthTargetDescription = .(.None);
+
+		// TODO: CpuAccess
+
+		public this() {  }
+
+		public this(uint32 width, uint32 height, Span<TargetDescription> colorTargetDescriptions = null, TargetDescription depthTargetDescription = .())
+		{
+			Width = width;
+			Height = height;
+			ColorTargetDescriptions = colorTargetDescriptions;
+			DepthTargetDescription = depthTargetDescription;
+		}
+	}
+
+	public class RenderTargetGroup : RefCounter
+	{
+		internal RenderTargetGroupDescription _description;
+
+		internal TargetDescription[] _colorTargetDescriptions ~ delete _;
+		internal SamplerState[] _colorSamplerStates ~ DeleteContainerAndReleaseItems!(_);
+		internal SamplerState _depthSamplerState ~ _?.ReleaseRef();
+
+		internal TargetDescription _depthTargetDescription;
+
+		public uint32 Width => _description.Width;
+		public uint32 Height => _description.Height;
+		public uint32 ArraySize => _description.ArraySize;
+		public uint32 MipLevels => _description.MipLevels;
+
+		public uint32 Samples => _description.Samples;
+
+		[AllowAppend]
+		public this(RenderTargetGroupDescription description)
+		{
+			_description = description;
+
+			var colorTargets = description.ColorTargetDescriptions;
+
+			if (!colorTargets.IsNull && !colorTargets.IsEmpty)
+			{
+				_colorTargetDescriptions = new TargetDescription[colorTargets.Length];
+				_colorSamplerStates = new SamplerState[colorTargets.Length];
+
+				bool swapchainTargetBound = false;
+
+				for (int i < colorTargets.Length)
+				{
+					Log.EngineLogger.AssertDebug(!colorTargets[i].Format.IsDepth, "Cannot use depth format as color target.");
+					
+					_colorTargetDescriptions[i] = colorTargets[i];
+
+					if (colorTargets[i].IsSwapchainTarget)
+					{
+						Log.EngineLogger.AssertDebug(!swapchainTargetBound, "Cannot bind swapchaintarget multiple times.");
+					
+						swapchainTargetBound = true;
+					}
+
+					_colorSamplerStates[i] = SamplerStateManager.GetSampler(_colorTargetDescriptions[i].SamplerDescription);
+				}
+			}
+			
+			_depthTargetDescription = description.DepthTargetDescription;
+			Log.EngineLogger.AssertDebug(_depthTargetDescription.Format.IsDepth, "Depth target must have depth format.");
+
+			if (_depthTargetDescription.Format != .None)
+			{
+				_depthSamplerState = SamplerStateManager.GetSampler(_depthTargetDescription.SamplerDescription);
+			}
+
+			ApplyChanges();
+		}
+
+		public extern void ApplyChanges();
+
+		public extern void Resize(uint32 width, uint32 height);
+		
+		/// -1 for Depthbuffer
+		public TextureViewBinding GetViewBinding(int index)
+		{
+			return PlatformGetViewBinding(index);
+		}
+
+		protected extern TextureViewBinding PlatformGetViewBinding(int index);
 	}
 }

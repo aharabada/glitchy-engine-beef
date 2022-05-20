@@ -25,14 +25,14 @@ namespace GlitchyEngine.Renderer
 			private uint32 _width;
 			private uint32 _height;
 			
-			public DepthStencilTarget DepthStencil;
+			//public DepthStencilTarget DepthStencil;
 
 			public uint32 Width => _width;
 			public uint32 Height => _height;
 
 			public Int2 Size => .(_width, _height);
 
-			// RGB: Albedo.rgb A: ?
+			/*// RGB: Albedo.rgb A: ?
 			public RenderTarget2D Albedo ~ _?.ReleaseRef();
 			// RG: TextureNormal.xy BA: GeometryNormal.xy
 			public RenderTarget2D Normal ~ _?.ReleaseRef();
@@ -41,7 +41,9 @@ namespace GlitchyEngine.Renderer
 			// RGB: Worldspace Position A: ?
 			public RenderTarget2D Position ~ _?.ReleaseRef();
 			// R: Metallicity G: Roughness B: Ambient A: ?
-			public RenderTarget2D Material ~ _?.ReleaseRef();
+			public RenderTarget2D Material ~ _?.ReleaseRef();*/
+
+			public RenderTargetGroup Target ~ _?.ReleaseRef();
 
 			public void EnsureSize(uint32 width, uint32 height)
 			{
@@ -51,7 +53,7 @@ namespace GlitchyEngine.Renderer
 				if (_width == 0 || _height == 0)
 				{
 					// Note: Depth-Buffer in Color-Target for convenience
-					RenderTarget2DDescription albedoDesc = .(.R8G8B8A8_UNorm, width, height, 1, 1, .D24_UNorm_S8_UInt);
+					/*RenderTarget2DDescription albedoDesc = .(.R8G8B8A8_UNorm, width, height, 1, 1, .D24_UNorm_S8_UInt);
 					Albedo = new RenderTarget2D(albedoDesc);
 
 					RenderTarget2DDescription normalDesc = .(.R16G16B16A16_SNorm, width, height);
@@ -64,42 +66,66 @@ namespace GlitchyEngine.Renderer
 					Position = new RenderTarget2D(positionDesc);
 
 					RenderTarget2DDescription materialDesc = .(.R8G8B8A8_UNorm, width, height);
-					Material = new RenderTarget2D(materialDesc);
+					Material = new RenderTarget2D(materialDesc);*/
+
+					SamplerStateDescription desc = .();
+					desc.MinFilter = .Point;
+					desc.MagFilter = .Point;
+
+					RenderTargetGroupDescription targetDesc = .(width, height,
+						TargetDescription[](
+							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = desc},
+							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = desc},
+							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = desc},
+							.(RenderTargetFormat.R32G32B32A32_Float){SamplerDescription = desc},
+							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = desc}
+						),
+						TargetDescription(.D24_UNorm_S8_UInt){
+							SamplerDescription = desc,
+							ClearColor = .(1.0f, 0, 0)
+						});
+					Target = new RenderTargetGroup(targetDesc);
 				}
 
 				_width = width;
 				_height = height;
 
-				Albedo.Resize(_width, _height);
+				/*Albedo.Resize(_width, _height);
 				Normal.Resize(_width, _height);
 				Tangent.Resize(_width, _height);
 				Position.Resize(_width, _height);
-				Material.Resize(_width, _height);
+				Material.Resize(_width, _height);*/
 
-				DepthStencil = Albedo.DepthStencilTarget;
+				//DepthStencil = Albedo.DepthStencilTarget;
+
+				Target.Resize(_width, _height);
 			}
 
 			public void Bind()
 			{
-				RenderCommand.SetDepthStencilTarget(DepthStencil);
+				/*RenderCommand.SetDepthStencilTarget(DepthStencil);
 
 				RenderCommand.UnbindRenderTargets();
 				RenderCommand.SetRenderTarget(Albedo, 0);
 				RenderCommand.SetRenderTarget(Normal, 1);
 				RenderCommand.SetRenderTarget(Tangent, 2);
 				RenderCommand.SetRenderTarget(Position, 3);
-				RenderCommand.SetRenderTarget(Material, 4);
+				RenderCommand.SetRenderTarget(Material, 4);*/
+
+				RenderCommand.SetRenderTargetGroup(Target);
 
 				RenderCommand.BindRenderTargets();
 			}
 
 			public void Clear()
 			{
-				RenderCommand.Clear(_gBuffer.Albedo, .Color | .Depth, .HotPink, 1, 0);
+				/*RenderCommand.Clear(_gBuffer.Albedo, .Color | .Depth, .HotPink, 1, 0);
 				RenderCommand.Clear(_gBuffer.Normal, .HotPink);
 				RenderCommand.Clear(_gBuffer.Tangent, .HotPink);
 				RenderCommand.Clear(_gBuffer.Position, .HotPink);
-				RenderCommand.Clear(_gBuffer.Material, .HotPink);
+				RenderCommand.Clear(_gBuffer.Material, .HotPink);*/
+
+				RenderCommand.Clear(Target, .Color | .Depth);
 			}
 		}
 
@@ -396,13 +422,11 @@ namespace GlitchyEngine.Renderer
 
 					Vector3 lightDir = -light.Transform.Forward;
 
-					_gBuffer.Albedo.SamplerState = SamplerStateManager.PointClamp;
-	
-					TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Albedo);
-					TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Normal);
-					TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Tangent);
-					TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Position);
-					TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Material);
+					TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Target, 0);
+					TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Target, 1);
+					TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Target, 2);
+					TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Target, 3);
+					TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Target, 4);
 		
 					TestFullscreenEffect.Variables["LightColor"].SetData(light.Light.Color);
 					TestFullscreenEffect.Variables["Illuminance"].SetData(light.Light.Illuminance);

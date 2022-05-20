@@ -27,6 +27,8 @@ namespace GlitchyEngine.Renderer
 		public abstract uint32 Depth {get;}
 		public abstract uint32 ArraySize {get;}
 		public abstract uint32 MipLevels {get;}
+
+		public abstract TextureViewBinding GetViewBinding();
 	}
 
 	public struct Texture2DDesc
@@ -183,6 +185,13 @@ namespace GlitchyEngine.Renderer
 		 * Copies the data to the given destination.
 		 */
 		public extern void CopyTo(Texture2D destination);
+
+		public override TextureViewBinding GetViewBinding()
+		{
+			return PlatformGetViewBinding();
+		}
+
+		protected extern TextureViewBinding PlatformGetViewBinding();
 	}
 
 	public class TextureCube : Texture
@@ -212,5 +221,12 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern void LoadTexturePlatform(Stream stream);
+
+		public override TextureViewBinding GetViewBinding()
+		{
+			return PlatformGetViewBinding();
+		}
+
+		protected extern TextureViewBinding PlatformGetViewBinding();
 	}
 }

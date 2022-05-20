@@ -13,7 +13,7 @@ namespace GlitchyEngine.Renderer
 
 		private uint8[] _rawVariables ~ delete _;
 
-		private Dictionary<String, Texture> _textures = new .();
+		private Dictionary<String, TextureViewBinding> _textures = new .();
 
 		private Dictionary<String, (uint32 Offset, BufferVariable Variable)> _variables = new .() ~ delete _;
 
@@ -27,8 +27,8 @@ namespace GlitchyEngine.Renderer
 
 			for(let (name, entry) in _effect.Textures)
 			{
-				var texture = entry.Texture;
-				texture?.AddRef();
+				var texture = entry.BoundTexture;
+				texture.AddRef();
 
 				_textures.Add(name, texture);
 			}
@@ -40,7 +40,7 @@ namespace GlitchyEngine.Renderer
 		{
 			for(let (name, texture) in _textures)
 			{
-				texture?.ReleaseRef();
+				texture.ReleaseRef();
 			}
 
 			delete _textures;
@@ -90,9 +90,9 @@ namespace GlitchyEngine.Renderer
 		{
 			if(_textures.TryGetValue(name, var entry))
 			{
-				entry?.ReleaseRef();
-				_textures[name] = texture;
-				texture?.AddRef();
+				entry.ReleaseRef();
+				_textures[name] = texture.GetViewBinding();
+				//texture?.AddRef();
 			}
 			else
 			{

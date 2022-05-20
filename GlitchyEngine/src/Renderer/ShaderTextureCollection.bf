@@ -3,9 +3,9 @@ using System.Collections;
 
 namespace GlitchyEngine.Renderer
 {
-	public class ShaderTextureCollection : IEnumerable<(String Name, uint32 Index, Texture Texture)>
+	public class ShaderTextureCollection : IEnumerable<(String Name, uint32 Index, TextureViewBinding BoundTexture)>
 	{
-		public typealias ResourceEntry = (String Name, uint32 Index, Texture Texture);
+		public typealias ResourceEntry = (String Name, uint32 Index, TextureViewBinding BoundTexture);
 
 		List<ResourceEntry> _textures ~ DeleteTextureEntries!(_);
 		
@@ -31,7 +31,7 @@ namespace GlitchyEngine.Renderer
 			for(let entry in entries)
 			{
 				delete entry.Name;
-				entry.Texture?.ReleaseRef();
+				entry.BoundTexture.ReleaseRef();
 			}
 
 			delete entries;
@@ -39,15 +39,15 @@ namespace GlitchyEngine.Renderer
 
 		// TODO: finish implementation (like BufferCollection)
 
-		public void Add(String name, uint32 index, Texture texture)
+		public void Add(String name, uint32 index, TextureViewBinding texture)
 		{
 			Add((name, index, texture));
 		}
 
 		public void Add(ResourceEntry entry)
 		{
-			ResourceEntry copy = (new String(entry.Name), entry.Index, entry.Texture);
-			entry.Texture?.AddRef();
+			ResourceEntry copy = (new String(entry.Name), entry.Index, entry.BoundTexture);
+			entry.BoundTexture.AddRef();
 
 			_textures.Add(copy);
 

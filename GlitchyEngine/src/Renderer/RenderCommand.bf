@@ -53,9 +53,19 @@ namespace GlitchyEngine.Renderer
 			_rendererAPI.Clear(renderTarget, options, color, depth, stencil);
 		}
 
+		public static void Clear(RenderTargetGroup renderTarget, ClearOptions options, ColorRGBA? color = null, float? depth = null, uint8? stencil = null)
+		{
+			_rendererAPI.Clear(renderTarget, options, color, depth, stencil);
+		}
+
 		public static void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0, bool setDepthBuffer = false)
 		{
 			_rendererAPI.SetRenderTarget(renderTarget, slot, setDepthBuffer);
+		}
+
+		public static void SetRenderTargetGroup(RenderTargetGroup renderTarget, bool setDepthBuffer = true)
+		{
+			_rendererAPI.SetRenderTargetGroup(renderTarget, setDepthBuffer);
 		}
 
 		public static void SetDepthStencilTarget(DepthStencilTarget target)

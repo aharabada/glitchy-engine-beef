@@ -120,6 +120,11 @@ namespace GlitchyEngine.Renderer
 			_depthStencilTarget = target?.nativeView;
 		}
 
+		internal void SetNativeDepthStencilTarget(ID3D11DepthStencilView* depthStencilTarget)
+		{
+			_depthStencilTarget = depthStencilTarget;
+		}
+
 		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthTarget)
 		{
 			_renderTargets[slot] = (renderTarget ?? _swapChain.BackBuffer)._nativeRenderTargetView;
@@ -127,6 +132,14 @@ namespace GlitchyEngine.Renderer
 			if(slot == 0 && setDepthTarget)
 			{
 				SetDepthStencilTarget((renderTarget ?? _swapChain.BackBuffer).DepthStencilTarget);
+			}
+		}
+
+		internal void SetNativeRenderTargets(Span<ID3D11RenderTargetView*> renderTargets, int startSlot)
+		{
+			for (int i < renderTargets.Length)
+			{
+				_renderTargets[i + startSlot] = renderTargets[i];
 			}
 		}
 		
@@ -206,8 +219,8 @@ namespace GlitchyEngine.Renderer
 
 			for(let entry in shader.Textures)
 			{
-				_textures[entry.Index] = entry.Texture?._nativeResourceView;
-				_samplers[entry.Index] = entry.Texture?.SamplerState?.nativeSamplerState;
+				_textures[entry.Index] = entry.BoundTexture._nativeShaderResourceView;
+				_samplers[entry.Index] = entry.BoundTexture._nativeSamplerState;
 				
 				if(entry.Index >= _textureCount)
 					_textureCount = entry.Index + 1;
