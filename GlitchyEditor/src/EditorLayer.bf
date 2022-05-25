@@ -295,7 +295,7 @@ namespace GlitchyEditor
 					mat.SetVariable("MetallicFactor", 1.0f);
 					mat.SetVariable("RoughnessFactor", 1.0f);
 		
-					EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips, "Sphere 1");
+					EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", mat, _scene.[Friend]_ecsWorld, clips, "Sphere 1");
 					
 					Entity entity = .(e, _scene);
 					var transform = entity.GetComponent<TransformComponent>();
@@ -342,7 +342,7 @@ namespace GlitchyEditor
 						mat.SetVariable("RoughnessFactor", (x + 1) / 10.0f);
 						mat.SetVariable("MetallicFactor", y / 9.0f);
 			
-						EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips, scope $"Sphere {x} {y}");
+						EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", mat, _scene.[Friend]_ecsWorld, clips, scope $"Sphere {x} {y}");
 
 						Entity entity = .(e, _scene);
 						var transform = entity.GetComponent<TransformComponent>();

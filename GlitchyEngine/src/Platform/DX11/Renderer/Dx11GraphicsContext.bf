@@ -34,6 +34,11 @@ namespace GlitchyEngine.Renderer
 
 		private const uint32 MaxRTVCount = DirectX.D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
 
+		// current vertex layout and vertex shader needed for validation.
+		ID3D11InputLayout* _currentInputLayout ~ _?.Release();
+		VertexLayout _currentVertexLayout ~ _?.ReleaseRef();
+		VertexShader _currentVertexShader ~ _?.ReleaseRef();
+
 		//public static override uint32 MaxRenderTargetCount() => MaxRTVCount;
 
 		public this(Windows.HWnd windowHandle)
@@ -168,14 +173,37 @@ namespace GlitchyEngine.Renderer
 			NativeContext.InputAssembler.SetVertexBuffers(slot, 1, &buffer.nativeBuffer, &stride, &offset);
 		}
 
+		[Inline]
+		private void BindInputLayout()
+		{
+			if (_currentInputLayout == null)
+			{
+				_currentInputLayout = _currentVertexLayout.GetNativeVertexLayout(_currentVertexShader.nativeCode);
+				_currentInputLayout.AddRef();
+
+				NativeContext.InputAssembler.SetInputLayout(_currentInputLayout);
+			}
+		}
+
 		public override void Draw(uint32 vertexCount, uint32 startVertexIndex = 0)
 		{
+			BindInputLayout();
+
 			NativeContext.Draw(vertexCount, startVertexIndex);
 		}
 
 		public override void DrawIndexed(uint32 indexCount, uint32 startIndexLocation = 0, int32 vertexOffset = 0)
 		{
+			BindInputLayout();
+
 			NativeContext.DrawIndexed(indexCount, startIndexLocation, vertexOffset);
+		}
+
+		public override void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation)
+		{
+			BindInputLayout();
+
+			NativeContext.DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
 		}
 
 		public override void SetIndexBuffer(Buffer buffer, IndexFormat indexFormat = .Index16Bit, uint32 byteOffset = 0)
@@ -190,7 +218,12 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetVertexLayout(VertexLayout vertexLayout)
 		{
-			NativeContext.InputAssembler.SetInputLayout(vertexLayout.nativeLayout);
+			if (_currentVertexLayout != vertexLayout)
+			{
+				SetReference!(_currentVertexLayout, vertexLayout);
+				_currentInputLayout?.Release();
+				_currentInputLayout = null;
+			}
 		}
 
 		public override void SetPrimitiveTopology(GlitchyEngine.Renderer.PrimitiveTopology primitiveTopology)
@@ -252,7 +285,7 @@ namespace GlitchyEngine.Renderer
 			}
 			
 			shader.Buffers.PlatformFetchNativeBuffers();
-			
+
 			switch(typeof(TShader))
 			{
 				// TODO: Add remaining shader stages
@@ -262,6 +295,14 @@ namespace GlitchyEngine.Renderer
 			case typeof(VertexShader):
 				NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
 				NativeContext.VertexShader.SetShader((ID3D11VertexShader*)shader.nativeShader);
+				
+				if (VertexShader vs = shader as VertexShader)
+				{
+					SetReference!(_currentVertexShader, vs);
+					_currentInputLayout?.Release();
+					_currentInputLayout = null;
+				}
+				
 			default:
 				Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
 			}

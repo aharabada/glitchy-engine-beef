@@ -210,7 +210,7 @@ namespace GlitchyEngine.Renderer
 
 			VertexElement[] vertexElements = new VertexElement[1];
 			vertexElements[0] = .(.R32G32B32_Float, "POSITION");
-			VertexLayout layout = new VertexLayout(vertexElements, true, LineEffect.VertexShader);
+			VertexLayout layout = new VertexLayout(vertexElements, true);
 			LineGeometry.SetVertexLayout(layout..ReleaseRefNoDelete());
 		}
 
@@ -258,7 +258,7 @@ namespace GlitchyEngine.Renderer
 				VertexElement(.R32G32_Float, "TEXCOORD")
 			);
 
-			using (var quadBatchLayout = new VertexLayout(vertexElements, true, TestFullscreenEffect.VertexShader))
+			using (var quadBatchLayout = new VertexLayout(vertexElements, true))
 			{
 				s_fullscreenQuadGeometry.SetVertexLayout(quadBatchLayout);
 			}

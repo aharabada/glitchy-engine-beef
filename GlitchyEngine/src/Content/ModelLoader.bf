@@ -12,7 +12,7 @@ namespace GlitchyEngine.Content
 	{
 		static readonly Matrix RightToLeftHand = .Scaling(1, 1, -1);
 
-		public static EcsEntity LoadModel(String filename, Effect validationEffect, Material material, EcsWorld world,
+		public static EcsEntity LoadModel(String filename, Material material, EcsWorld world,
 			List<AnimationClip> outClips, StringView entityName = StringView())
 		{
 			CGLTF.Options options = .();
@@ -29,7 +29,7 @@ namespace GlitchyEngine.Content
 
 			for(var node in data.Scenes[0].Nodes)
 			{
-				NodesToEntities(data, node, entity, world, validationEffect, material, outClips);
+				NodesToEntities(data, node, entity, world, material, outClips);
 			}
 			
 			CGLTF.Free(data);
@@ -63,7 +63,7 @@ namespace GlitchyEngine.Content
 			return (entity, childTransform);
 		}
 
-		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity parentEntity, EcsWorld world, Effect validationEffect, Material material, List<AnimationClip> clips)
+		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity parentEntity, EcsWorld world, Material material, List<AnimationClip> clips)
 		{
 			(EcsEntity entity, TransformComponent* childTransform) = CreateEntity(world, node.Name == null ? null : StringView(node.Name), parentEntity);
 
@@ -109,7 +109,7 @@ namespace GlitchyEngine.Content
 				{
 					var mesh = world.AssignComponent<MeshComponent>(entity);
 
-					using (var geo = PrimitiveToGeoBinding(node.Mesh.Primitives[0], validationEffect))
+					using (var geo = PrimitiveToGeoBinding(node.Mesh.Primitives[0]))
 					{
 						mesh.Mesh = geo;
 					}
@@ -137,7 +137,7 @@ namespace GlitchyEngine.Content
 						meshParent.Entity = entity;
 
 						var mesh = world.AssignComponent<MeshComponent>(meshEntity);
-						mesh.Mesh = PrimitiveToGeoBinding(primitive, validationEffect);
+						mesh.Mesh = PrimitiveToGeoBinding(primitive);
 						
 						if(skeleton == null)
 						{
@@ -158,11 +158,11 @@ namespace GlitchyEngine.Content
 
 			for(var child in node.Children)
 			{
-				NodesToEntities(data, child, entity, world, validationEffect, material, clips);
+				NodesToEntities(data, child, entity, world, material, clips);
 			}
 		}
 
-		public static GeometryBinding PrimitiveToGeoBinding(CGLTF.Primitive primitive, Effect validationEffect)
+		public static GeometryBinding PrimitiveToGeoBinding(CGLTF.Primitive primitive)
 		{
 			GeometryBinding binding = new GeometryBinding();
 
@@ -327,7 +327,7 @@ namespace GlitchyEngine.Content
 					vertexElements[i] = elements[i];
 				}
 
-				VertexLayout layout = new VertexLayout(vertexElements, true, validationEffect.VertexShader);
+				VertexLayout layout = new VertexLayout(vertexElements, true);
 				binding.SetVertexLayout(layout..ReleaseRefNoDelete());
 			}
 

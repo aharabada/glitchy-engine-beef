@@ -184,7 +184,7 @@ namespace GlitchyEngine.Renderer
 						0, 1, 2,
 						2, 3, 0
 					);
-
+				
 				quadIndices.SetData(indices);
 				s_quadGeometry.SetIndexBuffer(quadIndices);
 			}
@@ -211,7 +211,7 @@ namespace GlitchyEngine.Renderer
 				s_quadBatchBinding = new GeometryBinding();
 				s_quadBatchBinding.SetPrimitiveTopology(.TriangleList);
 
-				using (var quadBatchLayout = new VertexLayout(vertexElements, true, s_batchEffect.VertexShader))
+				using (var quadBatchLayout = new VertexLayout(vertexElements, true))
 				{
 					s_quadBatchBinding.SetVertexLayout(quadBatchLayout);
 				}
@@ -238,7 +238,7 @@ namespace GlitchyEngine.Renderer
 				s_circleBatchBinding = new GeometryBinding();
 				s_circleBatchBinding.SetPrimitiveTopology(.TriangleList);
 
-				using (var circleBatchLayout = new VertexLayout(vertexElements, true, s_circleBatchEffect.VertexShader))
+				using (var circleBatchLayout = new VertexLayout(vertexElements, true))
 				{
 					s_circleBatchBinding.SetVertexLayout(circleBatchLayout);
 				}

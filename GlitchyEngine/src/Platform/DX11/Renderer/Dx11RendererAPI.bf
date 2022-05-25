@@ -216,7 +216,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			NativeContext.DrawIndexedInstanced(geometry.IndexCount, geometry.InstanceCount, geometry.IndexByteOffset, 0, 0);
+			_context.DrawIndexedInstanced(geometry.IndexCount, geometry.InstanceCount, geometry.IndexByteOffset, 0, 0);
 		}
 
 		public override void SetViewport(Viewport viewport)

@@ -97,7 +97,7 @@ namespace Sandbox
 
 				// Create Input Layout
 
-				VertexLayout vertexLayout = new VertexLayout(VertexColorTexture.VertexElements, false, textureEffect.VertexShader);
+				VertexLayout vertexLayout = new VertexLayout(VertexColorTexture.VertexElements, false);
 
 				textureEffect.ReleaseRef();
 
@@ -233,7 +233,7 @@ namespace Sandbox
 				materialTestMaterial.SetVariable("BaseColor", Color.White);
 				materialTestMaterial.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
 
-				ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", testEffect, materialTestMaterial, _world, Clips);
+				ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", materialTestMaterial, _world, Clips);
 
 				materialTestMaterial.ReleaseRef();
 				testEffect.ReleaseRef();

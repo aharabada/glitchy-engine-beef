@@ -79,6 +79,8 @@ namespace GlitchyEngine.Renderer
 		public extern void Draw(uint32 vertexCount, uint32 startVertexIndex = 0);
 
 		public extern void DrawIndexed(uint32 indexCount, uint32 startIndexLocation = 0, int32 vertexOffset = 0);
+
+		public extern void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation);
 		
 		public void SetIndexBuffer(IndexBuffer indexBuffer, uint32 byteOffset = 0)
 		{
