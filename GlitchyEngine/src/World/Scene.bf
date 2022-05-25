@@ -48,7 +48,7 @@ namespace GlitchyEngine.World
 		{
 		}
 
-		public void UpdateRuntime(GameTime gameTime, RenderTarget2D finalTarget)
+		public void UpdateRuntime(GameTime gameTime, RenderTargetGroup finalTarget)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 			
@@ -111,7 +111,7 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public void UpdateEditor(GameTime gameTime, EditorCamera camera, RenderTarget2D viewportTarget, delegate void() DebugDraw3D, delegate void() DrawDebug2D)
+		public void UpdateEditor(GameTime gameTime, EditorCamera camera, RenderTargetGroup viewportTarget, delegate void() DebugDraw3D, delegate void() DrawDebug2D)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -124,7 +124,7 @@ namespace GlitchyEngine.World
 
 			for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
 			{
-				Renderer.Submit(mesh.Mesh, meshRenderer.Material, transform.WorldTransform);
+				Renderer.Submit(mesh.Mesh, meshRenderer.Material, entity, transform.WorldTransform);
 			}
 
 			for (var (entity, transform, light) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())

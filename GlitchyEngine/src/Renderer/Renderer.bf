@@ -12,7 +12,7 @@ namespace GlitchyEngine.Renderer
 			public Matrix ViewProjection;
 			public Vector3 CameraPosition;
 			public RenderTarget2D CameraTarget;
-			public RenderTarget2D CompositionTarget;
+			public RenderTargetGroup CompositionTarget;
 		}
 
 		struct ObjectConstants
@@ -78,11 +78,12 @@ namespace GlitchyEngine.Renderer
 							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = desc},
 							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = desc},
 							.(RenderTargetFormat.R32G32B32A32_Float){SamplerDescription = desc},
-							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = desc}
+							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = desc},
+							.(RenderTargetFormat.R32_UInt){SamplerDescription = desc, ClearColor = ColorRGBA(0, 0, 0, 0)},
 						),
 						TargetDescription(.D24_UNorm_S8_UInt){
 							SamplerDescription = desc,
-							ClearColor = .(1.0f, 0, 0)
+							ClearColor = .DepthStencil(1.0f, 0)
 						});
 					Target = new RenderTargetGroup(targetDesc);
 				}
@@ -167,6 +168,7 @@ namespace GlitchyEngine.Renderer
 
 			RenderCommand.Init();
 			Renderer2D.Init();
+			FullscreenQuad.Init();
 
 			InitLineRenderer(effectLibrary);
 			InitDeferredRenderer(effectLibrary);
@@ -179,7 +181,8 @@ namespace GlitchyEngine.Renderer
 			DeinitDeferredRenderer();
 
 			DeinitLineRenderer();
-
+			
+			FullscreenQuad.Deinit();
 			Renderer2D.Deinit();
 
 			_context.ReleaseRef();
@@ -303,7 +306,7 @@ namespace GlitchyEngine.Renderer
 			//_sceneConstants.Update();
 		}
 
-		public static void BeginScene(Camera camera, Matrix transform, RenderTarget2D renderTarget, RenderTarget2D finalTarget)
+		public static void BeginScene(Camera camera, Matrix transform, RenderTarget2D renderTarget, RenderTargetGroup finalTarget)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 			
@@ -314,7 +317,7 @@ namespace GlitchyEngine.Renderer
 			_sceneConstants.CompositionTarget = finalTarget;
 		}
 
-		public static void BeginScene(EditorCamera camera, RenderTarget2D finalTarget)
+		public static void BeginScene(EditorCamera camera, RenderTargetGroup finalTarget)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 			
@@ -390,6 +393,8 @@ namespace GlitchyEngine.Renderer
 
 						entry.Material.SetVariable("Transform", entry.Transform);
 
+						entry.Material.SetVariable("EntityId", entry.EntityId);
+
 						Matrix3x3 mat = (Matrix3x3)(entry.Transform).Invert().Transpose();
 						entry.Material.SetVariable("Transform_InvT", mat);
 					}
@@ -446,7 +451,7 @@ namespace GlitchyEngine.Renderer
 
 				RenderCommand.SetBlendState(_gBufferBlend);
 				
-				RenderCommand.SetRenderTarget(_sceneConstants.CompositionTarget, 0, false);
+				RenderCommand.SetRenderTargetGroup(_sceneConstants.CompositionTarget, true);
 				RenderCommand.BindRenderTargets();
 
 				// TODO: Postprocessing effects
@@ -491,12 +496,14 @@ namespace GlitchyEngine.Renderer
 			public GeometryBinding Mesh;
 			public Material Material;
 			public Matrix Transform;
+			public uint32 EntityId;
 
-			public this(GeometryBinding mesh, Material material, Matrix transform)
+			public this(GeometryBinding mesh, Material material, Matrix transform, uint32 id)
 			{
 				Mesh = mesh..AddRef();
 				Material = material..AddRef();
 				Transform = transform;
+				EntityId = id;
 			}
 
 			public void Dispose()
@@ -525,7 +532,14 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			_queue.Add(SubmittedMesh(geometry, material, transform));
+			_queue.Add(SubmittedMesh(geometry, material, transform, 0));
+		}
+
+		public static void Submit(GeometryBinding geometry, Material material, EcsEntity entity, Matrix transform = .Identity)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			_queue.Add(SubmittedMesh(geometry, material, transform, entity.[Friend]Index));
 		}
 
 		public static void Submit(SceneLight light, Matrix transform = .Identity)

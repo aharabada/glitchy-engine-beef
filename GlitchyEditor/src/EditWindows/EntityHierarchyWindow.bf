@@ -33,7 +33,17 @@ namespace GlitchyEditor.EditWindows
 			_selectedEntities.Clear();
 			_scene = scene;
 		}
-		
+
+		/*public bool SelectEntityWithId(uint32 id, bool addToSelection = false)
+		{
+			if (!addToSelection)
+				_selectedEntities.Clear();
+
+			_scene.[Friend]_ecsWorld.IsValid(id);
+
+			_selectedEntities.Add();
+		}*/
+
 		protected override void InternalShow()
 		{
 			if(!ImGui.Begin(s_WindowTitle, &_open, .MenuBar))

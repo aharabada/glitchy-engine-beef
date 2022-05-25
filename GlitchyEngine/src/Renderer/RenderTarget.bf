@@ -88,6 +88,9 @@ namespace GlitchyEngine.Renderer
 
 		case None = 0;
 
+		case R8_SInt;
+		case R32_UInt;
+
 		case R8G8B8A8_UNorm;
 		case R8G8B8A8_SNorm;
 		
@@ -104,6 +107,18 @@ namespace GlitchyEngine.Renderer
 		public bool IsDepth => HasFlag(DepthMarker);
 	}
 
+	public enum ClearColor
+	{
+		case Color(ColorRGBA ClearColor);
+		case UInt(uint32 ClearValue);
+		case DepthStencil(float Depth, uint8 Stencil);
+
+		public static implicit operator ClearColor(ColorRGBA color)
+		{
+			return .Color(color);
+		}
+	}
+
 	public struct TargetDescription
 	{
 		public RenderTargetFormat Format = .None;
@@ -113,13 +128,13 @@ namespace GlitchyEngine.Renderer
 		public bool IsShaderReadable = true;
 
 		/// Clear color. For DepthStencilBuffers: R is Depth, G is Stencil
-		public ColorRGBA ClearColor = .Black;
+		public ClearColor ClearColor = .Color(.Black);
 
 		public SamplerStateDescription SamplerDescription = .();
 
 		public this() {  }
 
-		public this(RenderTargetFormat format, bool isSwapchainTarget = false, bool isShaderReadable = true, ColorRGBA clearColor = .Black, SamplerStateDescription samplerDescription = .())
+		public this(RenderTargetFormat format, bool isSwapchainTarget = false, bool isShaderReadable = true, ClearColor clearColor = .Color(.(0, 0, 0, 1)), SamplerStateDescription samplerDescription = .())
 		{
 			Format = format;
 			IsSwapchainTarget = isSwapchainTarget;
@@ -179,6 +194,9 @@ namespace GlitchyEngine.Renderer
 		{
 			_description = description;
 
+			Log.EngineLogger.AssertDebug(_description.Width != 0);
+			Log.EngineLogger.AssertDebug(_description.Height != 0);
+
 			var colorTargets = description.ColorTargetDescriptions;
 
 			if (!colorTargets.IsNull && !colorTargets.IsEmpty)
@@ -206,10 +224,12 @@ namespace GlitchyEngine.Renderer
 			}
 			
 			_depthTargetDescription = description.DepthTargetDescription;
-			Log.EngineLogger.AssertDebug(_depthTargetDescription.Format.IsDepth, "Depth target must have depth format.");
 
 			if (_depthTargetDescription.Format != .None)
 			{
+				Log.EngineLogger.AssertDebug(_depthTargetDescription.Format.IsDepth, "Depth target must have depth format.");
+				Log.EngineLogger.AssertDebug(_depthTargetDescription.ClearColor case .DepthStencil, "Clear color for depth stencil target must be of type DepthStencil.");
+
 				_depthSamplerState = SamplerStateManager.GetSampler(_depthTargetDescription.SamplerDescription);
 			}
 
@@ -227,5 +247,16 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern TextureViewBinding PlatformGetViewBinding(int index);
+
+		protected extern Result<void> PlatformGetData(void* destination, uint32 elementSize,
+			uint32 x, uint32 y, uint32 width, uint32 height, int renderTarget, uint32 arraySlice, uint32 mipLevel); // mapType?
+
+		public Result<void> GetData<T>(T* data, int renderTarget, uint32 left, uint32 top, uint32 width, uint32 height, uint32 arraySlice = 0, uint32 mipSlice = 0)
+		{
+			Log.EngineLogger.AssertDebug(left + width < Width);
+			Log.EngineLogger.AssertDebug(top + height < Height);
+
+			return PlatformGetData(data, (.)sizeof(T), left, top, width, height, renderTarget, arraySlice, mipSlice);
+		}
 	}
 }

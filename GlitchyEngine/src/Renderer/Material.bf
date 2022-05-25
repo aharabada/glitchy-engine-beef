@@ -132,6 +132,8 @@ namespace GlitchyEngine.Renderer
 		public void SetVariable(String name, Int3 value) => SetVariable<Int3>(name, value);
 		public void SetVariable(String name, Int4 value) => SetVariable<Int4>(name, value);
 
+		public void SetVariable(String name, uint32 value) => SetVariable<uint32>(name, value);
+
 		public void SetVariable(String name, Color value) => SetVariable<ColorRGBA>(name, value);
 		public void SetVariable(String name, ColorRGB value) => SetVariable<ColorRGB>(name, value);
 		public void SetVariable(String name, ColorRGBA value) => SetVariable<ColorRGBA>(name, value);

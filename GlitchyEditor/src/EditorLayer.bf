@@ -44,7 +44,7 @@ namespace GlitchyEditor
 		Editor _editor ~ delete _;
 
 		RenderTarget2D _cameraTarget ~ _.ReleaseRef();
-		RenderTarget2D _viewportTarget ~ _.ReleaseRef();
+		RenderTargetGroup _viewportTarget ~ _.ReleaseRef();
 
 		SettingsWindow _settingsWindow = new .() ~ delete _;
 
@@ -89,8 +89,16 @@ namespace GlitchyEditor
 			_cameraTarget = new RenderTarget2D(RenderTarget2DDescription(.R16G16B16A16_Float, 100, 100) {DepthStencilFormat = .D32_Float});
 			_cameraTarget.SamplerState = SamplerStateManager.LinearClamp;
 
-			_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100));
-			_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
+			//_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100));
+			//_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
+
+			_viewportTarget = new RenderTargetGroup(.()
+				{
+					Width = 100,
+					Height = 100,
+					ColorTargetDescriptions = TargetDescription[](
+						.(.R8G8B8A8_UNorm))
+				});
 
 			_editorIcons = new Texture2D("Textures/EditorIcons.dds");
 			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;
@@ -114,7 +122,7 @@ namespace GlitchyEditor
 
 			RenderCommand.Clear(_viewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
-			RenderCommand.SetRenderTarget(_viewportTarget, 0, true);
+			RenderCommand.SetRenderTargetGroup(_viewportTarget, true);
 			RenderCommand.BindRenderTargets();
 
 			RenderCommand.SetViewport(Viewport(0, 0, _viewportTarget.Width, _viewportTarget.Height));

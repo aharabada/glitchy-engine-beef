@@ -96,6 +96,9 @@ namespace GlitchyEngine.Renderer
 			case typeof(Int4):
 					EnsureTypeMatch(1, 4, .Int);
 
+			case typeof(uint32):
+					EnsureTypeMatch(1, 1, .UInt);
+
 			case typeof(Matrix4x3):
 				EnsureTypeMatch(4, 3, .Float);
 			case typeof(Matrix3x3):

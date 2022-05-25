@@ -4,6 +4,7 @@ using DirectX.Common;
 using DirectX.D3D11;
 using GlitchyEngine.Platform.DX11;
 using DirectX.DXGI.DXGI1_2;
+using System;
 
 using internal GlitchyEngine.Platform.DX11;
 
@@ -131,6 +132,11 @@ namespace GlitchyEngine.Renderer
 		{
 			switch(this)
 			{
+			case .R8_SInt:
+				return .R8_SInt;
+			case .R32_UInt:
+				return .R32_UInt;
+
 			case .R8G8B8A8_UNorm:
 				return .R8G8B8A8_UNorm;
 			case .R8G8B8A8_SNorm:
@@ -179,6 +185,7 @@ namespace GlitchyEngine.Renderer
 
 	extension RenderTargetGroup
 	{
+		protected uint32 _mipLevels;
 		internal ID3D11Texture2D*[] _nativeTextures;
 		internal ID3D11RenderTargetView*[] _renderTargetViews;
 		internal ID3D11ShaderResourceView*[] _nativeResourceViews;
@@ -217,6 +224,11 @@ namespace GlitchyEngine.Renderer
 			ID3D11Texture2D* texture = null;
 			var result = NativeDevice.CreateTexture2D(ref desc, null, &texture);
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to create RenderTarget2D");
+
+			// TODO: calculate the max mip level
+			// Read back the description to get the actual mip level count.
+			texture.GetDescription(let actualDesc);
+			_mipLevels = actualDesc.MipLevels;
 
 			return texture;
 		}
@@ -373,6 +385,63 @@ namespace GlitchyEngine.Renderer
 
 				return .(_nativeResourceViews[index], _colorSamplerStates[index].nativeSamplerState);
 			}
+		}
+
+		protected override Result<void> PlatformGetData(void* destination, uint32 elementSize, uint32 x, uint32 y, uint32 width, uint32 height, int renderTarget, uint32 arraySlice, uint32 mipLevel) // mapType?
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			ID3D11Texture2D* texture = renderTarget == -1 ? _nativeDepthTexture : _nativeTextures[renderTarget];
+
+			if (texture == null)
+				return .Err;
+
+			// TODO: Dynamic textures with CPU read access don't need a staging texture.
+
+			ID3D11Texture2D* stagingTexture = null;
+
+			Texture2DDescription stagingDesc = .();
+			stagingDesc.Width = width;
+			stagingDesc.Height = height;
+			stagingDesc.MipLevels = 1;
+			stagingDesc.ArraySize = 1;
+			stagingDesc.Format = _colorTargetDescriptions[renderTarget].Format.GetTextureFormat();
+			stagingDesc.SampleDesc = .(_description.Samples, 0);
+			stagingDesc.Usage = .Staging;
+			stagingDesc.BindFlags = .None;
+			stagingDesc.CpuAccessFlags = .Read;
+			stagingDesc.MiscFlags = .None;
+
+			var result = NativeDevice.CreateTexture2D(ref stagingDesc, null, &stagingTexture);
+			if (result != 0)
+				return .Err;
+
+			defer stagingTexture.Release();
+			
+			uint32 srcSubResource = D3D11.CalcSubresource(mipLevel, arraySlice, _mipLevels);
+
+			Box srcBox = .(x, y, arraySlice, x + width, y + height, arraySlice + 1);
+
+			NativeContext.CopySubresourceRegion(stagingTexture, 0, 0, 0, 0, texture, srcSubResource, &srcBox);
+			
+			MappedSubresource subresource = ?;
+			result = NativeContext.Map(stagingTexture, 0, .Read, .None, &subresource);
+			defer NativeContext.Unmap(stagingTexture, 0);
+
+			if (result != 0)
+				return .Err;
+
+			for (int i < height)
+			{
+				uint32 destRowLength = elementSize * width;
+
+				uint32 count = Math.Min(destRowLength, subresource.RowPitch);
+
+				Internal.MemCpy((uint8*)destination + i * destRowLength, (uint8*)subresource.Data + i * subresource.RowPitch,
+					count);
+			}
+
+			return .Ok;
 		}
 	}
 }

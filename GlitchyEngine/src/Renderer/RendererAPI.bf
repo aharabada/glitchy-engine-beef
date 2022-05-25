@@ -21,7 +21,8 @@ namespace GlitchyEngine.Renderer
 
 		public extern void Clear(DepthStencilTarget target, ClearOptions options, float depth, uint8 stencil);
 		
-		public extern void Clear(RenderTargetGroup renderTarget, ClearOptions options, ColorRGBA? color = null, float? depth = null, uint8? stencil = null);
+		//public extern void Clear(RenderTargetGroup renderTarget, ClearOptions options, ColorRGBA? color = null, float? depth = null, uint8? stencil = null);
+		public extern void Clear(RenderTargetGroup renderTarget, ClearOptions options, ClearColor? color = null, float? depth = null, uint8? stencil = null);
 
 		public void Clear(RenderTarget2D renderTarget, ClearOptions options, ColorRGBA color, float depth, uint8 stencil)
 		{

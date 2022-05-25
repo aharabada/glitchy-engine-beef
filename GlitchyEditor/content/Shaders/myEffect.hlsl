@@ -1,3 +1,5 @@
+#define OutputEntityId
+
 #include "ShaderHelpers.hlsl"
 
 Texture2D AlbedoTexture : register(t0);
@@ -28,6 +30,9 @@ cbuffer ObjectConstants
      * \remarks This matrix is used in order to correctly transform normal vectors.
      */
     float3x3 Transform_InvT;
+#ifdef OutputEntityId
+    uint EntityId;
+#endif
 }
 
 cbuffer Constants
@@ -60,6 +65,9 @@ struct PS_IN
 	float3 Tangent       : TANGENT;
 	float2 TexCoord      : TEXCOORD;
 	//nointerpolation float Handedness : HANDEDNESS;
+#ifdef OutputEntityId
+    nointerpolation uint EntityId : ENTITYID;
+#endif
 };
 
 PS_IN VS(VS_IN input)
@@ -76,6 +84,8 @@ PS_IN VS(VS_IN input)
 	// TODO: output.Handedness = input.Tangent.w
 
 	output.TexCoord = input.TexCoord;
+
+    output.EntityId = EntityId;
     
     return output;
 }
@@ -90,6 +100,9 @@ struct PS_OUT
     float4 Position : SV_TARGET3;
     // R: Metallicity G: Roughness B: Ambient
     float4 Material : SV_TARGET4;
+#ifdef OutputEntityId
+    uint EntityId : SV_TARGET5;
+#endif
 };
 
 PS_OUT PS(PS_IN input)
@@ -133,6 +146,10 @@ PS_OUT PS(PS_IN input)
     output.Tangent = float4(normal.z, tangent.xyz);
 	output.Position = float4(input.WorldPosition, 1.0); 
     output.Material = float4(finalMetallic, finalRoughness, 1.0, 0);
+
+#ifdef OutputEntityId
+    output.EntityId = input.EntityId;
+#endif
 
     return output;
 }

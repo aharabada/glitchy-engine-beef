@@ -8,7 +8,7 @@ namespace GlitchyEngine.World
 {
 	public class EcsWorld
 	{
-		const int MaxEntities = 1024;
+		const int MaxEntities = 16348;
 		
 		internal typealias BitmaskEntry = (EcsEntity ID, BitArray ComponentMask);
 		internal List<BitmaskEntry> _entities = new .();
@@ -149,6 +149,28 @@ namespace GlitchyEngine.World
 			}
 		}
 
+		/// Returns whether the given entity is valid or not.
+		public bool IsValid(EcsEntity entity)
+		{
+			if(entity.Index > _entities.Count)
+				return false;
+			
+			var listEntity = ref _entities[entity.Index];
+			
+			return entity == listEntity.ID;
+		}
+
+		/// Returns the entity with the same ID and the current version. Or null, if no such entity exists.
+		public EcsEntity? GetCurrentVersion(EcsEntity entity)
+		{
+			if(entity.Index > _entities.Count)
+				return null;
+			
+			var listEntity = ref _entities[entity.Index];
+			
+			return listEntity.ID;
+		}
+
 		/**
 		 * Assigns a component of type T to the specified entity and returns it.
 		 */
@@ -208,7 +230,7 @@ namespace GlitchyEngine.World
 			
 			listEntity.ComponentMask[entry.Id] = false;
 		}
-		
+
 		public void RemoveComponent<T>(EcsEntity entity) where T : struct, new, IDisposableComponent
 		{
 			if(entity.Index > _entities.Count)

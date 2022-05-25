@@ -2,6 +2,7 @@
 
 using GlitchyEngine.Math;
 using GlitchyEngine.Platform.DX11;
+using System;
 
 using internal GlitchyEngine.Renderer;
 using internal GlitchyEngine.Platform.DX11;
@@ -61,14 +62,31 @@ namespace GlitchyEngine.Renderer
 			NativeContext.ClearDepthStencilView(target.nativeView, flags, depth, stencil);
 		}
 
-		public override void Clear(RenderTargetGroup renderTarget, ClearOptions options, ColorRGBA? color = null, float? depth = null, uint8? stencil = null)
+		private void ClearRtv(DirectX.D3D11.ID3D11RenderTargetView* rtv, ClearColor clearColor)
+		{
+			switch(clearColor)
+			{
+			case .Color(let color):
+				NativeContext.ClearRenderTargetView(rtv, color);
+			case .UInt(let value):
+/*#unwarn
+				NativeContext.OutputMerger.SetRenderTargets(1, &rtv, null);
+
+
+
+				BindRenderTargets();*/
+			default:
+				Runtime.NotImplemented();
+			}
+		}
+
+		public override void Clear(RenderTargetGroup renderTarget, ClearOptions options, ClearColor? color = null, float? depth = null, uint8? stencil = null)
 		{
 			if (options.HasFlag(.Color) && renderTarget._renderTargetViews != null)
 			{
 				for (int i < renderTarget._renderTargetViews.Count)
 				{
-					NativeContext.ClearRenderTargetView(renderTarget._renderTargetViews[i],
-						color ?? renderTarget._colorTargetDescriptions[i].ClearColor);
+					ClearRtv(renderTarget._renderTargetViews[i], color ?? renderTarget._colorTargetDescriptions[i].ClearColor);
 				}
 			}
 
@@ -88,9 +106,24 @@ namespace GlitchyEngine.Renderer
 	
 				if (flags != default)
 				{
-					NativeContext.ClearDepthStencilView(renderTarget._nativeDepthTargetView, flags,
-						renderTarget._depthTargetDescription.ClearColor.R,
-						(uint8)renderTarget._depthTargetDescription.ClearColor.G);
+					float clearDepth = 0.0f;
+					uint8 clearStencil = 0;
+
+					if (renderTarget._depthTargetDescription.ClearColor case .DepthStencil(let d, let s))
+					{
+						clearDepth = d;
+						clearStencil = s;
+					}
+					else
+					{
+						Log.EngineLogger.Error("Clear color of depth stencil target must be of type DepthStencil.");
+						Log.EngineLogger.AssertDebug(false);
+					}
+
+					clearDepth = depth ?? clearDepth;
+					clearStencil = stencil ?? clearStencil;
+
+					NativeContext.ClearDepthStencilView(renderTarget._nativeDepthTargetView, flags, clearDepth, clearStencil);
 				}
 			}
 		}
