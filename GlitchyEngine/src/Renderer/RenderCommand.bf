@@ -3,20 +3,17 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
-	/*
-	public enum DepthStencilClearFlag
-	{
-		None = 0,
-		Depth = 1,
-		Stencil = 2
-	}
-	*/
 	public enum ClearOptions
 	{
 		None = 0,
 		Color = 1,
 		Depth = 2,
-		Stencil = 4
+		Stencil = 4,
+
+		ColorDepth = Color | Depth,
+		ColorStencil = Color | Stencil,
+		DepthStencil = Depth | Stencil,
+		All = Color | Depth | Stencil
 	}
 
 	public static class RenderCommand

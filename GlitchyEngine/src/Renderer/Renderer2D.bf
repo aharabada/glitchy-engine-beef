@@ -50,11 +50,14 @@ namespace GlitchyEngine.Renderer
 			public ColorRGBA Color;
 			public Vector4 UVTransform;
 
-			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform)
+			public uint32 EntityId;
+
+			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform, uint32 entityId)
 			{
 				Transform = transform;
 				Color = color;
 				UVTransform = uvTransform;
+				EntityId = entityId;
 			}
 		}
 		
@@ -63,8 +66,8 @@ namespace GlitchyEngine.Renderer
 		{
 			public float InnerRadius;
 
-			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform, float innerRadius)
-				 : base(transform, color, uvTransform)
+			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform, float innerRadius, uint32 entityId)
+				 : base(transform, color, uvTransform, entityId)
 			{
 				InnerRadius = innerRadius;
 			}
@@ -91,14 +94,14 @@ namespace GlitchyEngine.Renderer
 			FrontToBack
 		}
 
-		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform) { }
+		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform, uint32 entityId = uint32.MaxValue) { }
 
 		struct QueueCircle : QueueQuad
 		{
 			public float InnerRadius;
 
-			public this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform, float innerRadius)
-				 : base(Transform, Color, Texture, Depth, uvTransform)
+			public this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform, float innerRadius, uint32 entityId = uint32.MaxValue)
+				 : base(Transform, Color, Texture, Depth, uvTransform, entityId)
 			{
 				InnerRadius = innerRadius;
 			}
@@ -205,7 +208,8 @@ namespace GlitchyEngine.Renderer
 					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 2, 1, (.)-1, .PerInstanceData, 1),
 					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
 					VertexElement(.R32G32B32A32_Float,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
-					VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1)
+					VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32_UInt,            "ENTITYID", false, 0, 1, (.)-1, .PerInstanceData, 1)
 				);
 	
 				s_quadBatchBinding = new GeometryBinding();
@@ -232,7 +236,8 @@ namespace GlitchyEngine.Renderer
 					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
 					VertexElement(.R32G32B32A32_Float,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
 					VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1),
-					VertexElement(.R32_Float,  			"TEXCOORD", false, 2, 1, (.)-1, .PerInstanceData, 1)
+					VertexElement(.R32_Float,  			"TEXCOORD", false, 2, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32_UInt,  			"ENTITYID", false, 0, 1, (.)-1, .PerInstanceData, 1)
 				);
 				
 				s_circleBatchBinding = new GeometryBinding();
@@ -313,12 +318,32 @@ namespace GlitchyEngine.Renderer
 			sampler.ReleaseRef();
 		}
 
+		private static BlendState s_opaqueBlendState;
+		private static BlendState s_transparentBlendState;
+		
+		private static void InitStates()
+		{
+			s_opaqueBlendState = new BlendState(.Default);
+
+			// TODO: alpha is a bitch.
+			// This is for premultiplied alpha!!!! However the engine has basically no support for that >:[
+			BlendStateDescription transparentDesc = .Default;
+			transparentDesc.IndependentBlendEnable = true;
+			transparentDesc.RenderTarget[0] = .(true,
+				.One, .InvertedSourceAlpha, .Add,
+				.One, .One, .Add, .All);
+
+			s_transparentBlendState = new BlendState(transparentDesc);
+		}
+
 		public static void Init()
 		{
 			Debug.Profiler.ProfileFunction!();
 #if DEBUG
 			Log.EngineLogger.AssertDebug(!s_initialized, "Renderer2D is already initialized.");
 #endif
+
+			InitStates();
 
 			InitEffect();
 			InitGeometry();
@@ -360,6 +385,9 @@ namespace GlitchyEngine.Renderer
 
 			s_currentEffect?.ReleaseRef();
 			s_currentCircleEffect?.ReleaseRef();
+
+			s_opaqueBlendState.ReleaseRef();
+			s_transparentBlendState.ReleaseRef();
 
 #if DEBUG
 			s_initialized = false;
@@ -517,17 +545,17 @@ namespace GlitchyEngine.Renderer
 
 		/// Adds a quad instance to the instance queue.
 		[Inline]
-		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture texture, float depth, Vector4 uvTransform)
+		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture texture, float depth, Vector4 uvTransform, uint32 id = uint32.MaxValue)
 		{
-			s_QuadinstanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform));
+			s_QuadinstanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform, id));
 			s_statistics.QuadCount++;
 		}
 		
 		/// Adds a circle instance to the instance queue.
 		[Inline]
-		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform, float innerRadius)
+		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform, float innerRadius, uint32 id = uint32.MaxValue)
 		{
-			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, depth, uvTransform, innerRadius));
+			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, depth, uvTransform, innerRadius, id));
 			s_statistics.CircleCount++;
 		}
 		
@@ -637,6 +665,9 @@ namespace GlitchyEngine.Renderer
 
 			if(s_QuadinstanceQueue.IsEmpty)
 				return;
+			
+			// TODO: per object blendstate
+			RenderCommand.SetBlendState(s_transparentBlendState);
 
 			Texture texture = s_QuadinstanceQueue[0].Texture;
 			s_currentEffect.SetTexture("Texture", texture);
@@ -656,7 +687,7 @@ namespace GlitchyEngine.Renderer
 					s_currentEffect.SetTexture("Texture", texture);
 				}
 
-				s_rawQuadInstances[s_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform);
+				s_rawQuadInstances[s_setInstances++] = .(quad.Transform, quad.Color, quad.uvTransform, quad.entityId);
 				
 				if(s_setInstances == s_rawQuadInstances.Count)
 				{
@@ -676,6 +707,9 @@ namespace GlitchyEngine.Renderer
 			if(s_circleInstanceQueue.IsEmpty)
 				return;
 
+			// TODO: per object blendstate
+			RenderCommand.SetBlendState(s_transparentBlendState);
+
 			Texture texture = s_circleInstanceQueue[0].Texture;
 			s_currentCircleEffect.SetTexture("Texture", texture);
 
@@ -694,7 +728,7 @@ namespace GlitchyEngine.Renderer
 					s_currentCircleEffect.SetTexture("Texture", texture);
 				}
 
-				s_rawCircleInstances[s_setInstances++] = .(circle.Transform, circle.Color, circle.uvTransform, circle.InnerRadius);
+				s_rawCircleInstances[s_setInstances++] = .(circle.Transform, circle.Color, circle.uvTransform, circle.InnerRadius, circle.entityId);
 				
 				if(s_setInstances == s_rawCircleInstances.Count)
 				{
@@ -800,11 +834,11 @@ namespace GlitchyEngine.Renderer
 			DrawQuad(position, size, rotation, subtexture.Texture, .White, uv);
 		}
 
-		public static void DrawQuad(Matrix transform, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(Matrix transform, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
 			Vector4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
 
-			DrawQuad(transform, subtexture.Texture, .White, uv);
+			DrawQuad(transform, subtexture.Texture, color, uv, entityId);
 		}
 		
 		// Textured Quad
@@ -821,7 +855,7 @@ namespace GlitchyEngine.Renderer
 			DrawQuad(transform, texture, color, uvTransform);
 		}
 
-		public static void DrawQuad(Matrix transform, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(Matrix transform, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -829,12 +863,17 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
 
-			QueueQuadInstance(transform, color, texture, transform.Translation.Z, uvTransform);
+			QueueQuadInstance(transform, color, texture, transform.Translation.Z, uvTransform, entityId);
 
 			if(s_drawOrder == .Immediate)
 			{
 				DrawDeferred();
 			}
+		}
+
+		public static void DrawSprite(Matrix transform, SpriterRendererComponent* spriteRenderer, uint32 entityId)
+		{
+			DrawQuad(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, .(0, 0, 1, 1), entityId);
 		}
 
 		// Textured quad pivot

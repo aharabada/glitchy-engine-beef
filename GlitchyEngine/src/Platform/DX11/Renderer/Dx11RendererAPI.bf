@@ -15,6 +15,9 @@ namespace GlitchyEngine.Renderer
 	{
 		private GraphicsContext _context ~ _?.ReleaseRef();
 
+		private Effect _clearUintFx ~ _?.ReleaseRef();
+		private BlendState _nonblendingState ~ _?.ReleaseRef();
+
 		public GraphicsContext Context
 		{
 			get => _context;
@@ -26,6 +29,11 @@ namespace GlitchyEngine.Renderer
 		public override void Init()
 		{
 			Debug.Profiler.ProfileFunction!();
+
+			_clearUintFx = new Effect("content/Shaders/ClearUInt.hlsl");
+			BlendStateDescription desc =.Default;
+			desc.RenderTarget[0].BlendEnable = false;
+			_nonblendingState = new BlendState(desc);
 		}
 
 		private mixin RtOrBackbuffer(RenderTarget2D renderTarget)
@@ -69,12 +77,23 @@ namespace GlitchyEngine.Renderer
 			case .Color(let color):
 				NativeContext.ClearRenderTargetView(rtv, color);
 			case .UInt(let value):
-/*#unwarn
+#unwarn
 				NativeContext.OutputMerger.SetRenderTargets(1, &rtv, null);
 
+				using (BlendState lastBlendState = _currentBlendState..AddRef())
+				{
+					SetBlendState(_nonblendingState);
 
-
-				BindRenderTargets();*/
+					_clearUintFx.Variables["ClearValue"].SetData(value);
+					_clearUintFx.Bind(_context);
+	
+					FullscreenQuad.Draw();
+					
+					SetBlendState(lastBlendState);
+				}
+				
+				// Rebind the old render targets
+				BindRenderTargets();
 			default:
 				Runtime.NotImplemented();
 			}

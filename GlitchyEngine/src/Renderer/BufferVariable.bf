@@ -140,11 +140,12 @@ namespace GlitchyEngine.Renderer
 		public void SetData(Int2 value) => SetData<Int2>(value);
 		public void SetData(Int3 value) => SetData<Int3>(value);
 		public void SetData(Int4 value) => SetData<Int4>(value);
+
+		public void SetData(uint32 value) => SetData<uint32>(value);
 		
 		public void SetData(ColorRGB value) => SetData<ColorRGB>(value);
 		public void SetData(ColorRGBA value) => SetData<ColorRGBA>(value);
 		public void SetData(Color value) => SetData<ColorRGBA>((ColorRGBA)value);
-
 
 		public void SetData(Matrix4x3 value) => SetData<Matrix4x3>(value);
 

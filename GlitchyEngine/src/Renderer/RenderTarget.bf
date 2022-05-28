@@ -109,8 +109,16 @@ namespace GlitchyEngine.Renderer
 
 	public enum ClearColor
 	{
+		/// Clears the render target to the default value (Zero).
+		case Default;
+		/// The render target will be cleared with a RGBA color.
 		case Color(ColorRGBA ClearColor);
+		/// The render target will be cleared with a UInt value.
+		/// @remarks Some platforms don't support clearing a UInt render target.
+		/// 	In these cases a draw call will be performed that draws a solid color into the target.
+		/// 	This can result in modified context state so it is recommended to rebind effects, etc. after clearing a uint rendertarget.
 		case UInt(uint32 ClearValue);
+		/// Only valid for depth buffers.
 		case DepthStencil(float Depth, uint8 Stencil);
 
 		public static implicit operator ClearColor(ColorRGBA color)
@@ -127,14 +135,13 @@ namespace GlitchyEngine.Renderer
 
 		public bool IsShaderReadable = true;
 
-		/// Clear color. For DepthStencilBuffers: R is Depth, G is Stencil
-		public ClearColor ClearColor = .Color(.Black);
+		public ClearColor ClearColor = .Default;
 
 		public SamplerStateDescription SamplerDescription = .();
 
 		public this() {  }
 
-		public this(RenderTargetFormat format, bool isSwapchainTarget = false, bool isShaderReadable = true, ClearColor clearColor = .Color(.(0, 0, 0, 1)), SamplerStateDescription samplerDescription = .())
+		public this(RenderTargetFormat format, bool isSwapchainTarget = false, bool isShaderReadable = true, ClearColor clearColor = .Default, SamplerStateDescription samplerDescription = .())
 		{
 			Format = format;
 			IsSwapchainTarget = isSwapchainTarget;
@@ -189,6 +196,9 @@ namespace GlitchyEngine.Renderer
 
 		public uint32 Samples => _description.Samples;
 
+		public int TargetCount => _colorTargetDescriptions.Count + (_depthTargetDescription.Format.IsDepth ? 1 : 0);
+		public int ColorTargetCount => _colorTargetDescriptions.Count;
+
 		[AllowAppend]
 		public this(RenderTargetGroupDescription description)
 		{
@@ -220,6 +230,9 @@ namespace GlitchyEngine.Renderer
 					}
 
 					_colorSamplerStates[i] = SamplerStateManager.GetSampler(_colorTargetDescriptions[i].SamplerDescription);
+					
+					if (_colorTargetDescriptions[i].ClearColor case .Default)
+						_colorTargetDescriptions[i].ClearColor = .Color(.Black);
 				}
 			}
 			
@@ -228,6 +241,10 @@ namespace GlitchyEngine.Renderer
 			if (_depthTargetDescription.Format != .None)
 			{
 				Log.EngineLogger.AssertDebug(_depthTargetDescription.Format.IsDepth, "Depth target must have depth format.");
+				
+				if (_depthTargetDescription.ClearColor case .Default)
+					_depthTargetDescription.ClearColor = .DepthStencil(0.0f, 0);
+
 				Log.EngineLogger.AssertDebug(_depthTargetDescription.ClearColor case .DepthStencil, "Clear color for depth stencil target must be of type DepthStencil.");
 
 				_depthSamplerState = SamplerStateManager.GetSampler(_depthTargetDescription.SamplerDescription);
@@ -258,5 +275,7 @@ namespace GlitchyEngine.Renderer
 
 			return PlatformGetData(data, (.)sizeof(T), left, top, width, height, renderTarget, arraySlice, mipSlice);
 		}
+
+		public extern void CopyTo(RenderTargetGroup destination, int dstTarget, Int2 dstTopLeft, Int2 size, Int2 srcTopLeft, int srcTarget);
 	}
 }

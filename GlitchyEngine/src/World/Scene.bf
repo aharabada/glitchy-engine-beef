@@ -68,7 +68,7 @@ namespace GlitchyEngine.World
 
 			Camera* primaryCamera = null;
 			Matrix primaryCameraTransform = default;
-			RenderTarget2D renderTarget = null;
+			RenderTargetGroup renderTarget = null;
 
 			for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, CameraComponent>())
 			{
@@ -138,12 +138,15 @@ namespace GlitchyEngine.World
 
 			// TODO: alphablending
 
+			RenderCommand.SetRenderTargetGroup(camera.RenderTarget);
+			RenderCommand.BindRenderTargets();
+
 			// Sprite renderer
 			Renderer2D.BeginScene(camera, .BackToFront);
 
 			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
 			{
-				Renderer2D.DrawQuad(transform.WorldTransform, sprite.Sprite, sprite.Color);
+				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 			}
 
 			Renderer2D.EndScene();
@@ -153,7 +156,9 @@ namespace GlitchyEngine.World
 			DrawDebug2D();
 
 			Renderer2D.EndScene();
-			
+
+			// TODO: cameraTarget into viewportTarget (gamma correction!)
+
 			viewportTarget.ReleaseRef();
 		}
 

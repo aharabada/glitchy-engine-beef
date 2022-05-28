@@ -1,12 +1,14 @@
+using GlitchyEngine.Math;
+
 namespace GlitchyEngine.Renderer
 {
 	static class FullscreenQuad
 	{
-		//static GeometryBinding s_fullscreenQuadGeometry;
+		static GeometryBinding s_fullscreenQuadGeometry;
 
 		public static void Init()
 		{
-			/*s_fullscreenQuadGeometry = new GeometryBinding();
+			s_fullscreenQuadGeometry = new GeometryBinding();
 			s_fullscreenQuadGeometry.SetPrimitiveTopology(.TriangleList);
 
 			using(var quadVertices = new VertexBuffer(typeof(Vector4), 4, .Immutable))
@@ -38,15 +40,21 @@ namespace GlitchyEngine.Renderer
 				VertexElement(.R32G32_Float, "TEXCOORD")
 			);
 
-			using (var quadBatchLayout = new VertexLayout(vertexElements, true, TestFullscreenEffect.VertexShader))
+			using (var quadBatchLayout = new VertexLayout(vertexElements, true))
 			{
 				s_fullscreenQuadGeometry.SetVertexLayout(quadBatchLayout);
-			}*/
+			}
 		}
 
 		public static void Deinit()
 		{
-			//s_fullscreenQuadGeometry.ReleaseRef();
+			s_fullscreenQuadGeometry.ReleaseRef();
+		}
+
+		public static void Draw()
+		{
+			s_fullscreenQuadGeometry.Bind();
+			RenderCommand.DrawIndexed(s_fullscreenQuadGeometry);
 		}
 	}
 }

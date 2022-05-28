@@ -11,10 +11,10 @@ namespace GlitchyEngine.World
 		// Data: Version    Index
 
 		[Inline]
-		internal uint32 Version => (uint32)this;
+		public uint32 Version => (uint32)this;
 
 		[Inline]
-		internal uint32 Index => (uint32)(this >> 32);
+		public uint32 Index => (uint32)(this >> 32);
 		
 		[Inline]
 		static internal EcsEntity CreateEntityID(uint32 index, uint32 version)

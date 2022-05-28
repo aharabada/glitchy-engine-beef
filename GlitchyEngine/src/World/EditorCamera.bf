@@ -25,7 +25,7 @@ namespace GlitchyEngine.World
 		private float _nearPlane;
 		private float _aspectRatio;
 
-		private RenderTarget2D _renderTarget = null;
+		private RenderTargetGroup _renderTarget = null;
 		
 		internal bool BindMouse;
 		internal uint8 MouseCooldown;
@@ -34,7 +34,7 @@ namespace GlitchyEngine.World
 
 		public Matrix View => _view;
 
-		public RenderTarget2D RenderTarget
+		public RenderTargetGroup RenderTarget
 		{
 			get => _renderTarget;
 			set mut

@@ -5,6 +5,7 @@ using DirectX.D3D11;
 using GlitchyEngine.Platform.DX11;
 using DirectX.DXGI.DXGI1_2;
 using System;
+using GlitchyEngine.Math;
 
 using internal GlitchyEngine.Platform.DX11;
 
@@ -197,6 +198,16 @@ namespace GlitchyEngine.Renderer
 		~this()
 		{
 			ReleaseEveryThing();
+		}
+
+		internal ID3D11Texture2D* GetNativeTexture(int index)
+		{
+			Log.EngineLogger.AssertDebug(index >= -1 && index < ColorTargetCount);
+
+			if (index == -1)
+				return _nativeDepthTexture;
+
+			return _nativeTextures[index];
 		}
 
 		private ID3D11Texture2D* PlatformCreateTexture(TargetDescription target)
@@ -442,6 +453,18 @@ namespace GlitchyEngine.Renderer
 			}
 
 			return .Ok;
+		}
+
+		public override void CopyTo(RenderTargetGroup destination, int dstTarget, Int2 dstTopLeft, Int2 size, Int2 srcTopLeft, int srcTarget)
+		{
+			ID3D11Texture2D* dstTexture = destination.GetNativeTexture(dstTarget);
+			ID3D11Texture2D* srcTexture = GetNativeTexture(srcTarget);
+
+			// TODO: Mips/Arrays
+
+			Box srcBox = .((.)srcTopLeft.X, (.)srcTopLeft.Y, 0, (.)(srcTopLeft.X + size.X), (.)(srcTopLeft.Y + size.Y), 1);
+
+			NativeContext.CopySubresourceRegion(dstTexture, 0, (.)dstTopLeft.X, (.)dstTopLeft.Y, 0, srcTexture, 0, &srcBox);
 		}
 	}
 }

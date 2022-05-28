@@ -116,6 +116,8 @@ namespace GlitchyEngine.ImGui
 
 			Begin();
 
+			ImGui.ShowDemoWindow();
+
 			{
 				Debug.Profiler.ProfileScope!("ImGuiRenderEvent");
 

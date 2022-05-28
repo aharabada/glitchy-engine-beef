@@ -93,7 +93,8 @@ namespace GlitchyEditor.EditWindows
 
 			if(_renderTarget != null)
 			{
-				ImGui.Image(_renderTarget.GetViewBinding(0), viewportSize);
+				//ImGui.Image(_renderTarget.GetViewBinding(0), viewportSize);
+				ImGui.Image(_editor.CurrentCamera.RenderTarget.GetViewBinding(0), viewportSize);
 			}
 
 			Vector2 relativeMouse = (Vector2)ImGui.GetMousePos() - (Vector2)ImGui.GetItemRectMin();
@@ -105,20 +106,18 @@ namespace GlitchyEditor.EditWindows
 				relativeMouse.X < viewportSize.x && relativeMouse.Y < viewportSize.y &&
 				relativeMouse.X < x && relativeMouse.Y < y)
 			{
-				uint32 id = 0;
+				uint32 id = uint32.MaxValue;
 
-				Renderer.[Friend]_gBuffer.Target.GetData<uint32>(&id, 5, (.)relativeMouse.X, (.)relativeMouse.Y, 1, 1);
-
-				id--;
-
+				_editor.CurrentCamera.RenderTarget.GetData<uint32>(&id, 1, (.)relativeMouse.X, (.)relativeMouse.Y, 1, 1);
+				
 				//_renderTarget.GetData<uint32>(&pixel, 0, );
 
 				Log.EngineLogger.Info($"{relativeMouse} || ID = {id}");
 
-				/*if (id != uint32.MaxValue)
+				if (id != uint32.MaxValue)
 				{
-					_editor.CurrentScene.[Friend]_ecsWorld.GetCurrentVersion()
-				}*/
+					//_editor.CurrentScene.[Friend]_ecsWorld.GetCurrentVersion()
+				}
 					//_editor.EntityHierarchyWindow.SelectEntityWithId(id, true);
 				
 			}

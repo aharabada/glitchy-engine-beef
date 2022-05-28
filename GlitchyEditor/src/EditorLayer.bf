@@ -43,7 +43,7 @@ namespace GlitchyEditor
 
 		Editor _editor ~ delete _;
 
-		RenderTarget2D _cameraTarget ~ _.ReleaseRef();
+		RenderTargetGroup _cameraTarget ~ _.ReleaseRef();
 		RenderTargetGroup _viewportTarget ~ _.ReleaseRef();
 
 		SettingsWindow _settingsWindow = new .() ~ delete _;
@@ -86,11 +86,15 @@ namespace GlitchyEditor
 			DepthStencilStateDescription dsDesc = .();
 			_depthStencilState = new DepthStencilState(dsDesc);
 			
-			_cameraTarget = new RenderTarget2D(RenderTarget2DDescription(.R16G16B16A16_Float, 100, 100) {DepthStencilFormat = .D32_Float});
-			_cameraTarget.SamplerState = SamplerStateManager.LinearClamp;
-
-			//_viewportTarget = new RenderTarget2D(RenderTarget2DDescription(.R8G8B8A8_UNorm, 100, 100));
-			//_viewportTarget.SamplerState = SamplerStateManager.LinearClamp;
+			_cameraTarget = new RenderTargetGroup(.(){
+					Width = 100,
+					Height = 100,
+					ColorTargetDescriptions = TargetDescription[](
+						.(.R16G16B16A16_Float),
+						.(.R32_UInt)
+					),
+					DepthTargetDescription = .(.D24_UNorm_S8_UInt)
+				});
 
 			_viewportTarget = new RenderTargetGroup(.()
 				{
@@ -164,6 +168,11 @@ namespace GlitchyEditor
 				return Matrix.Translation(worldPos) * billboard;
 			}
 
+			float CalculateAlpha(Vector3 pos)
+			{
+				return Math.Clamp(1.5f - Vector3.Distance(_editor.CurrentCamera.Position, pos) / 50, 0, 1);
+			}
+
 			for (var (entity, transform, camera) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent, CameraComponent>())
 			{
 				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _scene)))
@@ -172,8 +181,10 @@ namespace GlitchyEditor
 				}
 				
 				Matrix world = Billboard(transform.WorldTransform);
-
-				Renderer2D.DrawQuad(world, _iconCamera);
+				
+				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
+				Renderer2D.DrawQuad(world, _iconCamera, ColorRGBA(alpha, alpha, alpha, alpha), .(0, 0, 1, 1), entity.Index);
+				//Renderer2D.DrawQuad(world, _iconCamera, .White, .(0, 0, 1, 1), entity.Index);
 			}
 
 			for (var (entity, transform, light) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent, LightComponent>())
@@ -191,8 +202,10 @@ namespace GlitchyEditor
 				}
 
 				Matrix world = Billboard(transform.WorldTransform);
-
-				Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color, 1.0f));
+				
+				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
+				Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color.Red * alpha, light.SceneLight.Color.Green * alpha, light.SceneLight.Color.Blue * alpha, alpha), .(0, 0, 1, 1), entity.Index);
+				//Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color, alpha), .(0, 0, 1, 1), entity.Index);
 			}
 		}
 

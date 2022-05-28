@@ -253,9 +253,9 @@ namespace GlitchyEngine.World
 	{
 		public SceneCamera Camera = .();
 		public bool Primary = true;  // Todo: probably move into scene
-		private RenderTarget2D _renderTarget = null;
+		private RenderTargetGroup _renderTarget = null;
 
-		public RenderTarget2D RenderTarget
+		public RenderTargetGroup RenderTarget
 		{
 			get => _renderTarget;
 			set mut

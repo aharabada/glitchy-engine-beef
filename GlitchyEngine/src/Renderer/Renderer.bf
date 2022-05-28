@@ -11,7 +11,7 @@ namespace GlitchyEngine.Renderer
 		{
 			public Matrix ViewProjection;
 			public Vector3 CameraPosition;
-			public RenderTarget2D CameraTarget;
+			public RenderTargetGroup CameraTarget;
 			public RenderTargetGroup CompositionTarget;
 		}
 
@@ -25,23 +25,10 @@ namespace GlitchyEngine.Renderer
 			private uint32 _width;
 			private uint32 _height;
 			
-			//public DepthStencilTarget DepthStencil;
-
 			public uint32 Width => _width;
 			public uint32 Height => _height;
 
 			public Int2 Size => .(_width, _height);
-
-			/*// RGB: Albedo.rgb A: ?
-			public RenderTarget2D Albedo ~ _?.ReleaseRef();
-			// RG: TextureNormal.xy BA: GeometryNormal.xy
-			public RenderTarget2D Normal ~ _?.ReleaseRef();
-			// R: GeometryNormal.z GBA: GeometryTangent.xyz
-			public RenderTarget2D Tangent ~ _?.ReleaseRef();
-			// RGB: Worldspace Position A: ?
-			public RenderTarget2D Position ~ _?.ReleaseRef();
-			// R: Metallicity G: Roughness B: Ambient A: ?
-			public RenderTarget2D Material ~ _?.ReleaseRef();*/
 
 			public RenderTargetGroup Target ~ _?.ReleaseRef();
 
@@ -52,22 +39,6 @@ namespace GlitchyEngine.Renderer
 
 				if (_width == 0 || _height == 0)
 				{
-					// Note: Depth-Buffer in Color-Target for convenience
-					/*RenderTarget2DDescription albedoDesc = .(.R8G8B8A8_UNorm, width, height, 1, 1, .D24_UNorm_S8_UInt);
-					Albedo = new RenderTarget2D(albedoDesc);
-
-					RenderTarget2DDescription normalDesc = .(.R16G16B16A16_SNorm, width, height);
-					Normal = new RenderTarget2D(normalDesc);
-					
-					RenderTarget2DDescription tangentDesc = .(.R16G16B16A16_SNorm, width, height);
-					Tangent = new RenderTarget2D(tangentDesc);
-
-					RenderTarget2DDescription positionDesc = .(.R32G32B32A32_Float, width, height);
-					Position = new RenderTarget2D(positionDesc);
-
-					RenderTarget2DDescription materialDesc = .(.R8G8B8A8_UNorm, width, height);
-					Material = new RenderTarget2D(materialDesc);*/
-
 					SamplerStateDescription desc = .();
 					desc.MinFilter = .Point;
 					desc.MagFilter = .Point;
@@ -79,7 +50,7 @@ namespace GlitchyEngine.Renderer
 							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = desc},
 							.(RenderTargetFormat.R32G32B32A32_Float){SamplerDescription = desc},
 							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = desc},
-							.(RenderTargetFormat.R32_UInt){SamplerDescription = desc, ClearColor = ColorRGBA(0, 0, 0, 0)},
+							.(RenderTargetFormat.R32_UInt){SamplerDescription = desc, ClearColor = .UInt(uint32.MaxValue)},
 						),
 						TargetDescription(.D24_UNorm_S8_UInt){
 							SamplerDescription = desc,
@@ -91,59 +62,28 @@ namespace GlitchyEngine.Renderer
 				_width = width;
 				_height = height;
 
-				/*Albedo.Resize(_width, _height);
-				Normal.Resize(_width, _height);
-				Tangent.Resize(_width, _height);
-				Position.Resize(_width, _height);
-				Material.Resize(_width, _height);*/
-
-				//DepthStencil = Albedo.DepthStencilTarget;
-
 				Target.Resize(_width, _height);
 			}
 
 			public void Bind()
 			{
-				/*RenderCommand.SetDepthStencilTarget(DepthStencil);
-
-				RenderCommand.UnbindRenderTargets();
-				RenderCommand.SetRenderTarget(Albedo, 0);
-				RenderCommand.SetRenderTarget(Normal, 1);
-				RenderCommand.SetRenderTarget(Tangent, 2);
-				RenderCommand.SetRenderTarget(Position, 3);
-				RenderCommand.SetRenderTarget(Material, 4);*/
-
 				RenderCommand.SetRenderTargetGroup(Target);
-
 				RenderCommand.BindRenderTargets();
 			}
 
 			public void Clear()
 			{
-				/*RenderCommand.Clear(_gBuffer.Albedo, .Color | .Depth, .HotPink, 1, 0);
-				RenderCommand.Clear(_gBuffer.Normal, .HotPink);
-				RenderCommand.Clear(_gBuffer.Tangent, .HotPink);
-				RenderCommand.Clear(_gBuffer.Position, .HotPink);
-				RenderCommand.Clear(_gBuffer.Material, .HotPink);*/
-
-				RenderCommand.Clear(Target, .Color | .Depth);
+				RenderCommand.Clear(Target, .ColorDepth);
 			}
 		}
 
 		static internal GraphicsContext _context;
-
-		//static Buffer<SceneConstants> _sceneConstants ~ _?.ReleaseRef();
-
-		//static Buffer<ObjectConstants> _objectConstants ~ _?.ReleaseRef();
 
 		static SceneConstants _sceneConstants;
 
 		static Effect LineEffect;
 		static VertexBuffer LineVertices;
 		static GeometryBinding LineGeometry;
-
-
-		static GeometryBinding s_fullscreenQuadGeometry;
 
 		static GBuffer _gBuffer;
 		static Effect TestFullscreenEffect;
@@ -158,14 +98,7 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileFunction!();
 
 			_context = context..AddRef();
-			/*
-			_sceneConstants = new Buffer<SceneConstants>(.(0, .Constant, .Dynamic, .Write));
-			_sceneConstants.Update();
-
-			_objectConstants = new Buffer<ObjectConstants>(.(0, .Constant, .Dynamic, .Write));
-			_objectConstants.Update();
-			*/
-
+			
 			RenderCommand.Init();
 			Renderer2D.Init();
 			FullscreenQuad.Init();
@@ -226,43 +159,6 @@ namespace GlitchyEngine.Renderer
 			TestFullscreenEffect = effectLibrary.Load("content\\Shaders\\simpleLight.hlsl");
 			s_tonemappingEffect = effectLibrary.Load("content\\Shaders\\SimpleTonemapping.hlsl");
 
-			s_fullscreenQuadGeometry = new GeometryBinding();
-			s_fullscreenQuadGeometry.SetPrimitiveTopology(.TriangleList);
-
-			using(var quadVertices = new VertexBuffer(typeof(Vector4), 4, .Immutable))
-			{
-				Vector4[4] vertices = .(
-					.(-1,-1, 0, 1),
-					.(-1, 1, 0, 0),
-					.( 1, 1, 1, 0),
-					.( 1,-1, 1, 1)
-					);
-
-				quadVertices.SetData(vertices);
-				s_fullscreenQuadGeometry.SetVertexBufferSlot(quadVertices, 0);
-			}
-
-			using(var quadIndices = new IndexBuffer(6, .Immutable))
-			{
-				uint16[6] indices = .(
-						0, 1, 2,
-						2, 3, 0
-					);
-
-				quadIndices.SetData(indices);
-				s_fullscreenQuadGeometry.SetIndexBuffer(quadIndices);
-			}
-
-			VertexElement[] vertexElements = new .(
-				VertexElement(.R32G32_Float, "POSITION"),
-				VertexElement(.R32G32_Float, "TEXCOORD")
-			);
-
-			using (var quadBatchLayout = new VertexLayout(vertexElements, true))
-			{
-				s_fullscreenQuadGeometry.SetVertexLayout(quadBatchLayout);
-			}
-			
 			_gBuffer = new GBuffer();
 			BlendStateDescription gBufferBlendDesc = .Default;
 			_gBufferBlend = new BlendState(gBufferBlendDesc);
@@ -291,7 +187,6 @@ namespace GlitchyEngine.Renderer
 			_lightBlend.ReleaseRef();
 			_gBufferBlend.ReleaseRef();
 			delete _gBuffer;
-			s_fullscreenQuadGeometry.ReleaseRef();
 
 			s_tonemappingEffect.ReleaseRef();
 			TestFullscreenEffect.ReleaseRef();
@@ -302,11 +197,9 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			_sceneConstants.ViewProjection = camera.ViewProjection;
-			//_sceneConstants.Data.ViewProjection = camera.ViewProjection;
-			//_sceneConstants.Update();
 		}
 
-		public static void BeginScene(Camera camera, Matrix transform, RenderTarget2D renderTarget, RenderTargetGroup finalTarget)
+		public static void BeginScene(Camera camera, Matrix transform, RenderTargetGroup renderTarget, RenderTargetGroup finalTarget)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 			
@@ -331,7 +224,7 @@ namespace GlitchyEngine.Renderer
 		public static int SortMeshes(SubmittedMesh left, SubmittedMesh right)
 		{
 			// TODO: Once Material "inheritance" is ready we could perhaps check how similar materials are (e.g. shared textures/variables/etc...)
-			// Similar thing could be done for Meshes. Both would probably require a different way to sort howerver?...
+			// Similar thing could be done for Meshes. Both would probably require a different way to sort however?...
 
 			int cmp = (int)Internal.UnsafeCastToPtr(left.Material) <=> (int)Internal.UnsafeCastToPtr(right.Material);
 
@@ -346,7 +239,7 @@ namespace GlitchyEngine.Renderer
 					float distLeftSq = Vector3.DistanceSquared(_sceneConstants.CameraPosition, left.Transform.Translation);
 					float distRightSq = Vector3.DistanceSquared(_sceneConstants.CameraPosition, right.Transform.Translation);
 
-					// Whether or not the values are squared doesn't affect the order (because square(-root) is a monotonic function)
+					// Whether or not the values are squared doesn't affect the order (because square(root) is a monotonic function)
 					cmp = distLeftSq <=> distRightSq;
 				}
 			}
@@ -410,10 +303,10 @@ namespace GlitchyEngine.Renderer
 				Debug.Profiler.ProfileRendererScope!("Draw Lights");
 
 				RenderCommand.UnbindRenderTargets();
-				RenderCommand.SetRenderTarget(_sceneConstants.CameraTarget, 0, true);
+				RenderCommand.SetRenderTargetGroup(_sceneConstants.CameraTarget);
 				RenderCommand.BindRenderTargets();
 
-				RenderCommand.Clear(_sceneConstants.CameraTarget, .Black);
+				RenderCommand.Clear(_sceneConstants.CameraTarget, .ColorDepth);
 
 				RenderCommand.SetBlendState(_lightBlend);
 				RenderCommand.SetDepthStencilState(_fullscreenDepthState);
@@ -443,11 +336,13 @@ namespace GlitchyEngine.Renderer
 		
 					TestFullscreenEffect.Bind(_context);
 		
-					s_fullscreenQuadGeometry.Bind();
-					RenderCommand.DrawIndexed(s_fullscreenQuadGeometry);
+					FullscreenQuad.Draw();
 				}
 
 				_lights.Clear();
+
+				// Copy EntityIDs to camera target
+				_gBuffer.Target.CopyTo(_sceneConstants.CameraTarget, 1, Int2.Zero, Int2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height), Int2.Zero, 5);
 
 				RenderCommand.SetBlendState(_gBufferBlend);
 				
@@ -455,9 +350,10 @@ namespace GlitchyEngine.Renderer
 				RenderCommand.BindRenderTargets();
 
 				// TODO: Postprocessing effects
-				s_tonemappingEffect.SetTexture("CameraTarget", _sceneConstants.CameraTarget);
+				s_tonemappingEffect.SetTexture("CameraTarget", _sceneConstants.CameraTarget, 0);
 				s_tonemappingEffect.Bind(_context);
-				RenderCommand.DrawIndexed(s_fullscreenQuadGeometry);
+
+				FullscreenQuad.Draw();
 
 				RenderCommand.UnbindTextures();
 			}
@@ -532,7 +428,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			_queue.Add(SubmittedMesh(geometry, material, transform, 0));
+			_queue.Add(SubmittedMesh(geometry, material, transform, uint32.MaxValue));
 		}
 
 		public static void Submit(GeometryBinding geometry, Material material, EcsEntity entity, Matrix transform = .Identity)

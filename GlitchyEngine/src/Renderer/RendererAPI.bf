@@ -49,7 +49,7 @@ namespace GlitchyEngine.Renderer
 
 		public extern void SetRasterizerState(RasterizerState rasterizerState);
 
-		public extern void SetBlendState(BlendState blendState, ColorRGBA blendFactor);
+		public extern void SetBlendState(BlendState blendState, ColorRGBA blendFactor = .White);
 
 		public extern void SetDepthStencilState(DepthStencilState depthStencilState, uint8 stencilReference);
 
