@@ -11,25 +11,21 @@ namespace GlitchyEngine.Renderer
 			s_fullscreenQuadGeometry = new GeometryBinding();
 			s_fullscreenQuadGeometry.SetPrimitiveTopology(.TriangleList);
 
-			using(var quadVertices = new VertexBuffer(typeof(Vector4), 4, .Immutable))
+			using(var quadVertices = new VertexBuffer(typeof(Vector4), 3, .Immutable))
 			{
 				Vector4[4] vertices = .(
-					.(-1,-1, 0, 1),
-					.(-1, 1, 0, 0),
-					.( 1, 1, 1, 0),
-					.( 1,-1, 1, 1)
-					);
+				.(-1, 1, 0, 0),
+				.( 3, 1, 2, 0),
+				.(-1,-3, 0, 2),
+				);
 
 				quadVertices.SetData(vertices);
 				s_fullscreenQuadGeometry.SetVertexBufferSlot(quadVertices, 0);
 			}
 
-			using(var quadIndices = new IndexBuffer(6, .Immutable))
+			using(var quadIndices = new IndexBuffer(3, .Immutable))
 			{
-				uint16[6] indices = .(
-						0, 1, 2,
-						2, 3, 0
-					);
+				uint16[3] indices = .(0, 1, 2);
 
 				quadIndices.SetData(indices);
 				s_fullscreenQuadGeometry.SetIndexBuffer(quadIndices);
