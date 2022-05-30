@@ -341,11 +341,12 @@ namespace GlitchyEngine.Renderer
 
 				_lights.Clear();
 
-				// Copy EntityIDs to camera target
-				_gBuffer.Target.CopyTo(_sceneConstants.CameraTarget, 1, Int2.Zero, Int2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height), Int2.Zero, 5);
+				// Copy EntityIDs to compositionTarget
+				_gBuffer.Target.CopyTo(_sceneConstants.CompositionTarget, 1, Int2.Zero, Int2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height), Int2.Zero, 5);
 
 				RenderCommand.SetBlendState(_gBufferBlend);
-				
+
+				RenderCommand.UnbindRenderTargets();
 				RenderCommand.SetRenderTargetGroup(_sceneConstants.CompositionTarget, true);
 				RenderCommand.BindRenderTargets();
 

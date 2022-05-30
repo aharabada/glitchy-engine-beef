@@ -5,6 +5,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine;
 using GlitchyEngine.World;
 using ImGuizmo;
+using GlitchyEngine.Events;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -15,6 +16,7 @@ namespace GlitchyEditor.EditWindows
 		private RenderTargetGroup _renderTarget ~ _?.ReleaseRef();
 
 		public Event<EventHandler<Vector2>> ViewportSizeChangedEvent ~ _.Dispose();
+		public Event<EventHandler<uint32>> EntityClickedEvent ~ _.Dispose();
 
 		public RenderTargetGroup RenderTarget
 		{
@@ -35,6 +37,9 @@ namespace GlitchyEditor.EditWindows
 
 		private ImGui.Vec2 oldViewportSize;
 		private bool viewPortChanged;
+
+		public uint32 SelectedEntityId;
+		public bool SelectionChanged;
 
 		protected override void InternalShow()
 		{
@@ -94,35 +99,35 @@ namespace GlitchyEditor.EditWindows
 			if(_renderTarget != null)
 			{
 				//ImGui.Image(_renderTarget.GetViewBinding(0), viewportSize);
-				ImGui.Image(_editor.CurrentCamera.RenderTarget.GetViewBinding(0), viewportSize);
+				//ImGui.Image(_editor.CurrentCamera.RenderTarget.GetViewBinding(0), viewportSize);
+				ImGui.Image(_editor.CurrentScene.[Friend]_compositeTarget.GetViewBinding(0), viewportSize);
 			}
+			
+
+			bool gizmoUsed = DrawImGuizmo(viewportSize);
 
 			Vector2 relativeMouse = (Vector2)ImGui.GetMousePos() - (Vector2)ImGui.GetItemRectMin();
 
 			int x = Renderer.[Friend]_gBuffer.Target.Width;
 			int y = Renderer.[Friend]_gBuffer.Target.Height;
 
-			if (Input.IsMouseButtonPressing(.LeftButton) && relativeMouse.X >= 0 && relativeMouse.Y >= 0 &&
+			if (!gizmoUsed && !_editor.CurrentCamera.[Friend]BindMouse && Input.IsMouseButtonPressing(.LeftButton) && relativeMouse.X >= 0 && relativeMouse.Y >= 0 &&
 				relativeMouse.X < viewportSize.x && relativeMouse.Y < viewportSize.y &&
 				relativeMouse.X < x && relativeMouse.Y < y)
 			{
 				uint32 id = uint32.MaxValue;
 
-				_editor.CurrentCamera.RenderTarget.GetData<uint32>(&id, 1, (.)relativeMouse.X, (.)relativeMouse.Y, 1, 1);
-				
-				//_renderTarget.GetData<uint32>(&pixel, 0, );
+				_editor.CurrentScene.[Friend]_compositeTarget.GetData<uint32>(&id, 1, (.)relativeMouse.X, (.)relativeMouse.Y, 1, 1);
 
-				Log.EngineLogger.Info($"{relativeMouse} || ID = {id}");
+				SelectionChanged = true;
+				SelectedEntityId = id;
 
-				if (id != uint32.MaxValue)
-				{
-					//_editor.CurrentScene.[Friend]_ecsWorld.GetCurrentVersion()
-				}
-					//_editor.EntityHierarchyWindow.SelectEntityWithId(id, true);
-				
+				EntityClickedEvent(this, id);
 			}
-
-			DrawImGuizmo(viewportSize);
+			else
+			{
+				SelectionChanged = false;
+			}
 			
 			ImGui.End();
 
@@ -203,7 +208,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private void DrawImGuizmo(ImGui.Vec2 viewportSize)
+		private bool DrawImGuizmo(ImGui.Vec2 viewportSize)
 		{
 			ImGuizmo.SetOrthographic(false);
 			ImGuizmo.SetDrawlist();
@@ -219,7 +224,7 @@ namespace GlitchyEditor.EditWindows
 			var projection = _editor.CurrentCamera.Projection;
 
 			if(_editor.EntityHierarchyWindow.SelectedEntities.Count == 0)
-				return;
+				return false;
 
 			var entity = _editor.EntityHierarchyWindow.SelectedEntities.Back;
 
@@ -245,6 +250,8 @@ namespace GlitchyEditor.EditWindows
 				// (probably because scaling a rotated matrix results in a skewed matrix, but unity can do it, so should we)
 				transformCmp.LocalTransform = parentView * worldTransform;
 			}
+
+			return ImGuizmo.IsUsing();
 		}
 	}
 }

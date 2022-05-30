@@ -23,8 +23,9 @@ namespace GlitchyEditor.EditWindows
 
 		public List<Entity> SelectedEntities => _selectedEntities;
 
-		public this(Scene scene)
+		public this(Editor editor, Scene scene)
 		{
+			_editor = editor;
 			SetContext(scene);
 		}
 
@@ -59,6 +60,23 @@ namespace GlitchyEditor.EditWindows
 				Show_ContextMenu_Create(true, false, false);
 
 				ImGui.EndPopup();
+			}
+
+			if (_editor.SceneViewportWindow.SelectionChanged)
+			{
+				if (Input.IsKeyReleased(.Control))
+				{
+					_selectedEntities.Clear();
+				}
+
+				var handle = _scene.[Friend]_ecsWorld.GetCurrentVersion(EcsEntity.[Friend]CreateEntityID(_editor.SceneViewportWindow.SelectedEntityId, 0));
+
+				if (handle case .Ok(let h))
+				{
+					Entity e = .(h, _scene);
+	
+					_selectedEntities.Add(e);
+				}
 			}
 
 			ShowEntityHierarchy();
@@ -113,6 +131,8 @@ namespace GlitchyEditor.EditWindows
 			{
 				_scene.DestroyEntity(entity, true);
 			}
+
+			_selectedEntities.Clear();
 		}
 
 		private void ShowEntityHierarchyMenuBar()

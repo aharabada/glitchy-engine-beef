@@ -35,7 +35,7 @@ namespace GlitchyEditor
 		/// Creates a new editor for the given world
 		public this(Scene scene)
 		{
-			_entityHierarchyWindow = new EntityHierarchyWindow(_scene);
+			_entityHierarchyWindow = new EntityHierarchyWindow(this, _scene);
 			CurrentScene = scene;
 
 			_componentEditWindow = new ComponentEditWindow(_entityHierarchyWindow);

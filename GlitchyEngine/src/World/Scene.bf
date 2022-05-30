@@ -12,7 +12,9 @@ namespace GlitchyEngine.World
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
 		
 		private Dictionary<Type, function void(Entity entity, Type componentType, void* component)> _onComponentAddedHandlers = new .() ~ delete _;
-		
+
+		private RenderTargetGroup _compositeTarget ~ _.ReleaseRef();
+
 		public Entity ActiveCamera => {
 			Entity cameraEntity = .();
 
@@ -42,6 +44,13 @@ namespace GlitchyEngine.World
 
 				cameraComponent.Camera.SetViewportSize(e.Scene.ViewportWidth, e.Scene.ViewportHeight);
 			});
+
+			RenderTargetGroupDescription desc = .(100, 100,
+				TargetDescription[](
+				RenderTargetFormat.R16G16B16A16_Float,
+				.(RenderTargetFormat.R32_UInt) {ClearColor = .UInt(uint32.MaxValue)}),
+				RenderTargetFormat.D24_UNorm_S8_UInt);
+			_compositeTarget = new RenderTargetGroup(desc);
 		}
 
 		public ~this()
@@ -50,6 +59,9 @@ namespace GlitchyEngine.World
 
 		public void UpdateRuntime(GameTime gameTime, RenderTargetGroup finalTarget)
 		{
+			// TODO: adapt changes from UpdateEditor!
+			Runtime.NotImplemented();
+			/*
 			Debug.Profiler.ProfileRendererFunction!();
 			
 			TransformSystem.Update(_ecsWorld);
@@ -109,6 +121,7 @@ namespace GlitchyEngine.World
 
 				renderTarget?.ReleaseRef();
 			}
+			*/
 		}
 
 		public void UpdateEditor(GameTime gameTime, EditorCamera camera, RenderTargetGroup viewportTarget, delegate void() DebugDraw3D, delegate void() DrawDebug2D)
@@ -120,7 +133,7 @@ namespace GlitchyEngine.World
 			TransformSystem.Update(_ecsWorld);
 
 			// 3D render
-			Renderer.BeginScene(camera, viewportTarget);
+			Renderer.BeginScene(camera, _compositeTarget);
 
 			for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
 			{
@@ -136,9 +149,10 @@ namespace GlitchyEngine.World
 
 			Renderer.EndScene();
 
-			// TODO: alphablending
+			// TODO: alphablending (handle in Renderer2D)
+			// TODO: 2D-Postprocessing requires rendering into separate target instead of directly into compositeTarget
 
-			RenderCommand.SetRenderTargetGroup(camera.RenderTarget);
+			RenderCommand.SetRenderTargetGroup(_compositeTarget);
 			RenderCommand.BindRenderTargets();
 
 			// Sprite renderer
@@ -157,7 +171,7 @@ namespace GlitchyEngine.World
 
 			Renderer2D.EndScene();
 
-			// TODO: cameraTarget into viewportTarget (gamma correction!)
+			// TODO: compositeTarget into viewportTarget (gamma correction!)
 
 			viewportTarget.ReleaseRef();
 		}
@@ -206,6 +220,8 @@ namespace GlitchyEngine.World
 					cameraComponent.Camera.SetViewportSize(width, height);
 				}
 			}
+
+			_compositeTarget.Resize(ViewportWidth, ViewportHeight);
 		}
 
 		private void OnComponentAdded(Entity entity, Type componentType, void* component)

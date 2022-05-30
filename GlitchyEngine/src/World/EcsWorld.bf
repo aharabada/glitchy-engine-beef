@@ -161,10 +161,10 @@ namespace GlitchyEngine.World
 		}
 
 		/// Returns the entity with the same ID and the current version. Or null, if no such entity exists.
-		public EcsEntity? GetCurrentVersion(EcsEntity entity)
+		public Result<EcsEntity> GetCurrentVersion(EcsEntity entity)
 		{
 			if(entity.Index > _entities.Count)
-				return null;
+				return .Err;
 			
 			var listEntity = ref _entities[entity.Index];
 			
