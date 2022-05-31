@@ -247,7 +247,9 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriterRendererComponent* spriteRendererComponent)
 		{
-			ImGui.ColorEdit4("Color", ref spriteRendererComponent.Color);
+			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(spriteRendererComponent.Color);
+			if (ImGui.ColorEdit4("Color", ref spriteColor))
+				spriteRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
 		}
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
@@ -293,14 +295,26 @@ namespace GlitchyEditor.EditWindows
 					if (variable.Columns == 3)
 					{
 						material.GetVariable<Vector3>(variable.Name, var value);
+
+						value = (Vector3)ColorRGB.LinearToSRGB((ColorRGB)value);
+
 						if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value))
+						{
+							value = (Vector3)ColorRGB.SRgbToLinear((ColorRGB)value);
 							material.SetVariable(variable.Name, value);
+						}
 					}
 					else if (variable.Columns == 4)
 					{
 						material.GetVariable<Vector4>(variable.Name, var value);
+						
+						value = (Vector4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
+
 						if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value))
+						{
+							value = (Vector4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
 							material.SetVariable(variable.Name, value);
+						}
 					}
 				}
 				else if (variable.Type == .Float && variable.Rows == 1)
@@ -390,9 +404,9 @@ namespace GlitchyEditor.EditWindows
 			ImGui.NextColumn();
 			LabelColumn("Color");
 
-			ColorRGB color = light.Color;
+			ColorRGB color = ColorRGB.LinearToSRGB(light.Color);
 			if (ImGui.ColorEdit3("##Color", ref color))
-				light.Color = color;
+				light.Color = ColorRGB.SRgbToLinear(color);
 
 			ImGui.NextColumn();
 			LabelColumn("Illuminance");
@@ -444,6 +458,7 @@ namespace GlitchyEditor.EditWindows
 
 				ShowComponentButton<CameraComponent>("Camera");
 				ShowComponentButton<SpriterRendererComponent>("Sprite Renderer");
+				ShowComponentButton<LightComponent>("Light");
 
 				ImGui.EndCombo();
 			}

@@ -83,5 +83,20 @@ namespace GlitchyEngine.Math
 		{
 			return .(Math.Cos(angle), Math.Sin(angle)) * radius;
 		}
+
+		public static Vector2 Pow(Vector2 v, float p)
+		{
+			return Vector2(Math.Pow(v.X, p), Math.Pow(v.Y, p));
+		}
+
+		public static Vector3 Pow(Vector3 v, float p)
+		{
+			return Vector3(Math.Pow(v.X, p), Math.Pow(v.Y, p), Math.Pow(v.Z, p));
+		}
+
+		public static Vector4 Pow(Vector4 v, float p)
+		{
+			return Vector4(Math.Pow(v.X, p), Math.Pow(v.Y, p), Math.Pow(v.Z, p), Math.Pow(v.W, p));
+		}
 	}
 }

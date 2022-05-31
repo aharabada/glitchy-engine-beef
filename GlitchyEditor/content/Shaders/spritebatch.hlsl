@@ -38,6 +38,9 @@ PS_Input VS(VS_Input input)
     output.Texcoord = input.UVTransform.xy + input.UVTransform.zw * input.Texcoord;
     output.Color = input.Color;
 
+    // Premultiply Alpha
+    output.Color.rgb *= output.Color.a;
+
 #ifdef EDITOR
     output.EntityId = input.EntityId;
 #endif

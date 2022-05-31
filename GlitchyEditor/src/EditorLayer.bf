@@ -126,11 +126,6 @@ namespace GlitchyEditor
 
 			RenderCommand.Clear(_viewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
-			RenderCommand.SetRenderTargetGroup(_viewportTarget, true);
-			RenderCommand.BindRenderTargets();
-
-			RenderCommand.SetViewport(Viewport(0, 0, _viewportTarget.Width, _viewportTarget.Height));
-
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
@@ -177,7 +172,7 @@ namespace GlitchyEditor
 			{
 				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _scene)))
 				{
-					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection, _camera.Projection * _camera.View);
+					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection, _camera.Projection * _camera.View, .White);
 				}
 				
 				Matrix world = Billboard(transform.WorldTransform);
@@ -204,7 +199,7 @@ namespace GlitchyEditor
 				Matrix world = Billboard(transform.WorldTransform);
 				
 				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
-				Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color.Red * alpha, light.SceneLight.Color.Green * alpha, light.SceneLight.Color.Blue * alpha, alpha), .(0, 0, 1, 1), entity.Index);
+				Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color.R * alpha, light.SceneLight.Color.G * alpha, light.SceneLight.Color.B * alpha, alpha), .(0, 0, 1, 1), entity.Index);
 				//Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color, alpha), .(0, 0, 1, 1), entity.Index);
 			}
 		}

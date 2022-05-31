@@ -98,9 +98,9 @@ namespace GlitchyEditor.EditWindows
 
 			if(_renderTarget != null)
 			{
-				//ImGui.Image(_renderTarget.GetViewBinding(0), viewportSize);
+				ImGui.Image(_renderTarget.GetViewBinding(0), viewportSize);
 				//ImGui.Image(_editor.CurrentCamera.RenderTarget.GetViewBinding(0), viewportSize);
-				ImGui.Image(_editor.CurrentScene.[Friend]_compositeTarget.GetViewBinding(0), viewportSize);
+				//ImGui.Image(_editor.CurrentScene.[Friend]_compositeTarget.GetViewBinding(0), viewportSize);
 			}
 			
 

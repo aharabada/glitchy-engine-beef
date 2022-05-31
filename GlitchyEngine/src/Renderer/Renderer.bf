@@ -453,7 +453,7 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static void DrawLine(Vector3 start, Vector3 end, Color color)
 		{
-			DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), color, .Identity);
+			DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), (ColorRGBA)color, .Identity);
 		}
 		
 		/** @brief Draws a line.

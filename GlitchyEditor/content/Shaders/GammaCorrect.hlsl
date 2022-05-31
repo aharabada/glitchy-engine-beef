@@ -1,5 +1,5 @@
-Texture2D CameraTarget : register(t0);
-SamplerState CameraTargetSampler : register(s0);
+Texture2D Texture : register(t0);
+SamplerState TextureSampler : register(s0);
 
 struct VS_IN
 {
@@ -25,11 +25,9 @@ PS_IN VS(VS_IN input)
 
 float4 PS(PS_IN input) : SV_TARGET
 {
-	float4 rawColor = CameraTarget.Sample(CameraTargetSampler, input.TexCoord);
+	float4 color = Texture.Sample(TextureSampler, input.TexCoord);
 
-	float3 color = rawColor.rgb / (rawColor.rgb + 1.0f);
-	
-	return float4(color, 1);
+	return float4(pow(color.rgb, 1.0f / 2.2f), color.a);
 }
 
 #effect[VS = VS, PS = PS]

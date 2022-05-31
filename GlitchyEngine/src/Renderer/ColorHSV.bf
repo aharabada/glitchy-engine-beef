@@ -38,7 +38,7 @@ namespace GlitchyEngine.Renderer
 			else if (hsv.H < 360.0f)
 				rgb_ = ColorRGB(c, 0, x);
 
-			return .(rgb_.Red + m, rgb_.Green + m, rgb_.Blue + m);
+			return .(rgb_.R + m, rgb_.G + m, rgb_.B + m);
 		}
 	}
 }

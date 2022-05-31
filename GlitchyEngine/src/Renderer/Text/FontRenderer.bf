@@ -397,7 +397,7 @@ namespace GlitchyEngine.Renderer.Text
 
 				Matrix glyphTransform = transform * Matrix.Translation(position) * Matrix.Scaling(viewportRect.Z, viewportRect.W, 1.0f);
 				
-				Renderer2D.DrawQuad(glyphTransform, atlas, glyphColor, texRect);
+				Renderer2D.DrawQuad(glyphTransform, atlas, (ColorRGBA)glyphColor, texRect);
 				//Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
 
 				// Show pen positions
@@ -648,7 +648,7 @@ namespace GlitchyEngine.Renderer.Text
 
 				texRect /= Vector4(atlasSize, atlasSize);
 
-				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, (ColorRGBA)glyphColor, texRect);
 
 				//renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
 

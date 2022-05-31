@@ -15,6 +15,8 @@ namespace GlitchyEngine.World
 
 		private RenderTargetGroup _compositeTarget ~ _.ReleaseRef();
 
+		private Effect _gammaCorrectEffect ~ _.ReleaseRef();
+
 		public Entity ActiveCamera => {
 			Entity cameraEntity = .();
 
@@ -32,10 +34,10 @@ namespace GlitchyEngine.World
 		public this()
 		{
 			Entity entity = CreateEntity("Green Quad");
-			entity.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.2f, 0.9f, 0.15f)));
+			entity.AddComponent<SpriterRendererComponent>(.(ColorRGBA.SRgbToLinear(.(0.2f, 0.9f, 0.15f))));
 
 			Entity entity2 = CreateEntity("Red Square");
-			var v = entity2.AddComponent<SpriterRendererComponent>(.(ColorRGBA(0.95f, 0.1f, 0.3f)));
+			var v = entity2.AddComponent<SpriterRendererComponent>(.(ColorRGBA.SRgbToLinear(.(0.95f, 0.1f, 0.3f))));
 			v.Sprite = new Texture2D("Textures/rocket.dds");
 			v.Sprite.SamplerState = SamplerStateManager.PointClamp;
 
@@ -51,6 +53,8 @@ namespace GlitchyEngine.World
 				.(RenderTargetFormat.R32_UInt) {ClearColor = .UInt(uint32.MaxValue)}),
 				RenderTargetFormat.D24_UNorm_S8_UInt);
 			_compositeTarget = new RenderTargetGroup(desc);
+
+			_gammaCorrectEffect = Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
 		}
 
 		public ~this()
@@ -171,7 +175,18 @@ namespace GlitchyEngine.World
 
 			Renderer2D.EndScene();
 
-			// TODO: compositeTarget into viewportTarget (gamma correction!)
+			// Gamma correct composit target and draw it into viewport
+			{
+				RenderCommand.UnbindRenderTargets();
+				RenderCommand.SetRenderTargetGroup(viewportTarget, false);
+				RenderCommand.BindRenderTargets();
+	
+				_gammaCorrectEffect.SetTexture("Texture", _compositeTarget, 0);
+				// TODO: iiihhh
+				_gammaCorrectEffect.Bind(Application.Get().Window.Context);
+	
+				FullscreenQuad.Draw();
+			}
 
 			viewportTarget.ReleaseRef();
 		}
