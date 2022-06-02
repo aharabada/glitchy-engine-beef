@@ -34,6 +34,9 @@ namespace GlitchyEngine.World
 
 		public Matrix View => _view;
 
+		// Gets whether or not the camera is currently being moved.
+		public bool InUse => BindMouse;
+
 		public RenderTargetGroup RenderTarget
 		{
 			get => _renderTarget;

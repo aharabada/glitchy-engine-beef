@@ -17,8 +17,8 @@ namespace GlitchyEngine
 		struct WindowsInputState
 		{
 			public int8[256] KeyStates;
-			public Point CursorPosition;
-			public Point CursorPositionDifference;
+			public Int2 CursorPosition;
+			public Int2 CursorPositionDifference;
 		}
 
 		static WindowsInputState[2] IputStates;
@@ -119,7 +119,7 @@ namespace GlitchyEngine
 			return state >= 0;
 		}
 
-		public override static Point GetMousePosition() => CurrentState.CursorPosition;
+		public override static Int2 GetMousePosition() => CurrentState.CursorPosition;
 
 		public override static int32 GetMouseX() => CurrentState.CursorPosition.X;
 
@@ -140,7 +140,7 @@ namespace GlitchyEngine
 			return state >= 0;
 		}
 
-		public override static Point GetLastMousePosition() => LastState.CursorPosition;
+		public override static Int2 GetLastMousePosition() => LastState.CursorPosition;
 
 		public override static int32 GetLastMouseX() => LastState.CursorPosition.X;
 
@@ -153,18 +153,18 @@ namespace GlitchyEngine
 		
 		public override static bool IsMouseButtonReleasing(MouseButton button) => IsMouseButtonReleased(button) && WasMouseButtonPressed(button);
 		
-		public override static Point GetMouseMovement() => CurrentState.CursorPositionDifference;
+		public override static Int2 GetMouseMovement() => CurrentState.CursorPositionDifference;
 
-		public override static void SetMousePosition(Point pos) => SetCursorPos(pos.X, pos.Y);
+		public override static void SetMousePosition(Int2 pos) => SetCursorPos(pos.X, pos.Y);
 
 		//[CLink, CallingConvention(.Stdcall)]
 		//static extern int16 GetKeyState(int32 keycode);
 		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool GetCursorPos(out Point p);
+		static extern IntBool GetCursorPos(out Int2 p);
 		[CLink, CallingConvention(.Stdcall)]
 		static extern IntBool SetCursorPos(c_int x, c_int y);
 		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool ScreenToClient(HWnd hWnd, ref Point p);
+		static extern IntBool ScreenToClient(HWnd hWnd, ref Int2 p);
 
 		public override static void NewFrame()
 		{

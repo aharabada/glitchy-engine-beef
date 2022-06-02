@@ -31,7 +31,7 @@ namespace GlitchyEditor.EditWindows
 
 		public void SetContext(Scene scene)
 		{
-			_selectedEntities.Clear();
+			ClearEntitySelection();
 			_scene = scene;
 		}
 
@@ -44,6 +44,36 @@ namespace GlitchyEditor.EditWindows
 
 			_selectedEntities.Add();
 		}*/
+
+		/// Deselects all entities.
+		public void ClearEntitySelection()
+		{
+			_selectedEntities.Clear();
+		}
+
+		/// Selects the given entity.
+		/// @param entity The entity to select.
+		/// @param clearOldSelection If true the previously selected entities will be deselected. If false, the given entity will be added to the current selection.
+		public void SelectEntity(Entity entity, bool clearOldSelection = false)
+		{
+			if (clearOldSelection)
+				ClearEntitySelection();
+
+			_selectedEntities.Add(entity);
+		}
+
+		/// Deselects the given entity.
+		/// @param entity The entity to deselect.
+		public bool DeselectEntity(Entity entity)
+		{
+			return _selectedEntities.Remove(entity);
+		}
+
+		/// Returns whether or not the given entity is currently selected.
+		public bool IsEntitySelected(Entity entity)
+		{
+			return _selectedEntities.Contains(entity);
+		}
 
 		protected override void InternalShow()
 		{
@@ -64,25 +94,24 @@ namespace GlitchyEditor.EditWindows
 
 			if (_editor.SceneViewportWindow.SelectionChanged)
 			{
-				if (Input.IsKeyReleased(.Control))
-				{
-					_selectedEntities.Clear();
-				}
-
 				var handle = _scene.[Friend]_ecsWorld.GetCurrentVersion(EcsEntity.[Friend]CreateEntityID(_editor.SceneViewportWindow.SelectedEntityId, 0));
 
 				if (handle case .Ok(let h))
 				{
 					Entity e = .(h, _scene);
-	
-					_selectedEntities.Add(e);
+
+					SelectEntity(e, Input.IsKeyReleased(.Control));
+				}
+				else if (Input.IsKeyReleased(.Control))
+				{
+					ClearEntitySelection();
 				}
 			}
 
 			ShowEntityHierarchy();
 			
 			if ((ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right)) && !ImGui.IsAnyItemHovered() && !ImGui.GetIO().KeyCtrl && ImGui.IsWindowHovered(.AllowWhenBlockedByPopup))
-				_selectedEntities.Clear();
+				ClearEntitySelection();
 
 			ImGui.End();
 		}
@@ -288,7 +317,7 @@ namespace GlitchyEditor.EditWindows
 			if(tree.Children.Count == 0)
 				flags |= .Leaf;
 			
-			bool inSelectedList = _selectedEntities.Contains(tree.Value);
+			bool inSelectedList = IsEntitySelected(tree.Value);
 			
 			if(inSelectedList)
 				flags |= .Selected;
@@ -381,17 +410,12 @@ namespace GlitchyEditor.EditWindows
 			{
 				if (inSelectedList && !clickedRight)
 				{
-					_selectedEntities.Remove(tree.Value);
+					DeselectEntity(tree.Value);
 					inSelectedList = false;
 				}
 				else
 				{
-					if (!ImGui.GetIO().KeyCtrl && !clickedRight)
-					{
-						_selectedEntities.Clear();
-					}
-
-					_selectedEntities.Add(tree.Value);
+					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl && !clickedRight);
 					inSelectedList = true;
 				}
 			}

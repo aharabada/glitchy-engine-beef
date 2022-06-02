@@ -62,39 +62,25 @@ namespace GlitchyEditor.EditWindows
 
 			_hasFocus = ImGui.IsWindowFocused();
 
+			if (_hasFocus && !_editor.CurrentCamera.InUse)
+			{
+				if (Input.IsKeyPressing(.Q))
+					_gizmoType = .TRANSLATE;
+				if (Input.IsKeyPressing(.W))
+					_gizmoType = .ROTATE;
+				if (Input.IsKeyPressing(.E))
+					_gizmoType = .SCALE;
+
+				if (Input.IsKeyPressing(.G))
+					_gizmoMode = .WORLD;
+				if (Input.IsKeyPressing(.L))
+					_gizmoMode = .LOCAL;
+			}
+
 			var viewportSize = ImGui.GetContentRegionAvail();
 
 			if (_editor.CurrentCamera.[Friend]BindMouse)
-			{
-				var mousePos = ImGui.GetMousePos();
-				var newMousePos = mousePos;
-				var winPos = ImGui.GetWindowPos();
-				var winSize = ImGui.GetWindowSize();
-
-				if (mousePos.x < winPos.x)
-				{
-					newMousePos.x = winPos.x + winSize.x - 1;
-				}
-				else if (mousePos.x > winPos.x + winSize.x)
-				{
-					newMousePos.x = winPos.x + 1;
-				}
-				
-				if (mousePos.y < winPos.y)
-				{
-					newMousePos.y = winPos.y + winSize.y - 1;
-				}
-				else if (mousePos.y > winPos.y + winSize.y)
-				{
-					newMousePos.y = winPos.y + 1;
-				}
-
-				if (newMousePos != mousePos)
-				{
-					Input.SetMousePosition(Point((int32)newMousePos.x, (int32)newMousePos.y));
-					_editor.CurrentCamera.[Friend]MouseCooldown = 2;
-				}
-			}
+				WrapMouseInViewport();
 
 			if(_renderTarget != null)
 			{
@@ -102,18 +88,67 @@ namespace GlitchyEditor.EditWindows
 				//ImGui.Image(_editor.CurrentCamera.RenderTarget.GetViewBinding(0), viewportSize);
 				//ImGui.Image(_editor.CurrentScene.[Friend]_compositeTarget.GetViewBinding(0), viewportSize);
 			}
-			
 
 			bool gizmoUsed = DrawImGuizmo(viewportSize);
 
+			MousePicking(viewportSize, gizmoUsed);
+
+			ImGui.End();
+
+			if(oldViewportSize != viewportSize)
+			{
+				ViewportSizeChangedEvent.Invoke(this, (Vector2)viewportSize);
+				viewPortChanged = true;
+				oldViewportSize = viewportSize;
+			}
+		}
+
+		/// Wraps the mouse, so that it always stays in the viewport.
+		private void WrapMouseInViewport()
+		{
+			var mousePos = (Vector2)ImGui.GetMousePos();
+			var winPos = (Vector2)ImGui.GetWindowPos();
+			var winSize = (Vector2)ImGui.GetWindowSize();
+			
+			Vector2 newMousePos = mousePos;
+
+			if (mousePos.X < winPos.X)
+			{
+				newMousePos.X = winPos.X + winSize.X - 1;
+			}
+			else if (mousePos.X > winPos.X + winSize.X)
+			{
+				newMousePos.X = winPos.X + 1;
+			}
+			
+			if (mousePos.Y < winPos.Y)
+			{
+				newMousePos.Y = winPos.Y + winSize.Y - 1;
+			}
+			else if (mousePos.Y > winPos.Y + winSize.Y)
+			{
+				newMousePos.Y = winPos.Y + 1;
+			}
+
+			if (newMousePos != mousePos)
+			{
+				Input.SetMousePosition((Int2)newMousePos);
+				_editor.CurrentCamera.[Friend]MouseCooldown = 2;
+			}
+		}
+
+		private void MousePicking(ImGui.Vec2 viewportSize, bool gizmoUsed)
+		{
 			Vector2 relativeMouse = (Vector2)ImGui.GetMousePos() - (Vector2)ImGui.GetItemRectMin();
 
-			int x = Renderer.[Friend]_gBuffer.Target.Width;
-			int y = Renderer.[Friend]_gBuffer.Target.Height;
+			int rtWidth = _editor.CurrentScene.[Friend]_compositeTarget.Width;
+			int rtHeight = _editor.CurrentScene.[Friend]_compositeTarget.Height;
 
-			if (!gizmoUsed && !_editor.CurrentCamera.[Friend]BindMouse && Input.IsMouseButtonPressing(.LeftButton) && relativeMouse.X >= 0 && relativeMouse.Y >= 0 &&
+			if (Input.IsMouseButtonPressing(.LeftButton) &&
+				ImGui.IsWindowHovered() && !gizmoUsed && !_editor.CurrentCamera.InUse && 
+				relativeMouse.X >= 0 && relativeMouse.Y >= 0 &&
 				relativeMouse.X < viewportSize.x && relativeMouse.Y < viewportSize.y &&
-				relativeMouse.X < x && relativeMouse.Y < y)
+				relativeMouse.X < rtWidth && relativeMouse.Y < rtHeight)
 			{
 				uint32 id = uint32.MaxValue;
 
@@ -127,15 +162,6 @@ namespace GlitchyEditor.EditWindows
 			else
 			{
 				SelectionChanged = false;
-			}
-			
-			ImGui.End();
-
-			if(oldViewportSize != viewportSize)
-			{
-				ViewportSizeChangedEvent.Invoke(this, (Vector2)viewportSize);
-				viewPortChanged = true;
-				oldViewportSize = viewportSize;
 			}
 		}
 

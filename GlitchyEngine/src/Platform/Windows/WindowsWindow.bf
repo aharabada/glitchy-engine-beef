@@ -66,13 +66,13 @@ namespace GlitchyEngine
 		//
 		// Size
 		//
-		public override Point Size
+		public override Int2 Size
 		{
-			get => *(Point*)&_clientRect.Width;
+			get => *(Int2*)&_clientRect.Width;
 
 			set
 			{
-				*(Point*)&_clientRect.Width = value;
+				*(Int2*)&_clientRect.Width = value;
 				ApplyRectangle();
 			}
 		}
@@ -102,13 +102,13 @@ namespace GlitchyEngine
 		//
 		// Position
 		//
-		public override Point Position
+		public override Int2 Position
 		{
-			get => *(Point*)&_clientRect;
+			get => *(Int2*)&_clientRect;
 
 			set
 			{
-				*(Point*)&_clientRect = value;
+				*(Int2*)&_clientRect = value;
 				ApplyRectangle();
 			}
 		}

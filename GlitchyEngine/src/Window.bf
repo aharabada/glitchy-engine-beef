@@ -54,7 +54,7 @@ namespace GlitchyEngine
 		/**
 		 * Gets or Sets the width and height of the window.
 		 */
-		public extern Point Size {get; set;}
+		public extern Int2 Size {get; set;}
 		/**
 		 * Gets or Sets the width of the window.
 		 */
@@ -67,7 +67,7 @@ namespace GlitchyEngine
 		/**
 		 * Gets or Sets the position of the upper-left corner of the client area of the window.
 		 */
-		public extern Point Position {get; set;}
+		public extern Int2 Position {get; set;}
 
 		/**
 		 * Gets or Sets the x-coordinate of the upper-left corner of the client area of the window.
