@@ -71,4 +71,4 @@ PS_Output PS(PS_Input input)
     return output;
 }
 
-#effect[VS=VS, PS=PS]
+#pragma Effect[VS = VS; PS = PS]

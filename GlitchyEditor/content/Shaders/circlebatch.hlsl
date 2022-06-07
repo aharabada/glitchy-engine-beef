@@ -59,4 +59,4 @@ float4 PS(PS_Input input) : SV_Target0
     return color;
 }
 
-#effect[VS=VS, PS=PS]
+#pragma Effect[VS=VS; PS=PS]

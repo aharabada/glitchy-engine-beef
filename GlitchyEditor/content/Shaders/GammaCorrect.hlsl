@@ -30,4 +30,4 @@ float4 PS(PS_IN input) : SV_TARGET
 	return float4(pow(color.rgb, 1.0f / 2.2f), color.a);
 }
 
-#effect[VS = VS, PS = PS]
+#pragma Effect[VS = VS; PS = PS]

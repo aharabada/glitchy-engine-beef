@@ -250,7 +250,7 @@ namespace GlitchyEngine.Renderer
 			ID3D11ShaderResourceView*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _textures = .();
 			ID3D11SamplerState*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _samplers = .();
 
-			for(let entry in shader.Textures)
+			for (let entry in shader.Textures)
 			{
 				_textures[entry.Index] = entry.BoundTexture._nativeShaderResourceView;
 				_samplers[entry.Index] = entry.BoundTexture._nativeSamplerState;
@@ -261,51 +261,53 @@ namespace GlitchyEngine.Renderer
 					_firstTexture = entry.Index;
 			}
 			
-			if(_textureCount > 0)
-			{
-				switch(typeof(TShader))
+			shader.Buffers.PlatformFetchNativeBuffers();
+
+			//if (_textureCount > 0)
+			//{
+				switch (typeof(TShader))
 				{
 					// TODO: Add remaining shader stages
 				case typeof(PixelShader):
 					// TODO: bind uavs
-					NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
-					NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+					if (_textureCount > 0)
+					{
+						NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+						NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+					}
 
 					_ps_FirstTexture = _firstTexture;
 					_ps_BoundTextures = _textureCount;
+
+					NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+
+					NativeContext.PixelShader.SetShader((ID3D11PixelShader*)shader.nativeShader);
+
 				case typeof(VertexShader):
-					NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
-					NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+					if (_textureCount > 0)
+					{
+						NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+						NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+					}
 					
+					NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+
+					NativeContext.VertexShader.SetShader((ID3D11VertexShader*)shader.nativeShader);
+
 					_vs_FirstTexture = _firstTexture;
 					_vs_BoundTextures = _textureCount;
+					
+					//if (VertexShader vs = shader as VertexShader)
+					[ConstSkip]
+					{
+						SetReference!(_currentVertexShader, shader);
+						_currentInputLayout?.Release();
+						_currentInputLayout = null;
+					}
 				default:
 					Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
 				}
-			}
-			
-			shader.Buffers.PlatformFetchNativeBuffers();
-
-			switch(typeof(TShader))
-			{
-				// TODO: Add remaining shader stages
-			case typeof(PixelShader):
-				NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-				NativeContext.PixelShader.SetShader((ID3D11PixelShader*)shader.nativeShader);
-			case typeof(VertexShader):
-				NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-				NativeContext.VertexShader.SetShader((ID3D11VertexShader*)shader.nativeShader);
-				
-				if (VertexShader vs = shader as VertexShader)
-				{
-					SetReference!(_currentVertexShader, vs);
-					_currentInputLayout?.Release();
-					_currentInputLayout = null;
-				}
-				
-			default:
-				Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
-			}
+			//}
 		}
 
 		public override void UnbindTextures()

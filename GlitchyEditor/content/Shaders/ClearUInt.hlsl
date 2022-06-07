@@ -13,4 +13,4 @@ uint PS(float4 input : SV_Position) : SV_Target0
     return ClearValue;
 }
 
-#effect[VS = VS, PS = PS]
+#pragma Effect[VS = VS; PS = PS]

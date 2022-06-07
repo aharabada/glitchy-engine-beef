@@ -21,7 +21,7 @@ namespace GlitchyEngine.Renderer
 
 	public abstract class Shader : RefCounter
 	{
-		protected BufferCollection _buffers ~ delete _;//:append _;
+		protected internal BufferCollection _buffers ~ _.ReleaseRef();//:append _;
 
 		protected ShaderTextureCollection _textures ~ delete _;
 		

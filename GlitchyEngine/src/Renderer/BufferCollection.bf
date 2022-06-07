@@ -1,9 +1,10 @@
 using System;
 using System.Collections;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
-	public class BufferCollection : IEnumerable<(String Name, int Index, Buffer Buffer)>
+	public class BufferCollection : RefCounter, IEnumerable<(String Name, int Index, Buffer Buffer)>
 	{
 		public typealias BufferEntry = (String Name, int Index, Buffer Buffer);
 
@@ -124,10 +125,7 @@ namespace GlitchyEngine.Renderer
 			{
 				Log.EngineLogger.AssertDebug(name == bufferEntry.Name);
 
-				bufferEntry.Buffer.ReleaseRef();
-				
-				buffer.AddRef();
-				bufferEntry.Buffer = buffer;
+				SetReference!(bufferEntry.Buffer, buffer);
 
 				return true;
 			}

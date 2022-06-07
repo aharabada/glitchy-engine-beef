@@ -17,12 +17,14 @@ SamplerState RoughnessSampler : register(s3);
 // Texture2D<float> AmbientTexture : register(t4);
 // SamplerState AmbientSampler : register(s4);
 
-cbuffer SceneConstants
+#pragma EngineBuffer[ Name = "SceneConstants"; Binding = "Scene" ]
+cbuffer SceneConstants : register(b0)
 {
     float4x4 ViewProjection;
 }
 
-cbuffer ObjectConstants
+#pragma EngineBuffer[ Name = "ObjectConstants"; Binding = "Object" ]
+cbuffer ObjectConstants : register(b1)
 {
     float4x4 Transform;
     /**
@@ -35,15 +37,15 @@ cbuffer ObjectConstants
 #endif
 }
 
-cbuffer Constants
+cbuffer MaterialConstants : register(b2)
 {
-    #EditorVariable{ Name = "AlbedoColor"; Preview = "Albedo Color"; Type="Color" }
+    #pragma EditorVariable[ Name = "AlbedoColor"; Preview = "Albedo Color"; Type="Color" ]
     float4 AlbedoColor = float4(1.0, 1.0, 1.0, 1.0);
-    #EditorVariable{ Name = "NormalScaling"; Preview = "Normal Scaling" }
+    #pragma EditorVariable[ Name = "NormalScaling"; Preview = "Normal Scaling" ]
     float2 NormalScaling = float2(1.0, 1.0);
-    #EditorVariable{ Name = "MetallicFactor"; Preview = "Metallic Factor"; Min = 0.0f; Max = 1.0f }
+    #pragma EditorVariable[ Name = "MetallicFactor"; Preview = "Metallic Factor"; Min = 0.0f; Max = 1.0f ]
     float MetallicFactor = 1.0;
-    #EditorVariable{ Name = "RoughnessFactor"; Preview = "Rougness Factor"; Min = 0.0f; Max = 1.0f }
+    #pragma EditorVariable[ Name = "RoughnessFactor"; Preview = "Rougness Factor"; Min = 0.0f; Max = 1.0f ]
     float RoughnessFactor = 1.0;
     // float AmbientFactor = 1.0;
 }
@@ -154,4 +156,4 @@ PS_OUT PS(PS_IN input)
     return output;
 }
 
-#effect[VS=VS,PS=PS]
+#pragma Effect[VS = VS; PS = PS]

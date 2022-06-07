@@ -120,7 +120,9 @@ namespace GlitchyEngine.Renderer
 			delete _;
 		};
 
-		BufferCollection _bufferCollection ~ delete _;
+		protected Dictionary<String, String> _engineBuffers ~ DeleteDictionaryAndKeysAndValues!(_);
+
+		BufferCollection _bufferCollection ~ _.ReleaseRef();
 
 		BufferVariableCollection _variables ~ delete _;
 
@@ -132,51 +134,19 @@ namespace GlitchyEngine.Renderer
 		public VertexShader VertexShader
 		{
 			get => _vs;
-			set
-			{
-				_vs?.ReleaseRef();
-				_vs = value;
-				_vs?.AddRef();
-			}
+			private set => SetReference!(_vs, value);
 		}
 		
 		public PixelShader PixelShader
 		{
 			get => _ps;
-			set
-			{
-				_ps?.ReleaseRef();
-				_ps = value;
-				_ps?.AddRef();
-			}
+			private set => SetReference!(_ps, value);
 		}
 
 		public BufferCollection Buffers => _bufferCollection;
 		public BufferVariableCollection Variables => _variables;
 
 		public String Name => _name;
-
-		[Obsolete("Will be removed in the future", false)]
-		public this()
-		{
-		}
-		
-		public this(String filename, String vsEntry, String psEntry, String shaderName = null)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			CompileFromFile(filename, vsEntry, psEntry);
-
-			if(shaderName == null)
-			{
-				_name = new String(shaderName);
-			}
-			else
-			{
-				_name = new String();
-				Path.GetFileNameWithoutExtension(filename, _name);
-			}
-		}
 
 		public this(String filename, String shaderName = null)
 		{
@@ -187,8 +157,9 @@ namespace GlitchyEngine.Renderer
 			String psName = scope String();
 
 			_variableDescriptions = new VariableDesc();
+			_engineBuffers = new Dictionary<String, String>();
 
-			ProcessFile(filename, fileContent, vsName, psName, _variableDescriptions);
+			ProcessFile(filename, fileContent, vsName, psName, _variableDescriptions, _engineBuffers);
 
 			Compile(fileContent, filename, vsName, psName);
 
@@ -203,15 +174,6 @@ namespace GlitchyEngine.Renderer
 			{
 				_name = new String(shaderName);
 			}
-		}
-
-		public this(String shaderName, String vsPath, String vsEntry, String psPath, String psEntry)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			Compile(vsPath, vsEntry, psPath, psEntry);
-			
-			_name = new String(shaderName);
 		}
 
 		public ~this()
@@ -298,8 +260,6 @@ namespace GlitchyEngine.Renderer
 			context.SetPixelShader(_ps);
 		}
 
-
-
 		private void CompileFromFile(String filename, String vsEntry, String psEntry)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
@@ -333,6 +293,81 @@ namespace GlitchyEngine.Renderer
 			code[commentPosition + 1] = '/';
 		}
 
+		private static Result<(int Start, int End)> GetNextPreprocessor(StringView code, int startindex, out StringView name, Dictionary<StringView, StringView> arguments)
+		{
+			name = .();
+
+			int startOfLine;
+			int endOfLine;
+			do
+			{
+				startOfLine = code.IndexOf("#pragma", startindex);
+	
+				if (startOfLine == -1)
+					return .Err;
+	
+				endOfLine = code.IndexOf('\n', startOfLine);
+	
+				StringView line = (endOfLine != -1) ? code.Substring(startOfLine, endOfLine - startOfLine) : code.Substring(startOfLine);
+
+				// cut off the #pragma
+				line = line.Substring(7);
+
+				int lBracketIndex = line.IndexOf('[');
+	
+				if (lBracketIndex == -1)
+				{
+					name = line..Trim();
+					break;
+				}
+	
+				name = line.Substring(0, lBracketIndex);
+				name.Trim();
+				
+				int rBracketIndex = line.IndexOf(']');
+	
+				if (rBracketIndex == -1)
+				{
+					Log.EngineLogger.Error($"Pragma is missing closing Bracket (\"{line}\")");
+					rBracketIndex = line.Length;
+				}
+	
+				StringView argumentText = line.Substring(lBracketIndex + 1, rBracketIndex - lBracketIndex - 1);
+	
+				for (StringView argument in argumentText.Split(';'))
+				{
+					int equalsIndex = argument.IndexOf('=');
+	
+					StringView argumentName = .();
+					StringView argumentValue = .();
+	
+					if (equalsIndex == -1)
+					{
+						argumentName = argument;
+						argumentName.Trim();
+					}
+					else
+					{
+						argumentName = argument.Substring(0, equalsIndex);
+						argumentName.Trim();
+	
+						argumentValue = argument.Substring(equalsIndex + 1);
+						argumentValue.Trim();
+					}
+	
+					if (arguments.ContainsKey(argumentName))
+					{
+						Log.EngineLogger.Error($"Arguments \"{argumentName}\" already exists.");
+						continue;
+					}
+	
+					arguments.Add(argumentName, argumentValue);
+				}
+			}
+
+			return .Ok((startOfLine, endOfLine));
+		}
+
 		/**
 		 * Loads the effect file and extracts the names of the vertex- and pixel-shader.
 		 * @param filename The path of the effect file.
@@ -341,7 +376,7 @@ namespace GlitchyEngine.Renderer
 		 * @param outPsName The string that will receive the pixel shader entry point.
 		 * @param outVarDescs The dictionary that will contain the Variable descriptions.
 		 */
-		private static void ProcessFile(String filename, String fileContent, String outVsName, String outPsName, VariableDesc outVarDescs)
+		private static void ProcessFile(String filename, String fileContent, String outVsName, String outPsName, VariableDesc outVarDescs, Dictionary<String, String> outEngineBuffers)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -349,134 +384,108 @@ namespace GlitchyEngine.Renderer
 			// append line ending just in case the file doesn't end with one.
 			fileContent.Append('\n');
 
-			ProcessEditorVariables(filename, fileContent, outVarDescs);
-
-			int effectIndex = fileContent.IndexOf(effectKeyword, true);
-
-			Log.EngineLogger.Assert(effectIndex >= 0, "Could not find #effect preprocessor directive.");
-
-			int lineEndIndex = fileContent.IndexOf('\n', effectIndex + effectKeyword.Length);
-
-			// String containing the #effect directive
-			StringView effectDirective = fileContent.Substring(effectIndex, lineEndIndex - effectIndex);
-
-			int paramStartIndex = effectDirective.IndexOf('[');
-
-			Log.EngineLogger.Assert(paramStartIndex >= 0, "Expected '[' after \"#effect\"");
-
-			StringView effectToBracket = effectDirective.Substring(effectKeyword.Length, paramStartIndex - effectKeyword.Length);
-
-			// Make sure there is only whitespace between "#effect" and "["
-			Log.EngineLogger.Assert(effectToBracket.IsWhiteSpace, "Expected '[' after \"#effect\"");
-			
-			int paramEndIndex = effectDirective.IndexOf(']');
-
-			Log.EngineLogger.Assert(paramEndIndex >= 0, "Expected ']'");
-
-			StringView parameters = effectDirective.Substring(paramStartIndex + 1, paramEndIndex - paramStartIndex - 1);
-
-			for(StringView parameter in parameters.Split(','))
 			{
-				int indexOfEquals = parameter.IndexOf("=");
-
-				Log.EngineLogger.Assert(indexOfEquals >= 0, "Expected '='");
-
-				StringView paramName = parameter.Substring(0, indexOfEquals);
-				paramName.Trim();
-
-				StringView paramValue = parameter.Substring(indexOfEquals + 1);
-				paramValue.Trim();
-
-				switch(paramName)
+				Dictionary<StringView, StringView> arguments = scope .();
+	
+				int index = 0;
+	
+				while (true)
 				{
-				case "VS", "VertexShader":
-					outVsName.Append(paramValue);
-				case "PS", "PixelShader":
-					outPsName.Append(paramValue);
-				default:
-					Log.EngineLogger.Assert(false, scope $"Unknown parameter name \"{paramName}\".");
+					Result<(int Start, int End)> result = GetNextPreprocessor(fileContent, index, let name, arguments..Clear());
+	
+					if (result case .Err)
+						break;
+					else if (result case .Ok(let value))
+					{
+						index = value.End;
+
+						switch(name)
+						{
+						case "Effect":
+							for (let (argName, argValue) in arguments)
+							{
+								switch(argName)
+								{
+								case "VS", "VertexShader":
+									outVsName.Append(argValue);
+								case "PS", "PixelShader":
+									outPsName.Append(argValue);
+								default:
+									Log.EngineLogger.Assert(false, scope $"Unknown parameter name \"{name}\".");
+								}
+							}
+						case "EditorVariable":
+							ProcessEditorVariables(arguments, outVarDescs);
+						case "EngineBuffer":
+							ProcessEngineBuffer(arguments, outEngineBuffers);
+						default:
+							continue;
+						}
+
+						CommentLine(fileContent, value.Start);
+					}
 				}
 			}
-
-			// remove preprocessor directive from string so that the compiler wont try process it
-			CommentLine(fileContent, effectIndex);
 		}
 
-		private static void ProcessEditorVariables(StringView fileName, StringView code, VariableDesc outVarDescs)
+		private static void ProcessEngineBuffer(Dictionary<StringView, StringView> arguments, Dictionary<String, String> outEngineBuffers)
 		{
-			int index = 0;
+			String nameInEngine = null;
+			String nameInShader = null;
 
-			while(true)
+			for (var (argName, argValue) in arguments)
 			{
-				index = code.IndexOf("#EditorVariable", index);
-
-				if (index == -1)
-					break;
-				
-				CommentLine(code, index);
-
-				index = code.IndexOf('{', index);
-
-				Log.EngineLogger.AssertDebug(index != -1, "Missing '{'.");
-
-				index++;
-
-				int endIndex = code.IndexOf('}', index);
-				
-				Log.EngineLogger.AssertDebug(endIndex != -1, "Missing '}'.");
-
-				StringView variableInfo = StringView(code, index, endIndex - index);
-
-				Log.ClientLogger.Info($"Found variable: \"{variableInfo}\"");
-
-				Dictionary<String, Variant> parameters = new .();
-
-				String variableName = null;
-
-				for (StringView argument in variableInfo.Split(';', .RemoveEmptyEntries))
+				if (argValue.StartsWith('"') && argValue.EndsWith('"'))
 				{
-					int equalsIndex = argument.IndexOf('=');
+					argValue = argValue[1...^2];
+				}
+				switch (argName)
+				{
+				case "Name":
+					nameInShader = new String(argValue);
+				case "Binding":
+					nameInEngine = new String(argValue);
+				default:
+					Log.EngineLogger.Assert(false, scope $"Unknown parameter for EngineBuffer: \"{argName}\".");
+				}
+			}
 
-					if (equalsIndex == -1)
-					{
-						Log.EngineLogger.Error($"Missing value for Argument \"{argument..Trim()}\".");
-					}
-					else
-					{
-						StringView argName = argument.Substring(0, equalsIndex)..Trim();
-						StringView argValue = argument.Substring(equalsIndex + 1)..Trim();
+			Log.EngineLogger.AssertDebug(nameInEngine != null);
+			Log.EngineLogger.AssertDebug(nameInShader != null);
 
-						if (argValue.StartsWith('"') && argValue.EndsWith('"'))
-						{
-							argValue = argValue[1...^2];
-						}	
+			outEngineBuffers.Add(nameInEngine, nameInShader);
+		}
 
-						if (argName == "Name")
-							variableName = new String(argValue);
-						else
-						{
-							Variant value;
+		private static void ProcessEditorVariables(Dictionary<StringView, StringView> arguments, VariableDesc outVarDescs)
+		{
+			String variableName = null;
+			
+			Dictionary<String, Variant> parameters = new .();
 
-							if (argName == "Min" || argName == "Max")
-							{
-								value = ParseVariableValue(argValue);
-							}
-							else
-							{
-								value = Variant.Create(new String(argValue), true);
-							}
-
-							parameters.Add(new String(argName), value);
-						}
-					}
+			for (var (name, value) in arguments)
+			{
+				if (value.StartsWith('"') && value.EndsWith('"'))
+				{
+					value = value[1...^2];
 				}
 
-				Log.EngineLogger.AssertDebug(variableName != null, "Missing argument \"Name\" int variable description.");
-
-				outVarDescs.Add(variableName, parameters);
-
-				index = endIndex;
+				switch(name)
+				{
+				case "Name":
+					variableName = new String(value);
+				case "Min", "Max":
+					Variant paramValue = ParseVariableValue(value);
+					parameters.Add(new String(name), paramValue);
+				default:
+					Variant paramValue = Variant.Create(new String(value), true);
+					parameters.Add(new String(name), paramValue);
+				}
 			}
+			
+			Log.EngineLogger.AssertDebug(variableName != null, "Missing argument \"Name\" int variable description.");
+
+			outVarDescs.Add(variableName, parameters);
+
 		}
 
 		private static Variant ParseVariableValue(StringView valueString)
@@ -613,6 +622,9 @@ namespace GlitchyEngine.Renderer
 
 				internalIndex++;
 			}
+
+			SetReference!(_vs.[Friend]_buffers, _bufferCollection);
+			SetReference!(_ps.[Friend]_buffers, _bufferCollection);
 		}
 
 		private void MergeBufferVariables()
@@ -621,8 +633,16 @@ namespace GlitchyEngine.Renderer
 
 			_variables = new BufferVariableCollection(false);
 
-			for(let buffer in _bufferCollection)
+			outer: for(let buffer in _bufferCollection)
 			{
+				for (let eb in _engineBuffers)
+				{
+					if (eb.value == buffer.Name)
+					{
+						continue outer;
+					}
+				}
+
 				if(let cbuffer = buffer.Buffer as ConstantBuffer)
 				{
 					for(let variable in	cbuffer.Variables)

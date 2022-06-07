@@ -93,6 +93,19 @@ namespace GlitchyEngine.Renderer
 		static BlendState _lightBlend;
 		static DepthStencilState _fullscreenDepthState;
 
+		static Buffer _sceneBuffer;
+		static Buffer _objectBuffer;
+
+		[Ordered]
+		struct ObjectConstantsBuffer
+		{
+			public Matrix Transform;
+			public Matrix4x3 Transform_InvT;
+			public uint32 EntityId;
+
+			private Vector3 _padding;
+		}
+
 		public static void Init(GraphicsContext context, EffectLibrary effectLibrary)
 		{
 			Debug.Profiler.ProfileFunction!();
@@ -179,10 +192,19 @@ namespace GlitchyEngine.Renderer
 			DepthStencilStateDescription dsDesc = .Default;
 			dsDesc.DepthEnabled = false;
 			_fullscreenDepthState = new DepthStencilState(dsDesc);
+
+			BufferDescription sceneBufferDesc = .(sizeof(Matrix), .Constant, .Dynamic, .Write);
+			_sceneBuffer = new Buffer(sceneBufferDesc);
+
+			BufferDescription objectBufferDesc = .(sizeof(ObjectConstantsBuffer), .Constant, .Dynamic, .Write);
+			_objectBuffer = new Buffer(objectBufferDesc);
 		}
 
 		static void DeinitDeferredRenderer()
 		{
+			_objectBuffer.ReleaseRef();
+			_sceneBuffer.ReleaseRef();
+
 			_fullscreenDepthState.ReleaseRef();
 			_lightBlend.ReleaseRef();
 			_gBufferBlend.ReleaseRef();
@@ -192,6 +214,7 @@ namespace GlitchyEngine.Renderer
 			TestFullscreenEffect.ReleaseRef();
 		}
 
+		// [Obsolete("", false)]
 		public static void BeginScene(OldCamera camera)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -208,6 +231,8 @@ namespace GlitchyEngine.Renderer
 			_sceneConstants.CameraPosition = transform.Translation;
 			_sceneConstants.CameraTarget = renderTarget;
 			_sceneConstants.CompositionTarget = finalTarget;
+
+			_sceneBuffer.SetData<Matrix>(viewProjection);
 		}
 
 		public static void BeginScene(EditorCamera camera, RenderTargetGroup finalTarget)
@@ -219,6 +244,8 @@ namespace GlitchyEngine.Renderer
 			_sceneConstants.CameraPosition = camera.Position;
 			_sceneConstants.CameraTarget = camera.RenderTarget;
 			_sceneConstants.CompositionTarget = finalTarget;
+
+			_sceneBuffer.SetData<Matrix>(viewProjection, 0, .WriteDiscard);
 		}
 
 		public static int SortMeshes(SubmittedMesh left, SubmittedMesh right)
@@ -282,14 +309,27 @@ namespace GlitchyEngine.Renderer
 					{
 						Debug.Profiler.ProfileRendererScope!("SetVariables");
 
-						entry.Material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
+						ObjectConstantsBuffer objectData;
+						objectData.Transform = entry.Transform;
+
+						Matrix4x3 mat = Matrix4x3((Matrix3x3)(entry.Transform).Invert().Transpose());
+						objectData.Transform_InvT = mat;
+
+						objectData.EntityId = entry.EntityId;
+
+						_objectBuffer.SetData(objectData, 0, .WriteDiscard);
+
+						entry.Material.Effect.Buffers.TryReplaceBuffer("SceneConstants", _sceneBuffer);
+						entry.Material.Effect.Buffers.TryReplaceBuffer("ObjectConstants", _objectBuffer);
+
+						/*entry.Material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
 
 						entry.Material.SetVariable("Transform", entry.Transform);
 
 						entry.Material.SetVariable("EntityId", entry.EntityId);
 
 						Matrix3x3 mat = (Matrix3x3)(entry.Transform).Invert().Transpose();
-						entry.Material.SetVariable("Transform_InvT", mat);
+						entry.Material.SetVariable("Transform_InvT", mat);*/
 					}
 
 					entry.Material.Bind(_context);
