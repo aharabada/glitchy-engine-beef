@@ -185,23 +185,36 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
+		private void BindState()
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+			
+			BindInputLayout();
+
+			if (_hasVs)
+				NativeContext.VertexShader.SetConstantBuffers(0, _vsBuffers.Count, &_vsBuffers);
+
+			if (_hasPs)
+				NativeContext.PixelShader.SetConstantBuffers(0, _psBuffers.Count, &_psBuffers);
+		}
+
 		public override void Draw(uint32 vertexCount, uint32 startVertexIndex = 0)
 		{
-			BindInputLayout();
+			BindState();
 
 			NativeContext.Draw(vertexCount, startVertexIndex);
 		}
 
 		public override void DrawIndexed(uint32 indexCount, uint32 startIndexLocation = 0, int32 vertexOffset = 0)
 		{
-			BindInputLayout();
+			BindState();
 
 			NativeContext.DrawIndexed(indexCount, startIndexLocation, vertexOffset);
 		}
 
 		public override void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation)
 		{
-			BindInputLayout();
+			BindState();
 
 			NativeContext.DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
 		}
@@ -236,6 +249,12 @@ namespace GlitchyEngine.Renderer
 		private uint32 _vs_FirstTexture;
 		private uint32 _vs_BoundTextures;
 
+		private bool _hasPs;
+		private bool _hasVs;
+
+		private ID3D11Buffer*[DirectX.D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] _vsBuffers;
+		private ID3D11Buffer*[DirectX.D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] _psBuffers;
+
 		/**
 		 * Binds the given shader to the corresponding shader stage.
 		 * @param shader The shader that will be bound to the graphics context.
@@ -250,7 +269,7 @@ namespace GlitchyEngine.Renderer
 			ID3D11ShaderResourceView*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _textures = .();
 			ID3D11SamplerState*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _samplers = .();
 
-			for (let entry in shader.Textures)
+			for (let entry in shader?.Textures)
 			{
 				_textures[entry.Index] = entry.BoundTexture._nativeShaderResourceView;
 				_samplers[entry.Index] = entry.BoundTexture._nativeSamplerState;
@@ -263,51 +282,62 @@ namespace GlitchyEngine.Renderer
 			
 			shader.Buffers.PlatformFetchNativeBuffers();
 
-			//if (_textureCount > 0)
-			//{
-				switch (typeof(TShader))
+			switch (typeof(TShader))
+			{
+				// TODO: Add remaining shader stages
+			case typeof(PixelShader):
+				_hasPs = shader != null;
+
+				// TODO: bind uavs
+				if (_textureCount > 0)
 				{
-					// TODO: Add remaining shader stages
-				case typeof(PixelShader):
-					// TODO: bind uavs
-					if (_textureCount > 0)
-					{
-						NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
-						NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
-					}
-
-					_ps_FirstTexture = _firstTexture;
-					_ps_BoundTextures = _textureCount;
-
-					NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-
-					NativeContext.PixelShader.SetShader((ID3D11PixelShader*)shader.nativeShader);
-
-				case typeof(VertexShader):
-					if (_textureCount > 0)
-					{
-						NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
-						NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
-					}
-					
-					NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
-
-					NativeContext.VertexShader.SetShader((ID3D11VertexShader*)shader.nativeShader);
-
-					_vs_FirstTexture = _firstTexture;
-					_vs_BoundTextures = _textureCount;
-					
-					//if (VertexShader vs = shader as VertexShader)
-					[ConstSkip]
-					{
-						SetReference!(_currentVertexShader, shader);
-						_currentInputLayout?.Release();
-						_currentInputLayout = null;
-					}
-				default:
-					Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
+					NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+					NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
 				}
-			//}
+
+				_ps_FirstTexture = _firstTexture;
+				_ps_BoundTextures = _textureCount;
+
+				for (var buffer in shader?.Buffers)
+				{
+					_psBuffers[buffer.Index] = buffer.Buffer.nativeBuffer;
+				}
+
+				//NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+
+				NativeContext.PixelShader.SetShader((ID3D11PixelShader*)shader?.nativeShader);
+
+			case typeof(VertexShader):
+				_hasVs = shader != null;
+
+				if (_textureCount > 0)
+				{
+					NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+					NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+				}
+
+				for (var buffer in shader?.Buffers)
+				{
+					_vsBuffers[buffer.Index] = buffer.Buffer.nativeBuffer;
+				}
+
+				//NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+
+				NativeContext.VertexShader.SetShader((ID3D11VertexShader*)shader?.nativeShader);
+
+				_vs_FirstTexture = _firstTexture;
+				_vs_BoundTextures = _textureCount;
+				
+				//if (VertexShader vs = shader as VertexShader)
+				[ConstSkip]
+				{
+					SetReference!(_currentVertexShader, shader);
+					_currentInputLayout?.Release();
+					_currentInputLayout = null;
+				}
+			default:
+				Runtime.FatalError(scope $"Shader stage \"{typeof(TShader)}\" not implemented.");
+			}
 		}
 
 		public override void UnbindTextures()
@@ -326,6 +356,21 @@ namespace GlitchyEngine.Renderer
 		public override void SetPixelShader(PixelShader pixelShader)
 		{
 			BindShaderToStage(pixelShader);
+		}
+
+		public override void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage)
+		{
+			Debug.Assert((slot >= 0) && (slot < DirectX.D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT));
+
+			if (stage.HasFlag(.Vertex))
+			{
+				_vsBuffers[slot] = buffer.nativeBuffer;
+			}
+			
+			if (stage.HasFlag(.Pixel))
+			{
+				_psBuffers[slot] = buffer.nativeBuffer;
+			}
 		}
 	}
 }

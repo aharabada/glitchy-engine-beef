@@ -302,12 +302,13 @@ namespace GlitchyEngine.Renderer
 
 				RenderCommand.SetBlendState(_gBufferBlend);
 
+
 				for (SubmittedMesh entry in _queue)
 				{
 					Debug.Profiler.ProfileRendererScope!("Draw Mesh");
 
 					{
-						Debug.Profiler.ProfileRendererScope!("SetVariables");
+						Debug.Profiler.ProfileRendererScope!("Update object buffer");
 
 						ObjectConstantsBuffer objectData;
 						objectData.Transform = entry.Transform;
@@ -318,21 +319,12 @@ namespace GlitchyEngine.Renderer
 						objectData.EntityId = entry.EntityId;
 
 						_objectBuffer.SetData(objectData, 0, .WriteDiscard);
-
-						entry.Material.Effect.Buffers.TryReplaceBuffer("SceneConstants", _sceneBuffer);
-						entry.Material.Effect.Buffers.TryReplaceBuffer("ObjectConstants", _objectBuffer);
-
-						/*entry.Material.SetVariable("ViewProjection", _sceneConstants.ViewProjection);
-
-						entry.Material.SetVariable("Transform", entry.Transform);
-
-						entry.Material.SetVariable("EntityId", entry.EntityId);
-
-						Matrix3x3 mat = (Matrix3x3)(entry.Transform).Invert().Transpose();
-						entry.Material.SetVariable("Transform_InvT", mat);*/
 					}
 
 					entry.Material.Bind(_context);
+					
+					RenderCommand.BindConstantBuffer(_sceneBuffer, 0, .All);
+					RenderCommand.BindConstantBuffer(_objectBuffer, 1, .All);
 
 					entry.Mesh.Bind();
 					RenderCommand.DrawIndexed(entry.Mesh);

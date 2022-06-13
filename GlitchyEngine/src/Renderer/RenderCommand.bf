@@ -121,5 +121,10 @@ namespace GlitchyEngine.Renderer
 		{
 			_rendererAPI.UnbindTextures();
 		}
+
+		public static void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage)
+		{
+			_rendererAPI.BindConstantBuffer(buffer, slot, stage);
+		}
 	}
 }
