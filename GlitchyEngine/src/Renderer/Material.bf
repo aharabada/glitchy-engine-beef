@@ -76,7 +76,7 @@ namespace GlitchyEngine.Renderer
 
 			for(let (name, variable) in _variables)
 			{
-				variable.Variable.SetRawData(&RawPointer!<uint8>(variable.Offset));
+				variable.Variable.SetRawData(RawPointer!<uint8>(variable.Offset));
 			}
 
 			_effect.Bind(context);
@@ -102,7 +102,7 @@ namespace GlitchyEngine.Renderer
 
 		private mixin RawPointer<T>(uint32 offset)
 		{
-			*(T*)(&_rawVariables[offset])
+			(T*)(&_rawVariables[offset])
 		}
 
 		[Inline]
@@ -114,7 +114,7 @@ namespace GlitchyEngine.Renderer
 			{
 				entry.Variable.EnsureTypeMatch<T>();
 				
-				RawPointer!<T>(entry.Offset) = value;
+				*RawPointer!<T>(entry.Offset) = value;
 			}
 			else
 			{
@@ -149,7 +149,7 @@ namespace GlitchyEngine.Renderer
 				Log.EngineLogger.AssertDebug(entry.Variable._sizeInBytes == 44, "Made wrong assumption about the size of float3x3 in a hlsl constant-buffer.");
 
 #unwarn
-				RawPointer!<float[11]>(entry.Offset) = *(float[11]*)&Matrix4x3(value);
+				*RawPointer!<float[11]>(entry.Offset) = *(float[11]*)&Matrix4x3(value);
 			}
 			else
 			{
@@ -167,7 +167,7 @@ namespace GlitchyEngine.Renderer
 
 				for(int i < count)
 				{
-					(&RawPointer!<Matrix4x3>(entry.Offset))[i] = Matrix4x3(values[i]);
+					(RawPointer!<Matrix4x3>(entry.Offset))[i] = Matrix4x3(values[i]);
 				}
 			}
 			else
@@ -185,7 +185,7 @@ namespace GlitchyEngine.Renderer
 			{
 				entry.Variable.EnsureTypeMatch<Matrix>();
 
-				Internal.MemCpy(&RawPointer!<Matrix>(entry.Offset), values.Ptr, sizeof(Matrix) * Math.Min(values.Count, entry.Variable._elements));
+				Internal.MemCpy(RawPointer!<Matrix>(entry.Offset), values.Ptr, sizeof(Matrix) * Math.Min(values.Count, entry.Variable._elements));
 			}
 			else
 			{
@@ -215,7 +215,7 @@ namespace GlitchyEngine.Renderer
 			{
 				entry.Variable.EnsureTypeMatch<T>();
 				
-				value = RawPointer!<T>(entry.Offset);
+				value = *RawPointer!<T>(entry.Offset);
 			}
 			else
 			{
