@@ -9,8 +9,8 @@ namespace GlitchyEngine.Renderer
 		public extern bool IsEmpty { get; }
 
 		public extern void AddRef();
-		public extern void ReleaseRef();
+		public extern void Release();
 
-		public void Dispose() => ReleaseRef();
+		public void Dispose() => Release();
 	}
 }

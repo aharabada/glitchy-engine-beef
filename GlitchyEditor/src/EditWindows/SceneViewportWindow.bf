@@ -35,11 +35,13 @@ namespace GlitchyEditor.EditWindows
 			_editor = editor;
 		}
 
-		private ImGui.Vec2 oldViewportSize;
+		private ImGui.Vec2 oldViewportSize = .(100, 100);
 		private bool viewPortChanged;
 
 		public uint32 SelectedEntityId;
 		public bool SelectionChanged;
+
+		public Vector2 ViewportSize => (Vector2)oldViewportSize;
 
 		protected override void InternalShow()
 		{
@@ -87,6 +89,21 @@ namespace GlitchyEditor.EditWindows
 				ImGui.Image(_renderTarget.GetViewBinding(0), viewportSize);
 				//ImGui.Image(_editor.CurrentCamera.RenderTarget.GetViewBinding(0), viewportSize);
 				//ImGui.Image(_editor.CurrentScene.[Friend]_compositeTarget.GetViewBinding(0), viewportSize);
+			}
+			
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					Log.EngineLogger.Warning("");
+
+					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+					_editor.RequestOpenScene(this, path);
+				}
+
+				ImGui.EndDragDropTarget();
 			}
 
 			bool gizmoUsed = DrawImGuizmo(viewportSize);

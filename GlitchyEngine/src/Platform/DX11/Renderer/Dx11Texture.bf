@@ -146,7 +146,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		// TODO: Update Texture Arrays!
-		protected override System.Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
+		protected override Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
 			uint32 destY, uint32 destWidth, uint32 destHeight, uint32 arraySlice, uint32 mipLevel, GlitchyEngine.Renderer.MapType mapType)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
@@ -259,7 +259,7 @@ namespace GlitchyEngine.Renderer
 
 		protected override TextureViewBinding PlatformGetViewBinding()
 		{
-			return .(_nativeResourceView, _samplerState.nativeSamplerState);
+			return .(_nativeResourceView, _samplerState?.nativeSamplerState);
 		}
 	}
 

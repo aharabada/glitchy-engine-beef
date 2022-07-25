@@ -1,6 +1,7 @@
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using System;
+using GlitchyEngine;
 
 namespace ImGui
 {
@@ -34,12 +35,34 @@ namespace ImGui
 			Image(texture.GetViewBinding(), size, uv0, uv1, tint_col, border_col);
 		}
 
+		public static void Image(SubTexture2D subTexture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero)
+		{
+			if (uv0 != .Zero || uv1 != .Ones)
+				Runtime.NotImplemented();
+
+			Vector2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
+
+			Image(subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, tint_col, border_col);
+		}
+
 		public static void Image(RenderTarget2D texture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero)
 		{
 			Image(texture.GetViewBinding(), size, uv0, uv1, tint_col, border_col);
 		}
 
 		public static extern void Image(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero);
+
+		public static bool ImageButton(SubTexture2D subTexture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, int32 frame_padding = -1, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
+		{
+			if (uv0 != .Zero || uv1 != .Ones)
+				Runtime.NotImplemented();
+
+			Vector2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
+
+			return ImageButton(subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, frame_padding, bg_col, tint_col);
+		}
+
+		public static extern bool ImageButton(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, int32 frame_padding = -1, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones);
 
 		public static void TextUnformatted(StringView text) => TextUnformattedImpl(text.Ptr, text.Ptr + text.Length);
 		

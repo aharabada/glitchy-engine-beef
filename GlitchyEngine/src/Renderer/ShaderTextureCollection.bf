@@ -31,7 +31,7 @@ namespace GlitchyEngine.Renderer
 			for(let entry in entries)
 			{
 				delete entry.Name;
-				entry.BoundTexture.ReleaseRef();
+				entry.BoundTexture.Release();
 			}
 
 			delete entries;

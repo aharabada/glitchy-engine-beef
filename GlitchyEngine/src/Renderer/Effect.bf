@@ -63,13 +63,20 @@ namespace GlitchyEngine.Renderer
 				name = scope:: String();
 				Path.GetFileNameWithoutExtension(filepath, name);
 			}
-			
-			Log.EngineLogger.AssertDebug(!Exists(name), "Can't add two effects with the same name to library.");
 
-			Effect effect = new Effect(filepath, name);
-			Add(effect);
+			if (Exists(name))
+			{
+				return Get(name);
+			}
+			else
+			{
+				Log.EngineLogger.AssertDebug(!Exists(name), "Can't add two effects with the same name to library.");
 
-			return effect;
+				Effect effect = new Effect(filepath, name);
+				Add(effect);
+
+				return effect;
+			}
 		}
 
 		/**
@@ -182,7 +189,7 @@ namespace GlitchyEngine.Renderer
 
 			for(let entry in _textures)
 			{
-				entry.value.BoundTexture.ReleaseRef();
+				entry.value.BoundTexture.Release();
 			}
 		}
 
@@ -192,7 +199,7 @@ namespace GlitchyEngine.Renderer
 
 			ref TextureEntry entry = ref _textures[name];
 
-			entry.BoundTexture.ReleaseRef();
+			entry.BoundTexture.Release();
 			entry.BoundTexture = texture.GetViewBinding();
 		}
 		
@@ -205,7 +212,7 @@ namespace GlitchyEngine.Renderer
 
 			ref TextureEntry entry = ref _textures[name];
 
-			entry.BoundTexture.ReleaseRef();
+			entry.BoundTexture.Release();
 			//entry.BoundTexture = .RenderTargetGroup(renderTargetGroup..AddRef(), firstTarget, targetCount);
 			entry.BoundTexture = renderTargetGroup.GetViewBinding(firstTarget);
 		}
@@ -216,7 +223,7 @@ namespace GlitchyEngine.Renderer
 
 			ref TextureEntry entry = ref _textures[name];
 
-			entry.BoundTexture.ReleaseRef();
+			entry.BoundTexture.Release();
 			entry.BoundTexture = textureViewBinding..AddRef();
 		}
 
@@ -226,11 +233,11 @@ namespace GlitchyEngine.Renderer
 
 			for(let (name, entry) in _textures)
 			{
-				entry.VsSlot?.BoundTexture.ReleaseRef();
+				entry.VsSlot?.BoundTexture.Release();
 				entry.VsSlot?.BoundTexture = entry.BoundTexture;
 				entry.VsSlot?.BoundTexture.AddRef();
 				
-				entry.PsSlot?.BoundTexture.ReleaseRef();
+				entry.PsSlot?.BoundTexture.Release();
 				entry.PsSlot?.BoundTexture = entry.BoundTexture;
 				entry.PsSlot?.BoundTexture.AddRef();
 			}

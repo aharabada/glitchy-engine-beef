@@ -50,9 +50,11 @@ namespace GlitchyEditor
 
 		EditorCamera _camera ~ _.Dispose();
 
-		Texture2D _editorIcons ~ _.ReleaseRef();
+		/*Texture2D _editorIcons ~ _.ReleaseRef();
 		SubTexture2D _iconDirectionalLight ~ _.ReleaseRef();
-		SubTexture2D _iconCamera ~ _.ReleaseRef();
+		SubTexture2D _iconCamera ~ _.ReleaseRef();*/
+
+		EditorIcons _editorIcons ~ _.ReleaseRef();
 
 		public this() : base("Example")
 		{
@@ -62,10 +64,10 @@ namespace GlitchyEditor
 
 			_camera = EditorCamera(Vector3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
 			_camera.RenderTarget = _cameraTarget;
+			
+			InitEditor();
 
 			NewScene();
-
-			InitEditor();
 		}
 
 		private void InitGraphics()
@@ -104,10 +106,16 @@ namespace GlitchyEditor
 						.(.R8G8B8A8_UNorm))
 				});
 
-			_editorIcons = new Texture2D("Textures/EditorIcons.dds");
+			_editorIcons = new EditorIcons("Textures/EditorIcons.dds", .(64, 64));
+			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;
+
+			ContentBrowserWindow.s_FolderTexture = _editorIcons.Folder;
+			ContentBrowserWindow.s_FileTexture = _editorIcons.File;
+
+			/*_editorIcons = new Texture2D("Textures/EditorIcons.dds");
 			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;
 			_iconDirectionalLight = .CreateFromGrid(_editorIcons, .(0, 0), .(64, 64));
-			_iconCamera = .CreateFromGrid(_editorIcons, .(1, 0), .(64, 64));
+			_iconCamera = .CreateFromGrid(_editorIcons, .(1, 0), .(64, 64));*/
 		}
 
 		private void InitEditor()
@@ -115,6 +123,10 @@ namespace GlitchyEditor
 			_editor = new Editor(_scene);
 			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
 			_editor.CurrentCamera = &_camera;
+
+			_editor.RequestOpenScene.Add(new (s, fileName) => {
+			  LoadSceneFile(fileName);
+			});
 		}
 		
 		public override void Update(GameTime gameTime)
@@ -178,7 +190,7 @@ namespace GlitchyEditor
 				Matrix world = Billboard(transform.WorldTransform);
 				
 				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
-				Renderer2D.DrawQuad(world, _iconCamera, ColorRGBA(alpha, alpha, alpha, alpha), .(0, 0, 1, 1), entity.Index);
+				Renderer2D.DrawQuad(world, _editorIcons.Camera, ColorRGBA(alpha, alpha, alpha, alpha), .(0, 0, 1, 1), entity.Index);
 				//Renderer2D.DrawQuad(world, _iconCamera, .White, .(0, 0, 1, 1), entity.Index);
 			}
 
@@ -199,7 +211,7 @@ namespace GlitchyEditor
 				Matrix world = Billboard(transform.WorldTransform);
 				
 				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
-				Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color.R * alpha, light.SceneLight.Color.G * alpha, light.SceneLight.Color.B * alpha, alpha), .(0, 0, 1, 1), entity.Index);
+				Renderer2D.DrawQuad(world, _editorIcons.DirectionalLight, ColorRGBA(light.SceneLight.Color.R * alpha, light.SceneLight.Color.G * alpha, light.SceneLight.Color.B * alpha, alpha), .(0, 0, 1, 1), entity.Index);
 				//Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color, alpha), .(0, 0, 1, 1), entity.Index);
 			}
 		}
@@ -366,6 +378,12 @@ namespace GlitchyEditor
 		private void NewScene()
 		{
 			SceneFilePath = null;
+			
+			delete _scene;
+			_scene = new Scene();
+			_editor.CurrentScene = _scene;
+			var vpSize = _editor.SceneViewportWindow.ViewportSize;
+			_scene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
 
 			_camera.Position = .(-1.5f, 1.5f, -2.5f);
 			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
@@ -421,17 +439,24 @@ namespace GlitchyEditor
 			{
 				if (val == .OK)
 				{
-					SceneFilePath = ofd.FileNames[0];
-
-					delete _scene;
-					_scene = new Scene();
-
-					SceneSerializer serializer = scope .(_scene);
-					serializer.Deserialize(SceneFilePath);
-
-					_editor.CurrentScene = _scene;
+					LoadSceneFile(ofd.FileNames[0]);
 				}
 			}
+		}
+
+		/// Loads the given scene file.
+		private void LoadSceneFile(StringView filename)
+		{
+			SceneFilePath = scope String(filename);
+
+			delete _scene;
+			_scene = new Scene();
+			_editor.CurrentScene = _scene;
+			var vpSize = _editor.SceneViewportWindow.ViewportSize;
+			_scene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
+
+			SceneSerializer serializer = scope .(_scene);
+			serializer.Deserialize(SceneFilePath);
 		}
 
 		private void DrawMainMenuBar()

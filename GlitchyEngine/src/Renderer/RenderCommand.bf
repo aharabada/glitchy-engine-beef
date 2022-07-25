@@ -34,7 +34,9 @@ namespace GlitchyEngine.Renderer
 			_rendererAPI.Init();
 		}
 
-		[Inline]
+		// REPORT!!!!!!!!!
+		// Inline doesn't compile
+		//[Inline]
 		public static void Clear(RenderTarget2D renderTarget, ColorRGBA color)
 		{
 			_rendererAPI.Clear(renderTarget, color);

@@ -19,7 +19,19 @@ namespace ImGui
 
 			ImGui.Image(view, size, uv0, uv1, tint_col, border_col);
 
-			textureViewBinding.ReleaseRef();
+			textureViewBinding.Release();
+		}
+
+		public static override bool ImageButton(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, int32 frame_padding = -1, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
+		{
+			var view = textureViewBinding._nativeShaderResourceView..AddRef();
+			_resourceViews.Add(view);
+
+			bool pressed = ImGui.ImageButton(view, size, uv0, uv1, frame_padding, bg_col, tint_col);
+
+			textureViewBinding.Release();
+
+			return pressed;
 		}
 
 		protected internal static override void CleanupFrame()

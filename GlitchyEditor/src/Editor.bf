@@ -15,10 +15,12 @@ namespace GlitchyEditor
 		private EntityHierarchyWindow _entityHierarchyWindow ~ delete _;
 		private ComponentEditWindow _componentEditWindow ~ delete _;
 		private SceneViewportWindow _sceneViewportWindow = new .(this) ~ delete _;
+		private ContentBrowserWindow _contentBrowserWindow = new .() ~ delete _;
 
 		public EntityHierarchyWindow EntityHierarchyWindow => _entityHierarchyWindow;
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
 		public SceneViewportWindow SceneViewportWindow => _sceneViewportWindow;
+		public ContentBrowserWindow ContentBrowserWindow => _contentBrowserWindow;
 
 		public Scene CurrentScene
 		{
@@ -31,6 +33,8 @@ namespace GlitchyEditor
 		}
 
 		public EditorCamera* CurrentCamera { get; set; }
+
+		public Event<EventHandler<StringView>> RequestOpenScene ~ _.Dispose();
 
 		/// Creates a new editor for the given world
 		public this(Scene scene)
@@ -46,6 +50,7 @@ namespace GlitchyEditor
 			_entityHierarchyWindow.Show();
 			_componentEditWindow.Show();
 			_sceneViewportWindow.Show();
+			_contentBrowserWindow.Show();
 		}
 	}
 }

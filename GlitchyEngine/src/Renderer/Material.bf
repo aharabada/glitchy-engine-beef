@@ -40,7 +40,7 @@ namespace GlitchyEngine.Renderer
 		{
 			for(let (name, texture) in _textures)
 			{
-				texture.ReleaseRef();
+				texture.Release();
 			}
 
 			delete _textures;
@@ -90,7 +90,7 @@ namespace GlitchyEngine.Renderer
 		{
 			if(_textures.TryGetValue(name, var entry))
 			{
-				entry.ReleaseRef();
+				entry.Release();
 				_textures[name] = texture.GetViewBinding();
 				//texture?.AddRef();
 			}

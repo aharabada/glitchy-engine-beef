@@ -4,7 +4,7 @@ using System;
 namespace GlitchyEngine.Math
 {
 	[BonTarget]
-	[SwizzleVector(4, "Vector")]
+	[SwizzleVector(4, "GlitchyEngine.Math.Vector")]
 	public struct Vector4
 	{
 		public const Vector4 Zero 	= .(0f, 0f, 0f, 0f);

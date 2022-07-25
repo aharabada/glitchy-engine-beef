@@ -45,4 +45,26 @@ namespace GlitchyEngine.Collections
 			return null;
 		}
 	}
+
+	static
+	{
+		public static mixin DeleteTreeAndChildren<T>(TreeNode<T> tree) where T : class, delete
+		{
+			InternalDeleteTreeAndChildren(tree);
+		}
+
+		private static void InternalDeleteTreeAndChildren<T>(TreeNode<T> tree) where T : class, delete
+		{
+			for (var child in tree.Children)
+			{
+				InternalDeleteTreeAndChildren(child);
+			}
+
+			delete tree.Value;
+
+			tree.Children.Clear();
+
+			delete tree;
+		}
+	}
 }

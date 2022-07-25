@@ -33,13 +33,13 @@ namespace GlitchyEngine.World
 
 		public this()
 		{
-			Entity entity = CreateEntity("Green Quad");
+			/*Entity entity = CreateEntity("Green Quad");
 			entity.AddComponent<SpriterRendererComponent>(.(ColorRGBA.SRgbToLinear(.(0.2f, 0.9f, 0.15f))));
 
 			Entity entity2 = CreateEntity("Red Square");
 			var v = entity2.AddComponent<SpriterRendererComponent>(.(ColorRGBA.SRgbToLinear(.(0.95f, 0.1f, 0.3f))));
 			v.Sprite = new Texture2D("Textures/rocket.dds");
-			v.Sprite.SamplerState = SamplerStateManager.PointClamp;
+			v.Sprite.SamplerState = SamplerStateManager.PointClamp;*/
 
 			_onComponentAddedHandlers.Add(typeof(CameraComponent), (e, t, c) => {
 				CameraComponent* cameraComponent = (.)c;

@@ -24,7 +24,7 @@ namespace GlitchyEngine.Renderer
 			_nativeSamplerState?.AddRef();
 		}
 
-		public override void ReleaseRef()
+		public override void Release()
 		{
 			_nativeShaderResourceView?.Release();
 			_nativeSamplerState?.Release();
