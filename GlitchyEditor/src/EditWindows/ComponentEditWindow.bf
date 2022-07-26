@@ -250,6 +250,30 @@ namespace GlitchyEditor.EditWindows
 			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(spriteRendererComponent.Color);
 			if (ImGui.ColorEdit4("Color", ref spriteColor))
 				spriteRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
+
+			ImGui.Button("Texture");
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					Log.EngineLogger.Warning("");
+
+					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+					Texture2D texture = new Texture2D(path, true);
+
+					spriteRendererComponent.Sprite?.ReleaseRef();
+					spriteRendererComponent.Sprite = texture;
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+
+
+			ImGui.EditVector<4>("UV Transform", ref *(float[4]*)&spriteRendererComponent.UvTransform);
 		}
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)

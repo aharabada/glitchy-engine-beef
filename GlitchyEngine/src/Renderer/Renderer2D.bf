@@ -873,7 +873,7 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawSprite(Matrix transform, SpriterRendererComponent* spriteRenderer, uint32 entityId)
 		{
-			DrawQuad(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, .(0, 0, 1, 1), entityId);
+			DrawQuad(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, spriteRenderer.UvTransform, entityId);
 		}
 
 		// Textured quad pivot

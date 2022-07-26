@@ -30,6 +30,7 @@ namespace GlitchyEngine.World
 	{
 		public Texture2D Sprite = null;
 		public ColorRGBA Color = .White;
+		public Vector4 UvTransform = .(0, 0, 1, 1);
 
 		public this()
 		{
