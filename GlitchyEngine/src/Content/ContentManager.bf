@@ -47,11 +47,13 @@ namespace GlitchyEngine.Content
 		{
 			Path.InternalCombine(outFilename, _contentRoot, filename);
 		}
-
+		
 		public Stream GetFile(String filename)
 		{
 			String fullpath = scope .(_contentRoot.Length + 1 + filename.Length);
 			GetFilePath(fullpath, filename);
+
+			Log.EngineLogger.AssertDebug(File.Exists(fullpath), "File doesn't exist!");
 
 			FileStream stream = new FileStream();
 			var result = stream.Open(fullpath, .Read, .Read);

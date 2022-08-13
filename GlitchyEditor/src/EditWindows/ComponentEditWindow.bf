@@ -299,7 +299,28 @@ namespace GlitchyEditor.EditWindows
 
 			for (let texture in effect.Textures)
 			{
-				ImGui.Text(texture.key);
+				//ImGui.Text(texture.key);
+				ImGui.Button(texture.key);
+
+				if (ImGui.BeginDragDropTarget())
+				{
+					ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+					if (payload != null)
+					{
+						Log.EngineLogger.Warning("");
+
+						StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+						using (Texture2D newTexture = new Texture2D(path, true))
+						{
+							newTexture.SamplerState = SamplerStateManager.AnisotropicWrap;
+							material.SetTexture(texture.key, newTexture);
+						}
+					}
+
+					ImGui.EndDragDropTarget();
+				}
 			}
 
 			for (let (name, arguments) in effect.[Friend]_variableDescriptions)

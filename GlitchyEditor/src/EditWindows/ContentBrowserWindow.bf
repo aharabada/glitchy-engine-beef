@@ -242,7 +242,11 @@ namespace GlitchyEditor.EditWindows
 			if (ImGui.BeginDragDropSource())
 			{
 				String fullpath = scope $"{_currentDirectory}{Path.DirectorySeparatorChar}{entry.Name}";
-				
+
+				// TODO: this is dirty
+				if (fullpath.StartsWith(ContentDirectory, .OrdinalIgnoreCase))
+					fullpath.Remove(0, ContentDirectory.Length);
+
 				ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", fullpath.CStr(), (.)fullpath.Length, .Once);
 
 				ImGui.EndDragDropSource();
