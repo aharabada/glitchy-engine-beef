@@ -1,3 +1,5 @@
+#include "ACES.hlsl"
+
 Texture2D CameraTarget : register(t0);
 SamplerState CameraTargetSampler : register(s0);
 
@@ -27,7 +29,9 @@ float4 PS(PS_IN input) : SV_TARGET
 {
 	float4 rawColor = CameraTarget.Sample(CameraTargetSampler, input.TexCoord);
 
-	float3 color = rawColor.rgb / (rawColor.rgb + 1.0f);
+	// float3 color = rawColor.rgb / (rawColor.rgb + 1.0f);
+
+	float3 color = ACESFitted(rawColor.rgb);
 	
 	return float4(color, 1);
 }
