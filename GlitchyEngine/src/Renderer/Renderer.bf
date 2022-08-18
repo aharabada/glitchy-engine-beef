@@ -96,13 +96,13 @@ namespace GlitchyEngine.Renderer
 		static Buffer _sceneBuffer;
 		static Buffer _objectBuffer;
 
-		[Ordered]
+		[Ordered, CRepr]
 		struct ObjectConstantsBuffer
 		{
 			public Matrix Transform;
 			public Matrix4x3 Transform_InvT;
+			
 			public uint32 EntityId;
-
 			private Vector3 _padding;
 		}
 
@@ -310,7 +310,7 @@ namespace GlitchyEngine.Renderer
 					{
 						Debug.Profiler.ProfileRendererScope!("Update object buffer");
 
-						ObjectConstantsBuffer objectData;
+						ObjectConstantsBuffer objectData = ?;
 						objectData.Transform = entry.Transform;
 
 						Matrix4x3 mat = Matrix4x3((Matrix3x3)(entry.Transform).Invert().Transpose());

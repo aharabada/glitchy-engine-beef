@@ -31,7 +31,7 @@ cbuffer ObjectConstants : register(b1)
      * \brief Inverted and transposed transform matrix.
      * \remarks This matrix is used in order to correctly transform normal vectors.
      */
-    float3x3 Transform_InvT;
+    float4x3 Transform_InvT;
 #ifdef OutputEntityId
     uint EntityId;
 #endif
