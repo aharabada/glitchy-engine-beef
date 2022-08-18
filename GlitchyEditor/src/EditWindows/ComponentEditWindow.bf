@@ -61,7 +61,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<CameraComponent>("Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
 			ShowComponentEditor<SpriterRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriterRendererComponent>);
 			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
-			ShowComponentEditor<LightComponent>("Mesh Renderer", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
+			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
 
 			ShowAddComponentButton(entity);
 		}
