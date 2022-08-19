@@ -3,6 +3,7 @@ using FreeType;
 using System.Diagnostics;
 using GlitchyEngine.Math;
 using System.Collections;
+using GlitchyEngine.Core;
 using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
@@ -61,7 +62,7 @@ namespace GlitchyEngine.Renderer.Text
 			FreeType.Done_FreeType(s_Library);
 		}
 
-		public class PreparedText : RefCounted
+		public class PreparedText : RefCounter
 		{
 			//public List<PreparedLine> Lines ~ ClearAndDeleteItems!(_);
 			public Font Font ~ _?.ReleaseRef();
