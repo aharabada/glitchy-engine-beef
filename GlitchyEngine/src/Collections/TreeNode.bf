@@ -44,6 +44,11 @@ namespace GlitchyEngine.Collections
 
 			return null;
 		}
+
+		public static ref T operator ->(TreeNode<T> node)
+		{
+			return ref node.Value;
+		}
 	}
 
 	static
