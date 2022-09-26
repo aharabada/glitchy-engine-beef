@@ -56,10 +56,15 @@ namespace GlitchyEditor.EditWindows
 
 			ShowMenuBar();
 
+			var viewportSize = ImGui.GetContentRegionAvail();
+
 			if(ImGui.IsWindowHovered() && Input.IsMouseButtonPressing(.RightButton))
 			{
 				var currentWindow = ImGui.GetCurrentWindow();
 				ImGui.FocusWindow(currentWindow);
+
+				if (_editor.CurrentCamera.[Friend]BindMouse)
+					WrapMouseInViewport();
 			}
 
 			_hasFocus = ImGui.IsWindowFocused();
@@ -78,11 +83,6 @@ namespace GlitchyEditor.EditWindows
 				if (Input.IsKeyPressing(.L))
 					_gizmoMode = .LOCAL;
 			}
-
-			var viewportSize = ImGui.GetContentRegionAvail();
-
-			if (_editor.CurrentCamera.[Friend]BindMouse)
-				WrapMouseInViewport();
 
 			if(_renderTarget != null)
 			{
