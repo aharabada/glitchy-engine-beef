@@ -5,6 +5,7 @@ using GlitchyEngine.Math;
 using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine;
+using GlitchyEngine.Content;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -62,6 +63,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<SpriterRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriterRendererComponent>);
 			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
 			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
+			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
 
 			ShowAddComponentButton(entity);
 		}
@@ -459,6 +461,47 @@ namespace GlitchyEditor.EditWindows
 			float illuminance = light.Illuminance;
 			if (ImGui.DragFloat("##Illuminance", &illuminance, 0.1f, 0.0f, float.MaxValue))
 				light.Illuminance = illuminance;
+		}
+
+		private static void ShowMeshComponentEditor(Entity entity, MeshComponent* meshComponent)
+		{
+			ImGui.Button("Drag Mesh here!");
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
+
+					int idx = fullpath.IndexOf('#');
+
+					if (idx == -1)
+					{
+						// Doesn't make sense here, we NEED a sub asset
+						Runtime.NotImplemented();
+					}
+
+					StringView filePath = fullpath.Substring(0, idx);
+					StringView meshName = fullpath.Substring(idx + 1);
+
+					// TODO: support multiple primitives (treat every primitive as a single mesh?)
+					using (GeometryBinding binding = ModelLoader.LoadMesh(filePath, meshName, 0))
+					{
+						meshComponent.Mesh = binding;
+					}
+
+					//ModelLoader.LoadModel(scope .(path), )
+
+					/*using (Texture2D newTexture = new Texture2D(path, true))
+					{
+						newTexture.SamplerState = SamplerStateManager.AnisotropicWrap;
+						material.SetTexture(texture.key, newTexture);
+					}*/
+				}
+
+				ImGui.EndDragDropTarget();
+			}
 		}
 
 		private static void ShowAddComponentButton(Entity entity)

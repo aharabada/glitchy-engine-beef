@@ -12,13 +12,67 @@ namespace GlitchyEngine.Content
 	{
 		static readonly Matrix RightToLeftHand = .Scaling(1, 1, -1);
 
+		public static Result<void> GetMeshNames(String filename, List<String> meshNames)
+		{
+			CGLTF.Options options = .();
+			CGLTF.Data* data;
+			CGLTF.Result result = CGLTF.ParseFile(options, filename, out data);
+
+			if (!(result case .Success))
+				return .Err;
+
+			for (var mesh in data.Meshes)
+			{
+				meshNames.Add(new String(mesh.Name));
+			}
+
+			CGLTF.Free(data);
+
+			return .Ok;
+		}
+
+		public static GeometryBinding LoadMesh(StringView fileName, StringView meshName, int primitiveIndex)
+		{
+			// TODO: add a context to remember which buffers were loaded before so that we don't load the same data multiple times.
+
+			char8* scopedFileName = fileName.ToScopeCStr!();
+
+			CGLTF.Options options = .();
+			CGLTF.Data* data;
+			CGLTF.Result result = CGLTF.ParseFile(options, scopedFileName, out data);
+
+			if (!(result case .Success))
+				return null;
+
+			result = CGLTF.LoadBuffers(options, data, scopedFileName);
+
+			GeometryBinding geoBinding = null;
+
+			for (var mesh in data.Meshes)
+			{
+				var name = StringView(mesh.Name);
+
+				if (name == meshName)
+				{
+					Log.EngineLogger.AssertDebug(primitiveIndex >= 0 && primitiveIndex < mesh.Primitives.Length);
+
+					geoBinding = PrimitiveToGeoBinding(mesh.Primitives[primitiveIndex]);
+					break;
+				}
+			}
+
+			CGLTF.Free(data);
+
+			return geoBinding;
+		}
+
 		public static EcsEntity LoadModel(String filename, Material material, EcsWorld world,
 			List<AnimationClip> outClips, StringView entityName = StringView())
 		{
 			CGLTF.Options options = .();
 			CGLTF.Data* data;
 			CGLTF.Result result = CGLTF.ParseFile(options, filename, out data);
-			
+
 			Log.EngineLogger.Assert(result == .Success, "Failed to load model.");
 
 			result = CGLTF.LoadBuffers(options, data, filename);

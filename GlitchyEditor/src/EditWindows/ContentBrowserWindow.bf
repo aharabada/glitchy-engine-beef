@@ -8,68 +8,36 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEditor.EditWindows
 {
+	using internal GlitchyEditor.EditorContentManager;
+
 	class ContentBrowserWindow : EditorWindow
 	{
 		// TODO: Get from project
 		const String ContentDirectory  = "./content";
 
-		FileSystemWatcher fsw ~ {
-			_.StopRaisingEvents();
-			delete _;
-		};
-
-		private String _currentDirectory ~ delete _;
+		//private String _currentDirectory ~ delete _;
+		private TreeNode<EditorContentManager.AssetNode> _currentDirectoryNode;
 
 		public static SubTexture2D s_FolderTexture;
 		public static SubTexture2D s_FileTexture;
 
+		public EditorContentManager _manager ~ delete _;
+
 		public this()
 		{
-			fsw = new FileSystemWatcher(ContentDirectory);
-			fsw.IncludeSubdirectories = true;
-
-			fsw.OnChanged.Add(new (filename) => {
-				_fileSystemDirty = true;
-				_currentDirectoryDirty = true;
-			});
-			
-			fsw.OnCreated.Add(new (filename) => {
-				_fileSystemDirty = true;
-				_currentDirectoryDirty = true;
-			});
-			
-			fsw.OnDeleted.Add(new (filename) => {
-				_fileSystemDirty = true;
-				_currentDirectoryDirty = true;
-			});
-			
-			fsw.OnRenamed.Add(new (newName, oldName) => {
-				_fileSystemDirty = true;
-				_currentDirectoryDirty = true;
-			});
-
-			fsw.StartRaisingEvents();
-
+			_manager = new EditorContentManager();
 		}
 
 		protected override void InternalShow()
 		{
+			_manager.Update();
+
+			_currentDirectoryNode ??= _manager._assetHierarchy;
+
 			if(!ImGui.Begin("Content Browser", &_open, .None))
 			{
 				ImGui.End();
 				return;
-			}
-
-			if (_fileSystemDirty)
-			{
-				BuildDirectoryTree();
-
-				_fileSystemDirty = false;
-			}
-
-			if (_currentDirectoryDirty)
-			{
-				BuildCurrentDirectory();
 			}
 
 			ImGui.Columns(2);
@@ -85,101 +53,27 @@ namespace GlitchyEditor.EditWindows
 			ImGui.End();
 		}
 
-		private bool _fileSystemDirty = true;
-		private bool _currentDirectoryDirty = true;
-
-		class DirectoryNode
-		{
-			public String Name ~ delete _;
-			public String Path ~ delete _;
-		}
-
-		TreeNode<DirectoryNode> directoryNames = new TreeNode<DirectoryNode>() ~ DeleteTreeAndChildren!(_);
-
-		class Entry
-		{
-			public String Name ~ delete _;
-			public bool IsDirectory;
-		}
-
-		List<Entry> _currentDirContent = new .() ~ DeleteContainerAndItems!(_);
-
-		private void BuildDirectoryTree()
-		{
-			DeleteTreeAndChildren!(directoryNames);
-			directoryNames = new TreeNode<DirectoryNode>();
-			
-			String str = scope .(ContentDirectory);
-
-			void AddDirectoryToTree(String path, TreeNode<DirectoryNode> parentNode)
-			{
-				DirectoryNode node = new DirectoryNode();
-				node.Path = new String(path);
-				node.Name = new String();
-
-				Path.GetFileName(node.Path, node.Name);
-
-				var newNode = parentNode.AddChild(node);
-
-				String filter = scope $"{path}/*";
-
-				for (var directory in Directory.Enumerate(filter, .Directories))
-				{
-					directory.GetFilePath(str..Clear());
-
-					AddDirectoryToTree(str, newNode);
-				}
-			}
-			
-			String filter = scope $"{ContentDirectory}/*";
-
-			for (var directory in Directory.Enumerate(filter, .Directories))
-			{
-				directory.GetFilePath(str..Clear());
-
-				AddDirectoryToTree(str, directoryNames);
-			}
-		}
-
-		private void BuildCurrentDirectory()
-		{
-			ClearAndDeleteItems!(_currentDirContent);
-			
-			String filter = scope $"{_currentDirectory}/*";
-
-			String buffer = scope String();
-
-			for (var entry in Directory.Enumerate(filter, .Directories | .Files))
-			{
-				entry.GetFilePath(buffer..Clear());
-
-				Entry e = new Entry();
-				e.Name = new String();
-				Path.GetFileName(buffer, e.Name);
-				e.IsDirectory = entry.IsDirectory;
-
-				_currentDirContent.Add(e);
-			}
-		}
-
 		private void DrawDirectorySideBar()
 		{
-			for(var child in directoryNames.Children)
+			for(var child in _manager._assetHierarchy.Children)
 			{
 				ImGuiPrintEntityTree(child);
 			}
 		}
 
-		private void ImGuiPrintEntityTree(TreeNode<DirectoryNode> tree)
+		private void ImGuiPrintEntityTree(TreeNode<EditorContentManager.AssetNode> tree)
 		{
-			String name = tree.Value.Name;
+			if (!tree->IsDirectory)
+				return;
+
+			String name = tree->Name;
 
 			ImGui.TreeNodeFlags flags = .OpenOnArrow | .SpanAvailWidth;
 
 			if(tree.Children.Count == 0)
 				flags |= .Leaf;
 
-			if (tree.Value.Path == _currentDirectory)
+			if (tree == _currentDirectoryNode)
 			{
 				flags |= .Selected;
 			}
@@ -188,10 +82,11 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.IsItemClicked(.Left))
 			{
-				if (_currentDirectory != null)
+				/*if (_currentDirectory != null)
 					delete _currentDirectory;
 
-				_currentDirectory = new String(tree.Value.Path);
+				_currentDirectory = new String(tree.Value.Path);*/
+				_currentDirectoryNode = tree;
 			}
 
 			if(isOpen)
@@ -205,35 +100,38 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private static Vector2 DirectoryItemSize = .(100, 100);
+		private static Vector2 DirectoryItemSize = .(110, 110);
 
 		const Vector2 padding = .(24, 24);
 
 		private void DrawCurrentDirectory()
 		{
+			if (_currentDirectoryNode == null)
+				return;
+
 			ImGui.Style* style = ImGui.GetStyle();
 
 			float window_visible_x2 = ImGui.GetWindowPos().x + ImGui.GetWindowContentRegionMax().x;
-			for (var entry in _currentDirContent)
+			for (var entry in _currentDirectoryNode.Children)
 			{
-			    ImGui.PushID(entry.Name);
+			    ImGui.PushID(entry->Name);
 
 				DrawDirectoryItem(entry);
 				
 				float last_button_x2 = ImGui.GetItemRectMax().x;
 				float next_button_x2 = last_button_x2 + style.ItemSpacing.x + DirectoryItemSize.X; // Expected position if next button was on same line
-				if (entry != _currentDirContent.Back && next_button_x2 < window_visible_x2)
+				if (entry != _currentDirectoryNode.Children.Back && next_button_x2 < window_visible_x2)
 				    ImGui.SameLine();
 
 				ImGui.PopID();
 			}
 		}
 
-		private void DrawDirectoryItem(Entry entry)
+		private void DrawDirectoryItem(TreeNode<EditorContentManager.AssetNode> entry)
 		{
 			ImGui.BeginChild("item", (.)DirectoryItemSize);
 
-			SubTexture2D image = entry.IsDirectory ? s_FolderTexture : s_FileTexture;
+			SubTexture2D image = entry->IsDirectory ? s_FolderTexture : s_FileTexture;
 
 			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
 
@@ -241,7 +139,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginDragDropSource())
 			{
-				String fullpath = scope $"{_currentDirectory}{Path.DirectorySeparatorChar}{entry.Name}";
+				String fullpath = scope $"{_currentDirectoryNode->Path}{Path.DirectorySeparatorChar}{entry->Name}";
 
 				// TODO: this is dirty
 				if (fullpath.StartsWith(ContentDirectory, .OrdinalIgnoreCase))
@@ -259,17 +157,51 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.PopStyleColor();
 
-			ImGui.TextUnformatted(entry.Name);
+			ImGui.TextUnformatted(entry->Name);
+
+			if (entry->SubAssets?.Count > 0)
+			{
+				// Button for revealing sub assets (e.g. Meshes in 3D-Model)
+
+				ImGui.SameLine();
+				if (ImGui.Button(">"))
+					ImGui.OpenPopup("SubAssets");
+			}
+
+			if (ImGui.BeginPopup("SubAssets", .Popup))
+			{
+				for (var subAsset in entry->SubAssets)
+				{
+					ImGui.Button(subAsset.Name);
+
+					if (ImGui.BeginDragDropSource())
+					{
+						String fullpath = Path.InternalCombine(.. scope String(), _currentDirectoryNode->Path, entry->Name);
+						fullpath.AppendF($"#{subAsset.Name}");
+							//scope $"{_currentDirectoryNode->Path}{Path.DirectorySeparatorChar}{entry->Name}";
+						//String fullpath = scope $"{subAsset.Asset.Path}#{subAsset.Name}";
+
+						// TODO: this is dirty
+						//if (fullpath.StartsWith(ContentDirectory, .OrdinalIgnoreCase))
+						//	fullpath.Remove(0, ContentDirectory.Length);
+		
+						ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", fullpath.CStr(), (.)fullpath.Length, .Once);
+		
+						ImGui.EndDragDropSource();
+					}
+				}
+
+				ImGui.EndPopup();
+			}
 			
 			ImGui.EndChild();
 		}
 
-		private void EntryDoubleClicked(Entry entry)
+		private void EntryDoubleClicked(TreeNode<EditorContentManager.AssetNode> entry)
 		{
-			if (entry.IsDirectory)
+			if (entry->IsDirectory)
 			{
-				_currentDirectory.Append(Path.DirectorySeparatorChar);
-				_currentDirectory.Append(entry.Name);
+				_currentDirectoryNode = entry;
 			}
 		}
 	}
