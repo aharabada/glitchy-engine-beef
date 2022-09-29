@@ -37,6 +37,9 @@ namespace GlitchyEngine.World
 		// Gets whether or not the camera is currently being moved.
 		public bool InUse => BindMouse;
 
+		/// If true, the camera can be rotated/moved
+		public bool AllowMove;
+
 		public RenderTargetGroup RenderTarget
 		{
 			get => _renderTarget;
@@ -160,15 +163,18 @@ namespace GlitchyEngine.World
 			
 			BindMouse = false;
 
-			if (Input.IsKeyPressed(.Alt))
+			if (AllowMove)
 			{
-				AltController(gameTime);
-				_isAltMode = true;
-			}
-			else
-			{
-				FirstPersonController(gameTime);
-				_isAltMode = false;
+				if (Input.IsKeyPressed(.Alt))
+				{
+					AltController(gameTime);
+					_isAltMode = true;
+				}
+				else
+				{
+					FirstPersonController(gameTime);
+					_isAltMode = false;
+				}
 			}
 
 			if (MouseCooldown != 0)

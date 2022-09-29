@@ -89,16 +89,22 @@ namespace ImGui
 			return EditVector<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, columnWidth, (float[4])minValue, (float[4])maxValue);
 		}
 
+		static (Color Default, Color Hovered, Color Active)[?] VectorButtonColors = .(
+				(Color(230, 25, 45), Color(150, 25, 45), Color(230, 90, 90)),
+				(Color(50, 190, 15), Color(50, 120, 15), Color(116, 190, 99)),
+				(Color(55, 55, 230), Color(55, 55, 150), Color(90, 90, 230)),
+				(Color(230, 25, 45), Color(230, 25, 45), Color(230, 25, 45)));
+
 		public static bool EditVector<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float columnWidth = 100f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .()) where NumComponents : const int32
 		{
 			const String[?] componentNames = .("X", "Y", "Z", "W");
 			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
 
-			(Color Default, Color Hovered, Color Active)[?] ButtonColors = .(
+			/*(Color Default, Color Hovered, Color Active)[?] VectorButtonColors = .(
 				(Color(230, 25, 45), Color(150, 25, 45), Color(230, 90, 90)),
 				(Color(50, 190, 15), Color(50, 120, 15), Color(116, 190, 99)),
 				(Color(55, 55, 230), Color(55, 55, 150), Color(90, 90, 230)),
-				(Color(230, 25, 45), Color(230, 25, 45), Color(230, 25, 45)));
+				(Color(230, 25, 45), Color(230, 25, 45), Color(230, 25, 45)));*/
 
 			bool changed = false;
 
@@ -127,9 +133,9 @@ namespace ImGui
 					SameLine();
 				}
 
-				PushStyleColor(.Button, ButtonColors[i].Default.Value);
-				PushStyleColor(.ButtonHovered, ButtonColors[i].Hovered.Value);
-				PushStyleColor(.ButtonActive, ButtonColors[i].Active.Value);
+				PushStyleColor(.Button, VectorButtonColors[i].Default.Value);
+				PushStyleColor(.ButtonHovered, VectorButtonColors[i].Hovered.Value);
+				PushStyleColor(.ButtonActive, VectorButtonColors[i].Active.Value);
 	
 				if (Button(componentNames[i], buttonSize))
 				{
@@ -149,6 +155,12 @@ namespace ImGui
 			PopStyleVar();
 
 			return changed;
+		}
+
+		/// Draws a rectangle with the given color.
+		public static void DrawRect(Vec2 min, Vec2 max, Color color)
+		{
+			ImGui.GetForegroundDrawList().AddRect(min, max, ImGui.GetColorU32(color.Value));
 		}
 	}
 }

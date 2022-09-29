@@ -43,6 +43,8 @@ namespace GlitchyEditor.EditWindows
 
 		public Vector2 ViewportSize => (Vector2)oldViewportSize;
 
+		private bool _wrappedCursor;
+
 		protected override void InternalShow()
 		{
 			ImGui.PushStyleVar(.WindowPadding, ImGui.Vec2(1, 1));
@@ -56,18 +58,21 @@ namespace GlitchyEditor.EditWindows
 
 			ShowMenuBar();
 
-			var viewportSize = ImGui.GetContentRegionAvail();
+			let viewportSize = ImGui.GetContentRegionAvail();
 
 			if(ImGui.IsWindowHovered() && Input.IsMouseButtonPressing(.RightButton))
 			{
-				var currentWindow = ImGui.GetCurrentWindow();
+				let currentWindow = ImGui.GetCurrentWindow();
 				ImGui.FocusWindow(currentWindow);
-
-				if (_editor.CurrentCamera.[Friend]BindMouse)
-					WrapMouseInViewport();
 			}
 
 			_hasFocus = ImGui.IsWindowFocused();
+
+			if (_editor.CurrentCamera.[Friend]BindMouse && _hasFocus)
+				WrapMouseInViewport();
+
+			// If we wrapped this frame we weren't hovering because the cursor has to be out of bounds to wrap
+			_editor.CurrentCamera.AllowMove = _hasFocus && (ImGui.IsWindowHovered() || _wrappedCursor);
 
 			if (_hasFocus && !_editor.CurrentCamera.InUse)
 			{
@@ -123,34 +128,38 @@ namespace GlitchyEditor.EditWindows
 		/// Wraps the mouse, so that it always stays in the viewport.
 		private void WrapMouseInViewport()
 		{
-			var mousePos = (Vector2)ImGui.GetMousePos();
-			var winPos = (Vector2)ImGui.GetWindowPos();
-			var winSize = (Vector2)ImGui.GetWindowSize();
+			_wrappedCursor = false;
+
+			let mousePos = (Vector2)ImGui.GetMousePos();
+			let winPos = (Vector2)ImGui.GetWindowPos();
+			let regionMin = winPos + (Vector2)ImGui.GetWindowContentRegionMin();
+			let regionMax = winPos + (Vector2)ImGui.GetWindowContentRegionMax();
 			
 			Vector2 newMousePos = mousePos;
 
-			if (mousePos.X < winPos.X)
+			if (mousePos.X < regionMin.X)
 			{
-				newMousePos.X = winPos.X + winSize.X - 1;
+				newMousePos.X = regionMax.X - 1;
 			}
-			else if (mousePos.X > winPos.X + winSize.X)
+			else if (mousePos.X > regionMax.X - 1)
 			{
-				newMousePos.X = winPos.X + 1;
+				newMousePos.X = regionMin.X + 1;
 			}
 			
-			if (mousePos.Y < winPos.Y)
+			if (mousePos.Y < regionMin.Y)
 			{
-				newMousePos.Y = winPos.Y + winSize.Y - 1;
+				newMousePos.Y = regionMax.Y - 1;
 			}
-			else if (mousePos.Y > winPos.Y + winSize.Y)
+			else if (mousePos.Y > regionMax.Y - 1)
 			{
-				newMousePos.Y = winPos.Y + 1;
+				newMousePos.Y = regionMin.Y + 1;
 			}
 
 			if (newMousePos != mousePos)
 			{
 				Input.SetMousePosition((Int2)newMousePos);
 				_editor.CurrentCamera.[Friend]MouseCooldown = 2;
+				_wrappedCursor = true;
 			}
 		}
 
