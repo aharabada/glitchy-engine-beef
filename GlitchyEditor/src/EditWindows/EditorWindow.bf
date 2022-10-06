@@ -1,3 +1,4 @@
+using System;
 namespace GlitchyEditor.EditWindows
 {
 	abstract class EditorWindow

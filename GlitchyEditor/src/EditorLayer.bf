@@ -56,6 +56,16 @@ namespace GlitchyEditor
 
 		EditorIcons _editorIcons ~ _.ReleaseRef();
 
+		enum SceneState
+		{
+			Edit,
+			Play,
+			// Pause,
+			// Simulate
+		}
+
+		SceneState _sceneState = .Edit;
+
 		public this() : base("Example")
 		{
 			Application.Get().Window.IsVSync = false;
@@ -121,7 +131,7 @@ namespace GlitchyEditor
 		private void InitEditor()
 		{
 			_editor = new Editor(_scene);
-			_editor.SceneViewportWindow.ViewportSizeChangedEvent.Add(new (s, e) => ViewportSizeChanged(s, e));
+			_editor.SceneViewportWindow.ViewportSizeChanged.Add(new (s, e) => ViewportSizeChanged(s, e));
 			_editor.CurrentCamera = &_camera;
 
 			_editor.RequestOpenScene.Add(new (s, fileName) => {
@@ -141,7 +151,10 @@ namespace GlitchyEditor
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
-			_scene.UpdateEditor(gameTime, _camera, _viewportTarget, scope => DebugDraw3D, scope => DebugDraw2D);
+			if (_sceneState == .Edit)
+				_scene.UpdateEditor(gameTime, _camera, _viewportTarget, scope => DebugDraw3D, scope => DebugDraw2D);
+			else if (_sceneState == .Play)
+				_scene.UpdateRuntime(gameTime, _viewportTarget);
 
 			RenderCommand.UnbindRenderTargets();
 			RenderCommand.SetRenderTarget(null, 0, true);
@@ -232,7 +245,7 @@ namespace GlitchyEditor
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
-			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Albedo);
+			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Target);
 
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
@@ -245,7 +258,64 @@ namespace GlitchyEditor
 
 			_settingsWindow.Show();
 
+			UI_Toolbar();
+
 			return false;
+		}
+
+		private void UI_Toolbar()
+		{
+			ImGui.PushStyleVar(.WindowPadding, ImGui.Vec2(0, 2));
+			ImGui.PushStyleVar(.ItemInnerSpacing, ImGui.Vec2(0, 0));
+			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
+
+			let colors = ImGui.GetStyle().Colors;
+
+			ImGui.Vec4 hoveredColor = colors[(int)ImGui.Col.ButtonHovered];
+			hoveredColor.w = 0.5f;
+			
+			ImGui.Vec4 activeColor = colors[(int)ImGui.Col.ButtonActive];
+			activeColor.w = 0.5f;
+
+			ImGui.PushStyleColor(.ButtonHovered, hoveredColor);
+			ImGui.PushStyleColor(.ButtonActive, activeColor);
+
+			ImGui.Begin("##toolbar", null, .NoDecoration | .NoScrollbar | .NoScrollWithMouse);
+
+			SubTexture2D icon = _sceneState == .Edit ? _editorIcons.Play : _editorIcons.Stop;
+
+			float size = ImGui.GetWindowHeight() - 4.0f;
+			
+			ImGui.SameLine((ImGui.GetContentRegionMax().x / 2 - size / 2));
+
+			if (ImGui.ImageButton(icon, .(size, size), .Zero, .Ones, 0))
+			{
+				if (_sceneState == .Edit)
+				{
+					OnScenePlay();
+				}
+				else if (_sceneState == .Play)
+				{
+					OnSceneStop();
+				}
+			}
+
+			ImGui.End();
+
+			ImGui.PopStyleColor(3);
+			ImGui.PopStyleVar(2);
+		}
+
+		private void OnScenePlay()
+		{
+			_sceneState = .Play;
+			_editor.SceneViewportWindow.EditorMode = false;
+		}
+
+		private void OnSceneStop()
+		{
+			_sceneState = .Edit;
+			_editor.SceneViewportWindow.EditorMode = true;
 		}
 
 		// Just for testing
@@ -282,6 +352,7 @@ namespace GlitchyEditor
 				let camera = cameraNtt.AddComponent<CameraComponent>();
 				camera.Primary = true;
 				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 10.0f);
+				camera.RenderTarget = _cameraTarget;
 			}
 
 			var fxLib = Application.Get().EffectLibrary;

@@ -13,11 +13,30 @@ namespace GlitchyEditor.EditWindows
 	{
 		public const String s_WindowTitle = "Scene";
 
+		private ImGui.Vec2 _oldViewportSize = .(100, 100);
+		private bool _viewPortChanged;
+
+		/// True if the cursor wrapped from one side of the viewport to the other last frame.
+		private bool _wrappedCursor;
+
 		private RenderTargetGroup _renderTarget ~ _?.ReleaseRef();
 
-		public Event<EventHandler<Vector2>> ViewportSizeChangedEvent ~ _.Dispose();
-		public Event<EventHandler<uint32>> EntityClickedEvent ~ _.Dispose();
+		private ImGuizmo.OPERATION _gizmoType = .TRANSLATE;
+		private ImGuizmo.MODE _gizmoMode = .LOCAL;
+		private float _snap = 0.5f;
+		private float _angleSnap = 45.0f;
+		private bool _doSnap = false;
 
+		public uint32 SelectedEntityId {get; private set; }
+		public bool SelectionChanged { get; private set; }
+
+		public Vector2 ViewportSize => (Vector2)_oldViewportSize;
+		// Occurs when the viewport is resized.
+		public Event<EventHandler<Vector2>> ViewportSizeChanged ~ _.Dispose();
+		// Occurs when an entity was clicked.
+		public Event<EventHandler<uint32>> EntityClicked ~ _.Dispose();
+
+		/// The render target that is shown in the viewport window.
 		public RenderTargetGroup RenderTarget
 		{
 			get => _renderTarget;
@@ -30,20 +49,13 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
+		/// Gets or sets whether the editor functionality (gizmo, picking etc.) is enabled.
+		public bool EditorMode { get; set; } = true
+
 		public this(Editor editor)
 		{
 			_editor = editor;
 		}
-
-		private ImGui.Vec2 oldViewportSize = .(100, 100);
-		private bool viewPortChanged;
-
-		public uint32 SelectedEntityId;
-		public bool SelectionChanged;
-
-		public Vector2 ViewportSize => (Vector2)oldViewportSize;
-
-		private bool _wrappedCursor;
 
 		protected override void InternalShow()
 		{
@@ -56,8 +68,6 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
-			ShowMenuBar();
-
 			let viewportSize = ImGui.GetContentRegionAvail();
 
 			if(ImGui.IsWindowHovered() && Input.IsMouseButtonPressing(.RightButton))
@@ -67,61 +77,73 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			_hasFocus = ImGui.IsWindowFocused();
-
-			if (_editor.CurrentCamera.[Friend]BindMouse && _hasFocus)
-				WrapMouseInViewport();
-
-			// If we wrapped this frame we weren't hovering because the cursor has to be out of bounds to wrap
-			_editor.CurrentCamera.AllowMove = _hasFocus && (ImGui.IsWindowHovered() || _wrappedCursor);
-
-			if (_hasFocus && !_editor.CurrentCamera.InUse)
+			
+			if (EditorMode)
 			{
-				if (Input.IsKeyPressing(.Q))
-					_gizmoType = .TRANSLATE;
-				if (Input.IsKeyPressing(.W))
-					_gizmoType = .ROTATE;
-				if (Input.IsKeyPressing(.E))
-					_gizmoType = .SCALE;
+				ShowMenuBar();
+				
+				if (_editor.CurrentCamera.[Friend]BindMouse && _hasFocus)
+					WrapMouseInViewport();
 
-				if (Input.IsKeyPressing(.G))
-					_gizmoMode = .WORLD;
-				if (Input.IsKeyPressing(.L))
-					_gizmoMode = .LOCAL;
+				// If we wrapped this frame we weren't hovering because the cursor has to be be out of bounds to wrap
+				_editor.CurrentCamera.AllowMove = _hasFocus && (ImGui.IsWindowHovered() || _wrappedCursor);
+
+				if (_hasFocus && !_editor.CurrentCamera.InUse)
+				{
+					if (Input.IsKeyPressing(.Q))
+						_gizmoType = .TRANSLATE;
+					if (Input.IsKeyPressing(.W))
+						_gizmoType = .ROTATE;
+					if (Input.IsKeyPressing(.E))
+						_gizmoType = .SCALE;
+
+					if (Input.IsKeyPressing(.G))
+						_gizmoMode = .WORLD;
+					if (Input.IsKeyPressing(.L))
+						_gizmoMode = .LOCAL;
+				}
 			}
-
+			
 			if(_renderTarget != null)
 			{
 				ImGui.Image(_renderTarget.GetViewBinding(0), viewportSize);
 				//ImGui.Image(_editor.CurrentCamera.RenderTarget.GetViewBinding(0), viewportSize);
 				//ImGui.Image(_editor.CurrentScene.[Friend]_compositeTarget.GetViewBinding(0), viewportSize);
 			}
-			
+
+			if (EditorMode)
+			{
+				HandleDropTarget();
+	
+				bool gizmoUsed = DrawImGuizmo(viewportSize);
+	
+				MousePicking(viewportSize, gizmoUsed);
+			}
+	
+			ImGui.End();
+
+			if(_oldViewportSize != viewportSize)
+			{
+				ViewportSizeChanged.Invoke(this, (Vector2)viewportSize);
+				_viewPortChanged = true;
+				_oldViewportSize = viewportSize;
+			}
+		}
+
+		/// Provides the ImGui Drop target and handles dropped payload.
+		private void HandleDropTarget()
+		{
 			if (ImGui.BeginDragDropTarget())
 			{
 				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
 
 				if (payload != null)
 				{
-					Log.EngineLogger.Warning("");
-
 					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
 					_editor.RequestOpenScene(this, path);
 				}
 
 				ImGui.EndDragDropTarget();
-			}
-
-			bool gizmoUsed = DrawImGuizmo(viewportSize);
-
-			MousePicking(viewportSize, gizmoUsed);
-
-			ImGui.End();
-
-			if(oldViewportSize != viewportSize)
-			{
-				ViewportSizeChangedEvent.Invoke(this, (Vector2)viewportSize);
-				viewPortChanged = true;
-				oldViewportSize = viewportSize;
 			}
 		}
 
@@ -158,11 +180,15 @@ namespace GlitchyEditor.EditWindows
 			if (newMousePos != mousePos)
 			{
 				Input.SetMousePosition((Int2)newMousePos);
+				// After wrapping the cursor the the other side, the camera controller must not compare the positions,
+				// because the delta doesn't represent the correct movement of the cursor.
+				// TODO: can be solved by using direct mouse movement instead of comparing positions
 				_editor.CurrentCamera.[Friend]MouseCooldown = 2;
 				_wrappedCursor = true;
 			}
 		}
 
+		/// If the user clicks, the entity beneath the cursor will be selected.
 		private void MousePicking(ImGui.Vec2 viewportSize, bool gizmoUsed)
 		{
 			Vector2 relativeMouse = (Vector2)ImGui.GetMousePos() - (Vector2)ImGui.GetItemRectMin();
@@ -183,19 +209,13 @@ namespace GlitchyEditor.EditWindows
 				SelectionChanged = true;
 				SelectedEntityId = id;
 
-				EntityClickedEvent(this, id);
+				EntityClicked(this, id);
 			}
 			else
 			{
 				SelectionChanged = false;
 			}
 		}
-
-		private ImGuizmo.OPERATION _gizmoType = .TRANSLATE;
-		private ImGuizmo.MODE _gizmoMode = .LOCAL;
-		private float _snap = 0.5f;
-		private float _angleSnap = 45.0f;
-		private bool _doSnap = false;
 
 		private void ShowMenuBar()
 		{
@@ -262,6 +282,7 @@ namespace GlitchyEditor.EditWindows
 
 		private bool DrawImGuizmo(ImGui.Vec2 viewportSize)
 		{
+			// TODO: Needed if we have a orthographic editor-camera (or support gizmos in the Play-Window, where we can also have ortho projections)
 			ImGuizmo.SetOrthographic(false);
 			ImGuizmo.SetDrawlist();
 
@@ -299,7 +320,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				// TODO: Fix when parent is scaled
 				// Seems to work fine for parent rotation and translation but scaled parent ruins everything
-				// (probably because scaling a rotated matrix results in a skewed matrix, but unity can do it, so should we)
+				// (probably because scaling a rotated matrix results in a skewed matrix, but unity can do it and so should we)
 				transformCmp.LocalTransform = parentView * worldTransform;
 			}
 

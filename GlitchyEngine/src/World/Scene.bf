@@ -63,8 +63,163 @@ namespace GlitchyEngine.World
 
 		public void UpdateRuntime(GameTime gameTime, RenderTargetGroup finalTarget)
 		{
-			// TODO: adapt changes from UpdateEditor!
-			Runtime.NotImplemented();
+			Debug.Profiler.ProfileRendererFunction!();
+
+			finalTarget.AddRef();
+
+			TransformSystem.Update(_ecsWorld);
+
+			// Find camera
+			Camera* primaryCamera = null;
+			Matrix primaryCameraTransform = default;
+			RenderTargetGroup renderTarget = null;
+
+			for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, CameraComponent>())
+			{
+				if (camera.Primary)// && camera.RenderTarget != null)
+				{
+					primaryCamera = &camera.Camera;
+					primaryCameraTransform = transform.WorldTransform;
+					renderTarget = camera.RenderTarget..AddRef();
+				}
+			}
+
+			// 3D render
+			Renderer.BeginScene(*primaryCamera, primaryCameraTransform, renderTarget, _compositeTarget);
+
+			for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
+			{
+				Renderer.Submit(mesh.Mesh, meshRenderer.Material, entity, transform.WorldTransform);
+			}
+
+			for (var (entity, transform, light) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
+			{
+				Renderer.Submit(light.SceneLight, transform.WorldTransform);
+			}
+
+			Renderer.EndScene();
+
+			renderTarget.ReleaseRef();
+
+			// TODO: alphablending (handle in Renderer2D)
+			// TODO: 2D-Postprocessing requires rendering into separate target instead of directly into compositeTarget
+
+			RenderCommand.SetRenderTargetGroup(_compositeTarget);
+			RenderCommand.BindRenderTargets();
+
+			// Sprite renderer
+			Renderer2D.BeginScene(*primaryCamera, primaryCameraTransform, .BackToFront);
+
+			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
+			{
+				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
+			}
+
+			Renderer2D.EndScene();
+
+			// Gamma correct composit target and draw it into viewport
+			{
+				RenderCommand.UnbindRenderTargets();
+				RenderCommand.SetRenderTargetGroup(finalTarget, false);
+				RenderCommand.BindRenderTargets();
+	
+				_gammaCorrectEffect.SetTexture("Texture", _compositeTarget, 0);
+				// TODO: iiihhh
+				_gammaCorrectEffect.Bind(Application.Get().Window.Context);
+	
+				FullscreenQuad.Draw();
+			}
+
+			finalTarget.ReleaseRef();
+
+
+			/*Debug.Profiler.ProfileRendererFunction!();
+
+			finalTarget.AddRef();
+
+			TransformSystem.Update(_ecsWorld);
+
+			// Run scripts
+			for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
+			{
+				if (script.Instance == null)
+				{
+					script.Instance = script.InstantiateFunction();
+					script.Instance._entity = Entity(entity, this);
+					script.Instance.[Friend]OnCreate();
+				}
+
+				script.Instance.[Friend]OnUpdate(gameTime);
+			}
+
+			// Find camera
+			Camera* primaryCamera = null;
+			Matrix primaryCameraTransform = default;
+			RenderTargetGroup renderTarget = null;
+
+			for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, CameraComponent>())
+			{
+				if (camera.Primary)// && camera.RenderTarget != null)
+				{
+					primaryCamera = &camera.Camera;
+					primaryCameraTransform = transform.WorldTransform;
+					//renderTarget = camera.RenderTarget..AddRef();
+				}
+			}
+
+			if (primaryCamera != null)
+			{
+				// 3D render
+				Renderer.BeginScene(*primaryCamera, primaryCameraTransform, _compositeTarget, finalTarget);
+	
+				for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
+				{
+					Renderer.Submit(mesh.Mesh, meshRenderer.Material, entity, transform.WorldTransform);
+				}
+	
+				for (var (entity, transform, light) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
+				{
+					Renderer.Submit(light.SceneLight, transform.WorldTransform);
+				}
+	
+				Renderer.EndScene();
+	
+				// TODO: alphablending (handle in Renderer2D)
+				// TODO: 2D-Postprocessing requires rendering into separate target instead of directly into compositeTarget
+	
+				RenderCommand.SetRenderTargetGroup(_compositeTarget);
+				RenderCommand.BindRenderTargets();
+	
+				// Sprite renderer
+				Renderer2D.BeginScene(*primaryCamera, primaryCameraTransform, .BackToFront);
+	
+				for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
+				{
+					Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
+				}
+	
+				Renderer2D.EndScene();
+	
+				// Gamma correct composit target and draw it into viewport
+				{
+					RenderCommand.UnbindRenderTargets();
+					RenderCommand.SetRenderTargetGroup(finalTarget, false);
+					RenderCommand.BindRenderTargets();
+	
+					_gammaCorrectEffect.SetTexture("Texture", _compositeTarget, 0);
+					// TODO: iiihhh
+					_gammaCorrectEffect.Bind(Application.Get().Window.Context);
+	
+					FullscreenQuad.Draw();
+				}
+			}
+
+			finalTarget.ReleaseRef();*/
+
+
+
+
+
 			/*
 			Debug.Profiler.ProfileRendererFunction!();
 			

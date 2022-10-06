@@ -232,7 +232,7 @@ namespace GlitchyEngine.Renderer
 			_sceneConstants.CameraTarget = renderTarget;
 			_sceneConstants.CompositionTarget = finalTarget;
 
-			_sceneBuffer.SetData<Matrix>(viewProjection);
+			_sceneBuffer.SetData<Matrix>(viewProjection , 0, .WriteDiscard);
 		}
 
 		public static void BeginScene(EditorCamera camera, RenderTargetGroup finalTarget)
