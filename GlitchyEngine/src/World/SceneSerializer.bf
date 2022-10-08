@@ -81,6 +81,7 @@ namespace GlitchyEngine.World
 					// TODO: Texture
 
 					Serialize.Value(writer, "Color", component.Color);
+					Serialize.Value(writer, "UvTransform", component.UvTransform);
 				});
 
 				SerializeComponent<TransformComponent>(writer, entity, "TransformComponent", scope (component) =>
@@ -127,6 +128,24 @@ namespace GlitchyEngine.World
 					Serialize.Value(writer, "Illuminance", light.Illuminance);
 
 					Serialize.Value(writer, "Color", light.Color);
+				});
+
+				SerializeComponent<Rigidbody2DComponent>(writer, entity, "Rigidbody2D", scope (component) =>
+				{
+					Serialize.Value(writer, "BodyType", component.BodyType);
+
+					Serialize.Value(writer, "FixedRotation", component.FixedRotation);
+				});
+
+				SerializeComponent<BoxCollider2DComponent>(writer, entity, "BoxCollider2D", scope (component) =>
+				{
+					Serialize.Value(writer, "Offset", component.Offset);
+					Serialize.Value(writer, "Size", component.Size);
+
+					Serialize.Value(writer, "Density", component.Density);
+					Serialize.Value(writer, "Friction", component.Friction);
+					Serialize.Value(writer, "Restitution", component.Restitution);
+					Serialize.Value(writer, "RestitutionThreshold", component.RestitutionThreshold);
 				});
 			}
 
@@ -252,6 +271,8 @@ namespace GlitchyEngine.World
 						// TODO: Texture
 
 						Try!(Deserialize.Value(reader, "Color", out component.Color));
+						reader.EntryEnd();
+						Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
 
 						return .Ok;
 					}));
@@ -337,9 +358,38 @@ namespace GlitchyEngine.World
 						Deserialize.Value(reader, "Color", out light.[Friend]_color);
 						return .Ok;
 					}));
+				case "Rigidbody2D":
+					Try!(DeserializeComponent<Rigidbody2DComponent>(reader, entity, scope (component) =>
+					{
+						Deserialize.Value(reader, "BodyType", out component.BodyType);
+						reader.EntryEnd();
+
+						Deserialize.Value(reader, "FixedRotation", out component.FixedRotation);
+
+						return .Ok;
+					}));
+				case "BoxCollider2D":
+					Try!(DeserializeComponent<BoxCollider2DComponent>(reader, entity, scope (component) =>
+					{
+						Deserialize.Value(reader, "Offset", out component.Offset);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "Size", out component.Size);
+						reader.EntryEnd();
+						
+						Deserialize.Value(reader, "Density", out component.Density);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "Friction", out component.Friction);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "Restitution", out component.Restitution);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "RestitutionThreshold", out component.RestitutionThreshold);
+
+						return .Ok;
+					}));
 
 				default:
-					return .Err;
+					Log.EngineLogger.AssertDebug(false, "Unknown component type");
+					//return .Err;
 				}
 			}
 

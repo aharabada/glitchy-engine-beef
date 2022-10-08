@@ -25,3 +25,6 @@
 [submodule "GlitchyEngineHelper/vendor/DirectXTK"]
 	path = GlitchyEngineHelper/vendor/DirectXTK
 	url = https://github.com/microsoft/DirectXTK.git
+[submodule "GlitchyEngine/vendor/box2D"]
+	path = GlitchyEngine/vendor/box2D
+	url = https://github.com/jazzbre/box2d-beef.git

@@ -1,4 +1,5 @@
 using System;
+using Bon;
 
 using internal GlitchyEngine.Math;
 
@@ -13,6 +14,7 @@ namespace GlitchyEngine.Math
 	/**
 	Represents a four component floating point color
 	*/
+	[BonTarget]
 	[CRepr]
 	struct ColorRGBA
 	{

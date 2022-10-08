@@ -337,4 +337,29 @@ namespace GlitchyEngine.World
 	{
 		public SceneLight SceneLight;
 	}
+
+	struct Rigidbody2DComponent
+	{
+		public enum BodyType { Static = 0, Dynamic = 1, Kinematic = 2 }
+
+		public BodyType BodyType = .Static;
+
+		public bool FixedRotation = false;
+
+		internal int _runtimeBody = 0;
+	}
+
+	struct BoxCollider2DComponent
+	{
+		public Vector2 Offset = .(0.0f, 0.0f);
+		public Vector2 Size = .(0.5f, 0.5f);
+
+		// TODO: move into 2D physics material
+		public float Density = 1.0f;
+		public float Friction = 0.5f;
+		public float Restitution = 0.0f;
+		public float RestitutionThreshold = 0.5f;
+
+		internal int _runtimeFixture = 0;
+	}
 }

@@ -2,18 +2,25 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using System;
 using System.Collections;
+using Box2D;
 
 namespace GlitchyEngine.World
 {
 	using internal ScriptableEntity;
+	using internal GlitchyEngine.World;
 
 	class Scene
 	{
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
-		
+
+		internal b2World* _physicsWorld2D;
+
 		private Dictionary<Type, function void(Entity entity, Type componentType, void* component)> _onComponentAddedHandlers = new .() ~ delete _;
 
 		private RenderTargetGroup _compositeTarget ~ _.ReleaseRef();
+
+		// Temporary target for camera. Needs to change as soon as we support multiple cameras
+		private RenderTargetGroup _cameraTarget ~ _.ReleaseRef();
 
 		private Effect _gammaCorrectEffect ~ _.ReleaseRef();
 
@@ -54,11 +61,86 @@ namespace GlitchyEngine.World
 				RenderTargetFormat.D24_UNorm_S8_UInt);
 			_compositeTarget = new RenderTargetGroup(desc);
 
+			_cameraTarget = new RenderTargetGroup(.(){
+					Width = 100,
+					Height = 100,
+					ColorTargetDescriptions = TargetDescription[](
+						.(.R16G16B16A16_Float),
+						.(.R32_UInt)
+					),
+					DepthTargetDescription = .(.D24_UNorm_S8_UInt)
+				});
+
 			_gammaCorrectEffect = Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
 		}
 
 		public ~this()
 		{
+		}
+		
+		b2Vec2 _gravity2D = .(0.0f, -9.8f);
+
+		static b2BodyType GetBox2DBodyType(Rigidbody2DComponent.BodyType bodyType)
+		{
+			switch (bodyType)
+			{
+			case .Static:
+				return .b2_staticBody;
+			case .Dynamic:
+				return .b2_dynamicBody;
+			case .Kinematic:
+				return .b2_kinematicBody;
+			default:
+				Log.EngineLogger.AssertDebug(false, "Unknown body type");
+				return .b2_staticBody;
+			}
+		}
+
+		public void OnRuntimeStart()
+		{
+			_physicsWorld2D = Box2D.World.Create(ref _gravity2D);
+
+			for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
+			{
+				Entity entity = .(entry.Entity, this);
+
+				var transform = entity.Transform;
+				var rigidBody = entry.Component;
+
+				b2BodyDef def = .();
+				def.type = GetBox2DBodyType(rigidBody.BodyType);
+
+				// TODO: breaks with hierarchy
+				def.position = b2Vec2(transform.Position.X, transform.Position.Y);
+				def.angle = transform.RotationEuler.Z;
+
+				b2Body* body = Box2D.World.CreateBody(_physicsWorld2D, &def);
+				Box2D.Body.SetFixedRotation(body, rigidBody.FixedRotation);
+
+				rigidBody._runtimeBody = (int)(void*)body;
+
+				if (entity.TryGetComponent<BoxCollider2DComponent>(let boxCollider))
+				{
+					b2Shape* boxShape = Box2D.Shape.CreatePolygon();
+					Box2D.Shape.PolygonSetAsBox(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y);
+
+					b2FixtureDef fixtureDef = .();
+					fixtureDef.shape = boxShape;
+					fixtureDef.density = boxCollider.Density;
+					fixtureDef.friction = boxCollider.Friction;
+					fixtureDef.restitution = boxCollider.Restitution;
+					fixtureDef.restitutionThreshold = boxCollider.RestitutionThreshold;
+
+					b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
+					boxCollider._runtimeFixture = (int)(void*)fixture;
+				}
+			}
+		}
+
+		public void OnRuntimeStop()
+		{
+			Box2D.World.Delete(_physicsWorld2D);
+			_physicsWorld2D = null;
 		}
 
 		public void UpdateRuntime(GameTime gameTime, RenderTargetGroup finalTarget)
@@ -66,8 +148,46 @@ namespace GlitchyEngine.World
 			Debug.Profiler.ProfileRendererFunction!();
 
 			finalTarget.AddRef();
-
+			
 			TransformSystem.Update(_ecsWorld);
+
+			// Run scripts
+			for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
+			{
+				if (script.Instance == null)
+				{
+					script.Instance = script.InstantiateFunction();
+					script.Instance._entity = Entity(entity, this);
+					script.Instance.[Friend]OnCreate();
+				}
+
+				script.Instance.[Friend]OnUpdate(gameTime);
+			}
+
+			// Update 2D physics
+			{
+				const int32 velocityIterations = 6;
+				const int32 positionIterations = 2;
+				const int32 particleIterations = 2;
+
+				Box2D.World.Step(_physicsWorld2D, gameTime.DeltaTime, velocityIterations, positionIterations, particleIterations);
+
+				// Retrieve transform from Box2D
+				for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
+				{
+					Entity entity = .(entry.Entity, this);
+	
+					var transform = entity.Transform;
+					var rigidbody = entry.Component;
+
+					b2Body* body = (b2Body*)(void*)rigidbody._runtimeBody;
+					b2Vec2 position = Box2D.Body.GetPosition(body);
+					float angle = Box2D.Body.GetAngle(body);
+
+					transform.Position = .(position.x, position.y, transform.Position.Z);
+					transform.RotationEuler = .(transform.RotationEuler.XY, angle);
+				}
+			}
 
 			// Find camera
 			Camera* primaryCamera = null;
@@ -80,7 +200,8 @@ namespace GlitchyEngine.World
 				{
 					primaryCamera = &camera.Camera;
 					primaryCameraTransform = transform.WorldTransform;
-					renderTarget = camera.RenderTarget..AddRef();
+					// TODO: bind render targets to cameras
+					// renderTarget = camera.RenderTarget..AddRef();
 				}
 			}
 
@@ -392,6 +513,7 @@ namespace GlitchyEngine.World
 			}
 
 			_compositeTarget.Resize(ViewportWidth, ViewportHeight);
+			_cameraTarget.Resize(ViewportWidth, ViewportHeight);
 		}
 
 		private void OnComponentAdded(Entity entity, Type componentType, void* component)

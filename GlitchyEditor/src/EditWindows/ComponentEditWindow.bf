@@ -64,6 +64,8 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
 			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
 			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
+			ShowComponentEditor<Rigidbody2DComponent>("Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
+			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
 
 			ShowAddComponentButton(entity);
 		}
@@ -410,6 +412,64 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 		}
+		
+		private static void ShowRigidBody2DComponentEditor(Entity entity, Rigidbody2DComponent* rigidBodyComponent)
+		{
+			const String[?] bodyTypeStrings = .("Static", "Dynamic", "Kinematic");
+			String bodyTypeName = bodyTypeStrings[rigidBodyComponent.BodyType.Underlying];
+
+			if (ImGui.BeginCombo("Type", bodyTypeName.CStr()))
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					bool isSelected = (bodyTypeName == bodyTypeStrings[i]);
+
+					if (ImGui.Selectable(bodyTypeStrings[i], isSelected))
+					{
+						rigidBodyComponent.BodyType = (.)i;
+					}
+
+					if (isSelected)
+						ImGui.SetItemDefaultFocus();
+				}
+
+				ImGui.EndCombo();
+			}
+
+
+			ImGui.Checkbox("Fixed Rotation", &rigidBodyComponent.FixedRotation);
+		}
+
+		private static void ShowBoxCollider2DComponentEditor(Entity entity, BoxCollider2DComponent* boxCollider)
+		{
+			float textWidth = ImGui.CalcTextSize("Offset".CStr()).x;
+			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
+
+
+			Vector2 offset = boxCollider.Offset;
+			if (ImGui.EditVector2("Offset", ref offset, .Zero, 0.1f, textWidth))
+				boxCollider.Offset = offset;
+
+			Vector2 size = boxCollider.Size;
+			if (ImGui.EditVector2("Size", ref size, .Zero, 0.1f, textWidth))
+				boxCollider.Size = size;
+			
+			float density = boxCollider.Density;
+			if (ImGui.DragFloat("Density", &density, 0.0f, 0.1f, textWidth))
+				boxCollider.Density = density;
+			
+			float friction = boxCollider.Friction;
+			if (ImGui.DragFloat("Friction", &friction, 0.0f, 0.1f, textWidth))
+				boxCollider.Friction = friction;
+
+			float restitution = boxCollider.Restitution;
+			if (ImGui.DragFloat("Restitution", &restitution, 0.0f, 0.1f, textWidth))
+				boxCollider.Restitution = restitution;
+
+			float restitutionThreshold = boxCollider.RestitutionThreshold;
+			if (ImGui.DragFloat("RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, textWidth))
+				boxCollider.RestitutionThreshold = restitutionThreshold;
+		}
 
 		private static void LabelColumn(StringView label)
 		{
@@ -517,6 +577,10 @@ namespace GlitchyEditor.EditWindows
 
 			void ShowComponentButton<TComponent>(String name) where TComponent : struct, new
 			{
+				// If the entity already has this component, don't show the option to add it
+				if (entity.HasComponent<TComponent>())
+					return;
+
 				float textWidth = ImGui.CalcTextSize(name.CStr()).x;
 				buttonWidth = Math.Max(buttonWidth, textWidth + ImGui.GetStyle().FramePadding.x * 2);
 
@@ -547,6 +611,8 @@ namespace GlitchyEditor.EditWindows
 				ShowComponentButton<CameraComponent>("Camera");
 				ShowComponentButton<SpriterRendererComponent>("Sprite Renderer");
 				ShowComponentButton<LightComponent>("Light");
+				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
+				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");
 
 				ImGui.EndCombo();
 			}

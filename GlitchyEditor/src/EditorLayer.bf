@@ -310,12 +310,16 @@ namespace GlitchyEditor
 		{
 			_sceneState = .Play;
 			_editor.SceneViewportWindow.EditorMode = false;
+
+			_scene.OnRuntimeStart();
 		}
 
 		private void OnSceneStop()
 		{
-			_sceneState = .Edit;
+			_scene.OnRuntimeStop();
+
 			_editor.SceneViewportWindow.EditorMode = true;
+			_sceneState = .Edit;
 		}
 
 		// Just for testing
@@ -459,19 +463,26 @@ namespace GlitchyEditor
 			_camera.Position = .(-1.5f, 1.5f, -2.5f);
 			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
 
+			/*// Create default camera
+			{
+				let camEntity = _scene.CreateEntity("Camera");
+				let transform = camEntity.Transform;
+				transform.Position = 
+			}
+
 			// Create the default light source
 			{
-				var lightNtt = _scene.CreateEntity("Light");
-				let transform = lightNtt.GetComponent<TransformComponent>();
+				let lightNtt = _scene.CreateEntity("Light");
+				let transform = lightNtt.Transform;
 				transform.Position = .(0, 0, 0);
 				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-100), 0);
 
 				let light = lightNtt.AddComponent<LightComponent>();
 				light.SceneLight.Illuminance = 10.0f;
 				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}
+			}*/
 
-			TestEntitiesWithModels();
+			//TestEntitiesWithModels();
 		}
 		
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
