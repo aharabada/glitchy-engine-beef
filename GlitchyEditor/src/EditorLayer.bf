@@ -389,7 +389,8 @@ namespace GlitchyEditor
 					mat.SetVariable("NormalScaling", Vector2.One);
 					mat.SetVariable("MetallicFactor", 1.0f);
 					mat.SetVariable("RoughnessFactor", 1.0f);
-		
+
+					// TODO: completely wrong!
 					EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", mat, _scene.[Friend]_ecsWorld, clips, "Sphere 1");
 					
 					Entity entity = .(e, _scene);
@@ -463,14 +464,14 @@ namespace GlitchyEditor
 			_camera.Position = .(-1.5f, 1.5f, -2.5f);
 			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
 
-			/*// Create default camera
-			{
+			// Create default camera
+			/*{
 				let camEntity = _scene.CreateEntity("Camera");
 				let transform = camEntity.Transform;
 				transform.Position = 
-			}
+			}*/
 
-			// Create the default light source
+			/*// Create the default light source
 			{
 				let lightNtt = _scene.CreateEntity("Light");
 				let transform = lightNtt.Transform;
@@ -480,9 +481,9 @@ namespace GlitchyEditor
 				let light = lightNtt.AddComponent<LightComponent>();
 				light.SceneLight.Illuminance = 10.0f;
 				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}*/
+			}
 
-			//TestEntitiesWithModels();
+			TestEntitiesWithModels();*/
 		}
 		
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.

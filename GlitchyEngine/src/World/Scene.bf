@@ -3,6 +3,7 @@ using GlitchyEngine.Renderer;
 using System;
 using System.Collections;
 using Box2D;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.World
 {
@@ -23,6 +24,9 @@ namespace GlitchyEngine.World
 		private RenderTargetGroup _cameraTarget ~ _.ReleaseRef();
 
 		private Effect _gammaCorrectEffect ~ _.ReleaseRef();
+
+		// Maps ids to the entities they represent.
+		private Dictionary<UUID, EcsEntity> _idToEntity = new .() ~ delete _;
 
 		public Entity ActiveCamera => {
 			Entity cameraEntity = .();
@@ -204,6 +208,8 @@ namespace GlitchyEngine.World
 					// renderTarget = camera.RenderTarget..AddRef();
 				}
 			}
+
+			renderTarget = _cameraTarget..AddRef();
 
 			// 3D render
 			Renderer.BeginScene(*primaryCamera, primaryCameraTransform, renderTarget, _compositeTarget);
@@ -468,13 +474,20 @@ namespace GlitchyEngine.World
 		}
 
 		/// Creates a new Entity with the given name.
-		public Entity CreateEntity(String name = "")
+		public Entity CreateEntity(String name = "", UUID id = default)
 		{
 			Entity entity = Entity(_ecsWorld.NewEntity(), this);
 			entity.AddComponent<TransformComponent>();
 
 			let nameComponent = entity.AddComponent<DebugNameComponent>();
 			nameComponent.SetName(name.IsEmpty ? "Entity" : name);
+			
+			// If no id is given generate a random one.
+			IDComponent idComponent = (id == default) ? IDComponent() : IDComponent(id);
+
+			entity.AddComponent<IDComponent>(idComponent);
+
+			_idToEntity.Add(idComponent.ID, entity.Handle);
 
 			return entity;
 		}
@@ -485,6 +498,8 @@ namespace GlitchyEngine.World
 		*/
 		public void DestroyEntity(Entity entity, bool destroyChildren = false)
 		{
+			_idToEntity.Remove(entity.UUID);
+
 			if (destroyChildren)
 			{
 				for (Entity child in entity.EnumerateChildren)
@@ -494,6 +509,16 @@ namespace GlitchyEngine.World
 			}
 			
 			_ecsWorld.RemoveEntity(entity.Handle);
+		}
+
+		public Result<Entity> GetEntityByID(UUID id)
+		{
+			if (_idToEntity.TryGetValue(id, let ecsEntity))
+			{
+				return .Ok(Entity(ecsEntity, this));
+			}
+
+			return .Err;
 		}
 
 		private uint32 ViewportWidth, ViewportHeight;

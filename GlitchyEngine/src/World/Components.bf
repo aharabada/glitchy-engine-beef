@@ -1,6 +1,7 @@
 using System;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.World
 {
@@ -12,6 +13,22 @@ namespace GlitchyEngine.World
 		public this(String name)
 		{
 			Name = name;
+		}
+	}
+
+	struct IDComponent
+	{
+		public readonly UUID ID;
+
+		/// Create aa new IDComponent with a random UUID.
+		public this()
+		{
+			ID = UUID();
+		}
+
+		public this(UUID id)
+		{
+			ID = id;
 		}
 	}
 

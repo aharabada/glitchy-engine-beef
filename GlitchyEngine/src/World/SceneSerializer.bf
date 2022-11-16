@@ -4,6 +4,8 @@ using System;
 using System.Reflection;
 using System.IO;
 using GlitchyEngine.Math;
+using GlitchyEngine.Core;
+using System.Collections;
 
 namespace GlitchyEngine.World
 {
@@ -12,6 +14,11 @@ namespace GlitchyEngine.World
 	class SceneSerializer
 	{
 		private Scene _scene;
+
+		// Maps from ParentID to ChildEntity
+		private Dictionary<UUID, Entity> _parentIdToChild;
+
+		private List<(Entity Entity, UUID ParentId)> _entitiesMissingParent;
 
 		public this(Scene scene)
 		{
@@ -60,14 +67,13 @@ namespace GlitchyEngine.World
 			File.WriteAllText(filePath, buffer);
 		}
 
-		static void SerializeEntity(BonWriter writer, Entity entity)
+		void SerializeEntity(BonWriter writer, Entity entity)
 		{
 			writer.EntryStart();
 
 			using (writer.ObjectBlock())
 			{
-				// TODO: Entity GUID goes here!
-				Serialize.Value(writer, "Id", entity.Handle.Index);
+				Serialize.Value(writer, "Id", entity.UUID);
 				
 				SerializeComponent<EditorComponent>(writer, entity, "EditorComponent", scope (component) => {});
 
@@ -88,7 +94,10 @@ namespace GlitchyEngine.World
 				{
 					// TODO: Use GUIDs
 					if (component.Parent != .InvalidEntity)
-						Serialize.Value(writer, "ParentId", component.Parent.Index);
+					{
+						Entity parent = Entity(component.Parent, _scene);
+						Serialize.Value(writer, "ParentId", parent.UUID);
+					}
 
 					Serialize.Value(writer, "Position", component.Position);
 					Serialize.Value(writer, "Rotation", component.Rotation);
@@ -177,6 +186,9 @@ namespace GlitchyEngine.World
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
+			_parentIdToChild = scope Dictionary<UUID, Entity>();
+			_entitiesMissingParent = scope List<(Entity Entity, UUID ParentId)>();
+
 			String buffer = scope String();
 			File.ReadAllText(filePath, buffer);
 
@@ -217,6 +229,19 @@ namespace GlitchyEngine.World
 
 			Try!(Deserialize.End(reader));
 
+			// Find parents for entities that don't have their parent yet
+			for ((Entity Entity, UUID ParentId) entry in _entitiesMissingParent)
+			{
+				let parentResult = _scene.GetEntityByID(entry.ParentId);
+
+				Log.EngineLogger.Assert(parentResult case .Ok, "Parent entity does not exist.");
+
+				if (parentResult case .Ok(let parent))
+				{
+					entry.Entity.Parent = parent;
+				}
+			}
+
 			return .Ok;
 		}
 
@@ -224,10 +249,9 @@ namespace GlitchyEngine.World
 		{
 			Try!(reader.ObjectBlock());
 			
-			Entity entity = _scene.CreateEntity();
+			Deserialize.Value<uint64>(reader, "Id", let uuid);
 
-			// TODO: GUID?
-			Deserialize.Value<uint32>(reader, "Id", let id);
+			Entity entity = _scene.CreateEntity("", UUID(uuid));
 
 			while(reader.ObjectHasMore())
 			{
@@ -282,10 +306,21 @@ namespace GlitchyEngine.World
 						let nextId = Try!(reader.Identifier());
 						if (nextId == "ParentId")
 						{
-							// TODO: Use GUIDs
-							uint32 pId;
+							UUID pId;
 							Deserialize.Value(reader, out pId);
 							reader.EntryEnd();
+
+							var parentEntity = _scene.GetEntityByID(pId);
+
+							if (parentEntity case .Ok(let parent))
+							{
+								component.Parent = parent.Handle;
+							}
+							else
+							{
+								_entitiesMissingParent.Add((entity, pId));
+							}
+
 							Deserialize.Value(reader, "Position", out component.[Friend]_position);
 							reader.EntryEnd();
 						}

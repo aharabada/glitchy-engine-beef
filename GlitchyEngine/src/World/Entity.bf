@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using GlitchyEngine.Core;
 
 using internal GlitchyEngine.World;
 
@@ -62,6 +63,8 @@ namespace GlitchyEngine.World
 				}
 			}
 		}
+
+		public UUID UUID => GetComponent<IDComponent>().ID;
 
 		public TransformComponent* Transform => GetComponent<TransformComponent>();
 
