@@ -3,8 +3,18 @@ using GlitchyEngine.Renderer;
 using System;
 using GlitchyEngine;
 
+namespace GlitchyEngine.Math
+{
+	extension ColorRGBA
+	{
+		internal uint32 ImGuiU32 => ImGui.ImGui.ColorConvertFloat4ToU32((.)(Vector4)this);
+	}
+}
+
 namespace ImGui
 {
+	using internal GlitchyEngine.Math;
+
 	extension ImGui
 	{
 		extension Vec2
@@ -12,118 +22,141 @@ namespace ImGui
 			public static explicit operator Vector2(Vec2 v) => .(v.x, v.y);
 			public static explicit operator Vec2(Vector2 v) => .(v.X, v.Y);
 		}
-
+	
 		extension Vec4
 		{
 			public static explicit operator Vector4(Vec4 v) => .(v.x, v.y, v.z, v.w);
 			public static explicit operator Vec4(Vector4 v) => .(v.X, v.Y, v.Z, v.W);
 		}
 
+		/*public static bool IsItemJustDeactivated()
+		{
+		    return IsItemDeactivatedAfterEdit();
+		}
+
+		public static bool IsItemActiveLastFrame()
+		{
+		    Context* g = GetCurrentContext();
+		    if (g.ActiveIdPreviousFrame != 0)
+		        return g.ActiveIdPreviousFrame == g.CurrentWindow.DC.LastItemId;
+
+		    return false;
+		}
+
+		public static bool IsItemJustActivated()
+		{
+		    return IsItemActive() && !IsItemActiveLastFrame();
+		}
+
+		public static bool IsItemEditing()
+		{
+		    return IsItemActive();
+		}*/
+
 		// TODO: Color-functions
 		public static bool ColorEdit3(char* label, ref ColorRGB col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorEdit3Impl(label, *(float[3]*)&col, flags);
 		public static bool ColorEdit3(char* label, ref ColorRGBA col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorEdit3Impl(label, *(float[3]*)&col, flags);
-
+	
 		public static bool ColorEdit4(char* label, ref ColorRGBA col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorEdit4Impl(label, *(float[4]*)&col, flags);
-
-        public static bool ColorPicker3(char* label, ref ColorRGB col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorPicker3Impl(label, *(float[3]*)&col, flags);
-        public static bool ColorPicker3(char* label, ref ColorRGBA col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorPicker3Impl(label, *(float[3]*)&col, flags);
+	
+	    public static bool ColorPicker3(char* label, ref ColorRGB col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorPicker3Impl(label, *(float[3]*)&col, flags);
+	    public static bool ColorPicker3(char* label, ref ColorRGBA col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorPicker3Impl(label, *(float[3]*)&col, flags);
 		
 		public static bool ColorPicker4(char* label, ref ColorRGBA col, ColorEditFlags flags = (ColorEditFlags) 0, float* ref_col = null) => ColorPicker4Impl(label, *(float[4]*)&col, flags, ref_col);
-
+	
 		public static void Image(Texture2D texture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero)
 		{
 			Image(texture.GetViewBinding(), size, uv0, uv1, tint_col, border_col);
 		}
-
+	
 		public static void Image(SubTexture2D subTexture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero)
 		{
 			if (uv0 != .Zero || uv1 != .Ones)
 				Runtime.NotImplemented();
-
+	
 			Vector2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
-
+	
 			Image(subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, tint_col, border_col);
 		}
-
+	
 		public static void Image(RenderTarget2D texture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero)
 		{
 			Image(texture.GetViewBinding(), size, uv0, uv1, tint_col, border_col);
 		}
-
+	
 		public static extern void Image(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero);
-
+	
 		public static bool ImageButton(SubTexture2D subTexture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, int32 frame_padding = -1, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
 		{
 			if (uv0 != .Zero || uv1 != .Ones)
 				Runtime.NotImplemented();
-
+	
 			Vector2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
-
+	
 			return ImageButton(subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, frame_padding, bg_col, tint_col);
 		}
-
+	
 		public static extern bool ImageButton(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, int32 frame_padding = -1, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones);
-
+	
 		public static void TextUnformatted(StringView text) => TextUnformattedImpl(text.Ptr, text.Ptr + text.Length);
 		
 		public static void PushID(StringView id) => PushID(id.Ptr, id.Ptr + id.Length);
-
+	
 		/// Releases references that accumulated calls like ImGui::Image
 		protected internal static extern void CleanupFrame();
-
+	
 		/// Control to edit a vector 2 with drag functionality and reset buttons
 		public static bool EditVector2(StringView label, ref Vector2 value, Vector2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector2 minValue = .Zero, Vector2 maxValue = .Zero)
 		{
 			return EditVector<2>(label, ref *(float[2]*)&value, (float[2])resetValues, dragSpeed, columnWidth, (float[2])minValue, (float[2])maxValue);
 		}
-
+	
 		/// Control to edit a vector 3 with drag functionality and reset buttons
 		public static bool EditVector3(StringView label, ref Vector3 value, Vector3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector3 minValue = .Zero, Vector3 maxValue = .Zero)
 		{
 			return EditVector<3>(label, ref *(float[3]*)&value, (float[3])resetValues, dragSpeed, columnWidth, (float[3])minValue, (float[3])maxValue);
 		}
-
+	
 		/// Control to edit a vector 4 with drag functionality and reset buttons
 		public static bool EditVector4(StringView label, ref Vector4 value, Vector4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector4 minValue = .Zero, Vector4 maxValue = .Zero)
 		{
 			return EditVector<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, columnWidth, (float[4])minValue, (float[4])maxValue);
 		}
-
-		static (Color Default, Color Hovered, Color Active)[?] VectorButtonColors = .(
-				(Color(230, 25, 45), Color(150, 25, 45), Color(230, 90, 90)),
-				(Color(50, 190, 15), Color(50, 120, 15), Color(116, 190, 99)),
-				(Color(55, 55, 230), Color(55, 55, 150), Color(90, 90, 230)),
-				(Color(230, 25, 45), Color(230, 25, 45), Color(230, 25, 45)));
-
+	
+		static (ColorRGBA Default, ColorRGBA Hovered, ColorRGBA Active)[?] VectorButtonColors = .(
+				(.(230, 25, 45), .(150, 25, 45), .(230, 90, 90)),
+				(.(50, 190, 15), .(50, 120, 15), .(116, 190, 99)),
+				(.(55, 55, 230), .(55, 55, 150), .(90, 90, 230)),
+				(.(230, 25, 45), .(230, 25, 45), .(230, 25, 45)));
+	
 		public static bool EditVector<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float columnWidth = 100f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .()) where NumComponents : const int32
 		{
 			const String[?] componentNames = .("X", "Y", "Z", "W");
 			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
 
-			/*(Color Default, Color Hovered, Color Active)[?] VectorButtonColors = .(
-				(Color(230, 25, 45), Color(150, 25, 45), Color(230, 90, 90)),
-				(Color(50, 190, 15), Color(50, 120, 15), Color(116, 190, 99)),
-				(Color(55, 55, 230), Color(55, 55, 150), Color(90, 90, 230)),
-				(Color(230, 25, 45), Color(230, 25, 45), Color(230, 25, 45)));*/
+			static int mouseLockId = 0;
 
 			bool changed = false;
-
+			bool deactivated = false;
+	
 			PushID(label);
 			defer PopID();
 
+			int currentId = ImGui.GetID("");
+	
 			Columns(2);
 			defer Columns(1);
 			SetColumnWidth(0, columnWidth);
-
+	
 			TextUnformatted(label);
-
+	
 			NextColumn();
-
+	
 			PushMultiItemsWidths(NumComponents, CalcItemWidth());
 			
 			float lineHeight = GetFont().FontSize + GetStyle().FramePadding.y * 2.0f;
 			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
-
+	
 			PushStyleVar(.ItemSpacing, Vec2.Zero);
 			
 			for (int i < NumComponents)
@@ -132,10 +165,10 @@ namespace ImGui
 				{
 					SameLine();
 				}
-
-				PushStyleColor(.Button, VectorButtonColors[i].Default.Value);
-				PushStyleColor(.ButtonHovered, VectorButtonColors[i].Hovered.Value);
-				PushStyleColor(.ButtonActive, VectorButtonColors[i].Active.Value);
+	
+				PushStyleColor(.Button, VectorButtonColors[i].Default.ImGuiU32);
+				PushStyleColor(.ButtonHovered, VectorButtonColors[i].Hovered.ImGuiU32);
+				PushStyleColor(.ButtonActive, VectorButtonColors[i].Active.ImGuiU32);
 	
 				if (Button(componentNames[i], buttonSize))
 				{
@@ -144,19 +177,39 @@ namespace ImGui
 				}
 	
 				SameLine();
-	
+
 				if (DragFloat(componentIds[i], &value[i], dragSpeed, minValue[i], maxValue[i]))
+				{
 					changed = true;
+
+					/*if (mouseLockId != currentId)
+					{
+						mouseLockId = currentId;
+
+						Mouse.LockCurrentPosition(mouseLockId);
+					}*/
+				}
+
+				/*if (IsItemDeactivatedAfterEdit())
+				{
+					deactivated = true;
+				}*/
 	
 				PopItemWidth();
 				PopStyleColor(3);
 			}
-
+	
 			PopStyleVar();
 
+			/*if (mouseLockId == currentId && deactivated)
+			{
+				Mouse.UnlockPosition(mouseLockId);
+				mouseLockId = 0;
+			}*/
+	
 			return changed;
 		}
-
+	
 		/// Draws a rectangle with the given color.
 		public static void DrawRect(Vec2 min, Vec2 max, Color color)
 		{

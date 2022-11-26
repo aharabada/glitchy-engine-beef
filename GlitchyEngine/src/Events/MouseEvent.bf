@@ -28,6 +28,33 @@ namespace GlitchyEngine.Events
 			strBuffer.AppendF("MouseMovedEvent: Position: ({}, {})", _mouseX, _mouseY);
 		}
 	}
+	
+	public class RawMouseMovedEvent : Event, IEvent
+	{
+		private int32 _mouseX, _mouseY;
+
+		public override EventType EventType => .MouseMoved;
+
+		public override StringView Name => "RawMouseMoved";
+
+		public override EventCategory Category => .Input | .Mouse;
+
+		public static EventType StaticType => .MouseMoved;
+
+		public int32 PositionX => _mouseX;
+		public int32 PositionY => _mouseY;
+
+		public this(int32 x, int32 y)
+		{
+			_mouseX = x;
+			_mouseY = y;
+		}
+
+		public override void ToString(String strBuffer)
+		{
+			strBuffer.AppendF("RawMouseMovedEvent: Position: ({}, {})", _mouseX, _mouseY);
+		}
+	}
 
 	public class MouseScrolledEvent : Event, IEvent
 	{

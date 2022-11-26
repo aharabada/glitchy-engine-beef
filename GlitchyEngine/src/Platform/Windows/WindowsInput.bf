@@ -1,11 +1,14 @@
 #if BF_PLATFORM_WINDOWS
 
-using System;
-using GlitchyEngine.Events;
-using DirectX.Windows.VirtualKeyCodes;
 using DirectX.Windows;
-using GlitchyEngine.Math;
+using DirectX.Windows.Winuser;
+using DirectX.Windows.Winuser.RawInput;
+using DirectX.Windows.VirtualKeyCodes;
+using System;
 using System.Interop;
+using GlitchyEngine.Events;
+using GlitchyEngine.Math;
+
 using static System.Windows;
 
 namespace GlitchyEngine
@@ -13,12 +16,43 @@ namespace GlitchyEngine
 	/// Windows (WinApi) specific implementation of the Input-class
 	extension Input
 	{
+		//[CLink, CallingConvention(.Stdcall)]
+		//static extern int16 GetKeyState(int32 keycode);
+		[CLink, CallingConvention(.Stdcall)]
+		static extern IntBool GetCursorPos(out Int2 p);
+		[CLink, CallingConvention(.Stdcall)]
+		static extern IntBool SetCursorPos(c_int x, c_int y);
+		[CLink, CallingConvention(.Stdcall)]
+		static extern IntBool ScreenToClient(HWnd hWnd, ref Int2 p);
+		[CLink, CallingConvention(.Stdcall)]
+		static extern IntBool ClientToScreen(HWnd hWnd, ref Int2 p);
+
+		[Import("user32.lib"), CLink]
+		public static extern IntBool RegisterRawInputDevices(RAWINPUTDEVICE* pRawInputDevices, uint32 uiNumDevices, uint32 cbSize);
+
+		public static void RegisterRIDs()
+		{
+			RAWINPUTDEVICE rid;
+			        
+			rid.UsagePage = 0x01; 
+			rid.Usage = 0x02; 
+			rid.Flags = 0;
+			rid.Target = 0;
+
+			if(RegisterRawInputDevices(&rid, 1, sizeof(RAWINPUTDEVICE)) == 0)
+			{
+				Log.EngineLogger.Error("Failed to register raw input devices: {0}", GetLastError());
+				Log.EngineLogger.AssertDebug(false, "Failed to register raw input device.");
+			}
+		}
+
 		/// Represents the state of the input devices on the windows platform (WinApi that is).
 		struct WindowsInputState
 		{
 			public int8[256] KeyStates;
 			public Int2 CursorPosition;
 			public Int2 CursorPositionDifference;
+			public Int2 RawCursorMovement;
 		}
 
 		static WindowsInputState[2] IputStates;
@@ -119,7 +153,15 @@ namespace GlitchyEngine
 			return state >= 0;
 		}
 
+		public override static bool IsMouseButtonPressing(MouseButton button) => IsMouseButtonPressed(button) && WasMouseButtonReleased(button);
+		
+		public override static bool IsMouseButtonReleasing(MouseButton button) => IsMouseButtonReleased(button) && WasMouseButtonPressed(button);
+		
 		public override static Int2 GetMousePosition() => CurrentState.CursorPosition;
+
+		public override static Int2 GetMouseMovement() => CurrentState.CursorPositionDifference;
+		
+		public override static Int2 GetRawMouseMovement() => CurrentState.RawCursorMovement;
 
 		public override static int32 GetMouseX() => CurrentState.CursorPosition.X;
 
@@ -141,33 +183,38 @@ namespace GlitchyEngine
 		}
 
 		public override static Int2 GetLastMousePosition() => LastState.CursorPosition;
+		
+		public override static Int2 GetLastMouseMovement() => LastState.CursorPositionDifference;
+		
+		public override static Int2 GetLastRawMouseMovement() => LastState.RawCursorMovement;
 
 		public override static int32 GetLastMouseX() => LastState.CursorPosition.X;
 
 		public override static int32 GetLastMouseY() => LastState.CursorPosition.Y;
 
-		//
-		// Mouse state transition
-		//
-		public override static bool IsMouseButtonPressing(MouseButton button) => IsMouseButtonPressed(button) && WasMouseButtonReleased(button);
-		
-		public override static bool IsMouseButtonReleasing(MouseButton button) => IsMouseButtonReleased(button) && WasMouseButtonPressed(button);
-		
-		public override static Int2 GetMouseMovement() => CurrentState.CursorPositionDifference;
-
-		public override static void SetMousePosition(Int2 pos) => SetCursorPos(pos.X, pos.Y);
-
-		//[CLink, CallingConvention(.Stdcall)]
-		//static extern int16 GetKeyState(int32 keycode);
-		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool GetCursorPos(out Int2 p);
-		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool SetCursorPos(c_int x, c_int y);
-		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool ScreenToClient(HWnd hWnd, ref Int2 p);
-
-		public override static void NewFrame()
+		public override static void SetMousePosition(Int2 pos)
 		{
+			HWnd windowHandle = (HWnd)(int)Application.Get().Window.NativeWindow;
+
+			var pos;
+
+			// TODO: can fail
+			ClientToScreen(windowHandle, ref pos);
+
+			SetCursorPos(pos.X, pos.Y);
+		}
+
+		public override static void Init()
+		{
+			RegisterRIDs();
+		}
+
+		//public override 
+
+		public override static void Impl_NewFrame()
+		{
+			Window window = Application.Get().Window;
+
 			Debug.Profiler.ProfileFunction!();
 
 			Swap!(CurrentState, LastState);
@@ -182,7 +229,7 @@ namespace GlitchyEngine
 			// Get the current mouse position
 			if (GetCursorPos(out CurrentState.CursorPosition) != 0)
 			{
-				HWnd windowHandle = (HWnd)(int)Application.Get().Window.NativeWindow;
+				HWnd windowHandle = (HWnd)(int)window.NativeWindow;
 				if (ScreenToClient(windowHandle, ref CurrentState.CursorPosition) == 0)
 				{
 					DirectX.Common.HResult errorCode = (.)GetLastError();
@@ -195,8 +242,25 @@ namespace GlitchyEngine
 				Log.EngineLogger.Error($"Failed to get mouse position. Message({(int32)errorCode}){errorCode}:");
 			}
 
-			// Calculate cursor movement
-			CurrentState.CursorPositionDifference = CurrentState.CursorPosition - LastState.CursorPosition;
+			CurrentState.RawCursorMovement = window.[Friend]_rawMouseMovementAccumulator;
+
+			if (Mouse.LockedPosition == null)
+			{
+				// Calculate cursor movement
+				CurrentState.CursorPositionDifference = CurrentState.CursorPosition - LastState.CursorPosition;
+			}
+			else
+			{
+				// Calculate cursor movement
+				CurrentState.CursorPositionDifference = CurrentState.CursorPosition - Mouse.LockedPosition.Value;
+				CurrentState.CursorPosition = Mouse.LockedPosition.Value;
+
+			}
+		}
+
+		public override static void Impl_EndFrame()
+		{
+			Application.Get().Window.[Friend]_rawMouseMovementAccumulator = .Zero;
 		}
 	}
 }

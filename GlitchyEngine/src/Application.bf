@@ -55,6 +55,8 @@ namespace GlitchyEngine
 			_window = new Window(.Default);
 			_window.EventCallback = new => OnEvent;
 
+			Input.Init();
+
 			_rendererApi = new RendererAPI();
 			_rendererApi.Context = _window.Context;
 

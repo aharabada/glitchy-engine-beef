@@ -186,6 +186,15 @@ namespace GlitchyEngine.Math
 		}
 		
 		/// Creates a new instance of ColorRGBA with the specified values.
+		public this(uint8 r, uint8 g, uint8 b, uint8 a = 255)
+		{
+			R = r / 255f;
+			G = g / 255f;
+			B = b / 255f;
+			A = a / 255f;
+		}
+
+		/// Creates a new instance of ColorRGBA with the specified values.
 		public this(ColorRGB color, float a = 1.0f)
 		{
 			R = color.R;

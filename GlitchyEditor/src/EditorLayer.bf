@@ -245,6 +245,8 @@ namespace GlitchyEditor
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
+			Input.ImGuiDebugDraw();
+
 			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Target);
 
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();

@@ -10,6 +10,7 @@ using GlitchyEngine.Events;
 using System.Diagnostics;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
+using DirectX.Windows.Winuser.RawInput;
 using static System.Windows;
 
 using internal GlitchyEngine;
@@ -262,6 +263,8 @@ namespace GlitchyEngine
 			return .Ok;
 		}
 
+		internal Int2 _rawMouseMovementAccumulator;
+
 		private static LRESULT MessageHandler(HWND hwnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			void* windowPtr = (void*)GetWindowLongPtrW(hwnd, GWL_USERDATA);
@@ -457,6 +460,28 @@ namespace GlitchyEngine
 
 					var event = scope MouseMovedEvent(x, y);
 					window._eventCallback(event);
+				}
+			case WM_INPUT:
+				{
+					uint32 dataSize = ?;
+					GetRawInputData((.)lParam, RID_INPUT, null, &dataSize, sizeof(RAWINPUTHEADER));
+
+					if (dataSize > 0)
+					{
+						uint8[] rawData = scope .[dataSize];
+						if (GetRawInputData((.)lParam, RID_INPUT, rawData.CArray(), &dataSize, sizeof(RAWINPUTHEADER)) == dataSize)
+						{
+							RAWINPUT* raw = (.)rawData.CArray();
+							if (raw.Header.Type == RIM_TYPEMOUSE)
+							{
+								var event = scope MouseMovedEvent(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
+								window._eventCallback(event);
+
+								// We accumulate the raw movements an collect them once each frame in WindowsInput.Impl_NewFrame()
+								window._rawMouseMovementAccumulator += Int2(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
+							}
+						}
+					}
 				}
 
 				// Todo: DirectInput
