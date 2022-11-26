@@ -2,6 +2,7 @@ using System;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Core;
+using Box2D;
 
 namespace GlitchyEngine.World
 {
@@ -48,6 +49,8 @@ namespace GlitchyEngine.World
 		public Texture2D Sprite = null;
 		public ColorRGBA Color = .White;
 		public Vector4 UvTransform = .(0, 0, 1, 1);
+
+		public bool IsCircle = false;
 
 		public this()
 		{
@@ -363,7 +366,15 @@ namespace GlitchyEngine.World
 
 		public bool FixedRotation = false;
 
-		internal int _runtimeBody = 0;
+		private int _runtimeBody = 0;
+
+		internal b2Body* RuntimeBody
+		{
+			[Inline]
+			get => (b2Body*)(void*)_runtimeBody;
+			[Inline]
+			set mut => _runtimeBody = (int)(void*)value;
+		}
 	}
 
 	struct BoxCollider2DComponent
@@ -377,6 +388,43 @@ namespace GlitchyEngine.World
 		public float Restitution = 0.0f;
 		public float RestitutionThreshold = 0.5f;
 
-		internal int _runtimeFixture = 0;
+		private int _runtimeFixture = 0;
+
+		internal b2Fixture* RuntimeFixture
+		{
+			[Inline]
+			get => (b2Fixture*)(void*)_runtimeFixture;
+			[Inline]
+			set mut => _runtimeFixture = (int)(void*)value;
+		}
+		
+		[Inline]
+		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
+	}
+
+	struct CircleCollider2DComponent
+	{
+		public Vector2 Offset = .(0.0f, 0.0f);
+
+		public float Radius = 0.5f;
+
+		// TODO: move into 2D physics material
+		public float Density = 1.0f;
+		public float Friction = 0.5f;
+		public float Restitution = 0.0f;
+		public float RestitutionThreshold = 0.5f;
+
+		private int _runtimeFixture = 0;
+
+		internal b2Fixture* RuntimeFixture
+		{
+			[Inline]
+			get => (b2Fixture*)(void*)_runtimeFixture;
+			[Inline]
+			set mut => _runtimeFixture = (int)(void*)value;
+		}
+		
+		[Inline]
+		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
 	}
 }

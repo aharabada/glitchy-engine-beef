@@ -18,7 +18,8 @@
 					Y = 0,
 					Z = 1,
 					W = 1
-				}
+				},
+				IsCircle = false
 			},
 			TransformComponent = {
 				Position = {
@@ -79,7 +80,8 @@
 					Y = 0,
 					Z = 1,
 					W = 1
-				}
+				},
+				IsCircle = false
 			},
 			TransformComponent = {
 				Position = {
@@ -160,8 +162,67 @@
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 2.864979,
+				AspectRatio = 2.01173,
 				FixedAspectRatio = false
+			}
+		},
+		{
+			Id = 15710354273720487680,
+			NameComponent = {
+				Name = "Circle"
+			},
+			SpriterRendererComponent = {
+				Color = {
+					R = 1,
+					G = 0,
+					B = 0,
+					A = 1
+				},
+				UvTransform = {
+					X = 0,
+					Y = 0,
+					Z = 1,
+					W = 1
+				},
+				IsCircle = true
+			},
+			TransformComponent = {
+				Position = {
+					X = -0.121203,
+					Y = 0.66016,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			Rigidbody2D = {
+				BodyType = .Dynamic,
+				FixedRotation = false
+			},
+			CircleCollider2D = {
+				Offset = {
+					X = 0,
+					Y = 0
+				},
+				Radius = 0.5,
+				Density = 1,
+				Friction = 0.5,
+				Restitution = 0,
+				RestitutionThreshold = 0.5
 			}
 		}
 	]

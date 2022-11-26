@@ -88,6 +88,7 @@ namespace GlitchyEngine.World
 
 					Serialize.Value(writer, "Color", component.Color);
 					Serialize.Value(writer, "UvTransform", component.UvTransform);
+					Serialize.Value(writer, "IsCircle", component.IsCircle);
 				});
 
 				SerializeComponent<TransformComponent>(writer, entity, "TransformComponent", scope (component) =>
@@ -150,6 +151,17 @@ namespace GlitchyEngine.World
 				{
 					Serialize.Value(writer, "Offset", component.Offset);
 					Serialize.Value(writer, "Size", component.Size);
+
+					Serialize.Value(writer, "Density", component.Density);
+					Serialize.Value(writer, "Friction", component.Friction);
+					Serialize.Value(writer, "Restitution", component.Restitution);
+					Serialize.Value(writer, "RestitutionThreshold", component.RestitutionThreshold);
+				});
+
+				SerializeComponent<CircleCollider2DComponent>(writer, entity, "CircleCollider2D", scope (component) =>
+				{
+					Serialize.Value(writer, "Offset", component.Offset);
+					Serialize.Value(writer, "Radius", component.Radius);
 
 					Serialize.Value(writer, "Density", component.Density);
 					Serialize.Value(writer, "Friction", component.Friction);
@@ -297,6 +309,8 @@ namespace GlitchyEngine.World
 						Try!(Deserialize.Value(reader, "Color", out component.Color));
 						reader.EntryEnd();
 						Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
+						reader.EntryEnd();
+						Try!(Deserialize.Value(reader, "IsCircle", out component.IsCircle));
 
 						return .Ok;
 					}));
@@ -409,6 +423,24 @@ namespace GlitchyEngine.World
 						Deserialize.Value(reader, "Offset", out component.Offset);
 						reader.EntryEnd();
 						Deserialize.Value(reader, "Size", out component.Size);
+						reader.EntryEnd();
+						
+						Deserialize.Value(reader, "Density", out component.Density);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "Friction", out component.Friction);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "Restitution", out component.Restitution);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "RestitutionThreshold", out component.RestitutionThreshold);
+
+						return .Ok;
+					}));
+				case "CircleCollider2D":
+					Try!(DeserializeComponent<CircleCollider2DComponent>(reader, entity, scope (component) =>
+					{
+						Deserialize.Value(reader, "Offset", out component.Offset);
+						reader.EntryEnd();
+						Deserialize.Value(reader, "Radius", out component.Radius);
 						reader.EntryEnd();
 						
 						Deserialize.Value(reader, "Density", out component.Density);

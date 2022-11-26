@@ -121,12 +121,13 @@ namespace GlitchyEngine.World
 				b2Body* body = Box2D.World.CreateBody(_physicsWorld2D, &def);
 				Box2D.Body.SetFixedRotation(body, rigidBody.FixedRotation);
 
-				rigidBody._runtimeBody = (int)(void*)body;
+				rigidBody.RuntimeBody = body;
 
 				if (entity.TryGetComponent<BoxCollider2DComponent>(let boxCollider))
 				{
 					b2Shape* boxShape = Box2D.Shape.CreatePolygon();
 					Box2D.Shape.PolygonSetAsBox(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y);
+					Box2D.Shape.PolygonSetAsBoxWithCenterAngle(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y, ref boxCollider.b2Offset, 0.0f);
 
 					b2FixtureDef fixtureDef = .();
 					fixtureDef.shape = boxShape;
@@ -136,7 +137,24 @@ namespace GlitchyEngine.World
 					fixtureDef.restitutionThreshold = boxCollider.RestitutionThreshold;
 
 					b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
-					boxCollider._runtimeFixture = (int)(void*)fixture;
+					boxCollider.RuntimeFixture = fixture;
+				}
+
+				if (entity.TryGetComponent<CircleCollider2DComponent>(let circleCollider))
+				{
+					b2Shape* circleShape = Box2D.Shape.CreateCircle();
+					Box2D.Shape.CircleSetPosition(circleShape, ref circleCollider.b2Offset);
+					Box2D.Shape.SetRadius(circleShape, circleCollider.Radius);
+
+					b2FixtureDef fixtureDef = .();
+					fixtureDef.shape = circleShape;
+					fixtureDef.density = circleCollider.Density;
+					fixtureDef.friction = circleCollider.Friction;
+					fixtureDef.restitution = circleCollider.Restitution;
+					fixtureDef.restitutionThreshold = circleCollider.RestitutionThreshold;
+
+					b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
+					circleCollider.RuntimeFixture = fixture;
 				}
 			}
 		}
@@ -184,7 +202,7 @@ namespace GlitchyEngine.World
 					var transform = entity.Transform;
 					var rigidbody = entry.Component;
 
-					b2Body* body = (b2Body*)(void*)rigidbody._runtimeBody;
+					b2Body* body = rigidbody.RuntimeBody;
 					b2Vec2 position = Box2D.Body.GetPosition(body);
 					float angle = Box2D.Body.GetAngle(body);
 

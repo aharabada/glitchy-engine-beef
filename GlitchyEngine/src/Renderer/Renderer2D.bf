@@ -236,8 +236,8 @@ namespace GlitchyEngine.Renderer
 					VertexElement(.R32G32B32A32_Float, "TRANSFORM", false, 3, 1, (.)-1, .PerInstanceData, 1),
 					VertexElement(.R32G32B32A32_Float,     "COLOR", false, 0, 1, (.)-1, .PerInstanceData, 1),
 					VertexElement(.R32G32B32A32_Float,  "TEXCOORD", false, 1, 1, (.)-1, .PerInstanceData, 1),
-					VertexElement(.R32_Float,  			"TEXCOORD", false, 2, 1, (.)-1, .PerInstanceData, 1),
-					VertexElement(.R32_UInt,  			"ENTITYID", false, 0, 1, (.)-1, .PerInstanceData, 1)
+					VertexElement(.R32_UInt,  			"ENTITYID", false, 0, 1, (.)-1, .PerInstanceData, 1),
+					VertexElement(.R32_Float,  			"TEXCOORD", false, 2, 1, (.)-1, .PerInstanceData, 1)
 				);
 				
 				s_circleBatchBinding = new GeometryBinding();
@@ -873,7 +873,10 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawSprite(Matrix transform, SpriterRendererComponent* spriteRenderer, uint32 entityId)
 		{
-			DrawQuad(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, spriteRenderer.UvTransform, entityId);
+			if (spriteRenderer.IsCircle)
+				DrawCircle(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, 1.0f, spriteRenderer.UvTransform, entityId);
+			else
+				DrawQuad(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, spriteRenderer.UvTransform, entityId);
 		}
 
 		// Textured quad pivot
@@ -912,7 +915,7 @@ namespace GlitchyEngine.Renderer
 			DrawCircle(transform, texture, color, innerRadius, uvTransform);
 		}
 		
-		public static void DrawCircle(Matrix transform, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawCircle(Matrix transform, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -920,7 +923,7 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
 
-			QueueCircleInstance(transform, color, texture, transform.Translation.Z, uvTransform, innerRadius);
+			QueueCircleInstance(transform, color, texture, transform.Translation.Z, uvTransform, innerRadius, entityId);
 
 			if(s_drawOrder == .Immediate)
 			{

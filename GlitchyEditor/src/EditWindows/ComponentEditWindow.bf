@@ -66,6 +66,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
 			ShowComponentEditor<Rigidbody2DComponent>("Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
 			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
+			ShowComponentEditor<CircleCollider2DComponent>("Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
 
 			ShowAddComponentButton(entity);
 		}
@@ -278,6 +279,8 @@ namespace GlitchyEditor.EditWindows
 
 
 			ImGui.EditVector<4>("UV Transform", ref *(float[4]*)&spriteRendererComponent.UvTransform);
+
+			ImGui.Checkbox("Is Circle", &spriteRendererComponent.IsCircle);
 		}
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
@@ -471,6 +474,37 @@ namespace GlitchyEditor.EditWindows
 				boxCollider.RestitutionThreshold = restitutionThreshold;
 		}
 
+		private static void ShowCircleCollider2DComponentEditor(Entity entity, CircleCollider2DComponent* circleCollider)
+		{
+			float textWidth = ImGui.CalcTextSize("Offset".CStr()).x;
+			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
+
+
+			Vector2 offset = circleCollider.Offset;
+			if (ImGui.EditVector2("Offset", ref offset, .Zero, 0.1f, textWidth))
+				circleCollider.Offset = offset;
+
+			float radius = circleCollider.Radius;
+			if (ImGui.DragFloat("Radius", &radius, 0.0f, 0.1f, textWidth))
+				circleCollider.Radius = radius;
+			
+			float density = circleCollider.Density;
+			if (ImGui.DragFloat("Density", &density, 0.0f, 0.1f, textWidth))
+				circleCollider.Density = density;
+			
+			float friction = circleCollider.Friction;
+			if (ImGui.DragFloat("Friction", &friction, 0.0f, 0.1f, textWidth))
+				circleCollider.Friction = friction;
+
+			float restitution = circleCollider.Restitution;
+			if (ImGui.DragFloat("Restitution", &restitution, 0.0f, 0.1f, textWidth))
+				circleCollider.Restitution = restitution;
+
+			float restitutionThreshold = circleCollider.RestitutionThreshold;
+			if (ImGui.DragFloat("RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, textWidth))
+				circleCollider.RestitutionThreshold = restitutionThreshold;
+		}
+
 		private static void LabelColumn(StringView label)
 		{
 			ImGui.TextUnformatted(label);
@@ -613,6 +647,7 @@ namespace GlitchyEditor.EditWindows
 				ShowComponentButton<LightComponent>("Light");
 				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
 				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");
+				ShowComponentButton<CircleCollider2DComponent>("Circle collider 2D");
 
 				ImGui.EndCombo();
 			}
