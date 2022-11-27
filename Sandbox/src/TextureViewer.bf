@@ -39,7 +39,7 @@ namespace Sandbox
 
 		public this()
 		{
-			_context = Renderer.[Friend]_context..AddRef();
+			_context = Application.Get().Window.Context..AddRef();
 
 			InitEffect();
 			InitState();

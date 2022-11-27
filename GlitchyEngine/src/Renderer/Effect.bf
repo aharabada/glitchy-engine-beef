@@ -197,10 +197,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			ref TextureEntry entry = ref _textures[name];
-
-			entry.BoundTexture.Release();
-			entry.BoundTexture = texture.GetViewBinding();
+			[Inline]InternalSetTexture(name, texture.GetViewBinding());
 		}
 		
 		public void SetTexture(String name, RenderTargetGroup renderTargetGroup, int32 firstTarget, uint32 targetCount = 1)
@@ -210,24 +207,31 @@ namespace GlitchyEngine.Renderer
 			if (targetCount != 1)
 				Runtime.NotImplemented("Binding multiple rendertargets to a slot is not yet implemented.");
 
-			ref TextureEntry entry = ref _textures[name];
-
-			entry.BoundTexture.Release();
-			//entry.BoundTexture = .RenderTargetGroup(renderTargetGroup..AddRef(), firstTarget, targetCount);
-			entry.BoundTexture = renderTargetGroup.GetViewBinding(firstTarget);
+			// We have to release the viewBinding because GetViewBinding internally increases the counter
+			[Inline]InternalSetTexture(name, renderTargetGroup.GetViewBinding(firstTarget));
 		}
 
 		public void SetTexture(String name, TextureViewBinding textureViewBinding)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
+			[Inline]InternalSetTexture(name, textureViewBinding..AddRef());
+		}
+
+		private void InternalSetTexture(String name, TextureViewBinding textureViewBinding)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 			ref TextureEntry entry = ref _textures[name];
 
 			entry.BoundTexture.Release();
-			entry.BoundTexture = textureViewBinding..AddRef();
+			entry.BoundTexture = textureViewBinding;
+
+			entry.VsSlot?.BoundTexture..Release() = entry.BoundTexture..AddRef();
+			entry.PsSlot?.BoundTexture..Release() = entry.BoundTexture..AddRef();
 		}
 
-		private void ApplyTextures()
+		/*private void ApplyTextures()
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -241,11 +245,13 @@ namespace GlitchyEngine.Renderer
 				entry.PsSlot?.BoundTexture = entry.BoundTexture;
 				entry.PsSlot?.BoundTexture.AddRef();
 			}
-		}
+		}*/
 
-		private void ApplyChanges()
+		public void ApplyChanges()
 		{
 			Debug.Profiler.ProfileRendererFunction!();
+			
+			//ApplyTextures();
 
 			for(let buffer in _bufferCollection)
 			{
@@ -256,15 +262,15 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public void Bind(GraphicsContext context)
+		public void Bind()
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			ApplyTextures();
-			ApplyChanges();
+			//ApplyTextures();
+			//ApplyChanges();
 
-			context.SetVertexShader(_vs);
-			context.SetPixelShader(_ps);
+			RenderCommand.BindVertexShader(_vs);
+			RenderCommand.BindPixelShader(_ps);
 		}
 
 		private void CompileFromFile(String filename, String vsEntry, String psEntry)

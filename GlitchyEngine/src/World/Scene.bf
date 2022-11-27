@@ -270,7 +270,8 @@ namespace GlitchyEngine.World
 	
 				_gammaCorrectEffect.SetTexture("Texture", _compositeTarget, 0);
 				// TODO: iiihhh
-				_gammaCorrectEffect.Bind(Application.Get().Window.Context);
+				_gammaCorrectEffect.ApplyChanges();
+				_gammaCorrectEffect.Bind();
 	
 				FullscreenQuad.Draw();
 			}
@@ -483,7 +484,8 @@ namespace GlitchyEngine.World
 	
 				_gammaCorrectEffect.SetTexture("Texture", _compositeTarget, 0);
 				// TODO: iiihhh
-				_gammaCorrectEffect.Bind(Application.Get().Window.Context);
+				_gammaCorrectEffect.ApplyChanges();
+				_gammaCorrectEffect.Bind();
 	
 				FullscreenQuad.Draw();
 			}

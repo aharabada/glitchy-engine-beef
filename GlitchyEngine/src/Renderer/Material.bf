@@ -65,7 +65,7 @@ namespace GlitchyEngine.Renderer
 		/**
 		 * Binds the materials Shaders and Parameters to the given context.
 		 */
-		public void Bind(GraphicsContext context)
+		public void Bind()
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -79,7 +79,8 @@ namespace GlitchyEngine.Renderer
 				variable.Variable.SetRawData(RawPointer!<uint8>(variable.Offset));
 			}
 
-			_effect.Bind(context);
+			_effect.ApplyChanges();
+			_effect.Bind();
 		}
 
 		/** @brief Sets a texture of the material.

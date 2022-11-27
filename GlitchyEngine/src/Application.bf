@@ -68,7 +68,7 @@ namespace GlitchyEngine
 
 			_effectLibrary = new EffectLibrary();
 
-			Renderer.Init(_window.Context, _effectLibrary);
+			Renderer.Init(_effectLibrary);
 
 #if IMGUI
 			_imGuiLayer = new ImGuiLayer();

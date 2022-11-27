@@ -348,12 +348,12 @@ namespace GlitchyEngine.Renderer
 			NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
 		}
 
-		public override void SetVertexShader(VertexShader vertexShader)
+		public override void BindVertexShader(VertexShader vertexShader)
 		{
 			BindShaderToStage(vertexShader);
 		}
 
-		public override void SetPixelShader(PixelShader pixelShader)
+		public override void BindPixelShader(PixelShader pixelShader)
 		{
 			BindShaderToStage(pixelShader);
 		}

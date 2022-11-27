@@ -85,7 +85,7 @@ namespace GlitchyEngine.Renderer
 					SetBlendState(_nonblendingState);
 
 					_clearUintFx.Variables["ClearValue"].SetData(value);
-					_clearUintFx.Bind(_context);
+					_clearUintFx.Bind();
 	
 					FullscreenQuad.Draw();
 					
@@ -253,6 +253,16 @@ namespace GlitchyEngine.Renderer
 		public override void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage)
 		{
 			_context.BindConstantBuffer(buffer, slot, stage);
+		}
+		
+		public override void BindVertexShader(VertexShader vertexShader)
+		{
+			_context.BindVertexShader(vertexShader);
+		}
+
+		public override void BindPixelShader(PixelShader pixelShader)
+		{
+			_context.BindPixelShader(pixelShader);
 		}
 	}
 }

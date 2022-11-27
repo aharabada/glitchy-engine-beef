@@ -568,7 +568,8 @@ namespace GlitchyEngine.Renderer
 
 			s_quadInstanceBuffer.SetData<BatchVertex>(s_rawQuadInstances.Ptr, s_setInstances, 0, .WriteDiscard);
 			
-			s_currentEffect.Bind(Renderer._context);
+			s_currentEffect.ApplyChanges();
+			s_currentEffect.Bind();
 			s_quadBatchBinding.InstanceCount = s_setInstances;
 			s_quadBatchBinding.Bind();
 			RenderCommand.DrawIndexedInstanced(s_quadBatchBinding);
@@ -587,7 +588,8 @@ namespace GlitchyEngine.Renderer
 
 			s_circleInstanceBuffer.SetData<CircleBatchVertex>(s_rawCircleInstances.Ptr, s_setInstances, 0, .WriteDiscard);
 			
-			s_currentCircleEffect.Bind(Renderer._context);
+			s_currentCircleEffect.ApplyChanges();
+			s_currentCircleEffect.Bind();
 			s_circleBatchBinding.InstanceCount = s_setInstances;
 			s_circleBatchBinding.Bind();
 			RenderCommand.DrawIndexedInstanced(s_circleBatchBinding);

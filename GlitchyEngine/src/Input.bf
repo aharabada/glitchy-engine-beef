@@ -160,8 +160,6 @@ namespace GlitchyEngine
 
 		public static void NewFrame()
 		{
-			Log.EngineLogger.Info($"{Input.GetMousePosition()}");
-
 			if (_lockPositions.Count > 0)
 			{
 				var position = _lockPositions.Back.Position;

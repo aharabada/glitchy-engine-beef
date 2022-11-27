@@ -77,8 +77,6 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		static internal GraphicsContext _context;
-
 		static SceneConstants _sceneConstants;
 
 		static Effect LineEffect;
@@ -106,12 +104,10 @@ namespace GlitchyEngine.Renderer
 			private Vector3 _padding;
 		}
 
-		public static void Init(GraphicsContext context, EffectLibrary effectLibrary)
+		public static void Init(EffectLibrary effectLibrary)
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			_context = context..AddRef();
-			
 			RenderCommand.Init();
 			Renderer2D.Init();
 			FullscreenQuad.Init();
@@ -130,8 +126,6 @@ namespace GlitchyEngine.Renderer
 			
 			FullscreenQuad.Deinit();
 			Renderer2D.Deinit();
-
-			_context.ReleaseRef();
 		}
 
 		static void InitLineRenderer(EffectLibrary effectLibrary)
@@ -321,7 +315,7 @@ namespace GlitchyEngine.Renderer
 						_objectBuffer.SetData(objectData, 0, .WriteDiscard);
 					}
 
-					entry.Material.Bind(_context);
+					entry.Material.Bind();
 					
 					RenderCommand.BindConstantBuffer(_sceneBuffer, 0, .All);
 					RenderCommand.BindConstantBuffer(_objectBuffer, 1, .All);
@@ -366,8 +360,11 @@ namespace GlitchyEngine.Renderer
 
 					TestFullscreenEffect.Variables["Scaling"].SetData(scaling);
 		
-					TestFullscreenEffect.Bind(_context);
-		
+					TestFullscreenEffect.ApplyChanges();
+					TestFullscreenEffect.Bind();
+					
+					//RenderCommand.BindEffect(TestFullscreenEffect);
+
 					FullscreenQuad.Draw();
 				}
 
@@ -379,12 +376,16 @@ namespace GlitchyEngine.Renderer
 				RenderCommand.SetBlendState(_gBufferBlend);
 
 				RenderCommand.UnbindRenderTargets();
-				RenderCommand.SetRenderTargetGroup(_sceneConstants.CompositionTarget, true);
 				RenderCommand.BindRenderTargets();
-
+				RenderCommand.SetRenderTargetGroup(_sceneConstants.CompositionTarget, true);
+				
 				// TODO: Postprocessing effects
 				s_tonemappingEffect.SetTexture("CameraTarget", _sceneConstants.CameraTarget, 0);
-				s_tonemappingEffect.Bind(_context);
+				s_tonemappingEffect.ApplyChanges();
+				s_tonemappingEffect.Bind();
+
+				RenderCommand.BindRenderTargets();
+				//RenderCommand.BindEffect(s_tonemappingEffect);
 
 				FullscreenQuad.Draw();
 
@@ -413,8 +414,9 @@ namespace GlitchyEngine.Renderer
 			
 			effect.Variables["ViewProjection"].SetData(_sceneConstants.ViewProjection);
 			effect.Variables["Transform"].SetData(transform);
-
-			effect.Bind(_context);
+			
+			effect.ApplyChanges();
+			effect.Bind();
 
 			geometry.Bind();
 			RenderCommand.DrawIndexed(geometry);
@@ -534,7 +536,8 @@ namespace GlitchyEngine.Renderer
 			LineEffect.Variables["ViewProjection"].SetData(_sceneConstants.ViewProjection * transform);
 			LineEffect.Variables["Color"].SetData(color);
 
-			LineEffect.Bind(_context);
+			LineEffect.ApplyChanges();
+			LineEffect.Bind();
 
 			LineGeometry.Bind();
 			RenderCommand.DrawIndexed(LineGeometry);
@@ -554,8 +557,9 @@ namespace GlitchyEngine.Renderer
 			LineVertices.SetData(Vector4[2](start, end), 0, .WriteDiscard);
 			LineEffect.Variables["ViewProjection"].SetData(viewProjection * transform);
 			LineEffect.Variables["Color"].SetData(color);
-
-			LineEffect.Bind(_context);
+			
+			LineEffect.ApplyChanges();
+			LineEffect.Bind();
 
 			LineGeometry.Bind();
 			RenderCommand.DrawIndexed(LineGeometry);

@@ -128,5 +128,15 @@ namespace GlitchyEngine.Renderer
 		{
 			_rendererAPI.BindConstantBuffer(buffer, slot, stage);
 		}
+
+		public static void BindVertexShader(VertexShader vertexShader)
+		{
+			_rendererAPI.BindVertexShader(vertexShader);
+		}
+
+		public static void BindPixelShader(PixelShader pixelShader)
+		{
+			_rendererAPI.BindPixelShader(pixelShader);
+		}
 	}
 }
