@@ -111,7 +111,7 @@ class EditorContentManager : IContentManager
 	
 	bool _fileSystemDirty = false;
 
-	internal TreeNode<AssetNode> _assetHierarchy = new TreeNode<AssetNode>() ~ DeleteTreeAndChildren!(_);
+	internal TreeNode<AssetNode> _assetHierarchy = null /*new TreeNode<AssetNode>()*/ ~ DeleteTreeAndChildren!(_);
 
 	private append String _contentDirectory = .();
 
@@ -169,15 +169,29 @@ class EditorContentManager : IContentManager
 		}
 	}
 
+	public IAssetLoader GetDefaultAssetLoader(StringView fileExtension)
+	{
+		if (_defaultAssetLoaders.TryGetValue(fileExtension, let value))
+			return value;
+
+		return null;
+	}
+
+	/// Rebuilds the asset file hierarchy.
 	private void UpdateFiles()
 	{
 		// TODO: we don't need to rebuild the entire tree!
-		DeleteTreeAndChildren!(_assetHierarchy);
+		//DeleteTreeAndChildren!(_assetHierarchy);
 
-		_assetHierarchy = new TreeNode<AssetNode>(new AssetNode());
-		_assetHierarchy->Path = new String(ContentDirectory);
-		_assetHierarchy->Name = new String("Content");
-		
+		if (_assetHierarchy == null)
+		{
+			// TODO: move to init?
+
+			_assetHierarchy = new TreeNode<AssetNode>(new AssetNode());
+			_assetHierarchy->Path = new String(ContentDirectory);
+			_assetHierarchy->Name = new String("Content");
+		}
+
 		String str = scope .(ContentDirectory);
 		
 		/*void GrabSubAssets(TreeNode<AssetNode> assetNode)
@@ -250,6 +264,15 @@ class EditorContentManager : IContentManager
 
 		void AddDirectoryToTree(String path, TreeNode<AssetNode> parentNode)
 		{
+			bool b (AssetNode node)
+			{
+				return false;
+			}
+
+			//void V() : 
+
+			var v = parentNode.Children.First();
+
 			AssetNode node = new AssetNode();
 			node.Path = new String(path);
 			node.Name = new String();
@@ -281,14 +304,6 @@ class EditorContentManager : IContentManager
 		}
 
 		_fileSystemDirty = false;
-	}
-
-	public IAssetLoader GetDefaultAssetLoader(StringView fileExtension)
-	{
-		if (_defaultAssetLoaders.TryGetValue(fileExtension, let value))
-			return value;
-
-		return null;
 	}
 
 	private append List<String> _supportedExtensions = .() ~ ClearAndDeleteItems!(_);

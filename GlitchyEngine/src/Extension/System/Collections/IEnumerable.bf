@@ -1,5 +1,3 @@
-// https://github.com/Moneyl/Beef.Linq/blob/master/src/src/Enumerable.bf
-
 using System.Collections;
 using System;
 using internal System.Linq;
@@ -164,7 +162,7 @@ namespace System.Linq
 		}
 
 		public static bool Any<TCollection, TSource, TPredicate>(this TCollection items, TPredicate predicate)
-			where TCollection : concrete, IEnumerable<TSource>, class, new
+			where TCollection : concrete, IEnumerable<TSource>
 			where TPredicate : delegate bool(TSource)
 		{
 			for (var it in items)
@@ -557,37 +555,10 @@ namespace System.Linq
 			return false;
 		}
 
-		public static bool InternalFirst<TEnum, TSource, TPredicate>(TEnum items, out TSource val, TPredicate predicate)
-			where TEnum : concrete, IEnumerator<TSource>
-			where TPredicate : delegate bool(TSource)
-		{
-            val = default;
-			using (var iterator = Iterator.Wrap(items))
-			{
-				var enumerator = iterator.mEnum;
-				if (enumerator.GetNext() case .Ok(out val))
-				{
-					if (predicate(val))
-						return true;
-				}
-			}
-
-			return false;
-		}
-
 		public static TSource First<TCollection, TSource>(this TCollection items)
 			where TCollection : concrete, IEnumerable<TSource>
 		{
 			if (InternalFirst<decltype(default(TCollection).GetEnumerator()), TSource>(items.GetEnumerator(), let val))
-				return val;
-			Runtime.FatalError("Sequence contained no elements.");
-		}
-		
-		public static TSource First<TCollection, TSource, TPredicate>(this TCollection items, TPredicate predicate)
-			where TCollection : concrete, IEnumerable<TSource>
-			where TPredicate : delegate bool(TSource)
-		{
-			if (InternalFirst<decltype(default(TCollection).GetEnumerator()), TSource, TPredicate>(items.GetEnumerator(), let val, predicate))
 				return val;
 			Runtime.FatalError("Sequence contained no elements.");
 		}
@@ -600,15 +571,6 @@ namespace System.Linq
 			Runtime.FatalError("Sequence contained no elements.");
 		}
 
-		public static TSource First<TEnum, TSource, TPredicate>(this TEnum items, TPredicate predicate)
-			where TEnum : concrete, IEnumerator<TSource>
-			where TPredicate : delegate bool(TSource)
-		{
-			if (InternalFirst<TEnum, TSource, TPredicate>(items, let val, predicate))
-				return val;
-			Runtime.FatalError("Sequence contained no elements.");
-		}
-
 		public static TSource FirstOrDefault<TCollection, TSource>(this TCollection items)
 			where TCollection : concrete, IEnumerable<TSource>
 		{
@@ -617,24 +579,6 @@ namespace System.Linq
 
 			return default;
 		}
-
-		public static TSource FirstOrDefault<TCollection, TSource, TPredicate>(this TCollection items, TPredicate predicate)
-			where TCollection : concrete, IEnumerable<TSource>
-			where TPredicate : delegate bool(TSource)
-		{
-			if (InternalFirst<decltype(default(TCollection).GetEnumerator()), TSource, TPredicate>(items.GetEnumerator(), let val, predicate))
-				return val;
-
-			return default;
-		}
-		
-		/*public static WhereEnumerable<TSource, decltype(default(TCollection).GetEnumerator()), TPredicate>
-			Where<TCollection, TSource, TPredicate>(this TCollection items, TPredicate predicate)
-			where TCollection : concrete, IEnumerable<TSource>
-			where TPredicate : delegate bool(TSource)
-		{
-			return .(items.GetEnumerator(), predicate);
-		}*/
 
 		public static TSource FirstOrDefault<TEnum, TSource>(this TEnum items)
 			where TEnum : concrete, IEnumerator<TSource>

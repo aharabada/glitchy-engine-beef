@@ -61,7 +61,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private void ImGuiPrintEntityTree(TreeNode<EditorContentManager.AssetNode> tree)
+		private void ImGuiPrintEntityTree(TreeNode<AssetNode> tree)
 		{
 			if (!tree->IsDirectory)
 				return;
@@ -127,7 +127,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private void DrawDirectoryItem(TreeNode<EditorContentManager.AssetNode> entry)
+		private void DrawDirectoryItem(TreeNode<AssetNode> entry)
 		{
 			ImGui.BeginChild("item", (.)DirectoryItemSize);
 
@@ -197,7 +197,7 @@ namespace GlitchyEditor.EditWindows
 			ImGui.EndChild();
 		}
 
-		private void EntryDoubleClicked(TreeNode<EditorContentManager.AssetNode> entry)
+		private void EntryDoubleClicked(TreeNode<AssetNode> entry)
 		{
 			if (entry->IsDirectory)
 			{
