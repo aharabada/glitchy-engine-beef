@@ -103,7 +103,7 @@ class EditorContentManager : IContentManager
 {
 	// TODO: Get from workspace
 	//const String ContentDirectory  = "./content";
-	
+
 	FileSystemWatcher fsw ~ {
 		_.StopRaisingEvents();
 		delete _;
@@ -111,7 +111,7 @@ class EditorContentManager : IContentManager
 	
 	bool _fileSystemDirty = false;
 
-	internal TreeNode<AssetNode> _assetHierarchy = null /*new TreeNode<AssetNode>()*/ ~ DeleteTreeAndChildren!(_);
+	internal TreeNode<AssetNode> _assetHierarchy = null ~ DeleteTreeAndChildren!(_);
 
 	private append String _contentDirectory = .();
 
@@ -134,6 +134,53 @@ class EditorContentManager : IContentManager
 		SetupFileSystemWatcher();
 	}
 
+	private TreeNode<AssetNode> FileFileNode(StringView filePath)
+	{
+		//String relativeFilePath = scope String(filePath.Length);
+
+		//Path.GetRelativePath(filePath, ContentDirectory, relativeFilePath);
+
+		// Having a Path -> AssetNode dictionary would make this a lot easier!
+
+		TreeNode<AssetNode> walker = _assetHierarchy;
+
+		Log.EngineLogger.AssertDebug(filePath.StartsWith(walker->Path), "filePath not in walker :(");
+
+		Walking: while (true)
+		{
+			for (TreeNode<AssetNode> child in walker.Children)
+			{	
+				if (filePath.StartsWith(child->Path))
+				{
+					walker = child;
+
+					if (walker->Path == filePath)
+						return walker;
+
+					continue Walking;
+				}
+			}
+
+			// If we make it here, no child matched
+			Runtime.FatalError("Failed to find treeNode for given path");
+			//Log.EngineLogger.Assert(false, "Failed to find ")
+		}
+
+		/*// Check whether the new file is a directory of a file.
+		if (Directory.Exists(filePath))
+		{
+
+		}
+		else if (File.Exists(filePath))
+		{
+
+		}
+		else
+		{
+			Log.EngineLogger.Assert(false, scope $"The given path \"{filePath}\" doesn't exist.");
+		}*/
+	}
+
 	/// Initializes the FSW for the current ContentDirectory and registers the events.
 	private void SetupFileSystemWatcher()
 	{
@@ -142,18 +189,28 @@ class EditorContentManager : IContentManager
 		fsw.IncludeSubdirectories = true;
 
 		fsw.OnChanged.Add(new (filename) => {
-			_fileSystemDirty = true;
+			// Note: Gets fired for a directory if a file inside it is created/removed
+			
+			Log.EngineLogger.Trace($"File content changed (\"{filename}\")");
+			//_fileSystemDirty = true;
+			// TODO: Handle file changes (reload asset, etc...)
 		});
 
 		fsw.OnCreated.Add(new (filename) => {
+			Log.EngineLogger.Trace($"File created (\"{filename}\")");
+
 			_fileSystemDirty = true;
 		});
 
 		fsw.OnDeleted.Add(new (filename) => {
+			Log.EngineLogger.Trace($"File deleted (\"{filename}\")");
+
 			_fileSystemDirty = true;
 		});
 
 		fsw.OnRenamed.Add(new (newName, oldName) => {
+			Log.EngineLogger.Trace($"File renamed (From \"{oldName}\" to \"{newName}\")");
+
 			_fileSystemDirty = true;
 		});
 
@@ -180,8 +237,7 @@ class EditorContentManager : IContentManager
 	/// Rebuilds the asset file hierarchy.
 	private void UpdateFiles()
 	{
-		// TODO: we don't need to rebuild the entire tree!
-		//DeleteTreeAndChildren!(_assetHierarchy);
+		Log.EngineLogger.Trace($"Updating asset hierarchy");
 
 		if (_assetHierarchy == null)
 		{
@@ -190,118 +246,121 @@ class EditorContentManager : IContentManager
 			_assetHierarchy = new TreeNode<AssetNode>(new AssetNode());
 			_assetHierarchy->Path = new String(ContentDirectory);
 			_assetHierarchy->Name = new String("Content");
+
+			Log.EngineLogger.Trace($"Created directory node for: \"{_assetHierarchy->Path}\"");
 		}
 
-		String str = scope .(ContentDirectory);
-		
-		/*void GrabSubAssets(TreeNode<AssetNode> assetNode)
-		{
-			// TODO: Dedicated asset loaders that register their extensions, etc....!
-
-			if (assetNode->Name.EndsWith(".png", .OrdinalIgnoreCase))
-			{
-				assetNode->SubAssets = new:allocator List<Asset>();
-				assetNode->SubAssets.Add(new:allocator Asset()
-					{
-						Asset = assetNode.Value,
-						Name = new:allocator String(assetNode->Name)
-					});
-			}
-			else if (assetNode->Name.EndsWith(".gltf", .OrdinalIgnoreCase) || assetNode->Name.EndsWith(".glb", .OrdinalIgnoreCase))
-			{
-				List<String> meshNames = scope List<String>();
-				ModelLoader.GetMeshNames(assetNode->Path, meshNames);
-				
-				assetNode->SubAssets = new:allocator List<Asset>();
-
-				for (var meshName in meshNames)
-				{
-					assetNode->SubAssets.Add(new:allocator Asset()
-						{
-							Asset = assetNode.Value,
-							// Pass ownership of meshName to SubAsset -> save a copy and delete
-							Name = meshName
-						});
-				}
-			}
-		}*/
-		
 		void HandleFile(AssetNode node)
 		{
 			node.AssetFile = new AssetFile(this, node.Path, node.IsDirectory);
 		}
 
+		/// Determines the files that belong to the given directory and adds them to the tree.
 		void AddFilesOfDirectory(TreeNode<AssetNode> directory)
 		{
+			// Filter that accepts all files.
 			String filter = scope $"{directory->Path}/*";
-			
-			String buffer = scope String();
-			String extensionBuffer = scope String();
+
+			// Buffer used to hold the path of the files iterated below.
+			String filepathBuffer = scope String(256);
+			// Buffer used to hold the file extension of the files iterated below.
+			String extensionBuffer = scope String(16);
 
 			for (var entry in Directory.Enumerate(filter, .Files))
 			{
-				entry.GetFilePath(buffer..Clear());
+				entry.GetFilePath(filepathBuffer..Clear());
 
-				Path.GetExtension(buffer, extensionBuffer..Clear());
+				Path.GetExtension(filepathBuffer, .. extensionBuffer..Clear());
 
-				// Don't add meta-files
-				if (extensionBuffer == ".ass")
+				// Ignore meta files.
+				if (extensionBuffer.Equals(AssetFile.ConfigFileExtension, .OrdinalIgnoreCase))
 					continue;
 
-				AssetNode e = new AssetNode();
-				e.Name = new String();
-				Path.GetFileName(buffer, e.Name);
+				TreeNode<AssetNode> treeNode = directory.Children.Where(scope (node) => node.Value.Path == filepathBuffer).FirstOrDefault();
 
-				e.Path = new String(buffer);
+				if (treeNode == null)
+				{
+					AssetNode assetNode = new AssetNode();
+					assetNode.Name = new String();
+					Path.GetFileName(filepathBuffer, assetNode.Name);
+					
+					assetNode.Path = new String(filepathBuffer);
+					assetNode.IsDirectory = false;
+
+					treeNode = directory.AddChild(assetNode);
 				
-				e.IsDirectory = entry.IsDirectory;
+					//GrabSubAssets(node);
+					HandleFile(treeNode.Value);
 
-				var node = directory.AddChild(e);
-				//GrabSubAssets(node);
-				HandleFile(node.Value);
+					Log.EngineLogger.Trace($"Created file node for: \"{assetNode.Path}\"");
+				}
 			}
 		}
 
+		void RemoveOrphanedEntries(TreeNode<AssetNode> node)
+		{
+			for (TreeNode<AssetNode> child in node.Children)
+			{
+				if (!Directory.Exists(child->Path) && !File.Exists(child->Path))
+				{
+					Log.EngineLogger.Trace($"Removed orphaned node for: \"{child->Path}\"");
+
+					@child.Remove();
+
+					DeleteTreeAndChildren!(child);
+				}
+			}
+		}
+		
+		/// Adds the given directory to the specified tree.
+		/// Recursively adds all Files and Subdirectories.
 		void AddDirectoryToTree(String path, TreeNode<AssetNode> parentNode)
 		{
-			bool b (AssetNode node)
+			// Try to find the node for the specified path in the given parent
+			TreeNode<AssetNode> treeNode = parentNode.Children.Where(scope (node) => node.Value.Path == path).FirstOrDefault();
+
+			// Create new Node for the Directory, if no TreeNode exists.
+			if (treeNode == null)
 			{
-				return false;
+				AssetNode assetNode = new AssetNode();
+				assetNode.Path = new String(path);
+				assetNode.Name = new String();
+				assetNode.IsDirectory = true;
+				Path.GetFileName(assetNode.Path, assetNode.Name);
+				treeNode = parentNode.AddChild(assetNode);
+
+				Log.EngineLogger.Trace($"Created directory node for: \"{assetNode.Path}\"");
 			}
 
-			//void V() : 
+			String directoryNameBuffer = scope String(256);
 
-			var v = parentNode.Children.First();
-
-			AssetNode node = new AssetNode();
-			node.Path = new String(path);
-			node.Name = new String();
-			node.IsDirectory = true;
-
-			Path.GetFileName(node.Path, node.Name);
-
-			var newNode = parentNode.AddChild(node);
-
+			// Filter that finds all entries of a directory.
 			String filter = scope $"{path}/*";
 
 			for (var directory in Directory.Enumerate(filter, .Directories))
 			{
-				directory.GetFilePath(str..Clear());
+				directory.GetFilePath(directoryNameBuffer..Clear());
 
-				AddDirectoryToTree(str, newNode);
+				AddDirectoryToTree(directoryNameBuffer, treeNode);
 			}
 
-			AddFilesOfDirectory(newNode);
+			AddFilesOfDirectory(treeNode);
+
+			RemoveOrphanedEntries(treeNode);
 		}
 		
 		String filter = scope $"{ContentDirectory}/*";
+		
+		String directoryNameBuffer = scope String(256);
 
 		for (var directory in Directory.Enumerate(filter, .Directories))
 		{
-			directory.GetFilePath(str..Clear());
+			directory.GetFilePath(directoryNameBuffer..Clear());
 
-			AddDirectoryToTree(str, _assetHierarchy);
+			AddDirectoryToTree(directoryNameBuffer, _assetHierarchy);
 		}
+		
+		RemoveOrphanedEntries(_assetHierarchy);
 
 		_fileSystemDirty = false;
 	}

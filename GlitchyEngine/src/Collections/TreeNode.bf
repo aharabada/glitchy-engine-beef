@@ -2,6 +2,11 @@ using System.Collections;
 
 namespace GlitchyEngine.Collections
 {
+	// TODO: TreeNode is very bare minimum
+	// Destructor?
+	// RemoveChild?
+	// Remove in enumerator?
+
 	public class TreeNode<T>
 	{
 		public T Value;

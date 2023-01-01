@@ -111,6 +111,8 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.Style* style = ImGui.GetStyle();
 
+			// TODO: crashes when _currentDirectoryNode was deleted, obviously
+
 			float window_visible_x2 = ImGui.GetWindowPos().x + ImGui.GetWindowContentRegionMax().x;
 			for (var entry in _currentDirectoryNode.Children)
 			{
