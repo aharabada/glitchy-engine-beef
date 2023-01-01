@@ -16,16 +16,16 @@ namespace GlitchyEditor.EditWindows
 		const String ContentDirectory  = "./content";
 
 		//private String _currentDirectory ~ delete _;
-		private TreeNode<EditorContentManager.AssetNode> _currentDirectoryNode;
+		private TreeNode<AssetNode> _currentDirectoryNode;
 
 		public static SubTexture2D s_FolderTexture;
 		public static SubTexture2D s_FileTexture;
 
-		public EditorContentManager _manager ~ delete _;
+		public EditorContentManager _manager;
 
-		public this()
+		public this(EditorContentManager contentManager)
 		{
-			_manager = new EditorContentManager();
+			_manager = contentManager;
 		}
 
 		protected override void InternalShow()

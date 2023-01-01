@@ -6,6 +6,8 @@ using System.IO;
 using GlitchyEngine.Math;
 using GlitchyEngine.Core;
 using System.Collections;
+using GlitchyEngine.Renderer;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine.World
 {
@@ -84,11 +86,10 @@ namespace GlitchyEngine.World
 
 				SerializeComponent<SpriterRendererComponent>(writer, entity, "SpriterRendererComponent", scope (component) =>
 				{
-					// TODO: Texture
-
 					Serialize.Value(writer, "Color", component.Color);
-					Serialize.Value(writer, "UvTransform", component.UvTransform);
 					Serialize.Value(writer, "IsCircle", component.IsCircle);
+					Serialize.Value(writer, "Sprite", component.Sprite);
+					Serialize.Value(writer, "UvTransform", component.UvTransform);
 				});
 
 				SerializeComponent<TransformComponent>(writer, entity, "TransformComponent", scope (component) =>
@@ -308,9 +309,19 @@ namespace GlitchyEngine.World
 
 						Try!(Deserialize.Value(reader, "Color", out component.Color));
 						reader.EntryEnd();
-						Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
-						reader.EntryEnd();
 						Try!(Deserialize.Value(reader, "IsCircle", out component.IsCircle));
+						reader.EntryEnd();
+
+						String spriteName;
+						Try!(Deserialize.Value(reader, "Sprite", out spriteName));
+
+						if (spriteName != null)
+							component.Sprite = Content.LoadAsset<Texture2D>(spriteName);
+
+						delete spriteName;
+
+						reader.EntryEnd();
+						Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
 
 						return .Ok;
 					}));

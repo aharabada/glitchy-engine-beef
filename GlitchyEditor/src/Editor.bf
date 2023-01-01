@@ -5,6 +5,7 @@ using System.Collections;
 using GlitchyEngine.Collections;
 using GlitchyEditor.EditWindows;
 using GlitchyEngine;
+using GlitchyEditor.Assets;
 
 namespace GlitchyEditor
 {
@@ -15,7 +16,7 @@ namespace GlitchyEditor
 		private EntityHierarchyWindow _entityHierarchyWindow ~ delete _;
 		private ComponentEditWindow _componentEditWindow ~ delete _;
 		private SceneViewportWindow _sceneViewportWindow = new .(this) ~ delete _;
-		private ContentBrowserWindow _contentBrowserWindow = new .() ~ delete _;
+		private ContentBrowserWindow _contentBrowserWindow ~ delete _;
 
 		public EntityHierarchyWindow EntityHierarchyWindow => _entityHierarchyWindow;
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
@@ -43,6 +44,8 @@ namespace GlitchyEditor
 			CurrentScene = scene;
 
 			_componentEditWindow = new ComponentEditWindow(_entityHierarchyWindow);
+
+			_contentBrowserWindow = new ContentBrowserWindow((.)Application.Get().ContentManager);
 		}
 
 		public void Update()

@@ -96,16 +96,19 @@ namespace GlitchyEngine.ImGui
 				
 				ImGui.GetIO().Fonts.Clear();
 
-				String fullpath = scope String();
-				Application.Get().ContentManager.GetFilePath(fullpath, settings.FontName);
+				// TODO: Fix fonts
+				//String fullpath = scope String();
+				//Application.Get().ContentManager.GetFilePath(fullpath, settings.FontName);
+				/*Application.Get().ContentManager.GetStream(settings.FontName);
 				if (File.Exists(fullpath))
 				{
+					ImGui.GetIO().Fonts.AddFontFromMemoryTTF();
 					ImGui.GetIO().Fonts.AddFontFromFileTTF(fullpath, settings.FontSize);
 				}
 				else
-				{
+				{*/
 					ImGui.GetIO().Fonts.AddFontDefault();
-				}
+				//}
 
 #if GE_GRAPHICS_DX11
 				ImGuiImplDX11.CreateDeviceObjects();

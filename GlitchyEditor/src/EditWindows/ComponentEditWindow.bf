@@ -268,7 +268,7 @@ namespace GlitchyEditor.EditWindows
 
 					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
 
-					Texture2D texture = new Texture2D(path, true);
+					Texture2D texture = Content.LoadAsset<Texture2D>(path);//new Texture2D(path, true);
 
 					spriteRendererComponent.Sprite?.ReleaseRef();
 					spriteRendererComponent.Sprite = texture;
@@ -319,7 +319,7 @@ namespace GlitchyEditor.EditWindows
 
 						StringView path = .((char8*)payload.Data, (int)payload.DataSize);
 
-						using (Texture2D newTexture = new Texture2D(path, true))
+						using (Texture2D newTexture = Content.LoadAsset<Texture2D>(path))//new Texture2D(path, true))
 						{
 							newTexture.SamplerState = SamplerStateManager.AnisotropicWrap;
 							material.SetTexture(texture.key, newTexture);

@@ -65,10 +65,16 @@ namespace GlitchyEngine.Renderer
 		//public override extern uint32 ArraySize {get;}
 		//public override extern uint32 MipLevels {get;}
 		
-		public this(StringView path, bool pngSrgb = false)
+		private this(StringView path, bool pngSrgb = false)
 		{
 			_path = new String(path);
 			LoadTexture(pngSrgb);
+		}
+
+		// TODO: remove
+		private this(Stream data)
+		{
+			LoadDds(data);
 		}
 		
 		const String PngMagicWord = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A";
@@ -78,7 +84,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			Stream data = Application.Get().ContentManager.GetFile(_path);
+			Stream data = Application.Get().ContentManager.GetStream(_path);
 			defer delete data;
 
 			var readResult = data.Read<char8[8]>();
@@ -214,7 +220,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			Stream data = Application.Get().ContentManager.GetFile(_path);
+			Stream data = Application.Get().ContentManager.GetStream(_path);
 			defer delete data;
 
 			LoadTexturePlatform(data);

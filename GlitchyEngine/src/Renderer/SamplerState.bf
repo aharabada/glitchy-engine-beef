@@ -2,12 +2,14 @@ using System;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 using System.Collections;
+using Bon;
 
 namespace GlitchyEngine.Renderer
 {
 	/**
 	 * Defines the filter function used when sampling from a texture.
 	 */
+	[BonTarget, Reflect]
 	public enum FilterFunction
 	{
 		/// Use point filtering (nearest neighbor) for sampling.
@@ -17,7 +19,8 @@ namespace GlitchyEngine.Renderer
 		/// Use anisotropic interpolation for sampling.
 		Anisotropic
 	}
-
+	
+	[BonTarget, Reflect]
 	public enum FilterMode
 	{
 		/// Just sample the texture.
@@ -29,7 +32,8 @@ namespace GlitchyEngine.Renderer
 		/// Return the maximum value of the fetched texels.
 		Maximum
 	}
-
+	
+	[BonTarget, Reflect]
 	public enum ComparisonFunction
 	{
 		/**
@@ -65,7 +69,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		Always = 8
 	}
-
+	
+	[BonTarget, Reflect]
 	public enum TextureAddressMode
 	{
 		/// Tile the texture at every (u,v) integer junction.
@@ -92,7 +97,8 @@ namespace GlitchyEngine.Renderer
 		 */
 		MirrorOnce 
 	}
-
+	
+	[BonTarget]
 	public struct SamplerStateDescription : IHashable
 	{
 		public FilterFunction MinFilter = .Linear;

@@ -12,6 +12,7 @@ using System.Collections;
 using GlitchyEngine.Renderer.Animation;
 using System.IO;
 using GlitchyEngine.Core;
+using GlitchyEditor.Assets;
 
 namespace GlitchyEditor
 {
@@ -70,6 +71,8 @@ namespace GlitchyEditor
 		{
 			Application.Get().Window.IsVSync = false;
 
+			InitContentLoader();
+
 			InitGraphics();
 
 			_camera = EditorCamera(Vector3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
@@ -78,6 +81,17 @@ namespace GlitchyEditor
 			InitEditor();
 
 			NewScene();
+		}
+
+		private void InitContentLoader()
+		{
+			EditorContentManager contentManager = new EditorContentManager();
+			contentManager.SetContentDirectory("./content");
+
+			contentManager.RegisterAssetLoader<EditorTextureAssetLoader>();
+			contentManager.SetAsDefaultAssetLoader<EditorTextureAssetLoader>(".png", ".dds");
+
+			Application.Get().[Friend]_contentManager = contentManager;
 		}
 
 		private void InitGraphics()
@@ -327,7 +341,7 @@ namespace GlitchyEditor
 		// Just for testing
 		private void TestEntitiesWithModels()
 		{
-			{
+			/*{
 				var lightNtt = _scene.CreateEntity("My Sexy Sun 2");
 				let transform = lightNtt.GetComponent<TransformComponent>();
 				transform.Position = .(0, 0, 0);
@@ -449,7 +463,7 @@ namespace GlitchyEditor
 				}
 
 				ClearAndReleaseItems!(clips);
-			}
+			}*/
 		}
 
 		/// Creates a new scene.

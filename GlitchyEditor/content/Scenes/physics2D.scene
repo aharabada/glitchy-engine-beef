@@ -13,13 +13,14 @@
 					B = 0.328787,
 					A = 1
 				},
+				IsCircle = false,
+				Sprite = null,
 				UvTransform = {
 					X = 0,
 					Y = 0,
 					Z = 1,
 					W = 1
-				},
-				IsCircle = false
+				}
 			},
 			TransformComponent = {
 				Position = {
@@ -75,13 +76,14 @@
 					B = 0.401485,
 					A = 1
 				},
+				IsCircle = false,
+				Sprite = null,
 				UvTransform = {
 					X = 0,
 					Y = 0,
 					Z = 1,
 					W = 1
-				},
-				IsCircle = false
+				}
 			},
 			TransformComponent = {
 				Position = {
@@ -178,13 +180,14 @@
 					B = 0,
 					A = 1
 				},
+				IsCircle = true,
+				Sprite = "Textures//rocket.dds",
 				UvTransform = {
 					X = 0,
 					Y = 0,
 					Z = 1,
 					W = 1
-				},
-				IsCircle = true
+				}
 			},
 			TransformComponent = {
 				Position = {

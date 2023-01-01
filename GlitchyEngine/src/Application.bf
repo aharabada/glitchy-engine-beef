@@ -60,7 +60,7 @@ namespace GlitchyEngine
 			_rendererApi = new RendererAPI();
 			_rendererApi.Context = _window.Context;
 
-			_contentManager = new ContentManager("./content");
+			//_contentManager = new ContentManager("./content");
 
 			SamplerStateManager.Init();
 

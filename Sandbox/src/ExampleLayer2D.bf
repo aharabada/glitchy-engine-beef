@@ -96,7 +96,7 @@ namespace Sandbox
 
 			_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
-			_checkerTexture = new Texture2D("content/Textures/Checkerboard.dds");
+			_checkerTexture = Content.LoadAsset<Texture2D>("content/Textures/Checkerboard.dds");//new Texture2D("content/Textures/Checkerboard.dds");
 
 			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()
@@ -125,7 +125,7 @@ namespace Sandbox
 			_depthStencilState = new DepthStencilState(dssDesc);
 
 
-			_spriteSheet = new Texture2D("content/Rpg/textures/spritesheet.png");
+			_spriteSheet = Content.LoadAsset<Texture2D>("content/Rpg/textures/spritesheet.png");//new Texture2D("content/Rpg/textures/spritesheet.png");
 			_spriteSheet.SamplerState = SamplerStateManager.PointClamp;
 
 			_treeSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(5, 10), Vector2(128), .(1, 2));

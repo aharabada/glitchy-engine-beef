@@ -43,11 +43,11 @@ namespace Sandbox
 
 			_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
-			_checkerTexture = new Texture2D("content/Textures/Checkerboard.dds");
-			_smallLines = new Texture2D("content/GammaTest/SmallLines.png");
-			_gammaCorrectionBrightness = new Texture2D("content/GammaTest/gamma_correction_brightness.png");
+			//_checkerTexture = new Texture2D("content/Textures/Checkerboard.dds");
+			//_smallLines = new Texture2D("content/GammaTest/SmallLines.png");
+			//_gammaCorrectionBrightness = new Texture2D("content/GammaTest/gamma_correction_brightness.png");
 
-			_zeroPointFive = new Texture2D("content/GammaTest/zeroPointFive.png");
+			//_zeroPointFive = new Texture2D("content/GammaTest/zeroPointFive.png");
 
 			let sampler = SamplerStateManager.GetSampler(
 				SamplerStateDescription()

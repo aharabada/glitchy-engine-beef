@@ -174,8 +174,8 @@ namespace Sandbox
 				rsDesc.FrontCounterClockwise = false;
 				_rasterizerStateClockWise = new RasterizerState(rsDesc);
 
-				_texture = new Texture2D("content/Textures/Checkerboard.dds");
-				_ge_logo = new Texture2D("content/Textures/GE_Logo.dds");
+				_texture = Content.LoadAsset<Texture2D>("content/Textures/Checkerboard.dds");//new Texture2D("content/Textures/Checkerboard.dds");
+				_ge_logo = Content.LoadAsset<Texture2D>("content/Textures/GE_Logo.dds");//new Texture2D("content/Textures/GE_Logo.dds");
 
 				let sampler = SamplerStateManager.GetSampler(
 					SamplerStateDescription()
