@@ -5,6 +5,7 @@ using GlitchyEngine.Collections;
 using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
+using GlitchyEngine;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -15,8 +16,9 @@ namespace GlitchyEditor.EditWindows
 		// TODO: Get from project
 		const String ContentDirectory  = "./content";
 
-		//private String _currentDirectory ~ delete _;
-		private TreeNode<AssetNode> _currentDirectoryNode;
+		private append String _currentDirectory = .();
+
+		private append String _selectedFile = .();
 
 		public static SubTexture2D s_FolderTexture;
 		public static SubTexture2D s_FileTexture;
@@ -31,13 +33,24 @@ namespace GlitchyEditor.EditWindows
 		protected override void InternalShow()
 		{
 			_manager.Update();
-
-			_currentDirectoryNode ??= _manager._assetHierarchy;
+			
+			// Make sure we are in an existing directory.
+			if (!_manager.AssetHierarchy.FileExists(_currentDirectory))
+			{
+				_currentDirectory.Set(_manager.ContentDirectory);
+			}
 
 			if(!ImGui.Begin("Content Browser", &_open, .None))
 			{
 				ImGui.End();
 				return;
+			}
+
+			// Context menu when clicking on the background.
+			if (ImGui.BeginPopupContextWindow())
+			{
+			    ShowCurrentFolderContextMenu();
+			    ImGui.EndPopup();
 			}
 
 			ImGui.Columns(2);
@@ -53,14 +66,26 @@ namespace GlitchyEditor.EditWindows
 			ImGui.End();
 		}
 
+		/// Renders the context menu that is shown when the user right clicks on the background of the file browser.
+		private void ShowCurrentFolderContextMenu()
+		{
+			if (ImGui.MenuItem("Open in file browser..."))
+			{
+				Path.OpenFolder(_currentDirectory);
+			}
+		}
+
+		/// Renders a sidebar that shows a tree of all directories in the asset folder.
 		private void DrawDirectorySideBar()
 		{
-			for(var child in _manager._assetHierarchy.Children)
+			for(var child in _manager.AssetHierarchy.[Friend]_assetHierarchy.Children)
 			{
 				ImGuiPrintEntityTree(child);
 			}
 		}
 
+		/// Renders an ImGui tree of all directories in the given tree.
+		/// @param tree The file hierarchy of which to render all directories.
 		private void ImGuiPrintEntityTree(TreeNode<AssetNode> tree)
 		{
 			if (!tree->IsDirectory)
@@ -73,7 +98,7 @@ namespace GlitchyEditor.EditWindows
 			if(tree.Children.Count == 0)
 				flags |= .Leaf;
 
-			if (tree == _currentDirectoryNode)
+			if (tree->Path == _currentDirectory)
 			{
 				flags |= .Selected;
 			}
@@ -82,11 +107,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.IsItemClicked(.Left))
 			{
-				/*if (_currentDirectory != null)
-					delete _currentDirectory;
-
-				_currentDirectory = new String(tree.Value.Path);*/
-				_currentDirectoryNode = tree;
+				_currentDirectory.Set(tree->Path);
 			}
 
 			if(isOpen)
@@ -104,44 +125,70 @@ namespace GlitchyEditor.EditWindows
 
 		const Vector2 padding = .(24, 24);
 
+		/// Renders the contents of _currentDirectory.
 		private void DrawCurrentDirectory()
 		{
-			if (_currentDirectoryNode == null)
+			if (_currentDirectory.IsEmpty)
 				return;
 
 			ImGui.Style* style = ImGui.GetStyle();
 
-			// TODO: crashes when _currentDirectoryNode was deleted, obviously
-
 			float window_visible_x2 = ImGui.GetWindowPos().x + ImGui.GetWindowContentRegionMax().x;
-			for (var entry in _currentDirectoryNode.Children)
+
+			// Get the node of the current directory.
+			var currentDirectoryNode = _manager.AssetHierarchy.GetNodeFromPath(_currentDirectory);
+
+			if (currentDirectoryNode case .Err)
+			{
+				Log.EngineLogger.Error($"No node exists for {_currentDirectory}.");
+				ImGui.TextUnformatted("Failed to display contents of directory.");
+				return;
+			}
+
+			for (var entry in currentDirectoryNode->Children)
 			{
 			    ImGui.PushID(entry->Name);
 
 				DrawDirectoryItem(entry);
-				
-				float last_button_x2 = ImGui.GetItemRectMax().x;
-				float next_button_x2 = last_button_x2 + style.ItemSpacing.x + DirectoryItemSize.X; // Expected position if next button was on same line
-				if (entry != _currentDirectoryNode.Children.Back && next_button_x2 < window_visible_x2)
+
+				// X-Coordinate of the right side of the current entry.
+				float currentButtonRight = ImGui.GetItemRectMax().x;
+				// Expected right-Coordinate if next entry was on the same line.
+				float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
+
+				// If we aren't the last entry and the next button won't fit on the same line we start a new line.
+				if (entry != currentDirectoryNode->Children.Back && expectedButtonRight < window_visible_x2)
 				    ImGui.SameLine();
 
 				ImGui.PopID();
 			}
 		}
 
+		/// Renders the button for the given directory item.
 		private void DrawDirectoryItem(TreeNode<AssetNode> entry)
 		{
 			ImGui.BeginChild("item", (.)DirectoryItemSize);
 
+			if (entry->Path == _selectedFile)
+			{
+				var color = ImGui.GetStyleColorVec4(.ButtonHovered);
+				ImGui.PushStyleColor(.Button, *color);
+			}
+			else
+			{
+				ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
+			}
+			
+			// TODO: preview images
 			SubTexture2D image = entry->IsDirectory ? s_FolderTexture : s_FileTexture;
-
-			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
 
 			ImGui.ImageButton(image, (.)(DirectoryItemSize - padding));
 
+			ImGui.PopStyleColor();
+
 			if (ImGui.BeginDragDropSource())
 			{
-				String fullpath = scope $"{_currentDirectoryNode->Path}{Path.DirectorySeparatorChar}{entry->Name}";
+				String fullpath = scope String(entry->Path);
 
 				// TODO: this is dirty
 				if (fullpath.StartsWith(ContentDirectory, .OrdinalIgnoreCase))
@@ -152,14 +199,26 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropSource();
 			}
 
+			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
+			{
+				if (_selectedFile != entry->Path)
+				{
+					_selectedFile.Set(entry->Path);
+				}
+			}
+
 			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
 			{
 				EntryDoubleClicked(entry);
 			}
 
-			ImGui.PopStyleColor();
-
 			ImGui.TextUnformatted(entry->Name);
+
+			if (ImGui.BeginPopupContextWindow())
+			{
+			    ShowItemContextMenu(entry);
+			    ImGui.EndPopup();
+			}
 
 			if (entry->SubAssets?.Count > 0)
 			{
@@ -178,15 +237,9 @@ namespace GlitchyEditor.EditWindows
 
 					if (ImGui.BeginDragDropSource())
 					{
-						String fullpath = Path.InternalCombine(.. scope String(), _currentDirectoryNode->Path, entry->Name);
+						String fullpath = scope String(entry->Path);
 						fullpath.AppendF($"#{subAsset.Name}");
-							//scope $"{_currentDirectoryNode->Path}{Path.DirectorySeparatorChar}{entry->Name}";
-						//String fullpath = scope $"{subAsset.Asset.Path}#{subAsset.Name}";
 
-						// TODO: this is dirty
-						//if (fullpath.StartsWith(ContentDirectory, .OrdinalIgnoreCase))
-						//	fullpath.Remove(0, ContentDirectory.Length);
-		
 						ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", fullpath.CStr(), (.)fullpath.Length, .Once);
 		
 						ImGui.EndDragDropSource();
@@ -195,15 +248,66 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.EndPopup();
 			}
+
+			DeleteItemPopup(entry);
 			
 			ImGui.EndChild();
+		}
+
+		private void DeleteItemPopup(TreeNode<AssetNode> fileOrFolder)
+		{
+			// Always center this window when appearing
+			ImGui.Vec2 center = ImGui.GetMainViewport().GetCenter();
+			ImGui.SetNextWindowPos(center, .Appearing, ImGui.Vec2(0.5f, 0.5f));
+
+			// TODO: fix delete popup
+
+			if (ImGui.BeginPopupModal("Delete?", null, .AlwaysAutoResize))
+			{
+				ImGui.Text($"""
+					Delete "{fileOrFolder->Name}"?
+
+
+					""");
+
+				ImGui.Separator();
+
+				if (ImGui.Button("Yes", ImGui.Vec2(120, 0)))
+				{
+					ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.SetItemDefaultFocus();
+				ImGui.SameLine();
+
+				if (ImGui.Button("Cancel", ImGui.Vec2(120, 0)))
+				{
+					ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.EndPopup();
+			}
+		}
+
+		/// Shows the context menu for the given file/folder.
+		private void ShowItemContextMenu(TreeNode<AssetNode> fileOrFolder)
+		{
+		    if (ImGui.MenuItem("Show in file browser..."))
+		    {
+				Path.OpenFolderAndSelectItem(fileOrFolder->Path);
+		    }
+
+			if (ImGui.MenuItem("Delete"))
+			{
+            	ImGui.OpenPopup("Delete?");
+			}
 		}
 
 		private void EntryDoubleClicked(TreeNode<AssetNode> entry)
 		{
 			if (entry->IsDirectory)
 			{
-				_currentDirectoryNode = entry;
+				_currentDirectory.Set(entry->Path);
 			}
 		}
 	}

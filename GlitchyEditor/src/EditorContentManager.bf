@@ -99,93 +99,51 @@ public class Asset
 	public Texture2D PreviewImage ~ _?.ReleaseRef();
 }
 
-class EditorContentManager : IContentManager
+class AssetHierarchy
 {
-	// TODO: Get from workspace
-	//const String ContentDirectory  = "./content";
-
 	FileSystemWatcher fsw ~ {
 		_.StopRaisingEvents();
 		delete _;
 	};
 	
 	bool _fileSystemDirty = false;
-
+	
 	internal TreeNode<AssetNode> _assetHierarchy = null ~ DeleteTreeAndChildren!(_);
-
+	private append Dictionary<StringView, TreeNode<AssetNode>> _pathToAssetNode = .();
+	
 	private append String _contentDirectory = .();
 
-	public StringView ContentDirectory => _contentDirectory;
-	
-	private append List<String> _identifiers = .() ~ _.ClearAndDeleteItems();
+	private EditorContentManager _contentManager;
 
-	private append Dictionary<StringView, IRefCounted> _loadedAssets = .(); // Check if all resources are unloaded
-
-	public this()
+	public StringView ContentDirectory
 	{
+		get => _contentDirectory;
+		private set
+		{
+			_contentDirectory.Clear();
+			_contentDirectory.Append(value);
+		}
+	}
+
+	public this(EditorContentManager contentManager)
+	{
+		_contentManager = contentManager;
 	}
 
 	public void SetContentDirectory(StringView contentDirectory)
 	{
-		_contentDirectory.Clear();
-		_contentDirectory.Append(contentDirectory);
+		ContentDirectory = contentDirectory;
+
 		_fileSystemDirty = true;
 
 		SetupFileSystemWatcher();
 	}
-
-	private TreeNode<AssetNode> FileFileNode(StringView filePath)
-	{
-		//String relativeFilePath = scope String(filePath.Length);
-
-		//Path.GetRelativePath(filePath, ContentDirectory, relativeFilePath);
-
-		// Having a Path -> AssetNode dictionary would make this a lot easier!
-
-		TreeNode<AssetNode> walker = _assetHierarchy;
-
-		Log.EngineLogger.AssertDebug(filePath.StartsWith(walker->Path), "filePath not in walker :(");
-
-		Walking: while (true)
-		{
-			for (TreeNode<AssetNode> child in walker.Children)
-			{	
-				if (filePath.StartsWith(child->Path))
-				{
-					walker = child;
-
-					if (walker->Path == filePath)
-						return walker;
-
-					continue Walking;
-				}
-			}
-
-			// If we make it here, no child matched
-			Runtime.FatalError("Failed to find treeNode for given path");
-			//Log.EngineLogger.Assert(false, "Failed to find ")
-		}
-
-		/*// Check whether the new file is a directory of a file.
-		if (Directory.Exists(filePath))
-		{
-
-		}
-		else if (File.Exists(filePath))
-		{
-
-		}
-		else
-		{
-			Log.EngineLogger.Assert(false, scope $"The given path \"{filePath}\" doesn't exist.");
-		}*/
-	}
-
+	
 	/// Initializes the FSW for the current ContentDirectory and registers the events.
 	private void SetupFileSystemWatcher()
 	{
 		delete fsw;
-		fsw = new FileSystemWatcher(ContentDirectory);
+		fsw = new FileSystemWatcher(_contentDirectory);
 		fsw.IncludeSubdirectories = true;
 
 		fsw.OnChanged.Add(new (filename) => {
@@ -208,13 +166,38 @@ class EditorContentManager : IContentManager
 			_fileSystemDirty = true;
 		});
 
-		fsw.OnRenamed.Add(new (newName, oldName) => {
+		fsw.OnRenamed.Add(new (oldName, newName) => {
 			Log.EngineLogger.Trace($"File renamed (From \"{oldName}\" to \"{newName}\")");
-
+			
 			_fileSystemDirty = true;
+			/*String contentFilePath = scope String();
+
+			Path.InternalCombine(contentFilePath, ContentDirectory, oldName);
+
+			//_fileSystemDirty = true;
+			TreeNode<AssetNode> fileNode = GetNodeFromPath(contentFilePath);
+			fileNode->*/
 		});
 
 		fsw.StartRaisingEvents();
+	}
+
+	/// Gets the tree node for the given filePath or null, if the file/directory doesn't exist.
+	/// @param filePath the path for which to return the tree node.
+	/// @remarks Do not hold a reference to the TreeNode because it can become invalid when the file hierarchy changes.
+	public Result<TreeNode<AssetNode>> GetNodeFromPath(StringView filePath)
+	{
+		if (_pathToAssetNode.TryGetValue(filePath, let treeNode))
+		{
+			return treeNode;
+		}
+
+		return .Err;
+	}
+
+	public bool FileExists(StringView filePath)
+	{
+		return _pathToAssetNode.ContainsKey(filePath);
 	}
 
 	public void Update()
@@ -225,14 +208,7 @@ class EditorContentManager : IContentManager
 			UpdateFiles();
 		}
 	}
-
-	public IAssetLoader GetDefaultAssetLoader(StringView fileExtension)
-	{
-		if (_defaultAssetLoaders.TryGetValue(fileExtension, let value))
-			return value;
-
-		return null;
-	}
+	
 
 	/// Rebuilds the asset file hierarchy.
 	private void UpdateFiles()
@@ -248,11 +224,13 @@ class EditorContentManager : IContentManager
 			_assetHierarchy->Name = new String("Content");
 
 			Log.EngineLogger.Trace($"Created directory node for: \"{_assetHierarchy->Path}\"");
+
+			_pathToAssetNode.Add(ContentDirectory, _assetHierarchy);
 		}
 
 		void HandleFile(AssetNode node)
 		{
-			node.AssetFile = new AssetFile(this, node.Path, node.IsDirectory);
+			node.AssetFile = new AssetFile(_contentManager, node.Path, node.IsDirectory);
 		}
 
 		/// Determines the files that belong to the given directory and adds them to the tree.
@@ -288,7 +266,8 @@ class EditorContentManager : IContentManager
 					assetNode.IsDirectory = false;
 
 					treeNode = directory.AddChild(assetNode);
-				
+					_pathToAssetNode.Add(assetNode.Path, treeNode);
+
 					//GrabSubAssets(node);
 					HandleFile(treeNode.Value);
 
@@ -299,6 +278,17 @@ class EditorContentManager : IContentManager
 
 		void RemoveOrphanedEntries(TreeNode<AssetNode> node)
 		{
+			/// Removes the node and its children from _pathToAssetNode
+			void RemoveSubtree(TreeNode<AssetNode> tree)
+			{
+				_pathToAssetNode.Remove(tree->Path);
+
+				for (var child in tree.Children)
+				{
+					RemoveSubtree(child);
+				}
+			}
+
 			for (TreeNode<AssetNode> child in node.Children)
 			{
 				if (!Directory.Exists(child->Path) && !File.Exists(child->Path))
@@ -306,6 +296,8 @@ class EditorContentManager : IContentManager
 					Log.EngineLogger.Trace($"Removed orphaned node for: \"{child->Path}\"");
 
 					@child.Remove();
+
+					RemoveSubtree(child);
 
 					DeleteTreeAndChildren!(child);
 				}
@@ -327,7 +319,9 @@ class EditorContentManager : IContentManager
 				assetNode.Name = new String();
 				assetNode.IsDirectory = true;
 				Path.GetFileName(assetNode.Path, assetNode.Name);
+
 				treeNode = parentNode.AddChild(assetNode);
+				_pathToAssetNode.Add(assetNode.Path, treeNode);
 
 				Log.EngineLogger.Trace($"Created directory node for: \"{assetNode.Path}\"");
 			}
@@ -364,7 +358,49 @@ class EditorContentManager : IContentManager
 
 		_fileSystemDirty = false;
 	}
+}
 
+class EditorContentManager : IContentManager
+{
+	// TODO: Get from workspace
+	//const String ContentDirectory  = "./content";
+
+	private append String _contentDirectory = .();
+
+	public StringView ContentDirectory => _contentDirectory;
+	
+	private append List<String> _identifiers = .() ~ _.ClearAndDeleteItems();
+
+	private append Dictionary<StringView, IRefCounted> _loadedAssets = .(); // Check if all resources are unloaded
+	
+	private append AssetHierarchy _assetHierarchy = .(this);
+
+	public AssetHierarchy AssetHierarchy => _assetHierarchy;
+
+	public this()
+	{
+	}
+
+	public void SetContentDirectory(StringView contentDirectory)
+	{
+		_contentDirectory.Clear();
+		_contentDirectory.Append(contentDirectory);
+
+		_assetHierarchy.SetContentDirectory(contentDirectory);
+	}
+
+	public void Update()
+	{
+		_assetHierarchy.Update();
+	}
+
+	public IAssetLoader GetDefaultAssetLoader(StringView fileExtension)
+	{
+		if (_defaultAssetLoaders.TryGetValue(fileExtension, let value))
+			return value;
+
+		return null;
+	}
 	private append List<String> _supportedExtensions = .() ~ ClearAndDeleteItems!(_);
 	private append List<IAssetLoader> _assetLoaders = .() ~ ClearAndDeleteItems!(_);
 	private append Dictionary<StringView, IAssetLoader> _defaultAssetLoaders = .();
