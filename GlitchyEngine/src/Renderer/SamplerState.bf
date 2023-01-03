@@ -101,10 +101,17 @@ namespace GlitchyEngine.Renderer
 	[BonTarget]
 	public struct SamplerStateDescription : IHashable
 	{
+		/// Sampling method used for minification.
+		/// If set to "Anisotropic" all Filters are set to "Anisotropic" internally.
 		public FilterFunction MinFilter = .Linear;
+		/// Sampling method used for magnification.
+		/// If set to "Anisotropic" all Filters are set to "Anisotropic" internally.
 		public FilterFunction MagFilter = .Linear;
+		/// Method used for mip-level sampling.
+		/// If set to "Anisotropic" all Filters are set to "Anisotropic" internally.
 		public FilterFunction MipFilter = .Linear;
 
+		/// Filtering method to use when sampling a texture.
 		public FilterMode FilterMode = .Default;
 		
 		/**
@@ -113,8 +120,11 @@ namespace GlitchyEngine.Renderer
 		 */
 		public ComparisonFunction ComparisonFunction = .Never;
 
+		/// Method to use for resolving a u texture coordinate that is outside the 0 to 1 range.
 		public TextureAddressMode AddressModeU = .Clamp;
+		/// Method to use for resolving a v texture coordinate that is outside the 0 to 1 range.
 		public TextureAddressMode AddressModeV = .Clamp;
+		/// Method to use for resolving a w texture coordinate that is outside the 0 to 1 range.
 		public TextureAddressMode AddressModeW = .Clamp;
 		
 		/**

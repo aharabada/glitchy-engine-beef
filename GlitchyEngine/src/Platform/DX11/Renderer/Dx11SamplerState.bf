@@ -40,8 +40,8 @@ namespace DirectX.D3D11
 			{
 				output = .Anisotropic;
 			}
-			
-			// Min filter
+
+			// Mag filter
 			if(samplerDesc.MagFilter == .Linear)
 			{
 				output |= .Min_Point_Mag_Linear_Mip_Point;
@@ -51,12 +51,12 @@ namespace DirectX.D3D11
 				output = .Anisotropic;
 			}
 
-			// Mag filter
+			// Min filter
 			if(samplerDesc.MinFilter == .Linear)
 			{
 				output |= .Min_Linear_Mag_Mip_Point;
 			}
-			else if(samplerDesc.MagFilter == .Anisotropic)
+			else if(samplerDesc.MinFilter == .Anisotropic)
 			{
 				output = .Anisotropic;
 			}
