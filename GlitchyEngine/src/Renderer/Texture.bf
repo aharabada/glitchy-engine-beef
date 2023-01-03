@@ -29,6 +29,11 @@ namespace GlitchyEngine.Renderer
 		public abstract uint32 MipLevels {get;}
 
 		public abstract TextureViewBinding GetViewBinding();
+		
+		/// Very dirtily swaps the internals with the given texture.
+		/// TODO: Please do this differently!!!!!!!!!!!!!!!!!!!!!!
+		/// This is for texture hot reloading POC, I know... it's bad...
+		protected internal abstract void SneakySwappyTexture(Texture otherTexture);
 	}
 
 	public struct Texture2DDesc
@@ -198,6 +203,17 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern TextureViewBinding PlatformGetViewBinding();
+
+		protected internal override void SneakySwappyTexture(Texture otherTexture)
+		{
+			Log.EngineLogger.AssertDebug(otherTexture is Texture2D, "Swapping texture must be a Texture2D!");
+			
+			SamplerState = otherTexture.SamplerState;
+
+			PlatformSneakySwappyTexture(otherTexture as Texture2D);
+		}
+
+		protected extern void PlatformSneakySwappyTexture(Texture2D otherTexture);
 	}
 
 	public class TextureCube : Texture
@@ -234,5 +250,10 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern TextureViewBinding PlatformGetViewBinding();
+
+		protected internal override void SneakySwappyTexture(Texture otherTexture)
+		{
+			Runtime.NotImplemented();
+		}
 	}
 }

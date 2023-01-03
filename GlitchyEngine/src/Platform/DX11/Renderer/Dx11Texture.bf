@@ -261,6 +261,13 @@ namespace GlitchyEngine.Renderer
 		{
 			return .(_nativeResourceView, _samplerState?.nativeSamplerState);
 		}
+
+		protected override void PlatformSneakySwappyTexture(Texture2D otherTexture)
+		{
+			Swap!(nativeDesc, otherTexture.nativeDesc);
+			Swap!(nativeTexture, otherTexture.nativeTexture);
+			Swap!(_nativeResourceView, otherTexture._nativeResourceView);
+		}
 	}
 
 	extension TextureCube

@@ -30,6 +30,8 @@ class AssetFile
 
 	private bool _isDirectory;
 
+	private Object _loadedAsset;
+
 	public bool IsDirectory => _isDirectory;
 
 	public StringView FilePath => _path;
@@ -37,6 +39,8 @@ class AssetFile
 	public const String ConfigFileExtension = ".ass";
 
 	public AssetConfig AssetConfig => _assetConfig;
+
+	public Object LoadedAsset => _loadedAsset;
 
 	[AllowAppend]
 	public this(EditorContentManager contentManager, StringView path, bool isDirectory)
@@ -102,10 +106,12 @@ class AssetFile
 		}
 	}
 
-	private void SaveAssetConfig()
+	public void SaveAssetConfig()
 	{
 		gBonEnv.serializeFlags |= .Verbose;
 
 		Bon.SerializeIntoFile(_assetConfig, _assetConfigPath);
+
+		_assetConfig.Config.[Friend]_changed = false;
 	}
 }

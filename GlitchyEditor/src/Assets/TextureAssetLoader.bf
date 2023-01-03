@@ -7,14 +7,155 @@ using GlitchyEngine.Content;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using DirectXTK;
+using ImGui;
 
 namespace GlitchyEditor.Assets;
+
+abstract class AssetPropertiesEditor
+{
+	private AssetFile _asset;
+
+	public AssetFile Asset => _asset;
+
+	public this(AssetFile asset)
+	{
+		_asset = asset;
+	}
+
+	public abstract void ShowEditor();
+}
+
+
+class TextureAssetPropertiesEditor : AssetPropertiesEditor
+{
+	EditorTextureAssetLoaderConfig _textureConfig;
+
+	public this(AssetFile asset) : base(asset)
+	{
+		_textureConfig = asset.AssetConfig.Config as EditorTextureAssetLoaderConfig;
+	}
+
+	static char8*[3] _filterFuncNames = char8*[]("Point", "Linear", "Anisotropic");
+
+	public override void ShowEditor()
+	{
+		if (_textureConfig == null)
+			return;
+
+		bool generateMips = _textureConfig.GenerateMipMaps;
+		if (ImGui.Checkbox("Generate Mip Maps", &generateMips))
+			_textureConfig.GenerateMipMaps = generateMips;
+
+		bool isSrgb = _textureConfig.IsSRGB;
+		if (ImGui.Checkbox("Is sRGB", &isSrgb))
+			_textureConfig.IsSRGB = isSrgb;
+
+		SamplerStateDescription samplerStateDescription = _textureConfig.SamplerStateDescription;
+
+		void ShowFilterCombo(String label, ref FilterFunction filterFunction)
+		{
+			int32 selectedFilter = filterFunction.Underlying;
+			if (ImGui.Combo(label, &selectedFilter, &_filterFuncNames, 3))
+				filterFunction = (.)selectedFilter;
+		}
+
+		ImGui.Separator();
+		ImGui.TextUnformatted("Texture Filtering:");
+		ImGui.Separator();
+		
+		ImGui.EnumCombo("Min Filter", ref samplerStateDescription.MinFilter);
+		ImGui.AttachTooltip("""
+			Sampling method used for minification.
+			If set to "Anisotropic" all Filters are set to "Anisotropic" internally.
+			""");
+		ImGui.EnumCombo("Mag Filter", ref samplerStateDescription.MagFilter);
+		ImGui.AttachTooltip("""
+			Sampling method used for magnification.
+			If set to "Anisotropic" all Filters are set to "Anisotropic" internally.
+			""");
+		ImGui.EnumCombo("Mip Map Filter", ref samplerStateDescription.MipFilter);
+		ImGui.AttachTooltip("""
+			Method used for mip-level sampling.
+			If set to "Anisotropic" all Filters are set to "Anisotropic" internally.
+			""");
+
+		if (samplerStateDescription.MagFilter == .Anisotropic ||
+			samplerStateDescription.MinFilter == .Anisotropic ||
+			samplerStateDescription.MipFilter == .Anisotropic)
+		{
+			ImGui.SliderScalar("Anisotropy Level", ref samplerStateDescription.MaxAnisotropy, 1, 16);
+		}
+
+		ImGui.NewLine();
+
+		ImGui.EnumCombo("Filter Mode", ref samplerStateDescription.FilterMode);
+		ImGui.AttachTooltip("Filtering method to use when sampling a texture.");
+
+		if (samplerStateDescription.FilterMode == .Comparison)
+		{
+			ImGui.EnumCombo("Comparison Function", ref samplerStateDescription.ComparisonFunction);
+			ImGui.AttachTooltip("""
+				The function that is used to compare the sampled data against the existing sampled data.
+				Only applies if Filter Mode is set to FilterMode.Comparison.
+				""");
+		}
+
+		ImGui.Separator();
+		ImGui.TextUnformatted("Wrapping");
+		ImGui.Separator();
+		
+		ImGui.EnumCombo("Wrap Mode U", ref samplerStateDescription.AddressModeU);
+		ImGui.AttachTooltip("Method to use for resolving a u texture coordinate that is outside the 0 to 1 range.");
+
+		ImGui.EnumCombo("Wrap Mode V", ref samplerStateDescription.AddressModeV);
+		ImGui.AttachTooltip("Method to use for resolving a v texture coordinate that is outside the 0 to 1 range.");
+
+		ImGui.EnumCombo("Wrap Mode W", ref samplerStateDescription.AddressModeW);
+		ImGui.AttachTooltip("Method to use for resolving a w texture coordinate that is outside the 0 to 1 range.");
+
+		if (samplerStateDescription.AddressModeU == .Border ||
+			samplerStateDescription.AddressModeV == .Border ||
+			samplerStateDescription.AddressModeW == .Border)
+		{
+			ImGui.ColorEdit4("Border Color", ref samplerStateDescription.BorderColor);
+		}
+		
+		ImGui.Separator();
+		ImGui.TextUnformatted("Mip Maps");
+		ImGui.Separator();
+		
+		ImGui.DragFloat("Mip LOD Bias", &samplerStateDescription.MipLODBias, 0.1f);
+		ImGui.AttachTooltip("""
+			Offset from the calculated mipmap level.
+			For example, if the GPU calculates that a texture should be sampled at mipmap level 3 and "Mip LOD Bias" is 2, then the texture will be sampled at mipmap level 5.
+			""");
+		
+		ImGui.DragFloat("Min Mip LOD", &samplerStateDescription.MipMinLOD);
+		ImGui.AttachTooltip("Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.");
+		
+		ImGui.DragFloat("Max LOD Bias", &samplerStateDescription.MipMaxLOD);
+		ImGui.AttachTooltip("""
+			Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.
+			This value must be greater than or equal to "Min Mip LOD". To have no upper limit on LOD set this to a large value.
+			""");
+
+		_textureConfig.SamplerStateDescription = samplerStateDescription;
+	}
+
+	public static AssetPropertiesEditor Factory(AssetFile assetFile)
+	{
+		return new TextureAssetPropertiesEditor(assetFile);
+	}
+}
 
 [BonTarget, BonPolyRegister]
 class EditorTextureAssetLoaderConfig : AssetLoaderConfig
 {
 	[BonInclude]
 	private bool _generateMipMaps;
+	
+	[BonInclude]
+	private bool _isSrgb;
 
 	[BonInclude]
 	private SamplerStateDescription _samplerStateDescription = .();
@@ -24,6 +165,12 @@ class EditorTextureAssetLoaderConfig : AssetLoaderConfig
 		get => _generateMipMaps;
 		set => SetIfChanged(ref _generateMipMaps, value);
 	}
+	
+	public bool IsSRGB
+	{
+		get => _isSrgb;
+		set => SetIfChanged(ref _isSrgb, value);
+	}
 
 	public SamplerStateDescription SamplerStateDescription
 	{
@@ -32,7 +179,12 @@ class EditorTextureAssetLoaderConfig : AssetLoaderConfig
 	}
 }
 
-class EditorTextureAssetLoader : IAssetLoader
+interface IReloadingAssetLoader
+{
+	public void ReloadAsset(AssetFile assetFile, Stream data);
+}
+
+class EditorTextureAssetLoader : IAssetLoader, IReloadingAssetLoader
 {
 	private static readonly List<StringView> _fileExtensions = new .(){".png", ".dds"} ~ delete _; // ".jpg", ".bmp"
 
@@ -61,29 +213,33 @@ class EditorTextureAssetLoader : IAssetLoader
 	const String PngMagicWord = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A";
 	const String DdsMagicWord = "DDS ";
 
-	private static Texture LoadTexture(Stream data, EditorTextureAssetLoaderConfig config)
+	enum TextureType
 	{
-		Debug.Profiler.ProfileResourceFunction!();
+		Unknown,
+		DDS,
+		PNG
+	}
 
+	private static TextureType GetTextureType(Stream data)
+	{
+		int64 position = data.Position;
+		
 		var readResult = data.Read<char8[8]>();
 
-		data.Position = 0;
-
+		data.Position = position;
+		
 		char8[8] magicWord;
-
-		Texture texture = null;
-
 		if (readResult case .Ok(out magicWord))
 		{
 			StringView strView = .(&magicWord, magicWord.Count);
 
 			if (strView.StartsWith(PngMagicWord))
 			{
-				texture = LoadPng(data, config);
+				return .PNG;
 			}
 			else if (strView.StartsWith(DdsMagicWord))
 			{
-				texture = LoadDds(data, config);
+				return .DDS;
 			}
 			else
 			{
@@ -91,28 +247,82 @@ class EditorTextureAssetLoader : IAssetLoader
 			}
 		}
 
+		return .Unknown;
+	}
+
+	private static Texture LoadTexture(Stream data, EditorTextureAssetLoaderConfig config)
+	{
+		Debug.Profiler.ProfileResourceFunction!();
+		
+		Texture texture = null;
+
+		switch(GetTextureType(data))
+		{
+		case .DDS:
+			texture = LoadDds(data, config);
+		case .PNG:
+			texture = LoadPng(data, config);
+		case .Unknown:
+			Runtime.FatalError("Unknown image format.");
+		}
+
 		Log.EngineLogger.AssertDebug(texture != null);
 
-		/*SamplerStateDescription samplerDesc = .()
-		{
-			MinFilter = config.MinFilter,
-			MagFilter = config.MagFilter,
-			MipFilter = config.MipFilter,
-			AddressModeU = config.WrapModeU,
-			AddressModeV = config.WrapModeV,
-			AddressModeW = config.WrapModeW
-		};*/
-
-		SamplerState sam = SamplerStateManager.GetSampler(config.SamplerStateDescription);
-
-		texture.SamplerState = sam;
-
-		sam.ReleaseRef();
+		SetSampler(texture, config);
 
 		return texture;
 	}
 
-	private static Texture LoadPng(Stream data, EditorTextureAssetLoaderConfig config)
+	public void ReloadAsset(AssetFile assetFile, Stream data)
+	{
+		Texture reloadingTexture = assetFile.LoadedAsset as Texture;
+
+		if (reloadingTexture == null)
+		{
+			Log.EngineLogger.Error($"{nameof(Self)}: Requested reload of \"{assetFile.FilePath}\" but it's not a Texture!");
+			return;
+		}
+
+		EditorTextureAssetLoaderConfig config = assetFile.AssetConfig.Config as EditorTextureAssetLoaderConfig;
+		
+		if (config == null)
+		{
+			Log.EngineLogger.Error($"{nameof(Self)}: Config of asset \"{assetFile.FilePath}\" doesn't have the correct type!");
+			return;
+		}
+
+		switch(GetTextureType(data))
+		{
+		case .DDS:
+			ReloadDds(reloadingTexture as Texture2D, data, config);
+		case .PNG:
+			ReloadPng(reloadingTexture as Texture2D, data, config);
+		case .Unknown:
+			Runtime.FatalError("Unknown image format.");
+		}
+		
+		SetSampler(reloadingTexture, config);
+	}
+
+	private static void SetSampler(Texture texture, EditorTextureAssetLoaderConfig config)
+	{
+		using (SamplerState samplerState = SamplerStateManager.GetSampler(config.SamplerStateDescription))
+		{
+			texture.SamplerState = samplerState;
+		}
+	}
+
+	private static void ReloadPng(Texture2D reloadingTexture, Stream data, EditorTextureAssetLoaderConfig config)
+	{
+		Debug.Profiler.ProfileResourceFunction!();
+
+		using (Texture2D newTexture = LoadPng(data, config))
+		{
+			reloadingTexture.[Friend]SneakySwappyTexture(newTexture);
+		}
+	}
+
+	private static Texture2D LoadPng(Stream data, EditorTextureAssetLoaderConfig config)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
@@ -134,7 +344,7 @@ class EditorTextureAssetLoader : IAssetLoader
 
 		// TODO: load as SRGB because PNGs are usually not stored as linear
 		//Texture2DDesc desc = .(width, height, srgb? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
-		Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm, 1, 1, .Immutable);
+		Texture2DDesc desc = .(width, height, config.IsSRGB ? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
 		Texture2D texture = new Texture2D(desc);
 		texture.SetData<Color>((.)rawData);
 
@@ -145,6 +355,14 @@ class EditorTextureAssetLoader : IAssetLoader
 		return texture;
 	}
 	
+	private static void ReloadDds(Texture2D reloadingTexture, Stream data, EditorTextureAssetLoaderConfig config)
+	{
+		using (Texture2D newTexture = new [Friend]Texture2D(data))
+		{
+			reloadingTexture.[Friend]SneakySwappyTexture(newTexture);
+		}
+	}
+
 	private static Texture LoadDds(Stream data, EditorTextureAssetLoaderConfig config)
 	{
 		Texture2D texture = new [Friend]Texture2D(data);

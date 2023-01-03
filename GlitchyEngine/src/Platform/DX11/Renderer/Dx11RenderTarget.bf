@@ -125,6 +125,17 @@ namespace GlitchyEngine.Renderer
 		{
 			return .(_nativeResourceView, _samplerState.nativeSamplerState);
 		}
+
+		protected override void PlatformSneakySwappyTexture(RenderTarget2D otherTexture)
+		{
+			Swap!(_description, otherTexture._description);
+
+			// Consider sneaky swapping _depthStencilTarget too...
+			Swap!(_depthStenilTarget, otherTexture._depthStenilTarget);
+
+			Swap!(_nativeTexture, otherTexture._nativeTexture);
+			Swap!(_nativeRenderTargetView, otherTexture._nativeRenderTargetView);
+		}
 	}
 
 	extension RenderTargetFormat

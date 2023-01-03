@@ -78,6 +78,17 @@ namespace GlitchyEngine.Renderer
 		}
 
 		protected extern TextureViewBinding PlatformGetViewBinding();
+
+		protected internal override void SneakySwappyTexture(Texture otherTexture)
+		{
+			Log.EngineLogger.AssertDebug(otherTexture is RenderTarget2D, "Swapping texture must be a RenderTarget2D!");
+			
+			SamplerState = otherTexture.SamplerState;
+
+			PlatformSneakySwappyTexture(otherTexture as RenderTarget2D);
+		}
+
+		protected extern void PlatformSneakySwappyTexture(RenderTarget2D otherTexture);
 	}
 
 	[AllowDuplicates]

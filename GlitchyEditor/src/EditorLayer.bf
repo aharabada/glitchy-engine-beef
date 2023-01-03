@@ -57,6 +57,8 @@ namespace GlitchyEditor
 
 		EditorIcons _editorIcons ~ _.ReleaseRef();
 
+		EditorContentManager _contentManager;
+
 		enum SceneState
 		{
 			Edit,
@@ -71,7 +73,7 @@ namespace GlitchyEditor
 		{
 			Application.Get().Window.IsVSync = false;
 
-			InitContentLoader();
+			InitContentManager();
 
 			InitGraphics();
 
@@ -83,15 +85,17 @@ namespace GlitchyEditor
 			NewScene();
 		}
 
-		private void InitContentLoader()
+		private void InitContentManager()
 		{
-			EditorContentManager contentManager = new EditorContentManager();
-			contentManager.SetContentDirectory("./content");
+			_contentManager = new EditorContentManager();
+			_contentManager.SetContentDirectory("./content");
 
-			contentManager.RegisterAssetLoader<EditorTextureAssetLoader>();
-			contentManager.SetAsDefaultAssetLoader<EditorTextureAssetLoader>(".png", ".dds");
+			_contentManager.RegisterAssetLoader<EditorTextureAssetLoader>();
+			_contentManager.SetAsDefaultAssetLoader<EditorTextureAssetLoader>(".png", ".dds");
+			_contentManager.SetAssetPropertiesEditor<EditorTextureAssetLoader>(=> TextureAssetPropertiesEditor.Factory);
 
-			Application.Get().[Friend]_contentManager = contentManager;
+			// Todo: Sketchy...
+			Application.Get().[Friend]_contentManager = _contentManager;
 		}
 
 		private void InitGraphics()
@@ -144,7 +148,7 @@ namespace GlitchyEditor
 
 		private void InitEditor()
 		{
-			_editor = new Editor(_scene);
+			_editor = new Editor(_scene, _contentManager);
 			_editor.SceneViewportWindow.ViewportSizeChanged.Add(new (s, e) => ViewportSizeChanged(s, e));
 			_editor.CurrentCamera = &_camera;
 

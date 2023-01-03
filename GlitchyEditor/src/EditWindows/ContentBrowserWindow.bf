@@ -14,7 +14,7 @@ namespace GlitchyEditor.EditWindows
 	class ContentBrowserWindow : EditorWindow
 	{
 		// TODO: Get from project
-		const String ContentDirectory  = "./content";
+		//const String ContentDirectory  = "./content";
 
 		private append String _currentDirectory = .();
 
@@ -24,6 +24,8 @@ namespace GlitchyEditor.EditWindows
 		public static SubTexture2D s_FileTexture;
 
 		public EditorContentManager _manager;
+
+		public StringView SelectedFile => _selectedFile;
 
 		public this(EditorContentManager contentManager)
 		{
@@ -191,8 +193,8 @@ namespace GlitchyEditor.EditWindows
 				String fullpath = scope String(entry->Path);
 
 				// TODO: this is dirty
-				if (fullpath.StartsWith(ContentDirectory, .OrdinalIgnoreCase))
-					fullpath.Remove(0, ContentDirectory.Length);
+				if (fullpath.StartsWith(_manager.ContentDirectory, .OrdinalIgnoreCase))
+					fullpath.Remove(0, _manager.ContentDirectory.Length);
 
 				ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", fullpath.CStr(), (.)fullpath.Length, .Once);
 

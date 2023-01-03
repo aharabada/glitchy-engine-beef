@@ -122,6 +122,7 @@ class AssetHierarchy
 		{
 			_contentDirectory.Clear();
 			_contentDirectory.Append(value);
+			Path.Fixup(_contentDirectory);
 		}
 	}
 
@@ -137,6 +138,8 @@ class AssetHierarchy
 		_fileSystemDirty = true;
 
 		SetupFileSystemWatcher();
+
+		Update();
 	}
 	
 	/// Initializes the FSW for the current ContentDirectory and registers the events.
@@ -151,7 +154,8 @@ class AssetHierarchy
 			
 			Log.EngineLogger.Trace($"File content changed (\"{filename}\")");
 			//_fileSystemDirty = true;
-			// TODO: Handle file changes (reload asset, etc...)
+
+			FileContentChanged(filename);
 		});
 
 		fsw.OnCreated.Add(new (filename) => {
@@ -262,6 +266,8 @@ class AssetHierarchy
 					assetNode.Name = new String();
 					Path.GetFileName(filepathBuffer, assetNode.Name);
 					
+					filepathBuffer.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
 					assetNode.Path = new String(filepathBuffer);
 					assetNode.IsDirectory = false;
 
@@ -308,6 +314,8 @@ class AssetHierarchy
 		/// Recursively adds all Files and Subdirectories.
 		void AddDirectoryToTree(String path, TreeNode<AssetNode> parentNode)
 		{
+			path.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
 			// Try to find the node for the specified path in the given parent
 			TreeNode<AssetNode> treeNode = parentNode.Children.Where(scope (node) => node.Value.Path == path).FirstOrDefault();
 
@@ -358,6 +366,40 @@ class AssetHierarchy
 
 		_fileSystemDirty = false;
 	}
+
+	private void FileContentChanged(StringView fileName)
+	{
+		var fileName;
+
+		// Config files aren't really tracked but changing them effectively changes the corresponding file
+		// so we fire the event for them.
+		if (fileName.EndsWith(AssetFile.ConfigFileExtension))
+			fileName.RemoveFromEnd(AssetFile.ConfigFileExtension.Length);
+
+		String fileNameWithContentRoot = scope .();
+		Path.InternalCombine(fileNameWithContentRoot, _contentDirectory, fileName);
+
+		var nodeResult = GetNodeFromPath(fileNameWithContentRoot);
+
+		TreeNode<AssetNode> node = null;
+
+		if (!(nodeResult case .Ok(out node)))
+		{
+			Log.EngineLogger.Error($"Could not find node for file \"{fileNameWithContentRoot}\"");
+		}
+
+		// Don't fire event for directories.
+		if (node->IsDirectory)
+			return;
+
+		OnFileContentChanged(node.Value);
+
+		// TODO: Handle file changes (reload asset, etc...)
+	}
+
+	public delegate void FileContentChangedFunc(AssetNode node);
+
+	public Event<FileContentChangedFunc> OnFileContentChanged ~ _.Dispose();
 }
 
 class EditorContentManager : IContentManager
@@ -379,12 +421,56 @@ class EditorContentManager : IContentManager
 
 	public this()
 	{
+		_assetHierarchy.OnFileContentChanged.Add(new => OnFileContentChanged);
+	}
+
+	private void OnFileContentChanged(AssetNode assetNode)
+	{
+		// Asset isn't loaded so we don't need to reload it.
+		if (assetNode.AssetFile.LoadedAsset == null)
+			return;
+
+		String neededAssetLoaderName = assetNode.AssetFile.AssetConfig?.AssetLoader;
+
+		if (String.IsNullOrWhiteSpace(neededAssetLoaderName))
+			return;
+
+		IAssetLoader assetLoader = null;
+
+		String loaderNameBuffer = scope String(64);
+
+		for (IAssetLoader loader in _assetLoaders)
+		{
+			loader.GetType().GetName(loaderNameBuffer..Clear());
+
+			if (loaderNameBuffer == neededAssetLoaderName)
+			{
+				assetLoader = loader;
+				break;
+			}
+		}
+
+		if (assetLoader == null)
+		{
+			Log.EngineLogger.Error($"Could not find asset loader \"{neededAssetLoaderName}\"");
+			return;
+		}
+
+		if (var assetReloader = assetLoader as IReloadingAssetLoader)
+		{
+			Stream stream = GetStream(assetNode.Path);
+
+			assetReloader.ReloadAsset(assetNode.AssetFile, stream);
+
+			delete stream;
+		}
 	}
 
 	public void SetContentDirectory(StringView contentDirectory)
 	{
 		_contentDirectory.Clear();
 		_contentDirectory.Append(contentDirectory);
+		Path.Fixup(_contentDirectory);
 
 		_assetHierarchy.SetContentDirectory(contentDirectory);
 	}
@@ -404,6 +490,12 @@ class EditorContentManager : IContentManager
 	private append List<String> _supportedExtensions = .() ~ ClearAndDeleteItems!(_);
 	private append List<IAssetLoader> _assetLoaders = .() ~ ClearAndDeleteItems!(_);
 	private append Dictionary<StringView, IAssetLoader> _defaultAssetLoaders = .();
+	private append Dictionary<String, function AssetPropertiesEditor(AssetFile)> _assetPropertiesEditors = .() ~ {
+		for (String key in _.Keys)
+		{
+			delete key;
+		}
+	};
 
 	public void RegisterAssetLoader<T>() where T : new, class, IAssetLoader
 	{
@@ -443,6 +535,30 @@ class EditorContentManager : IContentManager
 			}
 		}
 	}
+	
+	public void SetAssetPropertiesEditor(Type assetLoaderType, function AssetPropertiesEditor(AssetFile) editorFactory)
+	{
+		String loaderTypeName = new String();
+		assetLoaderType.GetName(loaderTypeName);
+
+		_assetPropertiesEditors[loaderTypeName] = editorFactory;
+	}
+
+	public void SetAssetPropertiesEditor<TAssetLoader>(function AssetPropertiesEditor(AssetFile) editorFactory) where TAssetLoader : IAssetLoader
+	{
+		SetAssetPropertiesEditor(typeof(TAssetLoader), editorFactory);
+	}
+
+	public AssetPropertiesEditor GetNewPropertiesEditor(AssetFile assetFile)
+	{
+		if (assetFile?.AssetConfig.AssetLoader == null)
+			return null;
+
+		if (_assetPropertiesEditors.TryGetValue(assetFile.AssetConfig.AssetLoader, let propertiesEditorfactory))
+			return propertiesEditorfactory(assetFile);
+
+		return null;
+	}
 
 	public bool IsLoaded(StringView identifier)
 	{
@@ -457,9 +573,19 @@ class EditorContentManager : IContentManager
 		}
 
 		String filePath = scope String(identifier.Length + _contentDirectory.Length + 2);
-		Path.InternalCombine(filePath, _contentDirectory, identifier);
+		Path.Combine(filePath, _contentDirectory, identifier);
 
-		AssetFile file = scope .(this, filePath, false);
+		Path.Fixup(filePath);
+
+		//filePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+
+		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromPath(filePath);
+
+		if (resultNode case .Err)
+			Runtime.FatalError();
+
+		//AssetFile file = scope .(this, filePath, false);
+		AssetFile file = resultNode->Value.AssetFile;
 		
 		IAssetLoader assetLoader = null;
 
@@ -487,6 +613,8 @@ class EditorContentManager : IContentManager
 		_loadedAssets[identifierString] = loadedAsset;
 
 		delete stream;
+
+		file.[Friend]_loadedAsset = loadedAsset;
 
 		return loadedAsset;
 	}

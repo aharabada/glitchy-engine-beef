@@ -36,4 +36,25 @@ extension Path
 		Runtime.NotImplemented();
 #endif
 	}
+
+	public static void Fixup(String path)
+	{
+		path.Replace(AltDirectorySeparatorChar, DirectorySeparatorChar);
+		path.Replace(scope $".{DirectorySeparatorChar}", "");
+		path.Replace(scope $"{DirectorySeparatorChar}.", "");
+
+		if (path.StartsWith(DirectorySeparatorChar))
+			path.Remove(0, 1);
+	}
+
+	public static void Combine(String target, params StringView[] components)
+	{
+		for (var component in components)
+		{
+			if ((target.Length > 0) && (!target.EndsWith("\\")) && (!target.EndsWith("/")) &&
+				(!component.StartsWith("\\")) && (!component.StartsWith("/")))
+				target.Append(Path.DirectorySeparatorChar);
+			target.Append(component);
+		}
+	}
 }

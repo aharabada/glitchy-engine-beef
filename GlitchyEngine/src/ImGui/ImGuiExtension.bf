@@ -2,6 +2,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using System;
 using GlitchyEngine;
+using System.Collections;
 
 namespace GlitchyEngine.Math
 {
@@ -214,6 +215,109 @@ namespace ImGui
 		public static void DrawRect(Vec2 min, Vec2 max, Color color)
 		{
 			ImGui.GetForegroundDrawList().AddRect(min, max, ImGui.GetColorU32(color.Value));
+		}
+
+		/// Provides a combo Box to select an enum value.
+		public static bool EnumCombo<T>(StringView label, ref T selectedValue) where T : enum
+		{
+			String selectedValueString = scope .();
+			selectedValue.ToString(selectedValueString);
+			// TODO: make selectedValue human readable
+
+			bool changed = false;
+
+			if (ImGui.BeginCombo(label.ToScopeCStr!(), selectedValueString))
+			{
+				for (let (name, value) in Enum.GetEnumerator<T>())
+				{
+				    ImGui.PushID(name);
+
+				    if (ImGui.Selectable(name.ToScopeCStr!(), selectedValue == value))
+					{
+				        selectedValue = value;
+						changed = true;
+					}
+
+				    ImGui.PopID();
+				}
+
+				ImGui.EndCombo();
+			}
+
+			return changed;
+		}
+
+		/// Provides a tooltip that will be show when the previously defined Widget is hovered.
+		public static void AttachTooltip(StringView tooltip)
+		{
+			if (!ImGui.IsItemHovered())
+				return;
+
+			ImGui.BeginTooltip();
+
+			ImGui.TextUnformatted(tooltip);
+
+			ImGui.EndTooltip();
+		}
+
+		[Comptime]
+		private static DataType GetDataType<T>()
+		{
+			DataType dataType = .COUNT;
+
+			switch (typeof(T))
+			{
+			case typeof(int8):
+				dataType = .S8;
+			case typeof(int16):
+				dataType = .S16;
+			case typeof(int32):
+				dataType = .S32;
+			case typeof(int64):
+				dataType = .S64;
+			case typeof(int):
+				if (sizeof(int) == 8)
+					dataType = .S64;
+				else if (sizeof(int) == 4)
+					dataType = .S32;
+
+			case typeof(uint8):
+				dataType = .U8;
+			case typeof(uint16):
+				dataType = .U16;
+			case typeof(uint32):
+				dataType = .U32;
+			case typeof(uint64):
+				dataType = .U64;
+			case typeof(uint):
+				if (sizeof(uint) == 8)
+					dataType = .U64;
+				else if (sizeof(uint) == 4)
+					dataType = .U32;
+			//default:
+			//	Runtime.Assert(dataType != .COUNT);
+				//Log.EngineLogger.Assert(dataType != .COUNT, "Unknown data type.");
+			}
+
+			return dataType;
+		}
+
+		// TODO: Add support for floats
+		public static bool DragScalar<T>(char8* label, ref T value, float dragSpeed = (float) 1.0f, T minValue = typeof(T).MinValue, T maxValue = typeof(T).MaxValue, char8* format = null, SliderFlags sliderFlags = .None) where T : IInteger
+		{
+			DataType dataType = GetDataType<T>();
+
+#unwarn		
+			return DragScalar(label, dataType, &value, dragSpeed, &minValue, &maxValue, format, sliderFlags);
+		}
+
+		// TODO: Add support for floats
+		public static bool SliderScalar<T>(char8* label, ref T value, T minValue = typeof(T).MinValue, T maxValue = typeof(T).MaxValue, char8* format = null, SliderFlags sliderFlags = .None) where T : IInteger
+		{
+			DataType dataType = GetDataType<T>();
+
+#unwarn		
+			return SliderScalar(label, dataType, &value, &minValue, &maxValue, format, sliderFlags);
 		}
 	}
 }

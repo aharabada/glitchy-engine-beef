@@ -44,7 +44,7 @@ namespace GlitchyEngine.Content
 			return true;
 		}
 	}
-
+	
 	interface IAssetLoader
 	{
 		static List<StringView> FileExtensions { get; }
