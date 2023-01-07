@@ -56,24 +56,24 @@ namespace GlitchyEngine.Content
 		/// @param config The configuration which specifies the settings used to load the asset.
 		/// @param contentManager The content manager used to load the asset.
 		/// @returns The loaded asset.
-		Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView? subAsset, IContentManager contentManager);
+		Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView assetIdentifier, StringView? subAsset, IContentManager contentManager);
 	}
 
 	static
 	{
 		/// Loads the specified asset with the given contentManager or the current applications content manager.
-		public static T LoadAsset<T>(StringView assetIdentifier, IContentManager contentManager = null) where T : IRefCounted
+		public static T LoadAsset<T>(StringView assetIdentifier, IContentManager contentManager = null) where T : Asset
 		{
 			var contentManager;
 
 			if (contentManager == null)
 				contentManager = Application.Get().ContentManager;
 
-			Object o = contentManager.LoadAsset(assetIdentifier);
+			Asset asset = contentManager.LoadAsset(assetIdentifier);
 
-			Log.EngineLogger.AssertDebug(o is T);
+			Log.EngineLogger.AssertDebug(asset is T);
 
-			return (T)o;
+			return (T)asset;
 		}
 	}
 
@@ -96,7 +96,7 @@ namespace GlitchyEngine.Content
 		Stream GetStream(StringView assetIdentifier);
 
 		void RegisterAssetLoader<T>() where T : new, class, IAssetLoader;
-		void SetAsDefaultAssetLoader<T>(params StringView[] fileExtensions) where T : IAssetLoader;
+		void SetAsDefaultAssetLoader<T>(params Span<StringView> fileExtensions) where T : IAssetLoader;
 		//void GetFilePath(String outFilename, String filename);
 
 		//Stream GetFile(String filename);
@@ -104,6 +104,11 @@ namespace GlitchyEngine.Content
 
 	class RuntimeContentManager : IContentManager
 	{
+		public this()
+		{
+			Runtime.NotImplemented();
+		}
+
 		public Asset LoadAsset(StringView assetIdentifier)
 		{
 			Runtime.NotImplemented();
@@ -134,7 +139,7 @@ namespace GlitchyEngine.Content
 			Runtime.NotImplemented();
 		}
 
-		public void SetAsDefaultAssetLoader<T>(params StringView[] fileExtensions) where T : IAssetLoader
+		public void SetAsDefaultAssetLoader<T>(params Span<StringView> fileExtensions) where T : IAssetLoader
 		{
 			Runtime.NotImplemented();
 		}

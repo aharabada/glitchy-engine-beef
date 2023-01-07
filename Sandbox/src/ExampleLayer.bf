@@ -85,13 +85,13 @@ namespace Sandbox
 
 				_context = Application.Get().Window.Context..AddRef();
 
-				var effectLibrary = Application.Get().EffectLibrary;
+				//var effectLibrary = Application.Get().EffectLibrary;
 
-				effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
+				//effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
 
-				effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
+				//effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
 				
-				var textureEffect = effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
+				var textureEffect = Content.LoadAsset<Effect>("Shaders\\textureShader.hlsl");
 
 				_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
@@ -214,7 +214,7 @@ namespace Sandbox
 
 			void TestLoadModel()
 			{
-				var testEffect = Application.Get().EffectLibrary.Get("testShader");
+				var testEffect = Content.LoadAsset<Effect>("Shaders\\testShader.hlsl");//Application.Get().EffectLibrary.Get("testShader");
 				var materialTestMaterial = new Material(testEffect);
 				animationMat = materialTestMaterial;
 
@@ -266,7 +266,7 @@ namespace Sandbox
 				_world.Register<CameraComponent>();
 				_world.Register<AnimationComponent>();
 				
-				var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
+				var basicEffect = Content.LoadAsset<Effect>("Shaders\\basicShader.hlsl");//Application.Get().EffectLibrary.Get("basicShader");
 
 				testMaterial1 = new Material(basicEffect);
 				testMaterial1.SetVariable("BaseColor", _squareColor0);
@@ -352,7 +352,7 @@ namespace Sandbox
 				
 				RenderCommand.SetBlendState(_opaqueBlendState);
 
-				var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
+				var basicEffect = Content.LoadAsset<Effect>("Shaders\\basicShader.hlsl");//Application.Get().EffectLibrary.Get("basicShader");
 
 				RenderCommand.SetRasterizerState(_rasterizerState);
 				

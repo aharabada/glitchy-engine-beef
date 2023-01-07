@@ -4,13 +4,15 @@
 		_generateMipMaps = true,
 		_isSrgb = true,
 		_samplerStateDescription = {
-			MinFilter = .Linear,
+			MinFilter = .Anisotropic,
+			MagFilter = .Anisotropic,
+			MipFilter = .Anisotropic,
 			ComparisonFunction = .Never,
 			AddressModeU = .Wrap,
 			AddressModeV = .Border,
 			AddressModeW = .Clamp,
 			MipMaxLOD = 160,
-			MaxAnisotropy = 5,
+			MaxAnisotropy = 16,
 			BorderColor = {
 				R = 0.756863,
 				G = 0.2,

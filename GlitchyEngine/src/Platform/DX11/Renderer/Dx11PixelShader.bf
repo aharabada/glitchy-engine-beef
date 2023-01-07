@@ -4,6 +4,7 @@ using System;
 using DirectX.D3D11;
 using DirectX.D3DCompiler;
 using GlitchyEngine.Platform.DX11;
+using GlitchyEngine.Content;
 
 using internal GlitchyEngine.Renderer;
 using internal GlitchyEngine.Platform.DX11;
@@ -12,11 +13,11 @@ namespace GlitchyEngine.Renderer
 {
 	extension PixelShader
 	{
-		public override void CompileFromSource(StringView code, StringView? fileName, String entryPoint, ShaderDefine[] macros = null)
+		public override void CompileFromSource(StringView code, StringView? fileName, String entryPoint, IContentManager contentManager, ShaderDefine[] macros = null)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			Shader.PlattformCompileShaderFromSource(code, fileName, macros, entryPoint, "ps_5_0", DefaultCompileFlags, out nativeCode);
+			Shader.PlattformCompileShaderFromSource(code, fileName, macros, entryPoint, "ps_5_0", DefaultCompileFlags, contentManager, out nativeCode);
 			
 			{
 				Debug.Profiler.ProfileResourceScope!("CreateNativePixelShader");

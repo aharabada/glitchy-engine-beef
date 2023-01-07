@@ -104,7 +104,7 @@ namespace GlitchyEngine.Renderer
 			private Vector3 _padding;
 		}
 
-		public static void Init(EffectLibrary effectLibrary)
+		public static void Init()
 		{
 			Debug.Profiler.ProfileFunction!();
 
@@ -112,8 +112,8 @@ namespace GlitchyEngine.Renderer
 			Renderer2D.Init();
 			FullscreenQuad.Init();
 
-			InitLineRenderer(effectLibrary);
-			InitDeferredRenderer(effectLibrary);
+			InitLineRenderer();
+			InitDeferredRenderer();
 		}
 
 		public static void Deinit()
@@ -128,11 +128,11 @@ namespace GlitchyEngine.Renderer
 			Renderer2D.Deinit();
 		}
 
-		static void InitLineRenderer(EffectLibrary effectLibrary)
+		static void InitLineRenderer()
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			LineEffect = effectLibrary.Load("content\\Shaders\\lineShader.hlsl");
+			LineEffect = Content.LoadAsset<Effect>("Shaders\\lineShader.hlsl");
 
 			LineGeometry = new GeometryBinding();
 			LineGeometry.SetPrimitiveTopology(.LineList);
@@ -161,10 +161,10 @@ namespace GlitchyEngine.Renderer
 			LineEffect.ReleaseRef();
 		}
 
-		static void InitDeferredRenderer(EffectLibrary effectLibrary)
+		static void InitDeferredRenderer()
 		{
-			TestFullscreenEffect = effectLibrary.Load("content\\Shaders\\simpleLight.hlsl");
-			s_tonemappingEffect = effectLibrary.Load("content\\Shaders\\SimpleTonemapping.hlsl");
+			TestFullscreenEffect = Content.LoadAsset<Effect>("Shaders\\simpleLight.hlsl");
+			s_tonemappingEffect = Content.LoadAsset<Effect>("Shaders\\SimpleTonemapping.hlsl");
 
 			_gBuffer = new GBuffer();
 			BlendStateDescription gBufferBlendDesc = .Default;

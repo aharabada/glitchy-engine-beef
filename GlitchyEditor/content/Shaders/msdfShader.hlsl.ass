@@ -1,0 +1,4 @@
+{
+	AssetLoader = "EffectAssetLoader",
+	Config = (GlitchyEditor.Assets.EffectAssetLoaderConfig){}
+}

@@ -511,7 +511,7 @@ class EditorContentManager : IContentManager
 			_supportedExtensions.Add(new String(ext));
 	}
 
-	public void SetAsDefaultAssetLoader<T>(params StringView[] fileExtensions) where T : IAssetLoader
+	public void SetAsDefaultAssetLoader<T>(params Span<StringView> fileExtensions) where T : IAssetLoader
 	{
 		for (var ext in fileExtensions)
 		{
@@ -616,7 +616,7 @@ class EditorContentManager : IContentManager
 
 		Stream stream = GetStream(filePath);
 
-		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, subassetName, this);
+		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
 		
 		delete stream;
 
@@ -637,8 +637,21 @@ class EditorContentManager : IContentManager
 	// TODO: probably not needed
 	public Stream GetStream(StringView assetIdentifier)
 	{
+		var assetIdentifier;
+
+		if (!assetIdentifier.StartsWith(_contentDirectory))
+		{
+			String filePath = scope:: String(assetIdentifier.Length + _contentDirectory.Length + 2);
+			Path.Combine(filePath, _contentDirectory, assetIdentifier);
+
+			assetIdentifier = filePath;
+		}
+
 		FileStream fs = new FileStream();
 		var result = fs.Open(assetIdentifier, .Open, .Read, .ReadWrite);
+
+		if (result case .Err)
+			return null;
 
 		return fs;
 	}

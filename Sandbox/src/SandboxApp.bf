@@ -32,5 +32,10 @@ namespace Sandbox
 		{
 			return new SandboxApp();
 		}
+
+		protected override IContentManager InitContentManager()
+		{
+			Runtime.NotImplemented();
+		}
 	}
 }

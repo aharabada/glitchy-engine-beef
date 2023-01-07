@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using Box2D;
 using GlitchyEngine.Core;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine.World
 {
@@ -75,7 +76,7 @@ namespace GlitchyEngine.World
 					DepthTargetDescription = .(.D24_UNorm_S8_UInt)
 				});
 
-			_gammaCorrectEffect = Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
+			_gammaCorrectEffect = Content.LoadAsset<Effect>("Shaders/GammaCorrect.hlsl");//Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
 		}
 
 		public ~this()

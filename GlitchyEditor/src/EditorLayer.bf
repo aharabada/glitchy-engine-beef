@@ -27,7 +27,7 @@ namespace GlitchyEditor
 		BlendState _opaqueBlendState ~ _.ReleaseRef();
 		DepthStencilState _depthStencilState ~ _.ReleaseRef();
 		
-		Scene _scene = new Scene() ~ delete _;
+		Scene _scene ~ delete _;
 		String _sceneFilePath = new String() ~ delete _;
 
 		public String SceneFilePath
@@ -69,13 +69,16 @@ namespace GlitchyEditor
 
 		SceneState _sceneState = .Edit;
 
-		public this() : base("Example")
+		public this(EditorContentManager contentManager) : base("Example")
 		{
 			Application.Get().Window.IsVSync = false;
 
-			InitContentManager();
+			//InitContentManager();
+			_contentManager = contentManager;
 
 			InitGraphics();
+
+			_scene = new Scene();
 
 			_camera = EditorCamera(Vector3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
 			_camera.RenderTarget = _cameraTarget;
@@ -85,7 +88,7 @@ namespace GlitchyEditor
 			NewScene();
 		}
 
-		private void InitContentManager()
+		/*private void InitContentManager()
 		{
 			_contentManager = new EditorContentManager();
 			_contentManager.RegisterAssetLoader<EditorTextureAssetLoader>();
@@ -99,12 +102,16 @@ namespace GlitchyEditor
 			_contentManager.RegisterAssetLoader<MaterialAssetLoader>();
 			_contentManager.SetAsDefaultAssetLoader<MaterialAssetLoader>(".mat");
 			_contentManager.SetAssetPropertiesEditor<MaterialAssetLoader>(=> MaterialAssetPropertiesEditor.Factory);
+			
+			_contentManager.RegisterAssetLoader<EffectAssetLoader>();
+			_contentManager.SetAsDefaultAssetLoader<EffectAssetLoader>(".hlsl");
+			_contentManager.SetAssetPropertiesEditor<EffectAssetLoader>(=> EffectAssetPropertiesEditor.Factory);
 
 			_contentManager.SetContentDirectory("./content");
 
 			// Todo: Sketchy...
 			Application.Get().[Friend]_contentManager = _contentManager;
-		}
+		}*/
 
 		private void InitGraphics()
 		{

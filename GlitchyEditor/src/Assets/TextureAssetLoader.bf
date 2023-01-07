@@ -175,7 +175,7 @@ class EditorTextureAssetLoader : IAssetLoader, IReloadingAssetLoader
 		return new EditorTextureAssetLoaderConfig();
 	}
 
-	public Asset LoadAsset(Stream data, AssetLoaderConfig config, StringView? subAsset, IContentManager contentManager)
+	public Asset LoadAsset(Stream data, AssetLoaderConfig config, StringView assetIdentifier, StringView? subAsset, IContentManager contentManager)
 	{
 		var config;
 

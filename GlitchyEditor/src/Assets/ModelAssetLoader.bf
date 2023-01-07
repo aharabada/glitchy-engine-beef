@@ -42,7 +42,7 @@ class ModelAssetLoader : IAssetLoader //, IReloadingAssetLoader
 		return new ModelAssetLoaderConfig();
 	}
 
-	public Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView? subAsset, IContentManager contentManager)
+	public Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView assetIdentifier, StringView? subAsset, IContentManager contentManager)
 	{
 		Log.EngineLogger.Assert(subAsset != null);
 

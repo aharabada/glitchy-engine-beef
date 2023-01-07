@@ -8,7 +8,7 @@ using GlitchyEngine.Renderer;
 
 namespace GlitchyEditor.Assets;
 
-class MaterialAssetPropertiesEditor : AssetPropertiesEditor
+class EffectAssetPropertiesEditor : AssetPropertiesEditor
 {
 	public this(AssetFile asset) : base(asset)
 	{
@@ -27,34 +27,29 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 }
 
 [BonTarget, BonPolyRegister]
-class MaterialAssetLoaderConfig : AssetLoaderConfig
+class EffectAssetLoaderConfig : AssetLoaderConfig
 {
 	
 }
 
-[BonTarget]
-class MaterialFile
+class EffectAssetLoader : IAssetLoader //, IReloadingAssetLoader
 {
-	public String Effect ~ delete _;
-
-	public Dictionary<String, String> Textures ~ DeleteDictionaryAndKeysAndValues!(_);
-	//public Dictionary<String, Object> Variables;
-}
-
-class MaterialAssetLoader : IAssetLoader //, IReloadingAssetLoader
-{
-	private static readonly List<StringView> _fileExtensions = new .(){".mat"} ~ delete _;
+	private static readonly List<StringView> _fileExtensions = new .(){".hlsl"} ~ delete _;
 
 	public static List<StringView> FileExtensions => _fileExtensions;
 
 	public AssetLoaderConfig GetDefaultConfig()
 	{
-		return new ModelAssetLoaderConfig();
+		return new EffectAssetLoaderConfig();
 	}
 
 	public Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView assetIdentifier, StringView? subAsset, IContentManager contentManager)
 	{
-		StreamReader reader = scope .(file);
+		Effect effect = new Effect(file, assetIdentifier, contentManager);
+
+		return effect;
+
+		/*StreamReader reader = scope .(file);
 
 		String text = scope .();
 
@@ -101,6 +96,6 @@ class MaterialAssetLoader : IAssetLoader //, IReloadingAssetLoader
 			material.SetVariable(slotName, );
 		}*/
 
-		return material; //ModelLoader.LoadMesh(file, subAsset.Value, 0);
+		return material; //ModelLoader.LoadMesh(file, subAsset.Value, 0);*/
 	}
 }
