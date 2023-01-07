@@ -7,11 +7,10 @@ namespace GlitchyEngine.Core
 	 * Implements the IDisposable interface so that it can be used with a using-Block so that the counter
 	 * will be decremented automatically after leaving the block.
 	 */
-	public class RefCounter : System.RefCounted, IDisposable
+	public class RefCounter : RefCounted, IDisposable
 	{
 		protected ~this()
 		{
-
 		}
 
 		public void Dispose()

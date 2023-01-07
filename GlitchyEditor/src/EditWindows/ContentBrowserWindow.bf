@@ -73,7 +73,8 @@ namespace GlitchyEditor.EditWindows
 		{
 			if (ImGui.MenuItem("Open in file browser..."))
 			{
-				Path.OpenFolder(_currentDirectory);
+				if (Path.OpenFolder(_currentDirectory) case .Err)
+					Log.EngineLogger.Error("Failed to open directory in file browser.");
 			}
 		}
 
@@ -294,10 +295,23 @@ namespace GlitchyEditor.EditWindows
 		/// Shows the context menu for the given file/folder.
 		private void ShowItemContextMenu(TreeNode<AssetNode> fileOrFolder)
 		{
+			bool isFile = !fileOrFolder->IsDirectory;
+
 		    if (ImGui.MenuItem("Show in file browser..."))
 		    {
-				Path.OpenFolderAndSelectItem(fileOrFolder->Path);
+				if (Path.OpenFolderAndSelectItem(fileOrFolder->Path) case .Err)
+				{
+					Log.EngineLogger.Error("Failed to show path in file browser.");
+				}
 		    }
+
+			if (isFile && ImGui.MenuItem("Open file with..."))
+			{
+				if (Path.OpenWithDialog(fileOrFolder->Path) case .Err)
+				{
+					Log.EngineLogger.Error("Failed to show \"Open with...\" dialog.");
+				}
+			}
 
 			if (ImGui.MenuItem("Delete"))
 			{
@@ -310,6 +324,11 @@ namespace GlitchyEditor.EditWindows
 			if (entry->IsDirectory)
 			{
 				_currentDirectory.Set(entry->Path);
+			}
+			else
+			{
+				if (Path.OpenFolder(entry->Path) case .Err)
+					Log.EngineLogger.Error("Failed to open directory in file browser.");
 			}
 		}
 	}

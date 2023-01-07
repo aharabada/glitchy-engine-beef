@@ -1,9 +1,9 @@
 {
 	AssetLoader = "EditorTextureAssetLoader",
 	Config = (GlitchyEditor.Assets.EditorTextureAssetLoaderConfig){
+		_isSrgb = true,
 		_samplerStateDescription = {
 			MinFilter = .Linear,
-			MagFilter = .Point,
 			MipFilter = .Linear,
 			ComparisonFunction = .Never,
 			AddressModeU = .Clamp,

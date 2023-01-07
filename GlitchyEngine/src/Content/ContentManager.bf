@@ -54,8 +54,9 @@ namespace GlitchyEngine.Content
 		/// Loads the asset from the given data stream with the specified config.
 		/// @param file The stream containing the asset.
 		/// @param config The configuration which specifies the settings used to load the asset.
+		/// @param contentManager The content manager used to load the asset.
 		/// @returns The loaded asset.
-		IRefCounted LoadAsset(Stream file, AssetLoaderConfig config);
+		Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView? subAsset, IContentManager contentManager);
 	}
 
 	static
@@ -79,7 +80,17 @@ namespace GlitchyEngine.Content
 	interface IContentManager
 	{
 		/// Loads the given asset.
-		IRefCounted LoadAsset(StringView assetIdentifier);
+		Asset LoadAsset(StringView assetIdentifier);
+
+		/// The content manager will manage the asset (e.g. provide it when LoadAsset is called with the assets identifier)
+		void ManageAsset(Asset asset);
+
+		/// The content manager will no longer manage the asset.
+		void UnmanageAsset(Asset asset);
+
+		// TODO: Maybe calling UnmanageAsset -> ManageAsset is enough....
+		/// Provides a method for the asset to tell its content manager that the identifer changed.
+		void UpdateAssetIdentifier(Asset asset, StringView oldIdentifier, StringView newIdentifier);
 
 		/// Returns a data stream for the given asset.
 		Stream GetStream(StringView assetIdentifier);
@@ -93,7 +104,22 @@ namespace GlitchyEngine.Content
 
 	class RuntimeContentManager : IContentManager
 	{
-		public IRefCounted LoadAsset(StringView identifier)
+		public Asset LoadAsset(StringView assetIdentifier)
+		{
+			Runtime.NotImplemented();
+		}
+
+		public void ManageAsset(Asset asset)
+		{
+			Runtime.NotImplemented();
+		}
+
+		public void UnmanageAsset(Asset asset)
+		{
+			Runtime.NotImplemented();
+		}
+
+		public void UpdateAssetIdentifier(Asset asset, StringView oldIdentifier, StringView newIdentifier)
 		{
 			Runtime.NotImplemented();
 		}

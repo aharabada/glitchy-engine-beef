@@ -1,12 +1,13 @@
-using System;
+using GlitchyEngine.Content;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
+using System;
 using System.IO;
 using System.Diagnostics;
 
 namespace GlitchyEngine.Renderer
 {
-	public abstract class Texture : RefCounter
+	public abstract class Texture : Asset
 	{
 		protected SamplerState _samplerState ~ _?.ReleaseRef();
 	

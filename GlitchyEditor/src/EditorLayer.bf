@@ -88,11 +88,19 @@ namespace GlitchyEditor
 		private void InitContentManager()
 		{
 			_contentManager = new EditorContentManager();
-			_contentManager.SetContentDirectory("./content");
-
 			_contentManager.RegisterAssetLoader<EditorTextureAssetLoader>();
 			_contentManager.SetAsDefaultAssetLoader<EditorTextureAssetLoader>(".png", ".dds");
 			_contentManager.SetAssetPropertiesEditor<EditorTextureAssetLoader>(=> TextureAssetPropertiesEditor.Factory);
+			
+			_contentManager.RegisterAssetLoader<ModelAssetLoader>();
+			_contentManager.SetAsDefaultAssetLoader<ModelAssetLoader>(".glb", ".gltf");
+			_contentManager.SetAssetPropertiesEditor<ModelAssetLoader>(=> ModelAssetPropertiesEditor.Factory);
+			
+			_contentManager.RegisterAssetLoader<MaterialAssetLoader>();
+			_contentManager.SetAsDefaultAssetLoader<MaterialAssetLoader>(".mat");
+			_contentManager.SetAssetPropertiesEditor<MaterialAssetLoader>(=> MaterialAssetPropertiesEditor.Factory);
+
+			_contentManager.SetContentDirectory("./content");
 
 			// Todo: Sketchy...
 			Application.Get().[Friend]_contentManager = _contentManager;

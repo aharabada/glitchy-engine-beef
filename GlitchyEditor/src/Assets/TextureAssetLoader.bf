@@ -11,21 +11,6 @@ using ImGui;
 
 namespace GlitchyEditor.Assets;
 
-abstract class AssetPropertiesEditor
-{
-	private AssetFile _asset;
-
-	public AssetFile Asset => _asset;
-
-	public this(AssetFile asset)
-	{
-		_asset = asset;
-	}
-
-	public abstract void ShowEditor();
-}
-
-
 class TextureAssetPropertiesEditor : AssetPropertiesEditor
 {
 	EditorTextureAssetLoaderConfig _textureConfig;
@@ -179,11 +164,6 @@ class EditorTextureAssetLoaderConfig : AssetLoaderConfig
 	}
 }
 
-interface IReloadingAssetLoader
-{
-	public void ReloadAsset(AssetFile assetFile, Stream data);
-}
-
 class EditorTextureAssetLoader : IAssetLoader, IReloadingAssetLoader
 {
 	private static readonly List<StringView> _fileExtensions = new .(){".png", ".dds"} ~ delete _; // ".jpg", ".bmp"
@@ -195,7 +175,7 @@ class EditorTextureAssetLoader : IAssetLoader, IReloadingAssetLoader
 		return new EditorTextureAssetLoaderConfig();
 	}
 
-	public IRefCounted LoadAsset(Stream data, AssetLoaderConfig config)
+	public Asset LoadAsset(Stream data, AssetLoaderConfig config, StringView? subAsset, IContentManager contentManager)
 	{
 		var config;
 

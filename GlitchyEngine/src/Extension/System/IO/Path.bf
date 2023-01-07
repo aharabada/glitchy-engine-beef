@@ -1,41 +1,28 @@
 using System.Diagnostics;
+
 namespace System.IO;
 
 extension Path
 {
-	/// Opens the file browser and selects the specified file.
-	/// @param path The path of the file to select.
-	public static void OpenFolderAndSelectItem(String path)
+	public static mixin GetScopedFullPath(String path)
 	{
-		String fullPath = scope String(256);
+		String fullPath = scope String(Path.MaxPath);
 		Path.GetFullPath(path, fullPath);
 
-#if BF_PLATFORM_WINDOWS
-		ProcessStartInfo processInfo = scope .();
-		processInfo.SetFileNameAndArguments(scope $"explorer /select,\"{fullPath}\"");
-
-		scope SpawnedProcess().Start(processInfo);
-#else
-		Runtime.NotImplemented();
-#endif
+		fullPath
 	}
+
+	/// Opens the file browser and selects the specified file.
+	/// @param path The path of the file to select.
+	public static extern Result<void> OpenFolderAndSelectItem(String path);
 
 	/// Opens the file browser in the given directory.
 	/// @param directory The directory to show in the file browser.
-	public static void OpenFolder(String directory)
-	{
-		String fullPath = scope String(256);
-		Path.GetFullPath(directory, fullPath);
+	public static extern Result<void> OpenFolder(String directory);
 
-#if BF_PLATFORM_WINDOWS
-		ProcessStartInfo processInfo = scope .();
-		processInfo.SetFileNameAndArguments(scope $"explorer \"{fullPath}\"");
-
-		scope SpawnedProcess().Start(processInfo);
-#else
-		Runtime.NotImplemented();
-#endif
-	}
+	/// Shows a dialog in which the user can select which program to open the given file with.
+	/// @param The Path of the file to open.
+	public static extern Result<void> OpenWithDialog(String filePath);
 
 	public static void Fixup(String path)
 	{

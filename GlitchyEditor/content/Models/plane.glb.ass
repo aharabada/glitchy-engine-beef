@@ -1,0 +1,4 @@
+{
+	AssetLoader = "ModelAssetLoader",
+	Config = (GlitchyEditor.Assets.ModelAssetLoaderConfig){}
+}

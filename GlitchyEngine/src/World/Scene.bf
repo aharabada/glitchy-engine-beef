@@ -442,6 +442,9 @@ namespace GlitchyEngine.World
 
 			for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
 			{
+				if (mesh.Mesh == null || meshRenderer.Material == null)
+					continue;
+
 				Renderer.Submit(mesh.Mesh, meshRenderer.Material, entity, transform.WorldTransform);
 			}
 

@@ -287,10 +287,31 @@ namespace GlitchyEditor.EditWindows
 		{
 			// TODO: Editing material options obviously shouldn't be part of the meshrenderer-ui
 
+			ImGui.Button("Drag Material here!");
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
+
+					using (Material material = Content.LoadAsset<Material>(fullpath))
+					{
+						meshRendererComponent.Material = material;
+					}
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+
 			Material material = meshRendererComponent.Material;
 
-			Effect effect = material.Effect;
-			
+			Effect effect = material?.Effect;
+
+			if (effect == null)
+				return;
+
 			bool TryGetValue(Dictionary<String, Variant> parameters, String name, out Variant value)
 			{
 				if (parameters.TryGetValue(name, let param))
@@ -568,7 +589,7 @@ namespace GlitchyEditor.EditWindows
 				{
 					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
 
-					int idx = fullpath.IndexOf('#');
+					/*int idx = fullpath.IndexOf('#');
 
 					if (idx == -1)
 					{
@@ -577,13 +598,18 @@ namespace GlitchyEditor.EditWindows
 					}
 
 					StringView filePath = fullpath.Substring(0, idx);
-					StringView meshName = fullpath.Substring(idx + 1);
+					StringView meshName = fullpath.Substring(idx + 1);*/
+
+					using (GeometryBinding geometry = Content.LoadAsset<GeometryBinding>(fullpath))
+					{
+						meshComponent.Mesh = geometry;
+					}
 
 					// TODO: support multiple primitives (treat every primitive as a single mesh?)
-					using (GeometryBinding binding = ModelLoader.LoadMesh(filePath, meshName, 0))
+					/*using (GeometryBinding binding = ModelLoader.LoadMesh(filePath, meshName, 0))
 					{
 						meshComponent.Mesh = binding;
-					}
+					}*/
 
 					//ModelLoader.LoadModel(scope .(path), )
 
@@ -648,6 +674,8 @@ namespace GlitchyEditor.EditWindows
 				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
 				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");
 				ShowComponentButton<CircleCollider2DComponent>("Circle collider 2D");
+				ShowComponentButton<MeshComponent>("Mesh");
+				ShowComponentButton<MeshRendererComponent>("Mesh Renderer");
 
 				ImGui.EndCombo();
 			}

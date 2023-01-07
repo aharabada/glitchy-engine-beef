@@ -5,6 +5,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Renderer.Animation;
 using GlitchyEngine.World;
+using System.IO;
 
 namespace GlitchyEngine.Content
 {
@@ -64,6 +65,168 @@ namespace GlitchyEngine.Content
 			CGLTF.Free(data);
 
 			return geoBinding;
+		}
+
+		public static GeometryBinding LoadMesh(Stream data, StringView meshName, int primitiveIndex)
+		{
+			// TODO: add a context to remember which buffers were loaded before so that we don't load the same data multiple times.
+
+			uint8[] rawData = new:ScopedAlloc! uint8[data.Length];
+
+			var dataReadResult = data.TryRead(rawData);
+
+			if (dataReadResult case .Err(let err))
+			{
+				Log.EngineLogger.Error($"Failed to read data from stream. Error: {err}");
+			}
+
+			CGLTF.Options options = .();
+			CGLTF.Data* modelData;
+			CGLTF.Result result = CGLTF.Parse(options, (Span<uint8>)rawData, out modelData);
+
+			if (!(result case .Success))
+				return null;
+
+			// TODO: one buffer can be used by multiple primitives, the content manager could manage the buffers
+
+			// TODO: load with content manager
+
+			result = CGLTF.LoadBuffers(options, modelData, (char8*)null);
+			//result = LoadBuffersWithContentManager(options, modelData, meshName, Application.Get().ContentManager);
+
+			GeometryBinding geoBinding = null;
+
+			for (var mesh in modelData.Meshes)
+			{
+				var name = StringView(mesh.Name);
+
+				//if (name == meshName)
+				{
+					Log.EngineLogger.AssertDebug(primitiveIndex >= 0 && primitiveIndex < mesh.Primitives.Length);
+
+					geoBinding = PrimitiveToGeoBinding(mesh.Primitives[primitiveIndex]);
+					break;
+				}
+			}
+
+			CGLTF.Free(modelData);
+
+			return geoBinding;
+		}
+
+		private static CGLTF.Result LoadBuffersWithContentManager(CGLTF.Options options, CGLTF.Data* data, StringView fileName, IContentManager contentManager)
+		{
+			if (data.Buffers.Length > 0 && data.Buffers[0].Data == null && data.Buffers[0].Uri == null && !data.Bin.IsEmpty)
+			{
+				if ((uint)data.Bin.Length < data.Buffers[0].Size)
+					return .DataTooShort;
+
+				data.Buffers[0].Data = data.Bin.Ptr;
+				data.Buffers[0].DataFreeMethod = .None;
+			}
+
+			for (ref CGLTF.Buffer buffer in ref data.Buffers)
+			{
+				if (buffer.Data != null)
+					continue;
+
+				if (buffer.Uri == null)
+					continue;
+
+				StringView uri = StringView(buffer.Uri);
+
+				if (uri.StartsWith("data:"))
+				{
+					int commaIndex = uri.IndexOf(',');
+
+					//char* comma = strchr(uri, ',');
+
+					if (commaIndex == -1 || commaIndex >= 7 || uri.StartsWith(";base64"))
+						return .UnknownFormat;
+
+					StringView dataView = uri.Substring(commaIndex + 1);
+
+#unwarn
+					CGLTF.Result loadBufferResult = CGLTF.LoadBuffersBase64(&options, buffer.Size, dataView.Ptr, &buffer.Data);
+					buffer.DataFreeMethod = .MemoryFree;
+					
+					return loadBufferResult;
+				}
+				else
+				{
+					Runtime.NotImplemented();
+
+					// TODO: Request Buffer from Content Manager
+
+					//int index = uri.IndexOf("://");
+
+					//if (index == -1)
+					//	return .UnknownFormat;
+
+					// TODO: load buffer file...
+					//CGLTF.Result res = //cgltf_load_buffer_file(options, data->buffers[i].size, uri, gltf_path, &data->buffers[i].data);
+					//buffer.DataFreeMethod = cgltf_data_free_method_file_release;
+
+					/*if (res != cgltf_result_success)
+					{
+						return res;
+					}*/
+				}
+			}
+
+			/*
+
+			for (cgltf_size i = 0; i < data->buffers_count; ++i)
+			{
+				if (data->buffers[i].data)
+				{
+					continue;
+				}
+
+				const char* uri = data->buffers[i].uri;
+
+				if (uri == NULL)
+				{
+					continue;
+				}
+
+				if (strncmp(uri, "data:", 5) == 0)
+				{
+					const char* comma = strchr(uri, ',');
+
+					if (comma && comma - uri >= 7 && strncmp(comma - 7, ";base64", 7) == 0)
+					{
+						cgltf_result res = cgltf_load_buffer_base64(options, data->buffers[i].size, comma + 1, &data->buffers[i].data);
+						data->buffers[i].data_free_method = cgltf_data_free_method_memory_free;
+
+						if (res != cgltf_result_success)
+						{
+							return res;
+						}
+					}
+					else
+					{
+						return cgltf_result_unknown_format;
+					}
+				}
+				else if (strstr(uri, "://") == NULL && gltf_path)
+				{
+					cgltf_result res = cgltf_load_buffer_file(options, data->buffers[i].size, uri, gltf_path, &data->buffers[i].data);
+					data->buffers[i].data_free_method = cgltf_data_free_method_file_release;
+
+					if (res != cgltf_result_success)
+					{
+						return res;
+					}
+				}
+				else
+				{
+					return cgltf_result_unknown_format;
+				}
+			}
+			*/
+
+			return .Success;
 		}
 
 		public static EcsEntity LoadModel(String filename, Material material, EcsWorld world,

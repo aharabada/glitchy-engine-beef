@@ -82,7 +82,7 @@ public class AssetNode
 
 	public AssetFile AssetFile ~ delete _;
 
-	public List<Asset> SubAssets ~ {
+	public List<SubAsset> SubAssets ~ {
 		SubAssets?.ClearAndDeleteItems();
 		delete SubAssets;
 	}
@@ -90,7 +90,7 @@ public class AssetNode
 	public Texture2D PreviewImage ~ _?.ReleaseRef();
 }
 
-public class Asset
+public class SubAsset
 {
 	public AssetNode Asset;
 	public String Name ~ delete _;
@@ -404,16 +404,13 @@ class AssetHierarchy
 
 class EditorContentManager : IContentManager
 {
-	// TODO: Get from workspace
-	//const String ContentDirectory  = "./content";
-
 	private append String _contentDirectory = .();
 
 	public StringView ContentDirectory => _contentDirectory;
 	
-	private append List<String> _identifiers = .() ~ _.ClearAndDeleteItems();
+	//private append List<String> _identifiers = .() ~ _.ClearAndDeleteItems();
 
-	private append Dictionary<StringView, IRefCounted> _loadedAssets = .(); // Check if all resources are unloaded
+	private append Dictionary<StringView, Asset> _loadedAssets = .(); // Check if all resources are unloaded
 	
 	private append AssetHierarchy _assetHierarchy = .(this);
 
@@ -424,8 +421,15 @@ class EditorContentManager : IContentManager
 		_assetHierarchy.OnFileContentChanged.Add(new => OnFileContentChanged);
 	}
 
+	public ~this()
+	{
+		UnmanageAllAssets();
+	}
+
 	private void OnFileContentChanged(AssetNode assetNode)
 	{
+		// TODO: Subassets break reloading because we can't find them when we only receive the file that changed...
+
 		// Asset isn't loaded so we don't need to reload it.
 		if (assetNode.AssetFile.LoadedAsset == null)
 			return;
@@ -565,15 +569,21 @@ class EditorContentManager : IContentManager
 		return _loadedAssets.ContainsKey(identifier);
 	}
 
-	public IRefCounted LoadAsset(StringView identifier)
+	public Asset LoadAsset(StringView identifier)
 	{
 		if (_loadedAssets.TryGetValue(identifier, let asset))
 		{
 			return asset..AddRef();
 		}
 
-		String filePath = scope String(identifier.Length + _contentDirectory.Length + 2);
-		Path.Combine(filePath, _contentDirectory, identifier);
+		// Find subasset name
+		int poundIndex = identifier.IndexOf('#');
+
+		StringView resourceName = poundIndex == -1 ? identifier : identifier.Substring(0, poundIndex);
+		StringView? subassetName = identifier.Substring(poundIndex + 1);
+
+		String filePath = scope String(resourceName.Length + _contentDirectory.Length + 2);
+		Path.Combine(filePath, _contentDirectory, resourceName);
 
 		Path.Fixup(filePath);
 
@@ -606,13 +616,18 @@ class EditorContentManager : IContentManager
 
 		Stream stream = GetStream(filePath);
 
-		IRefCounted loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config);
-
-		String identifierString = new .(identifier);
-		_identifiers.Add(identifierString);
-		_loadedAssets[identifierString] = loadedAsset;
-
+		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, subassetName, this);
+		
 		delete stream;
+
+		//String identifierString = new .(identifier);
+		//_identifiers.Add(identifierString);
+
+		//_loadedAssets[identifierString] = loadedAsset;
+		
+
+		loadedAsset.Identifier = identifier;
+		ManageAsset(loadedAsset);
 
 		file.[Friend]_loadedAsset = loadedAsset;
 
@@ -626,5 +641,39 @@ class EditorContentManager : IContentManager
 		var result = fs.Open(assetIdentifier, .Open, .Read, .ReadWrite);
 
 		return fs;
+	}
+
+	public void ManageAsset(Asset asset)
+	{
+		_loadedAssets.Add(asset.Identifier, asset);
+		asset.[Friend]_contentManager = this;
+	}
+
+	public void UnmanageAsset(Asset asset)
+	{
+		_loadedAssets.Remove(asset.Identifier);
+		asset.[Friend]_contentManager = null;
+	}
+
+	/// This will unregister all assets from this content manager.
+	/// Note: This will not release any assets.
+	private void UnmanageAllAssets()
+	{
+		for (let (_, asset) in _loadedAssets)
+		{
+			UnmanageAsset(asset);
+		}
+	}
+
+	public void UpdateAssetIdentifier(Asset asset, StringView oldIdentifier, StringView newIdentifier)
+	{
+		if (oldIdentifier == newIdentifier)
+			return;
+
+		Log.EngineLogger.Assert(_loadedAssets.ContainsKey(newIdentifier), "An asset with the same identifier is already managed by this content manager.");
+
+		// Since all we do in order to track assets is add them to a dictionary we can simply unmanage and manage it again.
+		UnmanageAsset(asset);
+		ManageAsset(asset);
 	}
 }

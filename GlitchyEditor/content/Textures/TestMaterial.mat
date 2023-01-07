@@ -1,0 +1,7 @@
+{
+    Effect = "content/Shaders/myEffect.hlsl",
+    Textures = 
+    [
+        "AlbedoTexture": "Textures/TestMat/rustediron2_albedo.png"
+    ]
+}
