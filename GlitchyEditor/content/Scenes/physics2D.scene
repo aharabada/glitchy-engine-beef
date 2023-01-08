@@ -14,7 +14,7 @@
 					A = 1
 				},
 				IsCircle = false,
-				Sprite = null,
+				Sprite = "\\Textures\\TestMat\\rustediron2_albedo.png",
 				UvTransform = {
 					X = 0,
 					Y = 0,
@@ -164,7 +164,7 @@
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 2.156692,
+				AspectRatio = 2.969697,
 				FixedAspectRatio = false
 			}
 		},
@@ -181,7 +181,7 @@
 					A = 1
 				},
 				IsCircle = true,
-				Sprite = "Textures/rocket.png",
+				Sprite = "\\Textures\\rocket.png",
 				UvTransform = {
 					X = 0,
 					Y = 0,
@@ -226,6 +226,79 @@
 				Friction = 0.5,
 				Restitution = 0,
 				RestitutionThreshold = 0.5
+			}
+		},
+		{
+			Id = 935640822766280888,
+			NameComponent = {
+				Name = "Light"
+			},
+			TransformComponent = {
+				Position = {
+					X = 3.883276,
+					Y = 0,
+					Z = -0.808795
+				},
+				Rotation = {
+					X = 0.497987,
+					Y = -0.103421,
+					Z = 0.15538,
+					W = 0.846859
+				},
+				Scale = {
+					X = 0.999998,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 1.090894,
+					Y = -0.340794,
+					Z = 0.160858
+				}
+			},
+			LightComponent = {
+				LightType = .Directional,
+				Illuminance = 12.9,
+				Color = {
+					R = 0.985467,
+					G = 1,
+					B = 0.569979
+				}
+			}
+		},
+		{
+			Id = 721949523193525565,
+			NameComponent = {
+				Name = "Sphere"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 0,
+					Z = -1.523338
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			MeshComponent = {
+				Mesh = "\\Models\\sphere.glb"
+			},
+			MeshRendererComponent = {
+				Material = "\\Textures\\TestMaterial.mat"
 			}
 		}
 	]

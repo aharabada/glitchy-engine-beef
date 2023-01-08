@@ -88,7 +88,7 @@ namespace GlitchyEngine.World
 				{
 					Serialize.Value(writer, "Color", component.Color);
 					Serialize.Value(writer, "IsCircle", component.IsCircle);
-					Serialize.Value(writer, "Sprite", component.Sprite);
+					Serialize.Value(writer, "Sprite", component.Sprite?.Identifier);
 					Serialize.Value(writer, "UvTransform", component.UvTransform);
 				});
 
@@ -168,6 +168,16 @@ namespace GlitchyEngine.World
 					Serialize.Value(writer, "Friction", component.Friction);
 					Serialize.Value(writer, "Restitution", component.Restitution);
 					Serialize.Value(writer, "RestitutionThreshold", component.RestitutionThreshold);
+				});
+
+				SerializeComponent<MeshComponent>(writer, entity, "MeshComponent", scope (component) =>
+				{
+					Serialize.Value(writer, "Mesh", component.Mesh.Identifier);
+				});
+
+				SerializeComponent<MeshRendererComponent>(writer, entity, "MeshRendererComponent", scope (component) =>
+				{
+					Serialize.Value(writer, "Material", component.Material.Identifier);
 				});
 			}
 
@@ -260,6 +270,21 @@ namespace GlitchyEngine.World
 
 		private Result<void> DeserializeEntity(BonReader reader)
 		{
+			mixin DeserializeAsset<T>(StringView identifier) where T : Asset
+			{
+				Asset asset = null;
+
+				Try!(Deserialize.Value(reader, identifier, out asset));
+
+				if (asset != null && !(asset is T))
+				{
+					Log.EngineLogger.Error($"Asset {asset.Identifier} is not a {nameof(T)}.");
+					return .Err;
+				}
+
+				(T)asset
+			}
+
 			Try!(reader.ObjectBlock());
 			
 			Deserialize.Value<uint64>(reader, "Id", let uuid);
@@ -289,38 +314,20 @@ namespace GlitchyEngine.World
 
 						return .Ok;
 					}));
-				case "NameComponent":
-					Try!(DeserializeComponent<DebugNameComponent>(reader, entity, scope (component) =>
-					{
-						String name;
-
-						Deserialize.Value(reader, "Name", out name);
-
-						component.SetName(name);
-
-						delete name;
-
-						return .Ok;
-					}));
 				case "SpriterRendererComponent":
 					Try!(DeserializeComponent<SpriterRendererComponent>(reader, entity, scope (component) =>
 					{
-						// TODO: Texture
-
 						Try!(Deserialize.Value(reader, "Color", out component.Color));
 						reader.EntryEnd();
 						Try!(Deserialize.Value(reader, "IsCircle", out component.IsCircle));
 						reader.EntryEnd();
 
-						String spriteName;
-						Try!(Deserialize.Value(reader, "Sprite", out spriteName));
-
-						if (spriteName != null)
-							component.Sprite = Content.LoadAsset<Texture2D>(spriteName);
-
-						delete spriteName;
-
+						using (Texture2D sprite = DeserializeAsset!<Texture2D>("Sprite"))
+						{
+							component.Sprite = (Texture2D)sprite;
+						}
 						reader.EntryEnd();
+
 						Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
 
 						return .Ok;
@@ -407,7 +414,7 @@ namespace GlitchyEngine.World
 				case "LightComponent":
 					Try!(DeserializeComponent<LightComponent>(reader, entity, scope (component) =>
 					{
-						SceneLight light = component.SceneLight;
+						ref SceneLight light = ref component.SceneLight;
 
 						Deserialize.Value(reader, "LightType", out light.[Friend]_type);
 						reader.EntryEnd();
@@ -464,7 +471,26 @@ namespace GlitchyEngine.World
 
 						return .Ok;
 					}));
-
+				case "MeshComponent":
+					Try!(DeserializeComponent<MeshComponent>(reader, entity, scope (component) =>
+					{
+						using (GeometryBinding mesh = DeserializeAsset!<GeometryBinding>("Mesh"))
+						{
+							component.Mesh = mesh;
+						}
+	
+						return .Ok;
+					}));
+				case "MeshRendererComponent":
+					Try!(DeserializeComponent<MeshRendererComponent>(reader, entity, scope (component) =>
+					{
+						using (Material material = DeserializeAsset!<Material>("Material"))
+						{
+							component.Material = material;
+						}
+	
+						return .Ok;
+					}));
 				default:
 					Log.EngineLogger.AssertDebug(false, "Unknown component type");
 					//return .Err;

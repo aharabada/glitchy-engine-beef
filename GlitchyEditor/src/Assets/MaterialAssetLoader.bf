@@ -77,15 +77,16 @@ class MaterialAssetLoader : IAssetLoader //, IReloadingAssetLoader
 
 		for (let (slotName, textureIdentifier) in materialFile.Textures)
 		{
-			Texture texture = contentManager.LoadAsset(textureIdentifier) as Texture;
-
-			if (texture == null)
+			using (Texture texture = contentManager.LoadAsset(textureIdentifier) as Texture)
 			{
-				Log.EngineLogger.Error("Failed to load texture.");
-				// TODO: LoadAsset should return an error texture.
-			}
+				if (texture == null)
+				{
+					Log.EngineLogger.Error("Failed to load texture.");
+					// TODO: LoadAsset should return an error texture.
+				}
 
-			material.SetTexture(slotName, texture);
+				material.SetTexture(slotName, texture);
+			}
 		}
 
 		fx.ReleaseRef();

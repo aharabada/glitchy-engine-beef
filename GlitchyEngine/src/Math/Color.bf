@@ -1,9 +1,11 @@
+using Bon;
 using System;
 
 namespace GlitchyEngine.Math
 {
 	/// Represents a four component color with 8 bit per channel
 	[CRepr]
+	[BonTarget]
 	public struct Color
 	{
 		// from DirectXColors.h

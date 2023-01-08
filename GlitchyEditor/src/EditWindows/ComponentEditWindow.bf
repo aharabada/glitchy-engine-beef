@@ -268,10 +268,10 @@ namespace GlitchyEditor.EditWindows
 
 					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
 
-					Texture2D texture = Content.LoadAsset<Texture2D>(path);//new Texture2D(path, true);
-
-					spriteRendererComponent.Sprite?.ReleaseRef();
-					spriteRendererComponent.Sprite = texture;
+					using (Texture2D texture = Content.LoadAsset<Texture2D>(path))
+					{
+						spriteRendererComponent.Sprite = texture;
+					}
 				}
 
 				ImGui.EndDragDropTarget();

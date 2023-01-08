@@ -46,7 +46,20 @@ namespace GlitchyEngine.World
 	[Component("Sprite Renderer")]
 	struct SpriterRendererComponent : IDisposableComponent
 	{
-		public Texture2D Sprite = null;
+		private Texture2D _sprite = null;
+
+		public Texture2D Sprite
+		{
+			get => _sprite;
+			set mut
+			{
+				if (_sprite == value)
+					return;
+
+				SetReference!(_sprite, value);
+			}
+		}
+
 		public ColorRGBA Color = .White;
 		public Vector4 UvTransform = .(0, 0, 1, 1);
 
@@ -63,7 +76,7 @@ namespace GlitchyEngine.World
 
 		public void Dispose()
 		{
-			Sprite?.ReleaseRef();
+			_sprite?.ReleaseRef();
 		}
 	}
 
