@@ -285,9 +285,14 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
 		{
-			// TODO: Editing material options obviously shouldn't be part of the meshrenderer-ui
+			ImGui.TextUnformatted("Material:");
+			ImGui.SameLine();
+			
+			Material material = meshRendererComponent.Material;
 
-			ImGui.Button("Drag Material here!");
+			StringView identifier = material?.Identifier ?? "None";
+			ImGui.Button(identifier.ToScopeCStr!());
+
 			if (ImGui.BeginDragDropTarget())
 			{
 				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
@@ -296,145 +301,21 @@ namespace GlitchyEditor.EditWindows
 				{
 					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
 
-					using (Material material = Content.LoadAsset<Material>(fullpath))
+					using (Material loadedMaterial = Content.LoadAsset<Material>(fullpath))
 					{
-						meshRendererComponent.Material = material;
+						meshRendererComponent.Material = loadedMaterial;
 					}
 				}
 
 				ImGui.EndDragDropTarget();
 			}
 
-			Material material = meshRendererComponent.Material;
-
-			Effect effect = material?.Effect;
+			/*Effect effect = material?.Effect;
 
 			if (effect == null)
-				return;
+				return;*/
 
-			bool TryGetValue(Dictionary<String, Variant> parameters, String name, out Variant value)
-			{
-				if (parameters.TryGetValue(name, let param))
-				{
-					value = param;
-					return true;
-				}
-
-				value = ?;
-
-				return false;
-			}
-
-			for (let texture in effect.Textures)
-			{
-				//ImGui.Text(texture.key);
-				ImGui.Button(texture.key);
-
-				if (ImGui.BeginDragDropTarget())
-				{
-					ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
-
-					if (payload != null)
-					{
-						Log.EngineLogger.Warning("");
-
-						StringView path = .((char8*)payload.Data, (int)payload.DataSize);
-
-						using (Texture2D newTexture = Content.LoadAsset<Texture2D>(path))//new Texture2D(path, true))
-						{
-							newTexture.SamplerState = SamplerStateManager.AnisotropicWrap;
-							material.SetTexture(texture.key, newTexture);
-						}
-					}
-
-					ImGui.EndDragDropTarget();
-				}
-			}
-
-			for (let (name, arguments) in effect.[Friend]_variableDescriptions)
-			{
-				let variable = effect.Variables[name];
-				
-				bool hasPreviewName = TryGetValue(arguments, "Preview", var previewName);
-
-				StringView displayName = hasPreviewName ? previewName.Get<String>() : name;
-				
-				bool hasPreviewType = TryGetValue(arguments, "Type", var previewType);
-
-				if (hasPreviewType && previewType.Get<String>() == "Color")
-				{
-					Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
-
-					if (variable.Columns == 3)
-					{
-						material.GetVariable<Vector3>(variable.Name, var value);
-
-						value = (Vector3)ColorRGB.LinearToSRGB((ColorRGB)value);
-
-						if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value))
-						{
-							value = (Vector3)ColorRGB.SRgbToLinear((ColorRGB)value);
-							material.SetVariable(variable.Name, value);
-						}
-					}
-					else if (variable.Columns == 4)
-					{
-						material.GetVariable<Vector4>(variable.Name, var value);
-						
-						value = (Vector4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
-
-						if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value))
-						{
-							value = (Vector4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
-							material.SetVariable(variable.Name, value);
-						}
-					}
-				}
-				else if (variable.Type == .Float && variable.Rows == 1)
-				{
-					bool hasMin = TryGetValue(arguments, "Min", var min);
-					bool hasMax = TryGetValue(arguments, "Max", var max);
-
-					for (int r < variable.Rows)
-					{
-						switch (variable.Columns)
-						{
-						case 1:
-							material.GetVariable<float>(variable.Name, var value);
-							
-							float[1] minV = hasMin ? min.Get<float[1]>() : .(float.MinValue);
-							float[1] maxV = hasMax ? max.Get<float[1]>() : .(float.MaxValue);
-
-							if (ImGui.EditVector<1>(displayName, ref *(float[1]*)&value, .(), 0.1f, 100.0f, minV, maxV))
-								material.SetVariable(variable.Name, value);
-						case 2:
-							material.GetVariable<Vector2>(variable.Name, var value);
-							
-							Vector2 minV = hasMin ? min.Get<Vector2>() : .(float.MinValue);
-							Vector2 maxV = hasMax ? max.Get<Vector2>() : .(float.MaxValue);
-							
-							if (ImGui.EditVector2(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
-								material.SetVariable(variable.Name, value);
-						case 3:
-							material.GetVariable<Vector3>(variable.Name, var value);
-							
-							Vector3 minV = hasMin ? min.Get<Vector3>() : .(float.MinValue);
-							Vector3 maxV = hasMax ? max.Get<Vector3>() : .(float.MaxValue);
-
-							if (ImGui.EditVector3(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
-								material.SetVariable(variable.Name, value);
-						case 4:
-							material.GetVariable<Vector4>(variable.Name, var value);
-							
-							Vector4 minV = hasMin ? min.Get<Vector4>() : .(float.MinValue);
-							Vector4 maxV = hasMax ? max.Get<Vector4>() : .(float.MaxValue);
-
-							if (ImGui.EditVector4(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
-								material.SetVariable(variable.Name, value);
-						}
-					}
-				}
-			}
+			// Show a preview of the material here!
 		}
 		
 		private static void ShowRigidBody2DComponentEditor(Entity entity, Rigidbody2DComponent* rigidBodyComponent)
@@ -580,7 +461,14 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowMeshComponentEditor(Entity entity, MeshComponent* meshComponent)
 		{
-			ImGui.Button("Drag Mesh here!");
+			ImGui.TextUnformatted("Mesh:");
+			ImGui.SameLine();
+
+			GeometryBinding mesh = meshComponent.Mesh;
+
+			StringView identifier = mesh?.Identifier ?? "None";
+			ImGui.Button(identifier.ToScopeCStr!());
+
 			if (ImGui.BeginDragDropTarget())
 			{
 				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
@@ -605,7 +493,7 @@ namespace GlitchyEditor.EditWindows
 						meshComponent.Mesh = geometry;
 					}
 
-					// TODO: support multiple primitives (treat every primitive as a single mesh?)
+					// TODO: support multiple primitives (treat every primitive as a single mesh? or: mesh can have multiple primitives)
 					/*using (GeometryBinding binding = ModelLoader.LoadMesh(filePath, meshName, 0))
 					{
 						meshComponent.Mesh = binding;

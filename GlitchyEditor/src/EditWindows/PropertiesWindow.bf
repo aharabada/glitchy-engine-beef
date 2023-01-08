@@ -12,6 +12,14 @@ class PropertiesWindow : EditorWindow
 {
 	private AssetPropertiesEditor _currentPropertiesEditor ~ delete _;
 
+	private bool _lockCurrentAsset;
+
+	private bool _selectedNewAsset;
+
+	private append String _selectedFileName = .();
+
+	private Asset _currentAsset ~ _.ReleaseRef();
+
 	public this(Editor editor)
 	{
 		_editor = editor;
@@ -23,6 +31,10 @@ class PropertiesWindow : EditorWindow
 		if(!ImGui.Begin("Properties", &_open, .None))
 			return;
 
+		// TODO: make a little button in title bar?
+		ImGui.Checkbox("Lock", &_lockCurrentAsset);
+		ImGui.Separator();
+
 		ShowAssetProperties();
 	}
 
@@ -30,9 +42,18 @@ class PropertiesWindow : EditorWindow
 	/// @returns the AssetFile for the currently selected asset of null, if no file is selected.
 	private AssetFile GetCurrentAssetFile()
 	{
-		StringView selectedFileName = _editor.ContentBrowserWindow.SelectedFile;
+		// Only grab the currently selected file if we aren't locked
+		if (!_lockCurrentAsset)
+		{
+			StringView selectedInFileBrowser = _editor.ContentBrowserWindow.SelectedFile;
 
-		Result<TreeNode<AssetNode>> treeNode = _editor.ContentManager.AssetHierarchy.GetNodeFromPath(selectedFileName);
+			if (_selectedFileName != selectedInFileBrowser)
+			{
+				_selectedFileName.Set(_editor.ContentBrowserWindow.SelectedFile);
+			}
+		}
+
+		Result<TreeNode<AssetNode>> treeNode = _editor.ContentManager.AssetHierarchy.GetNodeFromPath(_selectedFileName);
 
 		if (treeNode case .Ok(let assetNode))
 			return assetNode->AssetFile;
@@ -53,6 +74,13 @@ class PropertiesWindow : EditorWindow
 		if (assetFile == null)
 			return;
 
+		// We need the actual asset for preview and sometimes for editing
+		if (_currentAsset?.Identifier != assetFile.Identifier)
+		{
+			_currentAsset?.ReleaseRef();
+			_currentAsset = _editor.ContentManager.LoadAsset(assetFile.Identifier);
+		}
+
 		// TODO: allow changing AssetLoader
 		// assetFile.AssetConfig.AssetLoade
 
@@ -63,6 +91,10 @@ class PropertiesWindow : EditorWindow
 			ImGui.SetTooltip("If checked this file will be ignored and not treated as an asset.");*/
 
 		ShowPropertiesEditor(assetFile);
+
+		ImGui.Separator();
+
+		// TODO: preview asset
 	}
 
 	private void ShowPropertiesEditor(AssetFile assetFile)

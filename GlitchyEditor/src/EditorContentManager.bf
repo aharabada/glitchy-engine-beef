@@ -234,7 +234,10 @@ class AssetHierarchy
 
 		void HandleFile(AssetNode node)
 		{
-			node.AssetFile = new AssetFile(_contentManager, node.Path, node.IsDirectory);
+			String identifier = scope .(node.Path.Length);
+			Path.GetRelativePath(node.Path, _contentDirectory, identifier);
+
+			node.AssetFile = new AssetFile(_contentManager, identifier, node.Path, node.IsDirectory);
 		}
 
 		/// Determines the files that belong to the given directory and adds them to the tree.
@@ -385,7 +388,9 @@ class AssetHierarchy
 
 		if (!(nodeResult case .Ok(out node)))
 		{
-			Log.EngineLogger.Error($"Could not find node for file \"{fileNameWithContentRoot}\"");
+			// This happens, when we create new files.
+			Log.EngineLogger.Trace($"Could not find node for file \"{fileNameWithContentRoot}\"");
+			return;
 		}
 
 		// Don't fire event for directories.
@@ -592,7 +597,10 @@ class EditorContentManager : IContentManager
 		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromPath(filePath);
 
 		if (resultNode case .Err)
-			Runtime.FatalError();
+		{
+			Log.EngineLogger.Error($"Could not find asset \"{filePath}\".");
+			return null;
+		}
 
 		//AssetFile file = scope .(this, filePath, false);
 		AssetFile file = resultNode->Value.AssetFile;

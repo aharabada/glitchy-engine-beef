@@ -197,6 +197,8 @@ namespace GlitchyEditor.EditWindows
 				if (fullpath.StartsWith(_manager.ContentDirectory, .OrdinalIgnoreCase))
 					fullpath.Remove(0, _manager.ContentDirectory.Length);
 
+				Path.Fixup(fullpath);
+
 				ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", fullpath.CStr(), (.)fullpath.Length, .Once);
 
 				ImGui.EndDragDropSource();

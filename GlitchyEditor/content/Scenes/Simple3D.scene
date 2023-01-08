@@ -1,0 +1,154 @@
+{
+	Name = "Scene name here pls!!!",
+	Entities = [
+		{
+			Id = 5169765174113462770,
+			NameComponent = {
+				Name = "Sphere"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 0.5,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			MeshComponent = {
+				Mesh = "Models\\sphere.glb"
+			},
+			MeshRendererComponent = {
+				Material = "Textures\\TestMaterial.mat"
+			}
+		},
+		{
+			Id = 17158420331978163131,
+			NameComponent = {
+				Name = "Light"
+			},
+			TransformComponent = {
+				Position = {
+					X = -1,
+					Y = 4,
+					Z = -4
+				},
+				Rotation = {
+					X = 0.614328,
+					Y = 0.239776,
+					Z = 0.031567,
+					W = 0.751074
+				},
+				Scale = {
+					X = 0.999999,
+					Y = 1,
+					Z = 1.000001
+				},
+				EditorEulerRotation = {
+					X = 1.308998,
+					Y = 0.349066,
+					Z = 0.349066
+				}
+			},
+			LightComponent = {
+				LightType = .Directional,
+				Illuminance = 10,
+				Color = {
+					R = 1,
+					G = 0.991772,
+					B = 0.740862
+				}
+			}
+		},
+		{
+			Id = 5556050645816939548,
+			NameComponent = {
+				Name = "Plane"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 10,
+					Y = 1,
+					Z = 10
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			MeshComponent = {
+				Mesh = "Models\\plane.glb"
+			},
+			MeshRendererComponent = {
+				Material = "Textures\\TestMaterial.mat"
+			}
+		},
+		{
+			Id = 3947673900993587516,
+			NameComponent = {
+				Name = "Camera"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 2,
+					Z = -5
+				},
+				Rotation = {
+					X = 0.21644,
+					Y = 0,
+					Z = 0,
+					W = 0.976296
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0.436332,
+					Y = 0,
+					Z = 0
+				}
+			},
+			CameraComponent = {
+				Primary = true,
+				ProjectionType = .InfinitePerspective,
+				PerspectiveFovY = 1.047198,
+				PerspectiveNearPlane = 0.1,
+				PerspectiveFarPlane = 10000,
+				OrthographicHeight = 10,
+				OrthographicNearPlane = 0,
+				OrthographicFarPlane = 10,
+				AspectRatio = 2.156692,
+				FixedAspectRatio = false
+			}
+		}
+	]
+}

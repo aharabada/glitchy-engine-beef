@@ -24,6 +24,7 @@ class AssetFile
 	private EditorContentManager _contentManager;
 
 	private String _path;
+	private String _identifier;
 	private String _assetConfigPath;
 
 	private AssetConfig _assetConfig ~ delete _;
@@ -35,6 +36,7 @@ class AssetFile
 	public bool IsDirectory => _isDirectory;
 
 	public StringView FilePath => _path;
+	public StringView Identifier => _identifier;
 
 	public const String ConfigFileExtension = ".ass";
 
@@ -43,11 +45,13 @@ class AssetFile
 	public Object LoadedAsset => _loadedAsset;
 
 	[AllowAppend]
-	public this(EditorContentManager contentManager, StringView path, bool isDirectory)
+	public this(EditorContentManager contentManager, StringView identifier, StringView path, bool isDirectory)
 	{
+		String identifierBuffer = append String(identifier);
 		String pathBuffer = append String(path);
 		String configPathBuffer = append String(path.Length + ConfigFileExtension.Length);
 
+		_identifier = identifierBuffer;
 		_path = pathBuffer;
 
 		configPathBuffer..Append(path).Append(ConfigFileExtension);
