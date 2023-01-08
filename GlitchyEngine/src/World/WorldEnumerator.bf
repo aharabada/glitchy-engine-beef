@@ -34,11 +34,13 @@ namespace GlitchyEngine.World
 				}
 				else
 				{
+					// One of the components isn't registered in the world thus there can't be any entity with this component and we don't need to enumerate...
 #if GE_WORLD_ENUMERATOR_UNREGISTERED_COMPONENT_IS_WARNING
 					Log.EngineLogger.Warning($"Queried component of type \"{type}\" is not registered for this world. The query will never return any results.");
 #endif
 					DeleteAndNullify!(_bitMask);
 					_endEntry = _currentEntry;
+					break;
 				}
 			}
 		}
