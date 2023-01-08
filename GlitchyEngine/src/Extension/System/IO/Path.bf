@@ -6,7 +6,7 @@ extension Path
 {
 	public static mixin GetScopedFullPath(String path)
 	{
-		String fullPath = scope String(Path.MaxPath);
+		String fullPath = scope:: String(Path.MaxPath);
 		Path.GetFullPath(path, fullPath);
 
 		fullPath
