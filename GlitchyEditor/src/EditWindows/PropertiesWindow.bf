@@ -18,7 +18,7 @@ class PropertiesWindow : EditorWindow
 
 	private append String _selectedFileName = .();
 
-	private Asset _currentAsset ~ _.ReleaseRef();
+	private Asset _currentAsset ~ _?.ReleaseRef();
 
 	public this(Editor editor)
 	{
@@ -103,6 +103,11 @@ class PropertiesWindow : EditorWindow
 			return;
 		
 		_currentPropertiesEditor.ShowEditor();
+		
+		if (ImGui.Button("Save Asset"))
+		{
+			_editor.ContentManager.SaveAsset(_currentAsset);
+		}
 
 		if (!assetFile.AssetConfig.Config.Changed)
 		{

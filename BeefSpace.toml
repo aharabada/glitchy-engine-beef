@@ -4,3 +4,6 @@ WorkspaceFolders = {GlitchyEngine = ["GlitchyEngine", "GlitchLog", "GlitchyEngin
 
 [Workspace]
 StartupProject = "GlitchyEditor"
+
+[Configs.Debug.Win64]
+AllocStackTraceDepth = 12

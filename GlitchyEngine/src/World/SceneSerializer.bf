@@ -33,7 +33,7 @@ namespace GlitchyEngine.World
 
 			String buffer = scope String();
 			let writer = scope BonWriter(buffer, true);
-			Serialize.Start(writer);
+			var length = Serialize.Start(writer);
 
 			gBonEnv.serializeFlags |= .IncludeDefault | .Verbose;
 
@@ -61,7 +61,7 @@ namespace GlitchyEngine.World
 				writer.EntryEnd();
 			}
 			
-			Serialize.End(writer);
+			Serialize.End(writer, length);
 
 			String targetDirectory = Path.GetDirectoryPath(filePath, .. scope String());
 			Directory.CreateDirectory(targetDirectory);

@@ -6,6 +6,7 @@ using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using GlitchyEngine;
+using GlitchyEditor.Assets;
 
 namespace GlitchyEditor.EditWindows
 {

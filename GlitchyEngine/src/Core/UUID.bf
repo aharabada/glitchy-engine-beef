@@ -36,14 +36,14 @@ namespace GlitchyEngine.Core
 			return (int)_uuid;
 		}
 
-		static void Serialize(BonWriter writer, ValueView val, BonEnvironment env)
+		static void Serialize(BonWriter writer, ValueView val, BonEnvironment env, SerializeValueState state)
 		{
 			UUID uuid = *(UUID*)val.dataPtr;
 
 			Bon.Integrated.Serialize.[Friend]Integer(typeof(uint64), writer, ValueView(typeof(uint64), &uuid._uuid));
 		}
 
-		public static Result<void> Deserialize(BonReader reader, ValueView val, BonEnvironment env)
+		public static Result<void> Deserialize(BonReader reader, ValueView val, BonEnvironment env, DeserializeValueState state)
 		{
 			Bon.Integrated.Deserialize.[Friend]Integer!(typeof(uint64), reader, val);
 

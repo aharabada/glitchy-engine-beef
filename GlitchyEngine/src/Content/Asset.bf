@@ -46,7 +46,7 @@ class Asset : RefCounter
 		_contentManager?.UnmanageAsset(this);
 	}
 
-	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment)
+	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(Asset));
 
@@ -54,7 +54,7 @@ class Asset : RefCounter
 	    writer.String(identifier);
 	}
 
-	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment)//, DeserializeFieldState state)
+	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(Asset));
 
