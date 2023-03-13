@@ -2,12 +2,13 @@ using System;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using GlitchyEngine;
+using GlitchyEngine.Content;
 
 namespace GlitchyEditor
 {
 	class EditorIcons : RefCounted
 	{
-		Texture2D _texture ~ _.ReleaseRef();
+		AssetHandle<Texture2D> _texture;
 
 		public SubTexture2D DirectionalLight ~ _.ReleaseRef();
 		public SubTexture2D Camera ~ _.ReleaseRef();
@@ -18,13 +19,13 @@ namespace GlitchyEditor
 
 		public SamplerState SamplerState
 		{
-			get => _texture.SamplerState;
-			set => _texture.SamplerState = value;
+			get => _texture.Get().SamplerState;
+			set => _texture.Get().SamplerState = value;
 		}
 
 		public this(String texturePath, Vector2 iconSize)
 		{
-			_texture = Content.LoadAsset<Texture2D>(texturePath);//new Texture2D(texturePath);
+			_texture = Content.LoadAsset(texturePath);//new Texture2D(texturePath);
 			
 			Vector2 pen = .();
 

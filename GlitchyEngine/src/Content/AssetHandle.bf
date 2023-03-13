@@ -32,6 +32,8 @@ struct AssetHandle<T> where T : Asset
 	private T _asset;
 	private uint8 _currentFrame;
 
+	public const Self Invalid = .();
+
 	public this(AssetHandle handle, IContentManager contentManager = null)
 	{
 		_handle = handle;
@@ -40,6 +42,30 @@ struct AssetHandle<T> where T : Asset
 		_asset = handle.Get<T>(contentManager);
 		_contentManager = _asset.ContentManager;
 		_currentFrame = (uint8)Application.Get().GameTime.FrameCount;
+	}
+
+	// Creates a new invalid asset handle
+	private this()
+	{
+		_handle = .Invalid;
+		_currentFrame = 0;
+		_contentManager = null;
+		_asset = null;
+	}
+
+	public static implicit operator Self(AssetHandle handle)
+	{
+		return Self(handle);
+	}
+
+	public static implicit operator AssetHandle(Self handle)
+	{
+		return handle._handle;
+	}
+	
+	public static implicit operator T(ref Self handle)
+	{
+		return handle.Get();
 	}
 
 	public T Get(IContentManager contentManager = null) mut
@@ -58,7 +84,7 @@ struct AssetHandle<T> where T : Asset
 	[Comptime, OnCompile(.TypeInit)]
 	static void Init()
 	{
-		for (var field in typeof(T).GetFields())
+		for (var field in typeof(T).GetFields(BindingFlags.FlattenHierarchy))
 		{
 			if (field.IsStatic || !field.IsPublic)
 				continue;
@@ -86,7 +112,7 @@ struct AssetHandle<T> where T : Asset
 
 		Dictionary<StringView, (MethodInfo? Getter, MethodInfo? Setter)> properties = scope .();
 
-		for (var method in typeof(T).GetMethods())
+		for (var method in typeof(T).GetMethods(BindingFlags.FlattenHierarchy | BindingFlags.Public))
 		{
 			if (method.IsStatic || !method.IsPublic || method.IsConstructor || method.IsDestructor)
 				continue;
@@ -137,8 +163,8 @@ struct AssetHandle<T> where T : Asset
 			{
 				Type paramType = method.GetParamType(param);
 				StringView paramName = method.GetParamName(param);
-				//String buffer = scope .();
-				//method.GetParamsDecl(buffer);
+				/*String buffer = scope .();
+				method.GetParamsDecl(buffer);*/
 
 				if (param != 0)
 				{
@@ -151,7 +177,7 @@ struct AssetHandle<T> where T : Asset
 
 				/*if (!buffer.IsEmpty)
 				{
-					parameters.AppendF($" = {buffer}");
+					parameters.AppendF($"/*{buffer}*/");
 				}*/
 
 				arguments.AppendF($" {paramName}");

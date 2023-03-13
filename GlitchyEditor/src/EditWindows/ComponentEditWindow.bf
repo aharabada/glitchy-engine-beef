@@ -268,10 +268,7 @@ namespace GlitchyEditor.EditWindows
 
 					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
 
-					using (Texture2D texture = Content.LoadAsset<Texture2D>(path))
-					{
-						spriteRendererComponent.Sprite = texture;
-					}
+					spriteRendererComponent.Sprite = Content.LoadAsset(path);
 				}
 
 				ImGui.EndDragDropTarget();
@@ -301,10 +298,7 @@ namespace GlitchyEditor.EditWindows
 				{
 					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
 
-					using (Material loadedMaterial = Content.LoadAsset<Material>(fullpath))
-					{
-						meshRendererComponent.Material = loadedMaterial;
-					}
+					meshRendererComponent.Material = Content.LoadAsset(fullpath);
 				}
 
 				ImGui.EndDragDropTarget();
@@ -488,10 +482,7 @@ namespace GlitchyEditor.EditWindows
 					StringView filePath = fullpath.Substring(0, idx);
 					StringView meshName = fullpath.Substring(idx + 1);*/
 
-					using (GeometryBinding geometry = Content.LoadAsset<GeometryBinding>(fullpath))
-					{
-						meshComponent.Mesh = geometry;
-					}
+					meshComponent.Mesh = Content.LoadAsset(fullpath);
 
 					// TODO: support multiple primitives (treat every primitive as a single mesh? or: mesh can have multiple primitives)
 					/*using (GeometryBinding binding = ModelLoader.LoadMesh(filePath, meshName, 0))

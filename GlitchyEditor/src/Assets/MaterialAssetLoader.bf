@@ -29,7 +29,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 	mixin DropAssetTarget<T>() where T : Asset
 	{
-		Asset asset = null;
+		AssetHandle handle = .Invalid;
 
 		if (ImGui.BeginDragDropTarget())
 		{
@@ -39,13 +39,13 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 			{
 				StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
 
-				asset = Content.LoadAsset<Asset>(fullpath);
+				handle = Content.LoadAsset(fullpath);
 			}
 
 			ImGui.EndDragDropTarget();
 		}
 
-		asset
+		handle
 	}
 
 	public this(AssetFile asset) : base(asset)
@@ -84,11 +84,11 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 				{
 					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
 
-					using (Texture2D newTexture = Content.LoadAsset<Texture2D>(path))//new Texture2D(path, true))
-					{
-						newTexture.SamplerState = SamplerStateManager.AnisotropicWrap;
-						material.SetTexture(texture.key, newTexture);
-					}
+					AssetHandle<Texture2D> newTexture = Content.LoadAsset(path);//new Texture2D(path, true))
+					
+					newTexture.Get().SamplerState = SamplerStateManager.AnisotropicWrap;
+					//material.SetTexture(texture.key, newTexture);
+					// TODO!!!
 				}
 
 				ImGui.EndDragDropTarget();

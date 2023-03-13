@@ -3,6 +3,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Core;
 using Box2D;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine.World
 {
@@ -44,19 +45,19 @@ namespace GlitchyEngine.World
 	}
 
 	[Component("Sprite Renderer")]
-	struct SpriterRendererComponent : IDisposableComponent
+	struct SpriterRendererComponent// : IDisposableComponent
 	{
-		private Texture2D _sprite = null;
+		private AssetHandle<Texture2D> _sprite = .Invalid;
 
-		public Texture2D Sprite
+		public AssetHandle<Texture2D> Sprite
 		{
 			get => _sprite;
 			set mut
 			{
 				if (_sprite == value)
 					return;
-
-				SetReference!(_sprite, value);
+				_sprite = value;
+				//SetReference!(_sprite, value);
 			}
 		}
 
@@ -74,10 +75,10 @@ namespace GlitchyEngine.World
 			Color = color;
 		}
 
-		public void Dispose()
+		/*public void Dispose()
 		{
 			_sprite?.ReleaseRef();
-		}
+		}*/
 	}
 
 	struct SceneCamera : Camera

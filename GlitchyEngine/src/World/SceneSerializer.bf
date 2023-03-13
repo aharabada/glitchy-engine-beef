@@ -88,7 +88,7 @@ namespace GlitchyEngine.World
 				{
 					Serialize.Value(writer, "Color", component.Color);
 					Serialize.Value(writer, "IsCircle", component.IsCircle);
-					Serialize.Value(writer, "Sprite", component.Sprite?.Identifier);
+					Serialize.Value(writer, "Sprite", component.Sprite.Get().Identifier);
 					Serialize.Value(writer, "UvTransform", component.UvTransform);
 				});
 

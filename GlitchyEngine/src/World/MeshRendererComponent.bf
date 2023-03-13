@@ -1,14 +1,15 @@
 using GlitchyEngine.Renderer;
 using System;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine.World
 {
 	/// A component that allows to render a mesh.
-	public struct MeshRendererComponent : IDisposableComponent
+	public struct MeshRendererComponent// : IDisposableComponent
 	{
-		private Material _material;
+		private AssetHandle<Material> _material;
 
-		public Material Material
+		public AssetHandle<Material> Material
 		{
 			[Inline]
 			get => _material;
@@ -17,15 +18,13 @@ namespace GlitchyEngine.World
 				if(_material == value)
 					return;
 
-				_material?.ReleaseRef();
 				_material = value;
-				_material?.AddRef();
 			}
 		}
 
-		public void Dispose() mut
+		/*public void Dispose() mut
 		{
 			_material?.ReleaseRef();
-		}
+		}*/
 	}
 }

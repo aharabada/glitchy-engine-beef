@@ -80,13 +80,13 @@ namespace GlitchyEngine.Renderer
 
 		static SceneConstants _sceneConstants;
 
-		static Effect LineEffect;
+		static AssetHandle<Effect> LineEffect;
 		static VertexBuffer LineVertices;
 		static GeometryBinding LineGeometry;
 
 		static GBuffer _gBuffer;
-		static Effect TestFullscreenEffect;
-		static Effect s_tonemappingEffect;
+		static AssetHandle<Effect> TestFullscreenEffect;
+		static AssetHandle<Effect> s_tonemappingEffect;
 
 		static BlendState _gBufferBlend;
 		static BlendState _lightBlend;
@@ -133,7 +133,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			LineEffect = Content.LoadAsset<Effect>("Shaders\\lineShader.hlsl");
+			LineEffect = Content.LoadAsset("Shaders\\lineShader.hlsl");
 
 			LineGeometry = new GeometryBinding();
 			LineGeometry.SetPrimitiveTopology(.LineList);
@@ -159,13 +159,12 @@ namespace GlitchyEngine.Renderer
 		{
 			LineVertices.ReleaseRef();
 			LineGeometry.ReleaseRef();
-			LineEffect.ReleaseRef();
 		}
 
 		static void InitDeferredRenderer()
 		{
-			TestFullscreenEffect = Content.LoadAsset<Effect>("Shaders\\simpleLight.hlsl");
-			s_tonemappingEffect = Content.LoadAsset<Effect>("Shaders\\SimpleTonemapping.hlsl");
+			TestFullscreenEffect = Content.LoadAsset("Shaders\\simpleLight.hlsl");
+			s_tonemappingEffect = Content.LoadAsset("Shaders\\SimpleTonemapping.hlsl");
 
 			_gBuffer = new GBuffer();
 			BlendStateDescription gBufferBlendDesc = .Default;
@@ -204,9 +203,6 @@ namespace GlitchyEngine.Renderer
 			_lightBlend.ReleaseRef();
 			_gBufferBlend.ReleaseRef();
 			delete _gBuffer;
-
-			s_tonemappingEffect.ReleaseRef();
-			TestFullscreenEffect.ReleaseRef();
 		}
 
 		// [Obsolete("", false)]
@@ -347,22 +343,23 @@ namespace GlitchyEngine.Renderer
 
 					Vector3 lightDir = -light.Transform.Forward;
 
-					TestFullscreenEffect.SetTexture("GBuffer_Albedo", _gBuffer.Target, 0);
-					TestFullscreenEffect.SetTexture("GBuffer_Normal", _gBuffer.Target, 1);
-					TestFullscreenEffect.SetTexture("GBuffer_Tangent", _gBuffer.Target, 2);
-					TestFullscreenEffect.SetTexture("GBuffer_Position", _gBuffer.Target, 3);
-					TestFullscreenEffect.SetTexture("GBuffer_Material", _gBuffer.Target, 4);
+					Effect fsEffect = TestFullscreenEffect.Get();
+					fsEffect.SetTexture("GBuffer_Albedo", _gBuffer.Target, 0);
+					fsEffect.SetTexture("GBuffer_Normal", _gBuffer.Target, 1);
+					fsEffect.SetTexture("GBuffer_Tangent", _gBuffer.Target, 2);
+					fsEffect.SetTexture("GBuffer_Position", _gBuffer.Target, 3);
+					fsEffect.SetTexture("GBuffer_Material", _gBuffer.Target, 4);
 		
-					TestFullscreenEffect.Variables["LightColor"].SetData(light.Light.Color);
-					TestFullscreenEffect.Variables["Illuminance"].SetData(light.Light.Illuminance);
-					TestFullscreenEffect.Variables["LightDir"].SetData(lightDir);
+					fsEffect.Variables["LightColor"].SetData(light.Light.Color);
+					fsEffect.Variables["Illuminance"].SetData(light.Light.Illuminance);
+					fsEffect.Variables["LightDir"].SetData(lightDir);
 
-					TestFullscreenEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
+					fsEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
 
-					TestFullscreenEffect.Variables["Scaling"].SetData(scaling);
+					fsEffect.Variables["Scaling"].SetData(scaling);
 		
-					TestFullscreenEffect.ApplyChanges();
-					TestFullscreenEffect.Bind();
+					fsEffect.ApplyChanges();
+					fsEffect.Bind();
 					
 					//RenderCommand.BindEffect(TestFullscreenEffect);
 
@@ -379,11 +376,12 @@ namespace GlitchyEngine.Renderer
 				RenderCommand.UnbindRenderTargets();
 				RenderCommand.BindRenderTargets();
 				RenderCommand.SetRenderTargetGroup(_sceneConstants.CompositionTarget, true);
-				
+
+				Effect toneMappingFx = s_tonemappingEffect.Get();
 				// TODO: Postprocessing effects
-				s_tonemappingEffect.SetTexture("CameraTarget", _sceneConstants.CameraTarget, 0);
-				s_tonemappingEffect.ApplyChanges();
-				s_tonemappingEffect.Bind();
+				toneMappingFx.SetTexture("CameraTarget", _sceneConstants.CameraTarget, 0);
+				toneMappingFx.ApplyChanges();
+				toneMappingFx.Bind();
 
 				RenderCommand.BindRenderTargets();
 				//RenderCommand.BindEffect(s_tonemappingEffect);

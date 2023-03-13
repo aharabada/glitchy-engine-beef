@@ -1,12 +1,15 @@
 using System;
 using GlitchyEngine.World;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine.Renderer
 {
-	public struct MeshComponent : IDisposableComponent
+	public struct MeshComponent// : IDisposableComponent
 	{
+		public AssetHandle<GeometryBinding> Mesh {get; set mut;}
+		/*
 		private GeometryBinding _mesh;
-		public GeometryBinding Mesh
+		public AssetHandle<GeometryBinding> Mesh
 		{
 			[Inline]
 			get => _mesh;
@@ -22,6 +25,6 @@ namespace GlitchyEngine.Renderer
 		public void Dispose() mut
 		{
 			ReleaseRefAndNullify!(_mesh);
-		}
+		}*/
 	}
 }
