@@ -10,6 +10,8 @@ namespace GlitchyEngine.Content;
 [BonTarget]
 class Asset : RefCounter
 {
+	internal AssetHandle _handle;
+
 	private append String _identifier;
 
 	internal IContentManager _contentManager;
@@ -33,6 +35,8 @@ class Asset : RefCounter
 	/// Gets the content manager that manages this asset; or null if this asset isn't managed.
 	public IContentManager ContentManager => _contentManager;
 
+	public AssetHandle Handle => _handle;
+
 	static this
 	{
 		gBonEnv.typeHandlers.Add(typeof(Asset),
@@ -43,7 +47,7 @@ class Asset : RefCounter
 	{
 		// TODO: crash when _contentManager is deleted first...
 		// TODO: unregister from content manager
-		_contentManager?.UnmanageAsset(this);
+		//_contentManager?.UnmanageAsset(this);
 	}
 
 	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
@@ -56,7 +60,10 @@ class Asset : RefCounter
 
 	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
 	{
-		Log.EngineLogger.Assert(value.type == typeof(Asset));
+		// TODO!!!
+
+		return .Err;
+		/*Log.EngineLogger.Assert(value.type == typeof(Asset));
 
 		String identifier = scope .();
 
@@ -75,7 +82,7 @@ class Asset : RefCounter
 		else
 		{
 			Deserialize.Error!("Invalid resource path", reader, value.type);
-		}
+		}*/
 	}
 
 	//gBonEnv.typeHandlers.Add(typeof(Resource<>),

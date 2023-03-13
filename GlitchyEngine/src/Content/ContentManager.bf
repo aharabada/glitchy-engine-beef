@@ -59,19 +59,30 @@ namespace GlitchyEngine.Content
 		Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView assetIdentifier, StringView? subAsset, IContentManager contentManager);
 	}
 
-	static
+	static class Content
 	{
 		/// Loads the specified asset with the given contentManager or the current applications content manager.
-		public static T LoadAsset<T>(StringView assetIdentifier, IContentManager contentManager = null) where T : Asset
+		public static AssetHandle LoadAsset(StringView assetIdentifier, IContentManager contentManager = null)
 		{
 			var contentManager;
 
 			if (contentManager == null)
 				contentManager = Application.Get().ContentManager;
 
-			Asset asset = contentManager.LoadAsset(assetIdentifier);
+			AssetHandle handle = contentManager.LoadAsset(assetIdentifier);
 
-			Log.EngineLogger.AssertDebug(asset is T);
+			return handle;
+		}
+
+		/// Loads the specified asset with the given contentManager or the current applications content manager.
+		public static T GetAsset<T>(AssetHandle handle, IContentManager contentManager = null) where T : Asset
+		{
+			var contentManager;
+
+			if (contentManager == null)
+				contentManager = Application.Get().ContentManager;
+
+			Asset asset = contentManager.GetAsset(typeof(T), handle);
 
 			return (T)asset;
 		}
@@ -79,14 +90,23 @@ namespace GlitchyEngine.Content
 
 	interface IContentManager
 	{
-		/// Loads the given asset.
-		Asset LoadAsset(StringView assetIdentifier);
+		/// Loads the Asset with the given handle and returns the handle.
+		AssetHandle LoadAsset(StringView assetIdentifier);
+
+		/// Returns the asset for the given handle or null, if it isn't loaded.
+		Asset GetAsset(AssetHandle handle)
+		{
+			return GetAsset(null, handle);
+		}
+
+		/// Returns the asset for the given handle or the default asset of the given type.
+		Asset GetAsset(Type assetType, AssetHandle handle);
 
 		/// The content manager will manage the asset (e.g. provide it when LoadAsset is called with the assets identifier)
-		void ManageAsset(Asset asset);
+		AssetHandle ManageAsset(Asset asset);
 
 		/// The content manager will no longer manage the asset.
-		void UnmanageAsset(Asset asset);
+		void UnmanageAsset(AssetHandle asset);
 
 		// TODO: Maybe calling UnmanageAsset -> ManageAsset is enough....
 		/// Provides a method for the asset to tell its content manager that the identifer changed.
@@ -109,17 +129,22 @@ namespace GlitchyEngine.Content
 			Runtime.NotImplemented();
 		}
 
-		public Asset LoadAsset(StringView assetIdentifier)
+		public AssetHandle LoadAsset(StringView assetIdentifier)
 		{
 			Runtime.NotImplemented();
 		}
 
-		public void ManageAsset(Asset asset)
+		public Asset GetAsset(Type assetType, AssetHandle handle)
 		{
 			Runtime.NotImplemented();
 		}
 
-		public void UnmanageAsset(Asset asset)
+		public AssetHandle ManageAsset(Asset asset)
+		{
+			Runtime.NotImplemented();
+		}
+
+		public void UnmanageAsset(AssetHandle asset)
 		{
 			Runtime.NotImplemented();
 		}

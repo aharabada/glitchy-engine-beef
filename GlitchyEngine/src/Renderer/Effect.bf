@@ -134,7 +134,20 @@ public class Effect : Asset
 
 	BufferVariableCollection _variables ~ delete _;
 
-	typealias TextureEntry = (TextureViewBinding BoundTexture, ShaderTextureCollection.ResourceEntry* VsSlot, ShaderTextureCollection.ResourceEntry* PsSlot);
+	public struct TextureEntry
+	{
+		public TextureViewBinding BoundTexture;
+		public ShaderTextureCollection.ResourceEntry* VsSlot;
+		public ShaderTextureCollection.ResourceEntry* PsSlot;
+
+		public this(TextureViewBinding boundTexture, ShaderTextureCollection.ResourceEntry* vsSlot, ShaderTextureCollection.ResourceEntry* psSlot)
+		{
+			BoundTexture = boundTexture;
+			VsSlot = vsSlot;
+			PsSlot = psSlot;
+		}
+	}
+
 	Dictionary<String, TextureEntry> _textures ~ delete _;
 
 	public Dictionary<String, TextureEntry> Textures => _textures;
@@ -725,7 +738,7 @@ public class Effect : Asset
 			// Get existing entry or create new
 			if(!_textures.TryGetValue(shaderEntry.Name, out entry))
 			{
-				entry = (shaderEntry.BoundTexture, null, null);
+				entry = .(shaderEntry.BoundTexture, null, null);
 				entry.BoundTexture.AddRef();
 			}
 

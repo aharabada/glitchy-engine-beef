@@ -24,7 +24,7 @@ namespace GlitchyEngine.World
 		// Temporary target for camera. Needs to change as soon as we support multiple cameras
 		private RenderTargetGroup _cameraTarget ~ _.ReleaseRef();
 
-		private Effect _gammaCorrectEffect ~ _.ReleaseRef();
+		private AssetHandle _gammaCorrectEffect;
 
 		// Maps ids to the entities they represent.
 		private Dictionary<UUID, EcsEntity> _idToEntity = new .() ~ delete _;
@@ -76,7 +76,7 @@ namespace GlitchyEngine.World
 					DepthTargetDescription = .(.D24_UNorm_S8_UInt)
 				});
 
-			_gammaCorrectEffect = Content.LoadAsset<Effect>("Shaders/GammaCorrect.hlsl");//Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
+			_gammaCorrectEffect = Content.LoadAsset("Shaders/GammaCorrect.hlsl");//Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
 		}
 
 		public ~this()
@@ -268,11 +268,13 @@ namespace GlitchyEngine.World
 				RenderCommand.UnbindRenderTargets();
 				RenderCommand.SetRenderTargetGroup(finalTarget, false);
 				RenderCommand.BindRenderTargets();
-	
-				_gammaCorrectEffect.SetTexture("Texture", _compositeTarget, 0);
+
+				Effect gammaEffect = Content.GetAsset<Effect>(_gammaCorrectEffect);
+
+				gammaEffect.SetTexture("Texture", _compositeTarget, 0);
 				// TODO: iiihhh
-				_gammaCorrectEffect.ApplyChanges();
-				_gammaCorrectEffect.Bind();
+				gammaEffect.ApplyChanges();
+				gammaEffect.Bind();
 	
 				FullscreenQuad.Draw();
 			}
@@ -485,11 +487,13 @@ namespace GlitchyEngine.World
 				RenderCommand.UnbindRenderTargets();
 				RenderCommand.SetRenderTargetGroup(viewportTarget, false);
 				RenderCommand.BindRenderTargets();
-	
-				_gammaCorrectEffect.SetTexture("Texture", _compositeTarget, 0);
+				
+				Effect gammaEffect = Content.GetAsset<Effect>(_gammaCorrectEffect);
+
+				gammaEffect.SetTexture("Texture", _compositeTarget, 0);
 				// TODO: iiihhh
-				_gammaCorrectEffect.ApplyChanges();
-				_gammaCorrectEffect.Bind();
+				gammaEffect.ApplyChanges();
+				gammaEffect.Bind();
 	
 				FullscreenQuad.Draw();
 			}

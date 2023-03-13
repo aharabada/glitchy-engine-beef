@@ -81,8 +81,10 @@ class EditorContentManager : IContentManager
 	
 	//private append List<String> _identifiers = .() ~ _.ClearAndDeleteItems();
 
-	private append Dictionary<StringView, Asset> _loadedAssets = .(); // Check if all resources are unloaded
-	
+	private append Dictionary<StringView, AssetHandle> _handles = .(); // TODO: Check if all resources are unloaded
+
+	private append Dictionary<AssetHandle, Asset> _handleToAsset = .();
+
 	private append AssetHierarchy _assetHierarchy = .(this);
 
 	public AssetHierarchy AssetHierarchy => _assetHierarchy;
@@ -99,6 +101,8 @@ class EditorContentManager : IContentManager
 
 	private void OnFileContentChanged(AssetNode assetNode)
 	{
+		// TODO: update for AssetHandles
+
 		// TODO: Subassets break reloading because we can't find them when we only receive the file that changed...
 
 		// Asset isn't loaded so we don't need to reload it.
@@ -237,14 +241,36 @@ class EditorContentManager : IContentManager
 
 	public bool IsLoaded(StringView identifier)
 	{
-		return _loadedAssets.ContainsKey(identifier);
+		return _handles.ContainsKey(identifier);
+	}
+	
+	public Asset GetAsset(Type assetType, AssetHandle handle)
+	{
+		Asset asset = null;
+
+		_handleToAsset.TryGetValue(handle, out asset);
+
+		if (assetType == null)
+		{
+			return asset;
+		}
+		else if (asset.GetType() == assetType)
+		{
+			return asset;
+		}
+		else
+		{
+			// TODO: get default asset
+
+			return null;
+		}
 	}
 
-	public Asset LoadAsset(StringView identifier)
+	public AssetHandle LoadAsset(StringView identifier)
 	{
-		if (_loadedAssets.TryGetValue(identifier, let asset))
+		if (_handles.TryGetValue(identifier, let asset))
 		{
-			return asset..AddRef();
+			return asset;
 		}
 
 		// Find subasset name
@@ -265,7 +291,7 @@ class EditorContentManager : IContentManager
 		if (resultNode case .Err)
 		{
 			Log.EngineLogger.Error($"Could not find asset \"{filePath}\".");
-			return null;
+			return .Invalid;
 		}
 
 		AssetFile file = resultNode->Value.AssetFile;
@@ -294,20 +320,19 @@ class EditorContentManager : IContentManager
 		delete stream;
 
 		if (loadedAsset == null)
-			return null;
+			return .Invalid;
 
 		//String identifierString = new .(identifier);
 		//_identifiers.Add(identifierString);
 
 		//_loadedAssets[identifierString] = loadedAsset;
 		
-
 		loadedAsset.Identifier = identifier;
-		ManageAsset(loadedAsset);
+		AssetHandle handle = ManageAsset(loadedAsset);
 
 		file.[Friend]_loadedAsset = loadedAsset;
 
-		return loadedAsset;
+		return handle;
 	}
 
 	/// Saves the asset.
@@ -413,37 +438,57 @@ class EditorContentManager : IContentManager
 		return fs;*/
 	}
 
-	public void ManageAsset(Asset asset)
+	public AssetHandle ManageAsset(Asset asset)
 	{
-		_loadedAssets.Add(asset.Identifier, asset);
+		AssetHandle handle = .(asset.Identifier);
+
+		// TODO: to ensure that no two assets with the same handle exist.
+
+		_handles.Add(asset.Identifier, handle);
+		_handleToAsset.Add(handle, asset);
+
 		asset.[Friend]_contentManager = this;
+		asset.[Friend]_handle = handle;
+
+		return handle;
 	}
 
-	public void UnmanageAsset(Asset asset)
+	public void UnmanageAsset(AssetHandle handle)
 	{
-		_loadedAssets.Remove(asset.Identifier);
+		Log.EngineLogger.AssertDebug(_handles.ContainsValue(handle), "Handle isn't managed by this content manager.");
+		Log.EngineLogger.AssertDebug(_handleToAsset.ContainsKey(handle), "Handle doesn't correspond to an asset.");
+
+		Asset asset = _handleToAsset[handle];
+		_handles.Remove(asset.Identifier);
+		_handleToAsset.Remove(handle);
 		asset.[Friend]_contentManager = null;
+
+		asset.ReleaseRef();
 	}
 
 	/// This will unregister all assets from this content manager.
 	/// Note: This will not release any assets.
 	private void UnmanageAllAssets()
 	{
-		for (let (_, asset) in _loadedAssets)
+		for (let (_, assetHandle) in _handles)
 		{
-			UnmanageAsset(asset);
+			UnmanageAsset(assetHandle);
 		}
 	}
 
 	public void UpdateAssetIdentifier(Asset asset, StringView oldIdentifier, StringView newIdentifier)
 	{
+		// TODO: this is much harder with asste handles that are basically hashed identifiers!
+
+		Runtime.NotImplemented();
+
 		if (oldIdentifier == newIdentifier)
 			return;
 
-		Log.EngineLogger.Assert(_loadedAssets.ContainsKey(newIdentifier), "An asset with the same identifier is already managed by this content manager.");
+		Log.EngineLogger.Assert(_handles.ContainsKey(newIdentifier), "An asset with the same identifier is already managed by this content manager.");
 
 		// Since all we do in order to track assets is add them to a dictionary we can simply unmanage and manage it again.
-		UnmanageAsset(asset);
-		ManageAsset(asset);
+		//UnmanageAsset(asset);
+		//ManageAsset(asset);
 	}
 }

@@ -1,4 +1,4 @@
-using GlitchyEngine.Renderer;
+/*using GlitchyEngine.Renderer;
 using GlitchyEngine.Events;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Math;
@@ -63,8 +63,8 @@ namespace Sandbox
 			
 			Material _checkerMaterial ~ _?.ReleaseRef();
 			Material _logoMaterial ~ _?.ReleaseRef();
-			Texture2D _texture ~ _?.ReleaseRef();
-			Texture2D _ge_logo ~ _?.ReleaseRef();
+			AssetHandle _texture;
+			AssetHandle _ge_logo;
 
 			BlendState _alphaBlendState ~ _?.ReleaseRef();
 			BlendState _opaqueBlendState ~ _?.ReleaseRef();
@@ -91,7 +91,7 @@ namespace Sandbox
 
 				//effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
 				
-				Effect textureEffect = Content.LoadAsset<Effect>("Shaders\\textureShader.hlsl");
+				Effect textureEffect = Content.GetAsset<Effect>(Content.LoadAsset("Shaders\\textureShader.hlsl"));
 
 				_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
@@ -99,7 +99,7 @@ namespace Sandbox
 
 				VertexLayout vertexLayout = new VertexLayout(VertexColorTexture.VertexElements, false);
 
-				textureEffect.ReleaseRef();
+				//textureEffect.ReleaseRef();
 
 				// Create hexagon
 				{
@@ -174,8 +174,11 @@ namespace Sandbox
 				rsDesc.FrontCounterClockwise = false;
 				_rasterizerStateClockWise = new RasterizerState(rsDesc);
 
-				_texture = Content.LoadAsset<Texture2D>("content/Textures/Checkerboard.dds");//new Texture2D("content/Textures/Checkerboard.dds");
-				_ge_logo = Content.LoadAsset<Texture2D>("content/Textures/GE_Logo.dds");//new Texture2D("content/Textures/GE_Logo.dds");
+				_texture = Content.LoadAsset("content/Textures/Checkerboard.dds");//new Texture2D("content/Textures/Checkerboard.dds");
+				_ge_logo = Content.LoadAsset("content/Textures/GE_Logo.dds");//new Texture2D("content/Textures/GE_Logo.dds");
+
+				Texture2D texture = Content.GetAsset<Texture2D>(_texture);
+				Texture2D ge_logo = Content.GetAsset<Texture2D>(_ge_logo);
 
 				let sampler = SamplerStateManager.GetSampler(
 					SamplerStateDescription()
@@ -183,8 +186,8 @@ namespace Sandbox
 						MagFilter = .Point
 					});
 				
-				_texture.SamplerState = sampler;
-				_ge_logo.SamplerState = sampler;
+				texture.SamplerState = sampler;
+				ge_logo.SamplerState = sampler;
 
 				sampler.ReleaseRef();
 
@@ -518,4 +521,4 @@ namespace Sandbox
 			}
 		}
 
-}
+}*/

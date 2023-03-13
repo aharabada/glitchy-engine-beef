@@ -20,11 +20,10 @@ namespace GlitchyEngine.Generators
 			outFileName.Append(name);
 			outText.AppendF(
 				$"""
-				namespace {Namespace}
+				namespace {Namespace};
+
+				struct {name}
 				{{
-					struct {name}
-					{{
-					}}
 				}}
 				""");
 		}

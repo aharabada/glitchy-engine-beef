@@ -34,6 +34,8 @@ namespace GlitchyEngine
 
 		public bool IsMinimized => _isMinimized;
 
+		public GameTime GameTime => _gameTime;
+
 		[Inline]
 		public static Application Get() => s_Instance;
 
