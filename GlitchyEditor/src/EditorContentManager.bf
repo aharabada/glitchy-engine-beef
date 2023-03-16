@@ -11,68 +11,6 @@ using System.Linq;
 
 namespace GlitchyEditor;
 
-/*class PreviewImageManager
-{
-	/// Thread that loads/generates preview images in the background
-	//private Thread _loaderThread;
-
-	/// Set to true to notify the loader to stop
-	//private bool _stopLoader;
-
-	private append Dictionary<String, Texture2D> _previewImages = .() ~ {
-		for (var v in _)
-		{
-			delete v.key;
-			v.value.ReleaseRef();
-		}
-
-		delete _;
-	};
-
-	public Texture2D GetPreviewImage(String assetName)
-	{
-		if (_previewImages.TryGetValue(assetName, let image))
-		{
-			return image..AddRef();
-		}
-
-		if (assetName.EndsWith(".png", .OrdinalIgnoreCase))
-		{
-			/*using (Texture2D texture = new Texture2D(assetName, true))
-			{
-				Texture2DDesc desc = .(128, 128, .R8G8B8A8_UNorm_SRGB)
-					{
-						Usage = .Immutable
-					};
-
-				Texture2D myActualTexture = new Texture2D(desc);
-
-				// TODO: Scale down texture (on GPU?)
-			}*/
-
-			Texture2D texture = new Texture2D(assetName, true);
-
-			if (texture.Width <= 128 && texture.Height <= 128)
-			{
-
-			}
-
-			if ( texture.MipLevels > 1)
-			{
-
-			}
-
-			_previewImages.Add(new String(assetName), texture);
-
-			return texture..AddRef();
-		}
-		else
-		{
-			Runtime.NotImplemented();
-		}
-	}
-}*/
-
 class EditorContentManager : IContentManager
 {
 	private append String _contentDirectory = .();
@@ -296,16 +234,10 @@ class EditorContentManager : IContentManager
 
 		StringView oldIdentifier = asset.Identifier;
 
-		// Find subasset name
-		int poundIndex = oldIdentifier.IndexOf('#');
-
-		StringView resourceName = poundIndex == -1 ? oldIdentifier : oldIdentifier.Substring(0, poundIndex);
-		StringView? subassetName = oldIdentifier.Substring(poundIndex + 1);
-
-		String filePath = scope String(resourceName.Length + _contentDirectory.Length + 2);
-		Path.Combine(filePath, _contentDirectory, resourceName);
-
-		Path.Fixup(filePath);
+		GetResourceAndSubassetName(oldIdentifier, let resourceName, let subassetName);
+		
+		String filePath = scope .();
+		GetResourceFilePath(resourceName, filePath);
 
 		//filePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 
@@ -320,8 +252,6 @@ class EditorContentManager : IContentManager
 		AssetFile file = resultNode->Value.AssetFile;
 		
 		IAssetLoader assetLoader = GetAssetLoader(file);
-
-		Log.EngineLogger.AssertDebug(assetLoader != null);
 
 		Stream stream = GetStream(filePath);
 
@@ -346,23 +276,39 @@ class EditorContentManager : IContentManager
 		file.[Friend]_loadedAsset = loadedAsset;
 	}
 
+	/// Returns the resource name and, if it exists, the subasset name.
+	private void GetResourceAndSubassetName(StringView identifier, out StringView resourceName, out StringView? subassetName)
+	{
+		// Find subasset name
+		int poundIndex = identifier.IndexOf('#');
+
+		resourceName = poundIndex == -1 ? identifier : identifier.Substring(0, poundIndex);
+		subassetName = identifier.Substring(poundIndex + 1);
+	}
+
+	private void GetResourceFilePath(StringView resourceName, String filePath)
+	{
+		Path.Combine(filePath, _contentDirectory, resourceName);
+
+		Path.Fixup(filePath);
+	}
+
 	public AssetHandle LoadAsset(StringView identifier)
 	{
-		if (_identiferToHandle.TryGetValue(identifier, let asset))
+		// Todo: How strict should we be on paths?
+		String fixedIdentifier = scope String(identifier);
+		// TODO: Fixup is more of a filesystem thingy... we might want to use our own function
+		Path.Fixup(fixedIdentifier);
+
+		if (_identiferToHandle.TryGetValue(fixedIdentifier, let asset))
 		{
 			return asset;
 		}
 
-		// Find subasset name
-		int poundIndex = identifier.IndexOf('#');
+		GetResourceAndSubassetName(fixedIdentifier, let resourceName, let subassetName);
 
-		StringView resourceName = poundIndex == -1 ? identifier : identifier.Substring(0, poundIndex);
-		StringView? subassetName = identifier.Substring(poundIndex + 1);
-
-		String filePath = scope String(resourceName.Length + _contentDirectory.Length + 2);
-		Path.Combine(filePath, _contentDirectory, resourceName);
-
-		Path.Fixup(filePath);
+		String filePath = scope .();
+		GetResourceFilePath(resourceName, filePath);
 
 		//filePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 
@@ -378,6 +324,7 @@ class EditorContentManager : IContentManager
 		
 		IAssetLoader assetLoader = GetAssetLoader(file);
 
+		// TODO: what are we supposed to do if we don't find a loader? Sure not crash...
 		Log.EngineLogger.AssertDebug(assetLoader != null);
 
 		Stream stream = GetStream(filePath);
@@ -389,14 +336,9 @@ class EditorContentManager : IContentManager
 		if (loadedAsset == null)
 			return .Invalid;
 
-		//String identifierString = new .(identifier);
-		//_identifiers.Add(identifierString);
-
-		//_loadedAssets[identifierString] = loadedAsset;
-		
-		loadedAsset.Identifier = identifier;
+		loadedAsset.Identifier = fixedIdentifier;
 		AssetHandle handle = ManageAsset(loadedAsset);
-		// ManageAsset increases RefCount
+		// ManageAsset increases RefCount, but this scope also holds a reference.
 		loadedAsset.ReleaseRef();
 
 		// Add to Identifier -> Handle map
@@ -428,25 +370,40 @@ class EditorContentManager : IContentManager
 		return assetLoader;
 	}
 
-	/// Saves the asset.
-	public Result<void> SaveAsset(Asset asset)
+	public enum SaveAssetError
 	{
-		// Find subasset name
-		int poundIndex = asset.Identifier.IndexOf('#');
+		case Unknown;
+		case Unsavable;
+		case PathNotFound;
+	}
 
-		StringView resourceName = poundIndex == -1 ? asset.Identifier : asset.Identifier.Substring(0, poundIndex);
-		StringView? subassetName = asset.Identifier.Substring(poundIndex + 1);
+	/// Saves the asset.
+	public Result<void, SaveAssetError> SaveAsset(Asset asset)
+	{
+		if (asset == null)
+			return .Err(.Unknown);
 
-		String filePath = scope String(resourceName.Length + _contentDirectory.Length + 2);
-		Path.Combine(filePath, _contentDirectory, resourceName);
+		if (asset.Identifier.IsWhiteSpace)
+			return .Err(.Unsavable);
 
-		Path.Fixup(filePath);
+		GetResourceAndSubassetName(asset.Identifier, let resourceName, let subassetName);
 
-		//filePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+		if (subassetName != null)
+		{
+			// TODO: should this ever be allowed? Couldn't we just save the entire asset?
+			// Would this ever be necessary?
+			Runtime.NotImplemented("Saving subassets is not currently allowed");
+		}
 
-		TreeNode<AssetNode> assetNode = Try!(AssetHierarchy.GetNodeFromPath(filePath));
-		
-		AssetFile file = assetNode->AssetFile;
+		String filePath = scope String();
+		GetResourceFilePath(resourceName, filePath);
+
+		Result<TreeNode<AssetNode>> assetNode = AssetHierarchy.GetNodeFromPath(filePath);
+
+		if (assetNode case .Err)
+			return .Err(.PathNotFound);
+
+		AssetFile file = assetNode.Get()->AssetFile;
 
 		IAssetLoader assetLoader = GetAssetLoader(file);
 
@@ -455,20 +412,22 @@ class EditorContentManager : IContentManager
 		if (assetSaver == null)
 		{
 			Log.EngineLogger.Error("The asset loader can't save!");
-			return .Err;
+			return .Err(.Unsavable);
 		}
 
-		Stream stream = OpenStream(filePath, false, true);
+		Stream stream = OpenStream(filePath, false);
 
 		assetSaver.EditorSaveAsset(stream, asset, file.AssetConfig.Config, resourceName, subassetName, this);
 
+		// Trim off the end of the file.
 		stream.SetLength(stream.Position);
+
 		delete stream;
 
 		return .Ok;
 	}
 
-	private Stream OpenStream(StringView assetIdentifier, bool openOnly, bool truncate = false)
+	private Stream OpenStream(StringView assetIdentifier, bool openOnly)
 	{
 		var assetIdentifier;
 
@@ -483,9 +442,6 @@ class EditorContentManager : IContentManager
 		FileStream fs = new FileStream();
 
 		FileMode fileMode = openOnly ? FileMode.Open : FileMode.OpenOrCreate;
-
-		/*if (truncate)
-			fileMode |= .Truncate;*/
 
 		var result = fs.Open(assetIdentifier, fileMode, openOnly ? .Read : .ReadWrite, .ReadWrite);
 

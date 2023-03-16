@@ -121,7 +121,7 @@ class AssetHierarchy
 		fsw.StartRaisingEvents();
 	}
 
-	/// Gets the tree node for the given filePath or null, if the file/directory doesn't exist.
+	/// Gets the tree node for the given filePath or .Err, if the file/directory doesn't exist.
 	/// @param filePath the path for which to return the tree node.
 	/// @remarks Do not hold a reference to the TreeNode because it can become invalid when the file hierarchy changes.
 	public Result<TreeNode<AssetNode>> GetNodeFromPath(StringView filePath)
