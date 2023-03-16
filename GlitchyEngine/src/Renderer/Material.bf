@@ -14,7 +14,7 @@ public class Material : Asset
 
 	private uint8[] _rawVariables ~ delete _;
 
-	private Dictionary<String, Texture> _textures = new .();
+	private Dictionary<String, AssetHandle<Texture>> _textures = new .() ~ delete _;
 
 	private Dictionary<String, (uint32 Offset, BufferVariable Variable)> _variables = new .() ~ delete _;
 
@@ -29,25 +29,17 @@ public class Material : Asset
 		// Get texture slots from effect
 		for(let (name, entry) in _effect.Textures)
 		{
-			// TODO: Do we want to be able to define textures in the shader?
-			/*var texture = entry.BoundTexture;
-			texture.AddRef();*/
+			// TODO: We need to be able to define default textures in the shader.
+			// At least things like "Black", "White", "Normal"
+			// At best whole paths. Shouldn't be that hard to do...
+			/*var texture = entry.BoundTexture;*/
 
-			_textures.Add(name, null);
+			_textures.Add(name, .Invalid);
 		}
 
 		InitRawData();
 	}
 
-	public ~this()
-	{
-		for(let (name, texture) in _textures)
-		{
-			texture?.ReleaseRef();
-		}
-
-		delete _textures;
-	}
 
 	/** @brief Initializes the raw data array for the variables.
 	 */
@@ -90,13 +82,13 @@ public class Material : Asset
 	 * @param name The name of the texture to set.
 	 * @param texture The texture to bind to the effect.
 	 */
-	public void SetTexture(String name, Texture texture)
+	public void SetTexture(String name, AssetHandle<Texture> texture)
 	{
 		if(_textures.TryGetValue(name, var entry))
 		{
-			entry?.ReleaseRef();
+			//entry?.ReleaseRef();
 			_textures[name] = texture;
-			texture?.AddRef();
+			//texture?.AddRef();
 		}
 		else
 		{

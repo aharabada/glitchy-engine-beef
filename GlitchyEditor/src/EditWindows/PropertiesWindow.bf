@@ -19,7 +19,6 @@ class PropertiesWindow : EditorWindow
 	private append String _selectedFileName = .();
 
 	private AssetHandle _currentAssetHandle;
-	//private Asset _currentAsset;
 
 	public this(Editor editor)
 	{
@@ -82,14 +81,6 @@ class PropertiesWindow : EditorWindow
 		{
 			_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.Identifier);
 		}
-
-		/*if (asset != _currentAsset)
-		{
-			_currentAsset?.ReleaseRef();
-			_currentAsset = asset;
-			_currentAsset?.AddRef();
-		}*/
-		
 
 		// TODO: allow changing AssetLoader
 		// assetFile.AssetConfig.AssetLoade

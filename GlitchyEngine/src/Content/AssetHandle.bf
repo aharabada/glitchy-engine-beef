@@ -13,6 +13,9 @@ struct AssetHandle : IHashable
 	/// Defines an asset that is invalid.
 	public const AssetHandle Invalid = .(UUID(0xAAAA'AAAA'AAAA'AAAA));
 
+	public bool IsValid => this == .Invalid;
+	public bool IsInvalid => !IsValid;
+
 	/// Create a new random AssetHandle
 	public this()
 	{
@@ -45,6 +48,9 @@ struct AssetHandle<T> where T : Asset
 	//private uint64 _actualCurrentFrame = 0;
 
 	public const Self Invalid = .();
+
+	public bool IsValid => this == .Invalid;
+	public bool IsInvalid => !IsValid;
 
 	public this(AssetHandle handle, IContentManager contentManager = null)
 	{
@@ -81,20 +87,9 @@ struct AssetHandle<T> where T : Asset
 		return handle.Get();
 	}
 
-	public T Get(IContentManager contentManager = null) mut
+	public T Get(IContentManager contentManager = null)
 	{
-		// We only care whether we are in a different frame -> we only compare the lower 8 bits.
-		//uint8 actualFrame = (uint8)Application.Get().GameTime.FrameCount;
-		//var actualActualFrame = Application.Get().GameTime.FrameCount;
-
-		//if (actualFrame != _currentFrame)
-		{
-			_asset = Content.GetAsset<T>(_handle, contentManager == null ? _contentManager : contentManager);
-			//_currentFrame = actualFrame;
-			//_actualCurrentFrame = Application.Get().GameTime.FrameCount;
-		}
-
-		return _asset;
+		return Content.GetAsset<T>(_handle, contentManager == null ? _contentManager : contentManager);
 	}
 
 	[Comptime, OnCompile(.TypeInit)]
@@ -249,5 +244,18 @@ struct AssetHandle<T> where T : Asset
 
 			Compiler.EmitTypeBody(typeof(Self), code);
 		}
+	}
+	
+	public AssetHandle<NewT> Cast<NewT>()
+		where NewT : Asset
+		where T : NewT
+	{
+		return AssetHandle<NewT>(this._handle, this._contentManager);
+	}
+
+	// TODO: Cast up?
+	public AssetHandle<NewT> Cast<NewT>() where NewT : T
+	{
+		return AssetHandle<NewT>(this._handle, this._contentManager);
 	}
 }

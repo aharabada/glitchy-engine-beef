@@ -84,11 +84,10 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 				{
 					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
 
-					AssetHandle<Texture2D> newTexture = Content.LoadAsset(path);//new Texture2D(path, true))
-					
+					AssetHandle<Texture2D> newTexture = Content.LoadAsset(path);
+
 					newTexture.Get().SamplerState = SamplerStateManager.AnisotropicWrap;
-					material.SetTexture(texture.key, newTexture);
-					// TODO!!!
+					material.SetTexture(texture.key, newTexture.Cast<Texture>());
 				}
 
 				ImGui.EndDragDropTarget();
@@ -98,7 +97,6 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 	private void ShowVariables(Material material, Effect effect)
 	{
-
 		for (let (name, arguments) in effect.[Friend]_variableDescriptions)
 		{
 			let variable = effect.Variables[name];
@@ -350,9 +348,9 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		for (let (slotName, textureIdentifier) in materialFile.Textures)
 		{
-			Texture texture = Content.GetAsset<Texture>(contentManager.LoadAsset(textureIdentifier), contentManager);
+			AssetHandle<Texture> texture = contentManager.LoadAsset(textureIdentifier);
 
-			if (texture == null)
+			if (texture.IsInvalid)
 			{
 				Log.EngineLogger.Error($"Failed to load texture \"{textureIdentifier}\".");
 				// TODO: LoadAsset should return an error texture.
@@ -408,7 +406,9 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		for (let (slotName, texture) in material.[Friend]_textures)
 		{
-			materialFile.Textures.Add(new String(slotName), new String(texture?.Identifier ?? ""));
+			Texture textureAsset = texture.Get();
+
+			materialFile.Textures.Add(new String(slotName), new String(textureAsset?.Identifier ?? ""));
 		}
 
 		Effect effect = material.Effect;
