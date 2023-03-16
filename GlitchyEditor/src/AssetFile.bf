@@ -31,7 +31,7 @@ class AssetFile
 
 	private bool _isDirectory;
 
-	private Object _loadedAsset;
+	private Asset _loadedAsset;
 
 	public bool IsDirectory => _isDirectory;
 
@@ -42,7 +42,7 @@ class AssetFile
 
 	public AssetConfig AssetConfig => _assetConfig;
 
-	public Object LoadedAsset => _loadedAsset;
+	public Asset LoadedAsset => _loadedAsset;
 
 	[AllowAppend]
 	public this(EditorContentManager contentManager, StringView identifier, StringView path, bool isDirectory)

@@ -6,7 +6,7 @@ namespace GlitchyEngine.Renderer
 {
 	public struct MeshComponent// : IDisposableComponent
 	{
-		public AssetHandle<GeometryBinding> Mesh {get; set mut;}
+		public AssetHandle<GeometryBinding> Mesh {get; set mut;} = .Invalid;
 		/*
 		private GeometryBinding _mesh;
 		public AssetHandle<GeometryBinding> Mesh

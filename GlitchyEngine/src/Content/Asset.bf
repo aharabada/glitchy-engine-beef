@@ -10,7 +10,7 @@ namespace GlitchyEngine.Content;
 [BonTarget]
 class Asset : RefCounter
 {
-	internal AssetHandle _handle;
+	internal AssetHandle _handle = .Invalid;
 
 	private append String _identifier;
 
@@ -60,16 +60,13 @@ class Asset : RefCounter
 
 	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
 	{
-		// TODO!!!
-
-		return .Err;
-		/*Log.EngineLogger.Assert(value.type == typeof(Asset));
+		Log.EngineLogger.Assert(value.type == typeof(Asset));
 
 		String identifier = scope .();
 
 		Deserialize.String!(reader, ref identifier, environment);
 
-		Asset asset = Application.Get().ContentManager.LoadAsset(identifier);
+		Asset asset = Content.GetAsset<Asset>(Content.LoadAsset(identifier));
 
 		if (asset != null)
 		{
@@ -82,7 +79,7 @@ class Asset : RefCounter
 		else
 		{
 			Deserialize.Error!("Invalid resource path", reader, value.type);
-		}*/
+		}
 	}
 
 	//gBonEnv.typeHandlers.Add(typeof(Resource<>),

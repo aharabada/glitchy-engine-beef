@@ -876,9 +876,9 @@ namespace GlitchyEngine.Renderer
 		public static void DrawSprite(Matrix transform, SpriterRendererComponent* spriteRenderer, uint32 entityId)
 		{
 			if (spriteRenderer.IsCircle)
-				DrawCircle(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, 1.0f, spriteRenderer.UvTransform, entityId);
+				DrawCircle(transform, spriteRenderer.Sprite.Get() ?? s_whiteTexture, spriteRenderer.Color, 1.0f, spriteRenderer.UvTransform, entityId);
 			else
-				DrawQuad(transform, spriteRenderer.Sprite ?? s_whiteTexture, spriteRenderer.Color, spriteRenderer.UvTransform, entityId);
+				DrawQuad(transform, spriteRenderer.Sprite.Get() ?? s_whiteTexture, spriteRenderer.Color, spriteRenderer.UvTransform, entityId);
 		}
 
 		// Textured quad pivot

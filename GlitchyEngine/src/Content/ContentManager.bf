@@ -86,6 +86,26 @@ namespace GlitchyEngine.Content
 
 			return (T)asset;
 		}
+		
+		public static AssetHandle ManageAsset(Asset asset, IContentManager contentManager = null)
+		{
+			var contentManager;
+
+			if (contentManager == null)
+				contentManager = Application.Get().ContentManager;
+
+			return contentManager.ManageAsset(asset);
+		}
+
+		/*public static AssetHandle<T> ManageAsset<T>(T asset, IContentManager contentManager = null) where T : Asset
+		{
+			var contentManager;
+
+			if (contentManager == null)
+				contentManager = Application.Get().ContentManager;
+
+			contentManager.ManageAsset(asset);
+		}*/
 	}
 
 	interface IContentManager

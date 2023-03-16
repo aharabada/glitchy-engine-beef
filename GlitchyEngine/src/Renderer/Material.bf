@@ -14,7 +14,7 @@ public class Material : Asset
 
 	private uint8[] _rawVariables ~ delete _;
 
-	private Dictionary<String, TextureViewBinding> _textures = new .();
+	private Dictionary<String, Texture> _textures = new .();
 
 	private Dictionary<String, (uint32 Offset, BufferVariable Variable)> _variables = new .() ~ delete _;
 
@@ -26,12 +26,14 @@ public class Material : Asset
 
 		// TODO: get variables from effect
 
+		// Get texture slots from effect
 		for(let (name, entry) in _effect.Textures)
 		{
-			var texture = entry.BoundTexture;
-			texture.AddRef();
+			// TODO: Do we want to be able to define textures in the shader?
+			/*var texture = entry.BoundTexture;
+			texture.AddRef();*/
 
-			_textures.Add(name, texture);
+			_textures.Add(name, null);
 		}
 
 		InitRawData();
@@ -41,7 +43,7 @@ public class Material : Asset
 	{
 		for(let (name, texture) in _textures)
 		{
-			texture.Release();
+			texture?.ReleaseRef();
 		}
 
 		delete _textures;
@@ -92,9 +94,9 @@ public class Material : Asset
 	{
 		if(_textures.TryGetValue(name, var entry))
 		{
-			entry.Release();
-			_textures[name] = texture.GetViewBinding();
-			//texture?.AddRef();
+			entry?.ReleaseRef();
+			_textures[name] = texture;
+			texture?.AddRef();
 		}
 		else
 		{

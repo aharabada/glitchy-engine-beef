@@ -229,7 +229,7 @@ namespace GlitchyEngine.Content
 			return .Success;
 		}
 
-		public static EcsEntity LoadModel(String filename, Material material, EcsWorld world,
+		/*public static EcsEntity LoadModel(String filename, Material material, EcsWorld world,
 			List<AnimationClip> outClips, StringView entityName = StringView())
 		{
 			CGLTF.Options options = .();
@@ -252,7 +252,7 @@ namespace GlitchyEngine.Content
 			CGLTF.Free(data);
 
 			return entity;
-		}
+		}*/
 
 		private static (EcsEntity Entity, TransformComponent* Transform) CreateEntity(EcsWorld world, StringView? name, EcsEntity parent)
 		{
@@ -280,7 +280,7 @@ namespace GlitchyEngine.Content
 			return (entity, childTransform);
 		}
 
-		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity parentEntity, EcsWorld world, Material material, List<AnimationClip> clips)
+		/*private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity parentEntity, EcsWorld world, Material material, List<AnimationClip> clips)
 		{
 			(EcsEntity entity, TransformComponent* childTransform) = CreateEntity(world, node.Name == null ? null : StringView(node.Name), parentEntity);
 
@@ -328,13 +328,13 @@ namespace GlitchyEngine.Content
 
 					using (var geo = PrimitiveToGeoBinding(node.Mesh.Primitives[0]))
 					{
-						mesh.Mesh = geo;
+						mesh.Mesh = Content.ManageAsset(geo);
 					}
 
 					if(skeleton == null)
 					{
 						var meshRenderer = world.AssignComponent<MeshRendererComponent>(entity);
-						meshRenderer.Material = material;
+						meshRenderer.Material = material.Handle;
 					}
 					else
 					{
@@ -352,14 +352,18 @@ namespace GlitchyEngine.Content
 
 						var meshParent = world.AssignComponent<ParentComponent>(meshEntity);
 						meshParent.Entity = entity;
-
+						
 						var mesh = world.AssignComponent<MeshComponent>(meshEntity);
-						mesh.Mesh = PrimitiveToGeoBinding(primitive);
+						
+						using (var geo = PrimitiveToGeoBinding(primitive))
+						{
+							mesh.Mesh = Content.ManageAsset(geo);
+						}
 						
 						if(skeleton == null)
 						{
 							var meshRenderer = world.AssignComponent<MeshRendererComponent>(meshEntity);
-							meshRenderer.Material = material;
+							meshRenderer.Material = material.Handle;
 						}
 						else
 						{
@@ -377,7 +381,7 @@ namespace GlitchyEngine.Content
 			{
 				NodesToEntities(data, child, entity, world, material, clips);
 			}
-		}
+		}*/
 
 		public static GeometryBinding PrimitiveToGeoBinding(CGLTF.Primitive primitive)
 		{

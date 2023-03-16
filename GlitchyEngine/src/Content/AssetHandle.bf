@@ -3,16 +3,25 @@ using xxHash;
 using System.Collections;
 using System.Reflection;
 using System.Diagnostics;
+using GlitchyEngine.Core;
 namespace GlitchyEngine.Content;
 
-struct AssetHandle : uint64
+struct AssetHandle : IHashable
 {
-	/// Defines an asset that is invalid. E.g. because it couldn't be loaded.
-	public const AssetHandle Invalid = (.)0;
+	private UUID _uuid;
 
-	public this(StringView name)
+	/// Defines an asset that is invalid.
+	public const AssetHandle Invalid = .(UUID(0xAAAA'AAAA'AAAA'AAAA));
+
+	/// Create a new random AssetHandle
+	public this()
 	{
-		this = (uint64)xxHash.ComputeHash(name);
+		_uuid = UUID();
+	}
+
+	private this(UUID uuid)
+	{
+		_uuid = uuid;
 	}
 
 	[Inline]
@@ -20,6 +29,8 @@ struct AssetHandle : uint64
 	{
 		return Content.GetAsset<T>(this, contentManager);
 	}
+
+	public int GetHashCode() => _uuid.GetHashCode();
 }
 
 struct AssetHandle<T> where T : Asset
@@ -30,25 +41,27 @@ struct AssetHandle<T> where T : Asset
 	 * We don't increment/decrement the reference counter since we guarantee that we query for the asset every frame.
 	 */
 	private T _asset;
-	private uint8 _currentFrame;
+	//private uint8 _currentFrame;
+	//private uint64 _actualCurrentFrame = 0;
 
 	public const Self Invalid = .();
 
 	public this(AssetHandle handle, IContentManager contentManager = null)
 	{
 		_handle = handle;
-		_contentManager = contentManager;
 
 		_asset = handle.Get<T>(contentManager);
-		_contentManager = _asset.ContentManager;
-		_currentFrame = (uint8)Application.Get().GameTime.FrameCount;
+		_contentManager = _asset?.ContentManager;
+		if (_contentManager == null)
+			_contentManager = contentManager;
+		//_currentFrame = (uint8)Application.Get().GameTime.FrameCount;
 	}
 
 	// Creates a new invalid asset handle
 	private this()
 	{
 		_handle = .Invalid;
-		_currentFrame = 0;
+		//_currentFrame = 0;
 		_contentManager = null;
 		_asset = null;
 	}
@@ -71,11 +84,14 @@ struct AssetHandle<T> where T : Asset
 	public T Get(IContentManager contentManager = null) mut
 	{
 		// We only care whether we are in a different frame -> we only compare the lower 8 bits.
-		uint8 actualFrame = (uint8)Application.Get().GameTime.FrameCount;
+		//uint8 actualFrame = (uint8)Application.Get().GameTime.FrameCount;
+		//var actualActualFrame = Application.Get().GameTime.FrameCount;
 
-		if (actualFrame != _currentFrame)
+		//if (actualFrame != _currentFrame)
 		{
 			_asset = Content.GetAsset<T>(_handle, contentManager == null ? _contentManager : contentManager);
+			//_currentFrame = actualFrame;
+			//_actualCurrentFrame = Application.Get().GameTime.FrameCount;
 		}
 
 		return _asset;

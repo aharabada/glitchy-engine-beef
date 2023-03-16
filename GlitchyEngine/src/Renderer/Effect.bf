@@ -212,6 +212,9 @@ public class Effect : Asset
 	{
 		Debug.Profiler.ProfileRendererFunction!();
 
+		if (texture == null)
+			return;
+
 		[Inline]InternalSetTexture(name, texture.GetViewBinding());
 	}
 	

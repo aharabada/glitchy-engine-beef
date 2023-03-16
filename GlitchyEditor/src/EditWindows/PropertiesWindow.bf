@@ -19,7 +19,7 @@ class PropertiesWindow : EditorWindow
 	private append String _selectedFileName = .();
 
 	private AssetHandle _currentAssetHandle;
-	private Asset _currentAsset;
+	//private Asset _currentAsset;
 
 	public this(Editor editor)
 	{
@@ -74,14 +74,22 @@ class PropertiesWindow : EditorWindow
 
 		if (assetFile == null)
 			return;
+		
+		Asset asset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
 
 		// We need the actual asset for preview and sometimes for editing
-		if (_currentAsset?.Identifier != assetFile.Identifier)
+		if (asset?.Identifier != assetFile.Identifier)
+		{
+			_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.Identifier);
+		}
+
+		/*if (asset != _currentAsset)
 		{
 			_currentAsset?.ReleaseRef();
-			_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.Identifier);
-			_currentAsset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
-		}
+			_currentAsset = asset;
+			_currentAsset?.AddRef();
+		}*/
+		
 
 		// TODO: allow changing AssetLoader
 		// assetFile.AssetConfig.AssetLoade
@@ -108,7 +116,8 @@ class PropertiesWindow : EditorWindow
 		
 		if (ImGui.Button("Save Asset"))
 		{
-			_editor.ContentManager.SaveAsset(_currentAsset);
+			Asset asset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
+			_editor.ContentManager.SaveAsset(asset);
 		}
 
 		if (!assetFile.AssetConfig.Config.Changed)

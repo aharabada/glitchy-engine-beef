@@ -87,7 +87,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 					AssetHandle<Texture2D> newTexture = Content.LoadAsset(path);//new Texture2D(path, true))
 					
 					newTexture.Get().SamplerState = SamplerStateManager.AnisotropicWrap;
-					//material.SetTexture(texture.key, newTexture);
+					material.SetTexture(texture.key, newTexture);
 					// TODO!!!
 				}
 
@@ -344,25 +344,22 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 			// TODO: return error material
 		}
 
-		Effect fx = new Effect(materialFile.Effect);
+		Effect fx = Content.GetAsset<Effect>(contentManager.LoadAsset(materialFile.Effect), contentManager);//new Effect(materialFile.Effect);
 
 		Material material = new Material(fx);
 
 		for (let (slotName, textureIdentifier) in materialFile.Textures)
 		{
-			using (Texture texture = contentManager.LoadAsset(textureIdentifier) as Texture)
+			Texture texture = Content.GetAsset<Texture>(contentManager.LoadAsset(textureIdentifier), contentManager);
+
+			if (texture == null)
 			{
-				if (texture == null)
-				{
-					Log.EngineLogger.Error($"Failed to load texture \"{textureIdentifier}\".");
-					// TODO: LoadAsset should return an error texture.
-				}
-
-				material.SetTexture(slotName, texture);
+				Log.EngineLogger.Error($"Failed to load texture \"{textureIdentifier}\".");
+				// TODO: LoadAsset should return an error texture.
 			}
-		}
 
-		fx.ReleaseRef();
+			material.SetTexture(slotName, texture);
+		}
 
 		for (let (slotName, variableValue) in materialFile.Variables)
 		{
@@ -409,10 +406,9 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		//material.SetTexture();
 
-		for (let (slotName, textureViewBinding) in material.[Friend]_textures)
+		for (let (slotName, texture) in material.[Friend]_textures)
 		{
-			//materialFile.Textures.Add(slotName, textureViewBinding.)
-
+			materialFile.Textures.Add(new String(slotName), new String(texture?.Identifier ?? ""));
 		}
 
 		Effect effect = material.Effect;
@@ -513,7 +509,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 				}*/
 			}
 
-			materialFile.Variables.Add(name, variableValue);
+			materialFile.Variables.Add(new String(name), variableValue);
 		}
 
 		String text = scope .();

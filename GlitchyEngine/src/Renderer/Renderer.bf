@@ -469,6 +469,9 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
+			if (geometry == null || material == null)
+				return;
+
 			_queue.Add(SubmittedMesh(geometry, material, transform, entity.[Friend]Index));
 		}
 

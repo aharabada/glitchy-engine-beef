@@ -7,7 +7,7 @@ namespace GlitchyEngine.World
 	/// A component that allows to render a mesh.
 	public struct MeshRendererComponent// : IDisposableComponent
 	{
-		private AssetHandle<Material> _material;
+		private AssetHandle<Material> _material = .Invalid;
 
 		public AssetHandle<Material> Material
 		{

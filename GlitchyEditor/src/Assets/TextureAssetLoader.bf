@@ -164,7 +164,7 @@ class EditorTextureAssetLoaderConfig : AssetLoaderConfig
 	}
 }
 
-class EditorTextureAssetLoader : IAssetLoader, IReloadingAssetLoader
+class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 {
 	private static readonly List<StringView> _fileExtensions = new .(){".png", ".dds"} ~ delete _; // ".jpg", ".bmp"
 
