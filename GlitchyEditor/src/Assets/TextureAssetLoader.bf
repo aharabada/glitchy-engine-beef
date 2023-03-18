@@ -243,63 +243,17 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 		case .PNG:
 			texture = LoadPng(data, config);
 		case .Unknown:
-			Runtime.FatalError("Unknown image format.");
+			Log.EngineLogger.Error("Unknown texture format.");
+			texture = null;
 		}
 
-		Log.EngineLogger.AssertDebug(texture != null);
-
-		SetSampler(texture, config);
+		if (texture != null)
+		{
+			SetSampler(texture, config);
+			texture.[Friend]Complete = true;
+		}
 
 		return texture;
-	}
-
-	public void ReloadAsset(AssetFile assetFile, Stream data)
-	{
-		Texture reloadingTexture = assetFile.LoadedAsset as Texture;
-
-		if (reloadingTexture == null)
-		{
-			Log.EngineLogger.Error($"{nameof(Self)}: Requested reload of \"{assetFile.FilePath}\" but it's not a Texture!");
-			return;
-		}
-
-		EditorTextureAssetLoaderConfig config = assetFile.AssetConfig.Config as EditorTextureAssetLoaderConfig;
-		
-		if (config == null)
-		{
-			Log.EngineLogger.Error($"{nameof(Self)}: Config of asset \"{assetFile.FilePath}\" doesn't have the correct type!");
-			return;
-		}
-
-		switch(GetTextureType(data))
-		{
-		case .DDS:
-			ReloadDds(reloadingTexture as Texture2D, data, config);
-		case .PNG:
-			ReloadPng(reloadingTexture as Texture2D, data, config);
-		case .Unknown:
-			Runtime.FatalError("Unknown image format.");
-		}
-		
-		SetSampler(reloadingTexture, config);
-	}
-
-	private static void SetSampler(Texture texture, EditorTextureAssetLoaderConfig config)
-	{
-		using (SamplerState samplerState = SamplerStateManager.GetSampler(config.SamplerStateDescription))
-		{
-			texture.SamplerState = samplerState;
-		}
-	}
-
-	private static void ReloadPng(Texture2D reloadingTexture, Stream data, EditorTextureAssetLoaderConfig config)
-	{
-		Debug.Profiler.ProfileResourceFunction!();
-
-		using (Texture2D newTexture = LoadPng(data, config))
-		{
-			reloadingTexture.[Friend]SneakySwappyTexture(newTexture);
-		}
 	}
 
 	private static Texture2D LoadPng(Stream data, EditorTextureAssetLoaderConfig config)
@@ -313,40 +267,105 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 		if (result case .Err(let err))
 		{
 			Log.EngineLogger.Error($"Failed to read data from stream. Texture: Error: {err}");
+			return null;
 		}
 
-		uint8* rawData = ?;
+		uint8* rawData = null;
+		defer
+		{
+			if (rawData != null)
+				LodePng.LodePng.Free(rawData);
+		}
+
 		uint32 width = 0, height = 0;
 
-		uint32 errorCode = LodePng.LodePng.Decode32(&rawData, &width, &height, pngData.Ptr, (.)pngData.Count);
+		{
+			Debug.Profiler.ProfileResourceScope!("LodePng.LodePng.Decode32");
+			uint32 errorCode = LodePng.LodePng.Decode32(&rawData, &width, &height, pngData.Ptr, (.)pngData.Count);
+			if (errorCode != 0)
+			{
+				Log.EngineLogger.Error($"Failed to decode PNG file {errorCode}.");
+				return null;
+			}
+		}
 
-		Log.EngineLogger.Assert(errorCode == 0, "Failed to load png File");
-
-		// TODO: load as SRGB because PNGs are usually not stored as linear
-		//Texture2DDesc desc = .(width, height, srgb? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
 		Texture2DDesc desc = .(width, height, config.IsSRGB ? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
 		Texture2D texture = new Texture2D(desc);
 		texture.SetData<Color>((.)rawData);
 
 		// TODO: Generate mip maps
 
-		LodePng.LodePng.Free(rawData);
-
 		return texture;
-	}
-	
-	private static void ReloadDds(Texture2D reloadingTexture, Stream data, EditorTextureAssetLoaderConfig config)
-	{
-		using (Texture2D newTexture = new [Friend]Texture2D(data))
-		{
-			reloadingTexture.[Friend]SneakySwappyTexture(newTexture);
-		}
 	}
 
 	private static Texture LoadDds(Stream data, EditorTextureAssetLoaderConfig config)
 	{
+		// TODO: Move the loading of Dds files here.
 		Texture2D texture = new [Friend]Texture2D(data);
 
 		return texture;
+	}
+	
+	private static void SetSampler(Texture texture, EditorTextureAssetLoaderConfig config)
+	{
+		using (SamplerState samplerState = SamplerStateManager.GetSampler(config.SamplerStateDescription))
+		{
+			texture.SamplerState = samplerState;
+		}
+	}
+
+	private static Texture2D _placeholder2D;
+	private static Texture2D _error2D;
+
+	public Asset GetPlaceholderAsset(Type assetType)
+	{
+		switch (assetType)
+		{
+		case typeof(Texture2D):
+			fallthrough;
+		default:
+			if (_placeholder2D == null)
+			{
+				Texture2DDesc desc = .(1, 1, .R8G8B8A8_UNorm, 1, 1, .Immutable, .None);
+
+				_placeholder2D = new Texture2D(desc);
+				_placeholder2D.SamplerState = SamplerStateManager.PointWrap;
+				Color color = Color.Cyan;
+				_placeholder2D.SetData<Color>(&color);
+
+				Content.ManageAsset(_placeholder2D);
+				_placeholder2D.ReleaseRef();
+
+				_placeholder2D.[Friend]Complete = false;
+			}
+
+			return _placeholder2D;
+		}
+	}
+
+	public Asset GetErrorAsset(Type assetType)
+	{
+		switch (assetType)
+		{
+		case typeof(Texture2D):
+			fallthrough;
+		default:
+			if (_error2D == null)
+			{
+				Texture2DDesc desc = .(2, 2, .R8G8B8A8_UNorm, 1, 1, .Immutable, .None);
+
+				_error2D = new Texture2D(desc);
+				_error2D.SamplerState = SamplerStateManager.PointWrap;
+				Color[4] color = .(Color.HotPink, Color.Black, Color.Black, Color.HotPink);
+				_error2D.SetData<Color>(&color);
+
+				Content.ManageAsset(_error2D);
+				_error2D.ReleaseRef();
+
+				_placeholder2D.[Friend]Complete = true;
+			}
+
+			return _error2D;
+		}
 	}
 }

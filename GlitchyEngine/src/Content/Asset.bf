@@ -8,7 +8,7 @@ using System.IO;
 namespace GlitchyEngine.Content;
 
 [BonTarget]
-class Asset : RefCounter
+abstract class Asset : RefCounter
 {
 	internal AssetHandle _handle = .Invalid;
 
@@ -22,14 +22,11 @@ class Asset : RefCounter
 	public StringView Identifier
 	{
 		get => _identifier;
-		set
-		{
-			_contentManager?.UpdateAssetIdentifier(this, _identifier, value);
-
-			_identifier.Set(value);
-			// TODO: do we need to tell the content manager, that the name changed?
-		}
+		internal set => _identifier.Set(value);
 	}
+
+	/// If true the asset is completely loaded. If false it is only partially loaded (if at all).
+	public bool Complete { get; internal set; }
 
 	// TODO: do we need unmanaged assets? Probably not...
 	/// Gets the content manager that manages this asset; or null if this asset isn't managed.

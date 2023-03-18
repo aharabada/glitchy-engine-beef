@@ -63,19 +63,11 @@ namespace GlitchyEngine.Renderer
 
 	public class Texture2D : Texture
 	{
-		protected String _path ~ delete _;
-
 		//public override extern uint32 Width {get;}
 		//public override extern uint32 Height {get;}
 		public override uint32 Depth => 1;
 		//public override extern uint32 ArraySize {get;}
 		//public override extern uint32 MipLevels {get;}
-		
-		private this(StringView path, bool pngSrgb = false)
-		{
-			_path = new String(path);
-			LoadTexture(pngSrgb);
-		}
 
 		// TODO: remove
 		private this(Stream data)
@@ -83,72 +75,6 @@ namespace GlitchyEngine.Renderer
 			LoadDds(data);
 		}
 		
-		const String PngMagicWord = "\x89\x50\x4E\x47\x0D\x0A\x1A\x0A";
-		const String DdsMagicWord = "DDS ";
-
-		private void LoadTexture(bool pngSrgb)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			Stream data = Application.Get().ContentManager.GetStream(_path);
-			defer delete data;
-
-			var readResult = data.Read<char8[8]>();
-
-			data.Position = 0;
-
-			char8[8] magicWord;
-
-			if (readResult case .Ok(out magicWord))
-			{
-				StringView strView = .(&magicWord, magicWord.Count);
-
-				if (strView.StartsWith(PngMagicWord))
-				{
-					LoadPng(data, pngSrgb);
-				}
-				else if (strView.StartsWith(DdsMagicWord))
-				{
-					LoadDds(data);
-				}
-				else
-				{
-					Runtime.FatalError("Unknown image format.");
-				}
-			}
-		}
-
-		protected void LoadPng(Stream stream, bool srgb)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
-			
-			uint8[] pngData = new:ScopedAlloc! uint8[stream.Length];
-
-			var result = stream.TryRead(pngData);
-
-			if (result case .Err(let err))
-			{
-				Log.EngineLogger.Error($"Failed to read data from stream. Texture: \"{_path}\", Error: {err}");
-			}
-
-			uint8* rawData = ?;
-			uint32 width = 0, height = 0;
-
-			uint32 errorCode = LodePng.LodePng.Decode32(&rawData, &width, &height, pngData.Ptr, (.)pngData.Count);
-
-			Debug.Assert(errorCode == 0, "Failed to load png File");
-
-			// TODO: load as SRGB because PNGs are usually not stored as linear
-			//Texture2DDesc desc = .(width, height, .R8G8B8A8_UNorm_SRGB, 1, 1, .Immutable);
-			Texture2DDesc desc = .(width, height, srgb? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
-			
-			PrepareTexturePlatform(desc, false);
-
-			SetData<Color>((.)rawData);
-
-			LodePng.LodePng.Free(rawData);
-		}
-
 		protected void LoadDds(Stream stream)
 		{
 			LoadDdsPlatform(stream);

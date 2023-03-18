@@ -48,54 +48,15 @@ class EffectAssetLoader : IAssetLoader //, IReloadingAssetLoader
 		Effect effect = new Effect(file, assetIdentifier, contentManager);
 
 		return effect;
+	}
 
-		/*StreamReader reader = scope .(file);
+	public Asset GetPlaceholderAsset(Type assetType)
+	{
+		return default;
+	}
 
-		String text = scope .();
-
-		reader.ReadToEnd(text);
-
-		MaterialFile materialFile = scope .();
-
-		var result = Bon.Deserialize<MaterialFile>(ref materialFile, text);
-
-		if (result case .Err)
-		{
-			Log.EngineLogger.Error("Failed to load material.");
-			return null;
-			// TODO: return error material
-		}
-
-		Effect fx = new Effect(materialFile.Effect);
-
-		Material material = new Material(fx);
-
-		for (let (slotName, textureIdentifier) in materialFile.Textures)
-		{
-			Texture texture = contentManager.LoadAsset(textureIdentifier) as Texture;
-
-			if (texture == null)
-			{
-				Log.EngineLogger.Error("Failed to load texture.");
-				// TODO: LoadAsset should return an error texture.
-			}
-
-			material.SetTexture(slotName, texture);
-		}
-
-		fx.ReleaseRef();
-
-		/*for (let (slotName, textureIdentifier) in materialFile.Variables)
-		{
-			if (texture == null)
-			{
-				Log.EngineLogger.Error("Failed to load texture.");
-				// TODO: LoadAsset should return an error texture.
-			}
-
-			material.SetVariable(slotName, );
-		}*/
-
-		return material; //ModelLoader.LoadMesh(file, subAsset.Value, 0);*/
+	public Asset GetErrorAsset(Type assetType)
+	{
+		return default;
 	}
 }

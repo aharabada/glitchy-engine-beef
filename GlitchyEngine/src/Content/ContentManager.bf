@@ -57,19 +57,25 @@ namespace GlitchyEngine.Content
 		/// @param contentManager The content manager used to load the asset.
 		/// @returns The loaded asset.
 		Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView assetIdentifier, StringView? subAsset, IContentManager contentManager);
+
+		/// Returns the placeholder asset.
+		Asset GetPlaceholderAsset(Type assetType);
+
+		/// Returns the error asset.
+		Asset GetErrorAsset(Type assetType);
 	}
 
 	static class Content
 	{
 		/// Loads the specified asset with the given contentManager or the current applications content manager.
-		public static AssetHandle LoadAsset(StringView assetIdentifier, IContentManager contentManager = null)
+		public static AssetHandle LoadAsset(StringView assetIdentifier, IContentManager contentManager = null, bool blocking = false)
 		{
 			var contentManager;
 
 			if (contentManager == null)
 				contentManager = Application.Get().ContentManager;
 
-			AssetHandle handle = contentManager.LoadAsset(assetIdentifier);
+			AssetHandle handle = contentManager.LoadAsset(assetIdentifier, blocking);
 
 			return handle;
 		}
@@ -111,7 +117,7 @@ namespace GlitchyEngine.Content
 	interface IContentManager
 	{
 		/// Loads the Asset with the given handle and returns the handle.
-		AssetHandle LoadAsset(StringView assetIdentifier);
+		AssetHandle LoadAsset(StringView assetIdentifier, bool blocking = false);
 
 		/// Returns the asset for the given handle or null, if it isn't loaded.
 		Asset GetAsset(AssetHandle handle)
@@ -127,10 +133,6 @@ namespace GlitchyEngine.Content
 
 		/// The content manager will no longer manage the asset.
 		void UnmanageAsset(AssetHandle asset);
-
-		// TODO: Maybe calling UnmanageAsset -> ManageAsset is enough....
-		/// Provides a method for the asset to tell its content manager that the identifer changed.
-		void UpdateAssetIdentifier(Asset asset, StringView oldIdentifier, StringView newIdentifier);
 
 		/// Returns a data stream for the given asset.
 		Stream GetStream(StringView assetIdentifier);
@@ -149,7 +151,7 @@ namespace GlitchyEngine.Content
 			Runtime.NotImplemented();
 		}
 
-		public AssetHandle LoadAsset(StringView assetIdentifier)
+		public AssetHandle LoadAsset(StringView assetIdentifier, bool blocking = false)
 		{
 			Runtime.NotImplemented();
 		}
@@ -165,11 +167,6 @@ namespace GlitchyEngine.Content
 		}
 
 		public void UnmanageAsset(AssetHandle asset)
-		{
-			Runtime.NotImplemented();
-		}
-
-		public void UpdateAssetIdentifier(Asset asset, StringView oldIdentifier, StringView newIdentifier)
 		{
 			Runtime.NotImplemented();
 		}

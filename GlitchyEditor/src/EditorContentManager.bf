@@ -8,6 +8,8 @@ using GlitchyEngine.Content;
 using GlitchyEditor.Assets;
 using GlitchyEngine;
 using System.Linq;
+using System.Threading.Tasks;
+using internal GlitchyEngine.Content.Asset;
 
 namespace GlitchyEditor;
 
@@ -100,6 +102,8 @@ class EditorContentManager : IContentManager
 
 	public void Update()
 	{
+		SwapInLoadedAssets();
+
 		if (!_reloadQueue.IsEmpty)
 		{
 			for (AssetHandle handle in _reloadQueue)
@@ -110,6 +114,40 @@ class EditorContentManager : IContentManager
 		}
 
 		_assetHierarchy.Update();
+	}
+
+	/// Replaces placeholders with the loaded assets
+	private void SwapInLoadedAssets()
+	{
+		// Don't take the lock if we have nothing to do.
+		if (_finishedEntries.Count == 0)
+			return;
+
+		using (_finishedEntriesLock.Enter())
+		{
+			while (_finishedEntries.Count > 0)
+			{
+				let (placeholder, asset) = _finishedEntries[0];
+
+				delete placeholder.LoadingTask;
+
+				if (asset == null)
+					placeholder.PlaceholderType = .Error;
+				else
+				{
+					// TODO: I'm not sure whether AssetFiles are guaranteed to persist.
+					// Get the reference here because placeholder wont survive SwapAsset.
+					AssetFile file = placeholder.AssetFile;
+					file.[Friend]_loadedAsset = asset;
+
+					SwapAsset(placeholder, asset);
+					// SwapAsset increases RefCount, but this scope also holds a reference.
+					asset.ReleaseRef();
+				}
+
+				_finishedEntries.RemoveAtFast(0);
+			}
+		}
 	}
 
 	public IAssetLoader GetDefaultAssetLoader(StringView fileExtension)
@@ -131,9 +169,11 @@ class EditorContentManager : IContentManager
 
 	public void RegisterAssetLoader<T>() where T : new, class, IAssetLoader
 	{
-		//Log.EngineLogger.AssertDebug(!_assetLoaders.Any((l) => l.GetType() == typeof(T)), "Asset loader already registered.");
+		// Log.EngineLogger.AssertDebug(!_assetLoaders.Any((l) => l.GetType() == typeof(T)), "Asset loader already registered.");
 
-		_assetLoaders.Add(new T());
+		T assetLoader = new T();
+
+		_assetLoaders.Add(assetLoader);
 
 		for (StringView ext in T.FileExtensions)
 			_supportedExtensions.Add(new String(ext));
@@ -196,12 +236,20 @@ class EditorContentManager : IContentManager
 	{
 		return _identiferToHandle.ContainsKey(identifier);
 	}
-	
+
 	public Asset GetAsset(Type assetType, AssetHandle handle)
 	{
 		Asset asset = null;
 
 		_handleToAsset.TryGetValue(handle, out asset);
+
+		if (var placeholder = asset as PlaceholderAsset)
+		{
+			if (placeholder.PlaceholderType == .Loading)
+				return placeholder.AssetLoader.GetPlaceholderAsset(assetType);
+			else if (placeholder.PlaceholderType == .Error)
+				return placeholder.AssetLoader.GetErrorAsset(assetType);
+		}
 
 		if (assetType == null)
 		{
@@ -221,25 +269,25 @@ class EditorContentManager : IContentManager
 
 	private void ReloadAsset(AssetHandle handle)
 	{
-		Asset asset = null;
+		Debug.Profiler.ProfileResourceFunction!();
+		
+		Asset oldAsset = null;
 
-		if (!_handleToAsset.TryGetValue(handle, out asset))
+		if (!_handleToAsset.TryGetValue(handle, out oldAsset))
 		{
 			Log.EngineLogger.Error("Can't reload! No asset exists for handle.");
 
 			return;
 		}
 
-		Log.EngineLogger.AssertDebug(asset != null);
+		Log.EngineLogger.AssertDebug(oldAsset != null);
 
-		StringView oldIdentifier = asset.Identifier;
+		StringView oldIdentifier = oldAsset.Identifier;
 
 		GetResourceAndSubassetName(oldIdentifier, let resourceName, let subassetName);
 		
 		String filePath = scope .();
 		GetResourceFilePath(resourceName, filePath);
-
-		//filePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 
 		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromPath(filePath);
 
@@ -255,35 +303,28 @@ class EditorContentManager : IContentManager
 
 		Stream stream = GetStream(filePath);
 
+		// TODO: Add async loading!
 		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
 
 		delete stream;
 
 		if (loadedAsset == null)
 			return;
-
-		loadedAsset.Identifier = oldIdentifier;
-		loadedAsset.[Friend]_handle = handle;
-
-		// Remove asset
-		_identiferToHandle.Remove(oldIdentifier);
-		Asset oldAsset = _handleToAsset[handle];
-		oldAsset.ReleaseRef();
-
-		_handleToAsset[handle] = loadedAsset;
-		_identiferToHandle.Add(loadedAsset.Identifier, handle);
-
+		
 		file.[Friend]_loadedAsset = loadedAsset;
+
+		SwapAsset(oldAsset, loadedAsset);
+		// SwapAsset increases RefCount, but this scope also holds a reference.
+		loadedAsset.ReleaseRef();
 	}
 
 	/// Returns the resource name and, if it exists, the subasset name.
 	private void GetResourceAndSubassetName(StringView identifier, out StringView resourceName, out StringView? subassetName)
 	{
-		// Find subasset name
 		int poundIndex = identifier.IndexOf('#');
 
-		resourceName = poundIndex == -1 ? identifier : identifier.Substring(0, poundIndex);
-		subassetName = identifier.Substring(poundIndex + 1);
+		resourceName = (poundIndex != -1) ? identifier.Substring(0, poundIndex) : identifier;
+		subassetName = (poundIndex != -1) ? identifier.Substring(poundIndex + 1) : null;
 	}
 
 	private void GetResourceFilePath(StringView resourceName, String filePath)
@@ -293,24 +334,65 @@ class EditorContentManager : IContentManager
 		Path.Fixup(filePath);
 	}
 
-	public AssetHandle LoadAsset(StringView identifier)
+	private enum PlaceholderType
 	{
+		Loading,
+		Error
+	}
+
+	private class PlaceholderAsset : Asset
+	{
+		public AssetFile AssetFile {get; private set;}
+		public Task LoadingTask {get;set;}
+		public IAssetLoader AssetLoader {get; private set;}
+		public PlaceholderType PlaceholderType {get; set;}
+
+		public this(AssetFile assetFile, IAssetLoader assetLoader, PlaceholderType placeholderType)
+		{
+			AssetFile = assetFile;
+			AssetLoader = assetLoader;
+			PlaceholderType = placeholderType;
+		}
+	}
+
+	private append Monitor _finishedEntriesLock = .();
+	private append List<(PlaceholderAsset placeholder, Asset newAsset)> _finishedEntries = .();
+
+	private class MissingAsset : Asset {}
+
+	public class AssetIdentifier
+	{
+		public const char8 DirectorySeparatorChar = '/';
+
+		public static void Fixup(String assetIdentifier)
+		{
+			const String DotSeperator = $".{DirectorySeparatorChar}";
+			const String SeperatorDot = $"{DirectorySeparatorChar}.";
+
+			assetIdentifier.Replace('\\', DirectorySeparatorChar);
+			assetIdentifier.Replace(DotSeperator, "");
+			assetIdentifier.Replace(SeperatorDot, "");
+
+			if (assetIdentifier.StartsWith(DirectorySeparatorChar))
+				assetIdentifier.Remove(0, 1);
+		}
+	}
+
+	public AssetHandle LoadAsset(StringView identifier, bool blocking = false)
+	{
+		Debug.Profiler.ProfileResourceFunction!();
+		
 		// Todo: How strict should we be on paths?
 		String fixedIdentifier = scope String(identifier);
-		// TODO: Fixup is more of a filesystem thingy... we might want to use our own function
-		Path.Fixup(fixedIdentifier);
+		AssetIdentifier.Fixup(fixedIdentifier);
 
 		if (_identiferToHandle.TryGetValue(fixedIdentifier, let asset))
-		{
 			return asset;
-		}
 
 		GetResourceAndSubassetName(fixedIdentifier, let resourceName, let subassetName);
 
 		String filePath = scope .();
 		GetResourceFilePath(resourceName, filePath);
-
-		//filePath.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 
 		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromPath(filePath);
 
@@ -327,14 +409,37 @@ class EditorContentManager : IContentManager
 		// TODO: what are we supposed to do if we don't find a loader? Sure not crash...
 		Log.EngineLogger.AssertDebug(assetLoader != null);
 
-		Stream stream = GetStream(filePath);
+		Asset loadedAsset;
 
-		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
-		
-		delete stream;
+		// TODO: Support lazy loading for all asset types
+		if (!(assetLoader is EditorTextureAssetLoader) || blocking)
+		{
+			Stream stream = GetStream(filePath);
 
-		if (loadedAsset == null)
-			return .Invalid;
+			loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
+
+			delete stream;
+
+			if (loadedAsset == null)
+				return .Invalid;
+		}
+		else
+		{
+			PlaceholderAsset placeholder = new PlaceholderAsset(file, assetLoader, .Loading);
+
+			String filePath2 = new String(filePath);
+			String newResourceName = new String(resourceName);
+			String newSesourceName = subassetName == null ? null : new String(subassetName.Value);
+
+			placeholder.LoadingTask = new Task(new () => {
+				AsyncLoadAsset(placeholder, filePath2, assetLoader, file,
+					newResourceName, newSesourceName);
+			});
+
+			ThreadPool.QueueUserWorkItem(placeholder.LoadingTask);
+
+			loadedAsset = placeholder;
+		}
 
 		loadedAsset.Identifier = fixedIdentifier;
 		AssetHandle handle = ManageAsset(loadedAsset);
@@ -347,6 +452,25 @@ class EditorContentManager : IContentManager
 		file.[Friend]_loadedAsset = loadedAsset;
 
 		return handle;
+	}
+
+	private void AsyncLoadAsset(PlaceholderAsset placeholder, String filePath, IAssetLoader assetLoader, AssetFile file, String resourceName, String subassetName)
+	{
+		Debug.Profiler.ProfileResourceFunction!();
+		
+		Stream stream = GetStream(filePath);
+
+		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
+
+		delete stream;
+		delete filePath;
+		delete resourceName;
+		delete subassetName;
+
+		using (_finishedEntriesLock.Enter())
+		{
+			_finishedEntries.Add((placeholder, loadedAsset));
+		}
 	}
 
 	/// Gets the asset loader that has to be used for the given file.
@@ -483,9 +607,10 @@ class EditorContentManager : IContentManager
 		AssetHandle handle = .();
 
 		// Generate until we find a unique key (shouldn't happen too often)
-		while (_handleToAsset.ContainsKey(handle))
+		while (handle.IsInvalid || _handleToAsset.ContainsKey(handle))
 		{
 			handle = .();
+			Log.EngineLogger.Trace("Handle was invalid or already taken.");
 			// TODO: perhaps test how often this happens.
 			// If this happens too often we could use a different random generator
 		}
@@ -500,9 +625,26 @@ class EditorContentManager : IContentManager
 		return handle;
 	}
 
+	private void SwapAsset(Asset oldAsset, Asset newAsset)
+	{
+		newAsset.Identifier = oldAsset.Identifier;
+		newAsset._contentManager = this;
+		newAsset._handle = oldAsset.Handle;
+
+		_handleToAsset[oldAsset.Handle] = newAsset;
+
+		if (_identiferToHandle.ContainsKey(oldAsset.Identifier))
+		{
+			_identiferToHandle.Remove(oldAsset.Identifier);
+			_identiferToHandle.Add(newAsset.Identifier, newAsset.Handle);
+		}
+
+		newAsset.AddRef();
+		oldAsset.ReleaseRef();
+	}
+
 	public void UnmanageAsset(AssetHandle handle)
 	{
-		//Log.EngineLogger.AssertDebug(_handles.ContainsValue(handle), "Handle isn't managed by this content manager.");
 		Log.EngineLogger.AssertDebug(_handleToAsset.ContainsKey(handle), "Handle doesn't correspond to an asset.");
 
 		Asset asset = _handleToAsset[handle];
@@ -520,16 +662,14 @@ class EditorContentManager : IContentManager
 	/// Note: This will not release any assets.
 	private void UnmanageAllAssets()
 	{
-		for (let (_, assetHandle) in _identiferToHandle)
+		for (let (handle, _) in _handleToAsset)
 		{
-			UnmanageAsset(assetHandle);
+			UnmanageAsset(handle);
 		}
 	}
 
-	public void UpdateAssetIdentifier(Asset asset, StringView oldIdentifier, StringView newIdentifier)
+	public void AssetMoved(Asset asset, StringView oldIdentifier, StringView newIdentifier)
 	{
-		// TODO: this is much harder with asste handles that are basically hashed identifiers!
-
 		Runtime.NotImplemented();
 
 		if (oldIdentifier == newIdentifier)

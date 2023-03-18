@@ -339,10 +339,9 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 			Log.EngineLogger.Error("Failed to load material.");
 			Debug.SafeBreak();
 			return null;
-			// TODO: return error material
 		}
 
-		Effect fx = Content.GetAsset<Effect>(contentManager.LoadAsset(materialFile.Effect), contentManager);//new Effect(materialFile.Effect);
+		Effect fx = Content.GetAsset<Effect>(contentManager.LoadAsset(materialFile.Effect, true), contentManager);
 
 		Material material = new Material(fx);
 
@@ -353,7 +352,6 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 			if (texture.IsInvalid)
 			{
 				Log.EngineLogger.Error($"Failed to load texture \"{textureIdentifier}\".");
-				// TODO: LoadAsset should return an error texture.
 			}
 
 			material.SetTexture(slotName, texture);
@@ -377,7 +375,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 				material.SetVariable(slotName, value);
 			case .None:
 			default:
-				Log.EngineLogger.Error("Errorre");
+				Log.EngineLogger.Error($"Unknown variable type of variable {slotName}: {variableValue}");
 			}
 
 			
@@ -402,8 +400,6 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 		materialFile.Textures = new .();
 		materialFile.Variables = new .();
 
-		//material.SetTexture();
-
 		for (let (slotName, texture) in material.[Friend]_textures)
 		{
 			Texture textureAsset = texture.Get();
@@ -419,7 +415,6 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 		for (let (name, arguments) in effect.[Friend]_variableDescriptions)
 		{
 			VariableValue variableValue = .None;
-			//Object variantValue = null;
 
 			let variable = effect.Variables[name];
 			
@@ -445,7 +440,6 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 					value = ColorRGBA.LinearToSRGB((ColorRGBA)value);
 					
 					variableValue = .ColorRGBA(value);
-					//variantValue = new box value;
 				}
 			}
 			else if (variable.Type == .Float && variable.Rows == 1)
@@ -465,48 +459,6 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 					material.GetVariable<Vector4>(variable.Name, let value);
 					variableValue = .Float4(value);
 				}
-
-				/*bool hasMin = TryGetValue(arguments, "Min", var min);
-				bool hasMax = TryGetValue(arguments, "Max", var max);
-
-				for (int r < variable.Rows)
-				{
-					switch (variable.Columns)
-					{
-					case 1:
-						material.GetVariable<float>(variable.Name, var value);
-						
-						float[1] minV = hasMin ? min.Get<float[1]>() : .(float.MinValue);
-						float[1] maxV = hasMax ? max.Get<float[1]>() : .(float.MaxValue);
-
-						if (ImGui.EditVector<1>(displayName, ref *(float[1]*)&value, .(), 0.1f, 100.0f, minV, maxV))
-							material.SetVariable(variable.Name, value);
-					case 2:
-						material.GetVariable<Vector2>(variable.Name, var value);
-						
-						Vector2 minV = hasMin ? min.Get<Vector2>() : .(float.MinValue);
-						Vector2 maxV = hasMax ? max.Get<Vector2>() : .(float.MaxValue);
-						
-						if (ImGui.EditVector2(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
-							material.SetVariable(variable.Name, value);
-					case 3:
-						material.GetVariable<Vector3>(variable.Name, var value);
-						
-						Vector3 minV = hasMin ? min.Get<Vector3>() : .(float.MinValue);
-						Vector3 maxV = hasMax ? max.Get<Vector3>() : .(float.MaxValue);
-
-						if (ImGui.EditVector3(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
-							material.SetVariable(variable.Name, value);
-					case 4:
-						material.GetVariable<Vector4>(variable.Name, var value);
-						
-						Vector4 minV = hasMin ? min.Get<Vector4>() : .(float.MinValue);
-						Vector4 maxV = hasMax ? max.Get<Vector4>() : .(float.MaxValue);
-
-						if (ImGui.EditVector4(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
-							material.SetVariable(variable.Name, value);
-					}
-				}*/
 			}
 
 			materialFile.Variables.Add(new String(name), variableValue);
@@ -522,5 +474,18 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 		writer.Write(text);
 
 		return .Ok;
+	}
+
+	Material _placeholder;
+	Material _error;
+
+	public Asset GetPlaceholderAsset(Type assetType)
+	{
+		return default;
+	}
+
+	public Asset GetErrorAsset(Type assetType)
+	{
+		return default;
 	}
 }

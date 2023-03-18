@@ -44,8 +44,18 @@ class ModelAssetLoader : IAssetLoader //, IReloadingAssetLoader
 
 	public Asset LoadAsset(Stream file, AssetLoaderConfig config, StringView assetIdentifier, StringView? subAsset, IContentManager contentManager)
 	{
-		Log.EngineLogger.Assert(subAsset != null);
+		//Log.EngineLogger.Assert(subAsset != null);
 
-		return ModelLoader.LoadMesh(file, subAsset.Value, 0);
+		return ModelLoader.LoadMesh(file, subAsset ?? assetIdentifier, 0);
+	}
+
+	public Asset GetPlaceholderAsset(Type assetType)
+	{
+		return default;
+	}
+
+	public Asset GetErrorAsset(Type assetType)
+	{
+		return default;
 	}
 }

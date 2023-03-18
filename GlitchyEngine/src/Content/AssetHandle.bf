@@ -11,10 +11,10 @@ struct AssetHandle : IHashable
 	private UUID _uuid;
 
 	/// Defines an asset that is invalid.
-	public const AssetHandle Invalid = .(UUID(0xAAAA'AAAA'AAAA'AAAA));
+	public const AssetHandle Invalid = .(UUID(0));
 
-	public bool IsValid => this == .Invalid;
-	public bool IsInvalid => !IsValid;
+	public bool IsValid => this != .Invalid;
+	public bool IsInvalid => this == .Invalid;
 
 	/// Create a new random AssetHandle
 	public this()
@@ -49,8 +49,8 @@ struct AssetHandle<T> where T : Asset
 
 	public const Self Invalid = .();
 
-	public bool IsValid => this == .Invalid;
-	public bool IsInvalid => !IsValid;
+	public bool IsValid => this != .Invalid;
+	public bool IsInvalid => this == .Invalid;
 
 	public this(AssetHandle handle, IContentManager contentManager = null)
 	{

@@ -25,7 +25,7 @@ namespace GlitchyEditor
 
 		public this(String texturePath, Vector2 iconSize)
 		{
-			_texture = Content.LoadAsset(texturePath);//new Texture2D(texturePath);
+			_texture = Content.LoadAsset(texturePath, null, true);
 			
 			Vector2 pen = .();
 
