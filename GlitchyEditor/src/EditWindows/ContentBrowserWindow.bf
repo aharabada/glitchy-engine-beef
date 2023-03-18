@@ -14,9 +14,6 @@ namespace GlitchyEditor.EditWindows
 
 	class ContentBrowserWindow : EditorWindow
 	{
-		// TODO: Get from project
-		//const String ContentDirectory  = "./content";
-
 		private append String _currentDirectory = .();
 
 		private append String _selectedFile = .();
@@ -58,11 +55,19 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.Columns(2);
 
+			ImGui.BeginChild("Sidebar");
+
 			DrawDirectorySideBar();
 
+			ImGui.EndChild();
+
 			ImGui.NextColumn();
+			
+			ImGui.BeginChild("Files");
 
 			DrawCurrentDirectory();
+
+			ImGui.EndChild();
 
 			ImGui.Columns(1);
 
@@ -149,6 +154,24 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
+			if (currentDirectoryNode->Parent != null)
+			{
+				ImGui.PushID("Back");
+
+				DrawBackButton(currentDirectoryNode->Parent);
+
+				// X-Coordinate of the right side of the current entry.
+				float currentButtonRight = ImGui.GetItemRectMax().x;
+				// Expected right-Coordinate if next entry was on the same line.
+				float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
+
+				// If the next button won't fit on the same line we start a new line.
+				if (expectedButtonRight < window_visible_x2)
+				    ImGui.SameLine();
+
+				ImGui.PopID();
+			}
+
 			for (var entry in currentDirectoryNode->Children)
 			{
 			    ImGui.PushID(entry->Name);
@@ -166,6 +189,45 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.PopID();
 			}
+		}
+
+		/// Renders the button for the given directory item.
+		private void DrawBackButton(TreeNode<AssetNode> entry)
+		{
+			ImGui.BeginChild("item", (.)DirectoryItemSize);
+
+			if (entry->Path == _selectedFile)
+			{
+				var color = ImGui.GetStyleColorVec4(.ButtonHovered);
+				ImGui.PushStyleColor(.Button, *color);
+			}
+			else
+			{
+				ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
+			}
+			
+			SubTexture2D image = s_FolderTexture;
+
+			ImGui.ImageButton(image, (.)(DirectoryItemSize - padding));
+
+			ImGui.PopStyleColor();
+
+			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
+			{
+				if (_selectedFile != entry->Path)
+				{
+					_selectedFile.Set(entry->Path);
+				}
+			}
+
+			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
+			{
+				EntryDoubleClicked(entry);
+			}
+
+			ImGui.TextUnformatted("..");
+
+			ImGui.EndChild();
 		}
 
 		/// Renders the button for the given directory item.

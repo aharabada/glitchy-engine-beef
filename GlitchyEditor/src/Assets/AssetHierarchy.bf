@@ -108,7 +108,8 @@ class AssetHierarchy
 		fsw.OnRenamed.Add(new (oldName, newName) => {
 			Log.EngineLogger.Trace($"File renamed (From \"{oldName}\" to \"{newName}\")");
 			
-			_fileSystemDirty = true;
+			//_fileSystemDirty = true;
+			FileRenamed(oldName, newName);
 			/*String contentFilePath = scope String();
 
 			Path.InternalCombine(contentFilePath, ContentDirectory, oldName);
@@ -161,6 +162,7 @@ class AssetHierarchy
 			_assetHierarchy = new TreeNode<AssetNode>(new AssetNode());
 			_assetHierarchy->Path = new String(ContentDirectory);
 			_assetHierarchy->Name = new String("Content");
+			_assetHierarchy->IsDirectory = true;
 
 			Log.EngineLogger.Trace($"Created directory node for: \"{_assetHierarchy->Path}\"");
 
@@ -333,11 +335,70 @@ class AssetHierarchy
 			return;
 
 		OnFileContentChanged(node.Value);
+	}
 
-		// TODO: Handle file changes (reload asset, etc...)
+	private void FileRenamed(StringView oldFilePath, StringView newFilePath)
+	{
+		var oldFilePath;
+
+		// Ignore Config files.
+		if (oldFilePath.EndsWith(AssetFile.ConfigFileExtension))
+			return;
+
+
+		String oldFileNameWithContentRoot = scope .();
+		Path.InternalCombine(oldFileNameWithContentRoot, _contentDirectory, oldFilePath);
+		
+		String newFileNameWithContentRoot = scope .();
+		Path.InternalCombine(newFileNameWithContentRoot, _contentDirectory, newFilePath);
+		
+		// Rename config file
+		{
+			String oldConfigFileName = scope $"{oldFileNameWithContentRoot}{AssetFile.ConfigFileExtension}";
+			String newConfigFileName = scope $"{newFileNameWithContentRoot}{AssetFile.ConfigFileExtension}";
+
+			if (File.Exists(oldConfigFileName) && !File.Exists(newConfigFileName))
+			{
+				if (File.Move(oldConfigFileName, newConfigFileName) case .Err(let value))
+				{
+					Log.EngineLogger.Error($"Failed to move file {oldConfigFileName} to {newConfigFileName}. Code: {value}");
+				}
+			}
+		}
+
+		var nodeResult = GetNodeFromPath(oldFileNameWithContentRoot);
+
+		TreeNode<AssetNode> node = null;
+
+		if (!(nodeResult case .Ok(out node)))
+		{
+			// This happens, when we create new files.
+			Log.EngineLogger.Trace($"Could not find node for file \"{oldFileNameWithContentRoot}\"");
+			return;
+		}
+		
+		_pathToAssetNode.Remove(oldFileNameWithContentRoot);
+
+		node->Path.Set(newFileNameWithContentRoot);
+		_pathToAssetNode.Add(newFileNameWithContentRoot, node);
+		
+		node->Name.Clear();
+		Path.GetFileName(newFileNameWithContentRoot, node->Name);
+
+		String oldIdentifier = scope .(node->AssetFile.[Friend]_identifier);
+
+		node->AssetFile.[Friend]_path.Set(node->Path);
+		node->AssetFile.[Friend]_identifier.Set(newFilePath);
+		node->AssetFile.[Friend]_assetConfigPath..Set(node->Path).Append(AssetFile.ConfigFileExtension);
+
+		OnFileRenamed(node.Value, oldIdentifier);
 	}
 
 	public delegate void FileContentChangedFunc(AssetNode node);
 
 	public Event<FileContentChangedFunc> OnFileContentChanged ~ _.Dispose();
+
+	public delegate void FileRenamedFunc(AssetNode node, StringView oldName);
+
+	public Event<FileRenamedFunc> OnFileRenamed ~ _.Dispose();
 }

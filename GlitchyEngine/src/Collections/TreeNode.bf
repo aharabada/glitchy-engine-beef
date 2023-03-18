@@ -11,6 +11,7 @@ namespace GlitchyEngine.Collections
 	{
 		public T Value;
 
+		public Self Parent;
 		public List<Self> Children = new .() ~ DeleteContainerAndItems!(_);
 
 		public this() {}
@@ -29,6 +30,7 @@ namespace GlitchyEngine.Collections
 			}
 
 			Self newChild = new .(value);
+			newChild.Parent = this;
 
 			Children.Add(newChild);
 

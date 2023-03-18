@@ -34,6 +34,7 @@ class EditorContentManager : IContentManager
 	public this()
 	{
 		_assetHierarchy.OnFileContentChanged.Add(new => OnFileContentChanged);
+		_assetHierarchy.OnFileRenamed.Add(new => OnFileRenamed);
 	}
 
 	public ~this()
@@ -43,52 +44,25 @@ class EditorContentManager : IContentManager
 
 	private void OnFileContentChanged(AssetNode assetNode)
 	{
-		// TODO: update for AssetHandles
-
-		// TODO: Subassets break reloading because we can't find them when we only receive the file that changed...
-
 		// Asset isn't loaded so we don't need to reload it.
 		if (assetNode.AssetFile.LoadedAsset == null)
 			return;
 
 		_reloadQueue.Add(assetNode.AssetFile.LoadedAsset.Handle);
-
-		/*String neededAssetLoaderName = assetNode.AssetFile.AssetConfig?.AssetLoader;
-
-		if (String.IsNullOrWhiteSpace(neededAssetLoaderName))
+	}
+	
+	public void OnFileRenamed(AssetNode assetNode, StringView oldIdentifier)
+	{
+		// Asset isn't loaded so we don't need to reload it.
+		if (assetNode.AssetFile.LoadedAsset == null)
 			return;
 
-		IAssetLoader assetLoader = null;
+		Asset asset = assetNode.AssetFile.LoadedAsset;
 
-		String loaderNameBuffer = scope String(64);
+		asset.Identifier = assetNode.AssetFile.Identifier;
 
-		for (IAssetLoader loader in _assetLoaders)
-		{
-			loader.GetType().GetName(loaderNameBuffer..Clear());
-
-			if (loaderNameBuffer == neededAssetLoaderName)
-			{
-				assetLoader = loader;
-				break;
-			}
-		}
-
-		if (assetLoader == null)
-		{
-			Log.EngineLogger.Error($"Could not find asset loader \"{neededAssetLoaderName}\"");
-			return;
-		}*/
-
-		/*if (var assetReloader = assetLoader as IReloadingAssetLoader)
-		{
-			Stream stream = GetStream(assetNode.Path);
-
-			// TODO: reload asset
-
-			//assetReloader.ReloadAsset(assetNode.AssetFile, stream);
-
-			delete stream;
-		}*/
+		_identiferToHandle.Remove(oldIdentifier);
+		_identiferToHandle.Add(asset.Identifier, asset.Handle);
 	}
 
 	public void SetContentDirectory(StringView contentDirectory)

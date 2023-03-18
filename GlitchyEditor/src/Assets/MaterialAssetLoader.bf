@@ -86,7 +86,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 					AssetHandle<Texture2D> newTexture = Content.LoadAsset(path);
 
-					newTexture.Get().SamplerState = SamplerStateManager.AnisotropicWrap;
+					//newTexture.Get().SamplerState = SamplerStateManager.AnisotropicWrap;
 					material.SetTexture(texture.key, newTexture.Cast<Texture>());
 				}
 
