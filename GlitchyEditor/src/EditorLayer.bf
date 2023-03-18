@@ -27,7 +27,9 @@ namespace GlitchyEditor
 		BlendState _opaqueBlendState ~ _.ReleaseRef();
 		DepthStencilState _depthStencilState ~ _.ReleaseRef();
 		
-		Scene _scene ~ delete _;
+		Scene _activeScene ~ _?.ReleaseRef();
+		Scene _editorScene ~ _?.ReleaseRef();
+
 		String _sceneFilePath = new String() ~ delete _;
 
 		public String SceneFilePath
@@ -78,7 +80,8 @@ namespace GlitchyEditor
 
 			InitGraphics();
 
-			_scene = new Scene();
+			_editorScene = new Scene();
+			SetReference!(_activeScene, _editorScene);
 
 			_camera = EditorCamera(Vector3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
 			_camera.RenderTarget = _cameraTarget;
@@ -163,7 +166,7 @@ namespace GlitchyEditor
 
 		private void InitEditor()
 		{
-			_editor = new Editor(_scene, _contentManager);
+			_editor = new Editor(_editorScene, _contentManager);
 			_editor.SceneViewportWindow.ViewportSizeChanged.Add(new (s, e) => ViewportSizeChanged(s, e));
 			_editor.CurrentCamera = &_camera;
 
@@ -176,6 +179,8 @@ namespace GlitchyEditor
 		{
 			_camera.Update(gameTime);
 
+			_editor.CurrentScene = _activeScene;
+
 			// Clear the swapchain-buffer
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
@@ -185,9 +190,9 @@ namespace GlitchyEditor
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
 			if (_sceneState == .Edit)
-				_scene.UpdateEditor(gameTime, _camera, _viewportTarget, scope => DebugDraw3D, scope => DebugDraw2D);
+				_activeScene.UpdateEditor(gameTime, _camera, _viewportTarget, scope => DebugDraw3D, scope => DebugDraw2D);
 			else if (_sceneState == .Play)
-				_scene.UpdateRuntime(gameTime, _viewportTarget);
+				_activeScene.UpdateRuntime(gameTime, _viewportTarget);
 
 			RenderCommand.UnbindRenderTargets();
 			RenderCommand.SetRenderTarget(null, 0, true);
@@ -226,9 +231,9 @@ namespace GlitchyEditor
 				return Math.Clamp(1.5f - Vector3.Distance(_editor.CurrentCamera.Position, pos) / 50, 0, 1);
 			}
 
-			for (var (entity, transform, camera) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent, CameraComponent>())
+			for (var (entity, transform, camera) in _activeScene.[Friend]_ecsWorld.Enumerate<TransformComponent, CameraComponent>())
 			{
-				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _scene)))
+				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _activeScene)))
 				{
 					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection, _camera.Projection * _camera.View, .White);
 				}
@@ -240,9 +245,9 @@ namespace GlitchyEditor
 				//Renderer2D.DrawQuad(world, _iconCamera, .White, .(0, 0, 1, 1), entity.Index);
 			}
 
-			for (var (entity, transform, light) in _scene.[Friend]_ecsWorld.Enumerate<TransformComponent, LightComponent>())
+			for (var (entity, transform, light) in _activeScene.[Friend]_ecsWorld.Enumerate<TransformComponent, LightComponent>())
 			{
-				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _scene)))
+				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _activeScene)))
 				{
 					Renderer.DrawRay(.Zero, .(0, 0, 20), ColorRGBA(light.SceneLight.Color, 1.0f), transform.WorldTransform);
 
@@ -343,18 +348,30 @@ namespace GlitchyEditor
 
 		private void OnScenePlay()
 		{
-			_sceneState = .Play;
 			_editor.SceneViewportWindow.EditorMode = false;
+			_sceneState = .Play;
 
-			_scene.OnRuntimeStart();
+			using (Scene runtimeScene = new Scene())
+			{
+				_editorScene.CopyTo(runtimeScene);
+
+				runtimeScene.OnRuntimeStart();
+
+				SetReference!(_activeScene, runtimeScene);
+			}
+
+			_editor.CurrentScene = _activeScene;
 		}
 
 		private void OnSceneStop()
 		{
-			_scene.OnRuntimeStop();
+			_activeScene.OnRuntimeStop();
+			SetReference!(_activeScene, _editorScene);
 
 			_editor.SceneViewportWindow.EditorMode = true;
 			_sceneState = .Edit;
+
+			_editor.CurrentScene = _activeScene;
 		}
 
 		// Just for testing
@@ -488,13 +505,17 @@ namespace GlitchyEditor
 		/// Creates a new scene.
 		private void NewScene()
 		{
+			OnSceneStop();
+
 			SceneFilePath = null;
-			
-			delete _scene;
-			_scene = new Scene();
-			_editor.CurrentScene = _scene;
+
+			_editorScene.ReleaseRef();
+			_editorScene = new Scene();
+			_editor.CurrentScene = _editorScene;
 			var vpSize = _editor.SceneViewportWindow.ViewportSize;
-			_scene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
+			_editorScene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
+
+			SetReference!(_activeScene, _editorScene);
 
 			_camera.Position = .(-1.5f, 1.5f, -2.5f);
 			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
@@ -530,7 +551,7 @@ namespace GlitchyEditor
 				return;
 			}
 			
-			SceneSerializer serializer = scope .(_scene);
+			SceneSerializer serializer = scope .(_editorScene);
 			serializer.Serialize(SceneFilePath);
 		}
 		
@@ -565,16 +586,20 @@ namespace GlitchyEditor
 		/// Loads the given scene file.
 		private void LoadSceneFile(StringView filename)
 		{
+			OnSceneStop();
+
 			SceneFilePath = scope String(filename);
 
-			delete _scene;
-			_scene = new Scene();
-			_editor.CurrentScene = _scene;
+			_editorScene.ReleaseRef();
+			_editorScene = new Scene();
+			_editor.CurrentScene = _editorScene;
 			var vpSize = _editor.SceneViewportWindow.ViewportSize;
-			_scene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
+			_editorScene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
 
-			SceneSerializer serializer = scope .(_scene);
+			SceneSerializer serializer = scope .(_editorScene);
 			serializer.Deserialize(SceneFilePath);
+
+			SetReference!(_activeScene, _editorScene);
 		}
 
 		private void DrawMainMenuBar()
@@ -648,7 +673,7 @@ namespace GlitchyEditor
 			_viewportTarget.Resize(sizeX, sizeY);
 			_cameraTarget.Resize(sizeX, sizeY);
 
-			_scene.OnViewportResize(sizeX, sizeY);
+			_activeScene.OnViewportResize(sizeX, sizeY);
 			_camera.OnViewportResize(sizeX, sizeY);
 		}
 

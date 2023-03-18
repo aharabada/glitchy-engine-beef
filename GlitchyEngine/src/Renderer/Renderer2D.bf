@@ -873,7 +873,7 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public static void DrawSprite(Matrix transform, SpriterRendererComponent* spriteRenderer, uint32 entityId)
+		public static void DrawSprite(Matrix transform, SpriteRendererComponent* spriteRenderer, uint32 entityId)
 		{
 			if (spriteRenderer.IsCircle)
 				DrawCircle(transform, spriteRenderer.Sprite.Get() ?? s_whiteTexture, spriteRenderer.Color, 1.0f, spriteRenderer.UvTransform, entityId);

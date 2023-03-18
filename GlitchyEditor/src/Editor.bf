@@ -26,6 +26,9 @@ namespace GlitchyEditor
 			get => _scene;
 			set
 			{
+				if (_scene == value)
+					return;
+
 				_scene = value;
 				_entityHierarchyWindow.SetContext(_scene);
 			}

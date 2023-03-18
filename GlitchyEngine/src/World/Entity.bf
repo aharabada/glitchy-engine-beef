@@ -66,6 +66,12 @@ namespace GlitchyEngine.World
 
 		public UUID UUID => GetComponent<IDComponent>().ID;
 
+		public StringView Name
+		{
+			get => GetComponent<NameComponent>().Name;
+			set => GetComponent<NameComponent>().Name = value;
+		}
+
 		public TransformComponent* Transform => GetComponent<TransformComponent>();
 
 		public T* AddComponent<T>(T value = T()) where T: struct, new

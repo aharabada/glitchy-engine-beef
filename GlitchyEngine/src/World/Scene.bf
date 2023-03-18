@@ -11,7 +11,7 @@ namespace GlitchyEngine.World
 	using internal ScriptableEntity;
 	using internal GlitchyEngine.World;
 
-	class Scene
+	class Scene : RefCounter
 	{
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
 
@@ -25,6 +25,8 @@ namespace GlitchyEngine.World
 		private RenderTargetGroup _cameraTarget ~ _.ReleaseRef();
 
 		private AssetHandle _gammaCorrectEffect;
+
+		private uint32 _viewportWidth, _viewportHeight;
 
 		// Maps ids to the entities they represent.
 		private Dictionary<UUID, EcsEntity> _idToEntity = new .() ~ delete _;
@@ -56,7 +58,7 @@ namespace GlitchyEngine.World
 			_onComponentAddedHandlers.Add(typeof(CameraComponent), (e, t, c) => {
 				CameraComponent* cameraComponent = (.)c;
 
-				cameraComponent.Camera.SetViewportSize(e.Scene.ViewportWidth, e.Scene.ViewportHeight);
+				cameraComponent.Camera.SetViewportSize(e.Scene._viewportWidth, e.Scene._viewportHeight);
 			});
 
 			RenderTargetGroupDescription desc = .(100, 100,
@@ -81,6 +83,59 @@ namespace GlitchyEngine.World
 
 		public ~this()
 		{
+		}
+
+		public void CopyTo(Scene target)
+		{
+			// Copy entities
+			for (let sourceHandle in _ecsWorld.Enumerate())
+			{
+				Entity sourceEntity = .(sourceHandle, this);
+
+				target.CreateEntity(sourceEntity.Name, sourceEntity.UUID);
+			}
+
+			// TODO: perhaps use reflection and comptime
+			// Copy components
+			//CopyComponents<TransformComponent>(this, target); /* Parent will be copied below*/
+			CopyComponents<MeshRendererComponent>(this, target);
+			CopyComponents<EditorComponent>(this, target);
+			CopyComponents<SpriteRendererComponent>(this, target);
+			CopyComponents<CameraComponent>(this, target);
+			CopyComponents<NativeScriptComponent>(this, target);
+			CopyComponents<LightComponent>(this, target);
+			CopyComponents<Rigidbody2DComponent>(this, target);
+			CopyComponents<BoxCollider2DComponent>(this, target);
+			CopyComponents<CircleCollider2DComponent>(this, target);
+
+			// Copy transforms
+			for (let (sourceHandle, sourceTransform) in _ecsWorld.Enumerate<TransformComponent>())
+			{
+				Entity sourceEntity = Entity(sourceHandle, this);
+				Entity sourceParent = Entity(sourceTransform.Parent, this);
+				
+				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
+				*targetEntity.Transform = *sourceTransform;
+
+				if (sourceParent.IsValid)
+				{
+					Entity targetParent = target.GetEntityByID(sourceParent.UUID);
+					targetEntity.Parent = targetParent;
+				}
+			}
+			
+			target.OnViewportResize(_viewportWidth, _viewportHeight);
+		}
+
+		private static void CopyComponents<TComponent>(Scene source, Scene target) where TComponent : struct, new
+		{
+			for (let (sourceHandle, sourceComponent) in source._ecsWorld.Enumerate<TComponent>())
+			{
+				Entity sourceEntity = .(sourceHandle, source);
+
+				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
+				targetEntity.AddComponent<TComponent>(*sourceComponent);
+			}
 		}
 		
 		b2Vec2 _gravity2D = .(0.0f, -9.8f);
@@ -256,7 +311,7 @@ namespace GlitchyEngine.World
 			// Sprite renderer
 			Renderer2D.BeginScene(*primaryCamera, primaryCameraTransform, .BackToFront);
 
-			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
+			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent>())
 			{
 				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 			}
@@ -469,7 +524,7 @@ namespace GlitchyEngine.World
 			// Sprite renderer
 			Renderer2D.BeginScene(camera, .BackToFront);
 
-			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriterRendererComponent>())
+			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent>())
 			{
 				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 			}
@@ -502,12 +557,12 @@ namespace GlitchyEngine.World
 		}
 
 		/// Creates a new Entity with the given name.
-		public Entity CreateEntity(String name = "", UUID id = default)
+		public Entity CreateEntity(StringView name = "", UUID id = default)
 		{
 			Entity entity = Entity(_ecsWorld.NewEntity(), this);
 			entity.AddComponent<TransformComponent>();
 
-			let nameComponent = entity.AddComponent<DebugNameComponent>();
+			let nameComponent = entity.AddComponent<NameComponent>();
 			nameComponent.SetName(name.IsEmpty ? "Entity" : name);
 			
 			// If no id is given generate a random one.
@@ -549,13 +604,11 @@ namespace GlitchyEngine.World
 			return .Err;
 		}
 
-		private uint32 ViewportWidth, ViewportHeight;
-
 		/// Sets the size of the viewport into which the scene will be rendered.
 		public void OnViewportResize(uint32 width, uint32 height)
 		{
-			ViewportWidth = width;
-			ViewportHeight = height;
+			_viewportWidth = width;
+			_viewportHeight = height;
 
 			for (var (entity, cameraComponent) in _ecsWorld.Enumerate<CameraComponent>())
 			{
@@ -565,8 +618,8 @@ namespace GlitchyEngine.World
 				}
 			}
 
-			_compositeTarget.Resize(ViewportWidth, ViewportHeight);
-			_cameraTarget.Resize(ViewportWidth, ViewportHeight);
+			_compositeTarget.Resize(_viewportWidth, _viewportHeight);
+			_cameraTarget.Resize(_viewportWidth, _viewportHeight);
 		}
 
 		private void OnComponentAdded(Entity entity, Type componentType, void* component)

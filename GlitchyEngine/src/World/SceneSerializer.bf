@@ -79,12 +79,12 @@ class SceneSerializer
 			
 			SerializeComponent<EditorComponent>(writer, entity, "EditorComponent", scope (component) => {});
 
-			SerializeComponent<DebugNameComponent>(writer, entity, "NameComponent", scope (component) =>
+			SerializeComponent<NameComponent>(writer, entity, "NameComponent", scope (component) =>
 			{
-				Serialize.Value(writer, "Name", component.DebugName);
+				Serialize.Value(writer, "Name", component.Name);
 			});
 
-			SerializeComponent<SpriterRendererComponent>(writer, entity, "SpriterRendererComponent", scope (component) =>
+			SerializeComponent<SpriteRendererComponent>(writer, entity, "SpriterRendererComponent", scope (component) =>
 			{
 				Serialize.Value(writer, "Color", component.Color);
 				Serialize.Value(writer, "IsCircle", component.IsCircle);
@@ -317,7 +317,7 @@ class SceneSerializer
 			case "EditorComponent":
 				Try!(DeserializeComponent<EditorComponent>(reader, entity, scope (component) => { return .Ok; }));
 			case "NameComponent":
-				Try!(DeserializeComponent<DebugNameComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponent<NameComponent>(reader, entity, scope (component) =>
 				{
 					String name;
 
@@ -330,7 +330,7 @@ class SceneSerializer
 					return .Ok;
 				}));
 			case "SpriterRendererComponent":
-				Try!(DeserializeComponent<SpriterRendererComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponent<SpriteRendererComponent>(reader, entity, scope (component) =>
 				{
 					Try!(Deserialize.Value(reader, "Color", out component.Color));
 					reader.EntryEnd();

@@ -45,7 +45,7 @@ namespace GlitchyEngine.World
 	}
 
 	[Component("Sprite Renderer")]
-	struct SpriterRendererComponent// : IDisposableComponent
+	struct SpriteRendererComponent// : IDisposableComponent
 	{
 		private AssetHandle<Texture2D> _sprite = .Invalid;
 

@@ -301,11 +301,11 @@ namespace GlitchyEditor.EditWindows
 		{
 			String name = null;
 
-			var nameComponent = tree.Value.GetComponent<DebugNameComponent>();
+			var nameComponent = tree.Value.GetComponent<NameComponent>();
 
 			if(nameComponent != null)
 			{
-				name = nameComponent.DebugName;
+				name = scope:: .(nameComponent.Name);
 			}
 			else
 			{
@@ -501,13 +501,13 @@ namespace GlitchyEditor.EditWindows
 				{
 					Entity entity = .(entityId, _scene);
 
-					String name = null;
+					StringView name = null;
 
-					var nameComponent = entity.GetComponent<DebugNameComponent>();
+					var nameComponent = entity.GetComponent<NameComponent>();
 
 					if(nameComponent != null)
 					{
-						name = nameComponent.DebugName;
+						name = nameComponent.Name;
 					}
 					else
 					{

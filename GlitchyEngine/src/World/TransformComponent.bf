@@ -20,6 +20,7 @@ namespace GlitchyEngine.World
 		/// The frame when the transform was recalculated
 		public uint Frame;
 
+		// TODO: probably use UUID
 		public EcsEntity Parent
 		{
 			get => _parent;

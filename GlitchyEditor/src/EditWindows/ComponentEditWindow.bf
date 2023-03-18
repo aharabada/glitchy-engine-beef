@@ -60,7 +60,7 @@ namespace GlitchyEditor.EditWindows
 
 			ShowComponentEditor<TransformComponent>("Transform", entity, => ShowTransformComponentEditor);
 			ShowComponentEditor<CameraComponent>("Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
-			ShowComponentEditor<SpriterRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriterRendererComponent>);
+			ShowComponentEditor<SpriteRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriteRendererComponent>);
 			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
 			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
 			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
@@ -117,18 +117,18 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowNameComponentEditor(Entity entity)
 		{
-			if (!entity.HasComponent<DebugNameComponent>())
+			if (!entity.HasComponent<NameComponent>())
 				return;
 
 			char8[256] nameBuffer = default;
 
-			DebugNameComponent* component = entity.GetComponent<DebugNameComponent>();
+			NameComponent* component = entity.GetComponent<NameComponent>();
 
-			String name = null;
+			StringView name = null;
 
 			if(component != null)
 			{
-				name = component.DebugName;
+				name = component.Name;
 			}
 			else
 			{
@@ -142,11 +142,10 @@ namespace GlitchyEditor.EditWindows
 			{
 				if(component == null)
 				{
-					component = entity.AddComponent<DebugNameComponent>();
+					component = entity.AddComponent<NameComponent>();
 				}
 
-				component.DebugName.Clear();
-				component.DebugName.Append(&nameBuffer);
+				component.Name = StringView(&nameBuffer);
 			}
 		}
 
@@ -250,7 +249,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriterRendererComponent* spriteRendererComponent)
+		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriteRendererComponent* spriteRendererComponent)
 		{
 			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(spriteRendererComponent.Color);
 			if (ImGui.ColorEdit4("Color", ref spriteColor))
@@ -548,7 +547,7 @@ namespace GlitchyEditor.EditWindows
 				ImGui.Separator();
 
 				ShowComponentButton<CameraComponent>("Camera");
-				ShowComponentButton<SpriterRendererComponent>("Sprite Renderer");
+				ShowComponentButton<SpriteRendererComponent>("Sprite Renderer");
 				ShowComponentButton<LightComponent>("Light");
 				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
 				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");
