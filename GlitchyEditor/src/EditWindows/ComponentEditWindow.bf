@@ -61,6 +61,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<TransformComponent>("Transform", entity, => ShowTransformComponentEditor);
 			ShowComponentEditor<CameraComponent>("Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
 			ShowComponentEditor<SpriteRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriteRendererComponent>);
+			ShowComponentEditor<CircleRendererComponent>("Circle Renderer", entity, => ShowCircleRendererComponentEditor, => ShowComponentContextMenu<CircleRendererComponent>);
 			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
 			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
 			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
@@ -275,8 +276,36 @@ namespace GlitchyEditor.EditWindows
 
 
 			ImGui.EditVector<4>("UV Transform", ref *(float[4]*)&spriteRendererComponent.UvTransform);
+		}
 
-			ImGui.Checkbox("Is Circle", &spriteRendererComponent.IsCircle);
+		private static void ShowCircleRendererComponentEditor(Entity entity, CircleRendererComponent* circleRendererComponent)
+		{
+			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(circleRendererComponent.Color);
+			if (ImGui.ColorEdit4("Color", ref spriteColor))
+				circleRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
+
+			ImGui.Button("Texture");
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					Log.EngineLogger.Warning("");
+
+					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+					circleRendererComponent.Sprite = Content.LoadAsset(path);
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+
+
+			ImGui.EditVector<4>("UV Transform", ref *(float[4]*)&circleRendererComponent.UvTransform);
+
+			ImGui.DragFloat("Inner Radius", &circleRendererComponent.InnerRadius, 0.1f, 0.0f, 1.0f);
 		}
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
@@ -548,6 +577,7 @@ namespace GlitchyEditor.EditWindows
 
 				ShowComponentButton<CameraComponent>("Camera");
 				ShowComponentButton<SpriteRendererComponent>("Sprite Renderer");
+				ShowComponentButton<CircleRendererComponent>("Circle Renderer");
 				ShowComponentButton<LightComponent>("Light");
 				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
 				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");

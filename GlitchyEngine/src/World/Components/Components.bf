@@ -22,7 +22,7 @@ namespace GlitchyEngine.World
 	{
 		public readonly UUID ID;
 
-		/// Create aa new IDComponent with a random UUID.
+		/// Create a new IDComponent with a random UUID.
 		public this()
 		{
 			ID = UUID();
@@ -52,7 +52,25 @@ namespace GlitchyEngine.World
 		public ColorRGBA Color = .White;
 		public Vector4 UvTransform = .(0, 0, 1, 1);
 
-		public bool IsCircle = false;
+		public this()
+		{
+		}
+
+		public this(ColorRGBA color)
+		{
+			Color = color;
+		}
+	}
+
+	[Component("Circle Renderer")]
+	struct CircleRendererComponent
+	{
+		public AssetHandle<Texture2D> Sprite = .Invalid;
+
+		public ColorRGBA Color = .White;
+		public Vector4 UvTransform = .(0, 0, 1, 1);
+
+		public float InnerRadius = 0.0f;
 
 		public this()
 		{
@@ -62,11 +80,6 @@ namespace GlitchyEngine.World
 		{
 			Color = color;
 		}
-
-		/*public void Dispose()
-		{
-			_sprite?.ReleaseRef();
-		}*/
 	}
 
 	struct SceneCamera : Camera

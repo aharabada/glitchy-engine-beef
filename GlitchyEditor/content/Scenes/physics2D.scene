@@ -9,11 +9,10 @@
 			SpriteRendererComponent = {
 				Color = {
 					R = 0,
-					G = 0.5511778,
-					B = 0.32878691,
+					G = 0.55117774,
+					B = 0.32878688,
 					A = 1
 				},
-				IsCircle = false,
 				Sprite = "Textures/TestMat/rustediron2_albedo.png",
 				UvTransform = {
 					X = 0,
@@ -72,11 +71,10 @@
 			SpriteRendererComponent = {
 				Color = {
 					R = 1,
-					G = 0.941886246,
-					B = 0.401484907,
+					G = 0.941886365,
+					B = 0.401484847,
 					A = 1
 				},
-				IsCircle = false,
 				Sprite = "",
 				UvTransform = {
 					X = 0,
@@ -164,7 +162,7 @@
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 2.19888878,
+				AspectRatio = 3.22169805,
 				FixedAspectRatio = false
 			}
 		},
@@ -173,14 +171,14 @@
 			NameComponent = {
 				Name = "Circle"
 			},
-			SpriteRendererComponent = {
+			CircleRendererComponent = {
 				Color = {
-					R = 0.299884498,
-					G = 0.972924948,
-					B = 1,
+					R = 1,
+					G = 0,
+					B = 0,
 					A = 1
 				},
-				IsCircle = true,
+				InnerRadius = 0.300000012,
 				Sprite = "",
 				UvTransform = {
 					X = 0,
@@ -191,8 +189,8 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = -0.12120305,
-					Y = 0.660160244,
+					X = -0.12120308,
+					Y = 0.660160363,
 					Z = 0
 				},
 				Rotation = {
@@ -251,9 +249,9 @@
 					Z = 1
 				},
 				EditorEulerRotation = {
-					X = 1.09089446,
+					X = 1.0908947,
 					Y = -0.340793997,
-					Z = 0.160857946
+					Z = 0.160857916
 				}
 			},
 			LightComponent = {
@@ -262,7 +260,7 @@
 				Color = {
 					R = 0.985467017,
 					G = 1,
-					B = 0.569978774
+					B = 0.569978654
 				}
 			}
 		},

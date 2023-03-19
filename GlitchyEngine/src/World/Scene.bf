@@ -94,6 +94,7 @@ namespace GlitchyEngine.World
 			CopyComponents<MeshComponent>(this, target);
 			CopyComponents<EditorComponent>(this, target);
 			CopyComponents<SpriteRendererComponent>(this, target);
+			CopyComponents<CircleRendererComponent>(this, target);
 			CopyComponents<CameraComponent>(this, target);
 			CopyComponents<NativeScriptComponent>(this, target);
 			CopyComponents<LightComponent>(this, target);
@@ -309,6 +310,11 @@ namespace GlitchyEngine.World
 				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 			}
 
+			for (var (entity, transform, circle) in _ecsWorld.Enumerate<TransformComponent, CircleRendererComponent>())
+			{
+				Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
+			}
+
 			Renderer2D.EndScene();
 
 			// Gamma correct composit target and draw it into viewport
@@ -372,6 +378,11 @@ namespace GlitchyEngine.World
 				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 			}
 
+			for (var (entity, transform, circle) in _ecsWorld.Enumerate<TransformComponent, CircleRendererComponent>())
+			{
+				Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
+			}
+
 			Renderer2D.EndScene();
 
 			Renderer2D.BeginScene(camera, .BackToFront);
@@ -406,7 +417,7 @@ namespace GlitchyEngine.World
 			entity.AddComponent<TransformComponent>();
 
 			let nameComponent = entity.AddComponent<NameComponent>();
-			nameComponent.SetName(name.IsEmpty ? "Entity" : name);
+			nameComponent.Name = (name.IsEmpty ? "Entity" : name);
 			
 			// If no id is given generate a random one.
 			IDComponent idComponent = (id == default) ? IDComponent() : IDComponent(id);

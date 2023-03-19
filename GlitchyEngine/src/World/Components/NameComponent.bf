@@ -8,15 +8,13 @@ namespace GlitchyEngine.World
 		public StringView Name
 		{
 			get => _name;
-			set mut => SetName(value);
-		}
-
-		public void SetName(StringView name) mut
-		{
-			if (_name == null)
-				_name = new String(name);
-			else
-				_name.Set(name);
+			set mut
+			{
+				if (_name == null)
+					_name = new String(value);
+				else
+					_name.Set(value);
+			}
 		}
 
 		public void Dispose() mut

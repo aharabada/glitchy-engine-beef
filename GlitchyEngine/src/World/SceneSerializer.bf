@@ -87,10 +87,14 @@ class SceneSerializer
 			SerializeComponent<SpriteRendererComponent>(writer, entity, "SpriteRendererComponent", scope (component) =>
 			{
 				Serialize.Value(writer, "Color", component.Color);
-				Serialize.Value(writer, "IsCircle", component.IsCircle);
-
 				Serialize.Value(writer, "Sprite", component.Sprite);
-
+				Serialize.Value(writer, "UvTransform", component.UvTransform);
+			});
+			SerializeComponent<CircleRendererComponent>(writer, entity, "CircleRendererComponent", scope (component) =>
+			{
+				Serialize.Value(writer, "Color", component.Color);
+				Serialize.Value(writer, "InnerRadius", component.InnerRadius);
+				Serialize.Value(writer, "Sprite", component.Sprite);
 				Serialize.Value(writer, "UvTransform", component.UvTransform);
 			});
 
@@ -325,7 +329,7 @@ class SceneSerializer
 
 					Deserialize.Value(reader, "Name", out name);
 
-					component.SetName(name);
+					component.Name = name;
 
 					delete name;
 
@@ -336,12 +340,21 @@ class SceneSerializer
 				{
 					Try!(Deserialize.Value(reader, "Color", out component.Color));
 					reader.EntryEnd();
-					Try!(Deserialize.Value(reader, "IsCircle", out component.IsCircle));
-					reader.EntryEnd();
-
 					Try!(Deserialize.Value(reader, "Sprite", out component.Sprite));
 					reader.EntryEnd();
+					Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
 
+					return .Ok;
+				}));
+			case "CircleRendererComponent":
+				Try!(DeserializeComponent<CircleRendererComponent>(reader, entity, scope (component) =>
+				{
+					Try!(Deserialize.Value(reader, "Color", out component.Color));
+					reader.EntryEnd();
+					Try!(Deserialize.Value(reader, "InnerRadius", out component.InnerRadius));
+					reader.EntryEnd();
+					Try!(Deserialize.Value(reader, "Sprite", out component.Sprite));
+					reader.EntryEnd();
 					Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
 
 					return .Ok;
