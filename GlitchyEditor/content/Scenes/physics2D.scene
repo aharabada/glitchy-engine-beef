@@ -6,15 +6,15 @@
 			NameComponent = {
 				Name = "Quad"
 			},
-			SpriterRendererComponent = {
+			SpriteRendererComponent = {
 				Color = {
 					R = 0,
-					G = 0.551178,
-					B = 0.328787,
+					G = 0.5511778,
+					B = 0.32878691,
 					A = 1
 				},
 				IsCircle = false,
-				Sprite = "\\Textures\\TestMat\\rustediron2_albedo.png",
+				Sprite = "Textures/TestMat/rustediron2_albedo.png",
 				UvTransform = {
 					X = 0,
 					Y = 0,
@@ -69,15 +69,15 @@
 			NameComponent = {
 				Name = "Floor"
 			},
-			SpriterRendererComponent = {
+			SpriteRendererComponent = {
 				Color = {
 					R = 1,
-					G = 0.941886,
-					B = 0.401485,
+					G = 0.941886246,
+					B = 0.401484907,
 					A = 1
 				},
 				IsCircle = false,
-				Sprite = null,
+				Sprite = "",
 				UvTransform = {
 					X = 0,
 					Y = 0,
@@ -158,13 +158,13 @@
 			CameraComponent = {
 				Primary = true,
 				ProjectionType = .InfinitePerspective,
-				PerspectiveFovY = 1.308997,
-				PerspectiveNearPlane = 0.1,
+				PerspectiveFovY = 1.30899692,
+				PerspectiveNearPlane = 0.100000001,
 				PerspectiveFarPlane = 10000,
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 2.969697,
+				AspectRatio = 2.19888878,
 				FixedAspectRatio = false
 			}
 		},
@@ -173,15 +173,15 @@
 			NameComponent = {
 				Name = "Circle"
 			},
-			SpriterRendererComponent = {
+			SpriteRendererComponent = {
 				Color = {
-					R = 1,
-					G = 1,
+					R = 0.299884498,
+					G = 0.972924948,
 					B = 1,
 					A = 1
 				},
 				IsCircle = true,
-				Sprite = "\\Textures\\rocket.png",
+				Sprite = "",
 				UvTransform = {
 					X = 0,
 					Y = 0,
@@ -191,8 +191,8 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = -0.121203,
-					Y = 0.66016,
+					X = -0.12120305,
+					Y = 0.660160244,
 					Z = 0
 				},
 				Rotation = {
@@ -235,34 +235,34 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = 3.883276,
+					X = 3.88327599,
 					Y = 0,
-					Z = -0.808795
+					Z = -0.808795214
 				},
 				Rotation = {
-					X = 0.497987,
-					Y = -0.103421,
-					Z = 0.15538,
-					W = 0.846859
+					X = 0.497987002,
+					Y = -0.103420995,
+					Z = 0.155380026,
+					W = 0.846859217
 				},
 				Scale = {
-					X = 0.999998,
+					X = 0.999997795,
 					Y = 1,
 					Z = 1
 				},
 				EditorEulerRotation = {
-					X = 1.090894,
-					Y = -0.340794,
-					Z = 0.160858
+					X = 1.09089446,
+					Y = -0.340793997,
+					Z = 0.160857946
 				}
 			},
 			LightComponent = {
 				LightType = .Directional,
-				Illuminance = 12.9,
+				Illuminance = 12.8999996,
 				Color = {
-					R = 0.985467,
+					R = 0.985467017,
 					G = 1,
-					B = 0.569979
+					B = 0.569978774
 				}
 			}
 		},
@@ -275,7 +275,7 @@
 				Position = {
 					X = 0,
 					Y = 0,
-					Z = -1.523338
+					Z = -1.47202551
 				},
 				Rotation = {
 					X = 0,
@@ -295,10 +295,10 @@
 				}
 			},
 			MeshComponent = {
-				Mesh = "\\Models\\sphere.glb"
+				Mesh = "Models/sphere.glb"
 			},
 			MeshRendererComponent = {
-				Material = "\\Textures\\TestMaterial.mat"
+				Material = "Textures/TestMaterial.mat"
 			}
 		}
 	]

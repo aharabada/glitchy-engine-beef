@@ -84,11 +84,13 @@ class SceneSerializer
 				Serialize.Value(writer, "Name", component.Name);
 			});
 
-			SerializeComponent<SpriteRendererComponent>(writer, entity, "SpriterRendererComponent", scope (component) =>
+			SerializeComponent<SpriteRendererComponent>(writer, entity, "SpriteRendererComponent", scope (component) =>
 			{
 				Serialize.Value(writer, "Color", component.Color);
 				Serialize.Value(writer, "IsCircle", component.IsCircle);
-				Serialize.Value(writer, "Sprite", component.Sprite.Get().Identifier);
+
+				Serialize.Value(writer, "Sprite", component.Sprite);
+
 				Serialize.Value(writer, "UvTransform", component.UvTransform);
 			});
 
@@ -172,12 +174,12 @@ class SceneSerializer
 
 			SerializeComponent<MeshComponent>(writer, entity, "MeshComponent", scope (component) =>
 			{
-				Serialize.Value(writer, "Mesh", component.Mesh.Identifier);
+				Serialize.Value(writer, "Mesh", component.Mesh);
 			});
 
 			SerializeComponent<MeshRendererComponent>(writer, entity, "MeshRendererComponent", scope (component) =>
 			{
-				Serialize.Value(writer, "Material", component.Material.Identifier);
+				Serialize.Value(writer, "Material", component.Material);
 			});
 		}
 
@@ -329,7 +331,7 @@ class SceneSerializer
 
 					return .Ok;
 				}));
-			case "SpriterRendererComponent":
+			case "SpriteRendererComponent":
 				Try!(DeserializeComponent<SpriteRendererComponent>(reader, entity, scope (component) =>
 				{
 					Try!(Deserialize.Value(reader, "Color", out component.Color));
@@ -337,7 +339,7 @@ class SceneSerializer
 					Try!(Deserialize.Value(reader, "IsCircle", out component.IsCircle));
 					reader.EntryEnd();
 
-					component.Sprite = DeserializeAssetHandle!<Texture2D>("Sprite");
+					Try!(Deserialize.Value(reader, "Sprite", out component.Sprite));
 					reader.EntryEnd();
 
 					Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
@@ -486,14 +488,14 @@ class SceneSerializer
 			case "MeshComponent":
 				Try!(DeserializeComponent<MeshComponent>(reader, entity, scope (component) =>
 				{
-					component.Mesh = DeserializeAssetHandle!<GeometryBinding>("Mesh");
+					Try!(Deserialize.Value(reader, "Mesh", out component.Mesh));
 
 					return .Ok;
 				}));
 			case "MeshRendererComponent":
 				Try!(DeserializeComponent<MeshRendererComponent>(reader, entity, scope (component) =>
 				{
-					component.Material = DeserializeAssetHandle!<Material>("Material");
+					Try!(Deserialize.Value(reader, "Material", out component.Material));
 
 					return .Ok;
 				}));

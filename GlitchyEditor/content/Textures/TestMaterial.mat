@@ -1,10 +1,10 @@
 {
-	Effect = "Shaders/myEffect.hlsl",
+	Effect = "Shaders\\myEffect.hlsl",
 	Textures = [
-		"AlbedoTexture": "Textures/TestMat/rustediron2_albedo.png",
+		"AlbedoTexture": "Textures\\TestMat\\rustediron2_albedo.png",
 		"NormalTexture": "Textures\\TestMat\\rustediron2_normal.png",
-		"MetallicTexture": "",
-		"RoughnessTexture": ""
+		"MetallicTexture": "Textures\\TestMat\\rustediron2_metallic.png",
+		"RoughnessTexture": "Textures\\TestMat\\rustediron2_roughness.png"
 	],
 	Variables = [
 		"AlbedoColor": .ColorRGBA{

@@ -45,21 +45,9 @@ namespace GlitchyEngine.World
 	}
 
 	[Component("Sprite Renderer")]
-	struct SpriteRendererComponent// : IDisposableComponent
+	struct SpriteRendererComponent
 	{
-		private AssetHandle<Texture2D> _sprite = .Invalid;
-
-		public AssetHandle<Texture2D> Sprite
-		{
-			get => _sprite;
-			set mut
-			{
-				if (_sprite == value)
-					return;
-				_sprite = value;
-				//SetReference!(_sprite, value);
-			}
-		}
+		public AssetHandle<Texture2D> Sprite = .Invalid;
 
 		public ColorRGBA Color = .White;
 		public Vector4 UvTransform = .(0, 0, 1, 1);

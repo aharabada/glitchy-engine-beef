@@ -30,10 +30,10 @@
 				}
 			},
 			MeshComponent = {
-				Mesh = "Models\\sphere.glb"
+				Mesh = "Models/sphere.glb"
 			},
 			MeshRendererComponent = {
-				Material = "Textures\\TestMaterial.mat"
+				Material = "Textures/TestMaterial.mat"
 			}
 		},
 		{
@@ -48,20 +48,20 @@
 					Z = -4
 				},
 				Rotation = {
-					X = 0.614328,
-					Y = 0.239776,
-					Z = 0.031567,
-					W = 0.751074
+					X = 0.614328027,
+					Y = 0.239776045,
+					Z = 0.0315669999,
+					W = 0.751073837
 				},
 				Scale = {
-					X = 0.999999,
+					X = 0.999998868,
 					Y = 1,
-					Z = 1.000001
+					Z = 1.00000095
 				},
 				EditorEulerRotation = {
-					X = 1.308998,
-					Y = 0.349066,
-					Z = 0.349066
+					X = 1.30899811,
+					Y = 0.349065989,
+					Z = 0.349065989
 				}
 			},
 			LightComponent = {
@@ -69,8 +69,8 @@
 				Illuminance = 10,
 				Color = {
 					R = 1,
-					G = 0.991772,
-					B = 0.740862
+					G = 0.991771996,
+					B = 0.74086225
 				}
 			}
 		},
@@ -103,10 +103,10 @@
 				}
 			},
 			MeshComponent = {
-				Mesh = "Models\\plane.glb"
+				Mesh = "Models/plane.glb"
 			},
 			MeshRendererComponent = {
-				Material = "Textures\\TestMaterial.mat"
+				Material = "Textures/TestMaterial.mat"
 			}
 		},
 		{
@@ -121,10 +121,10 @@
 					Z = -5
 				},
 				Rotation = {
-					X = 0.21644,
+					X = 0.216440007,
 					Y = 0,
 					Z = 0,
-					W = 0.976296
+					W = 0.976296008
 				},
 				Scale = {
 					X = 1,
@@ -132,7 +132,7 @@
 					Z = 1
 				},
 				EditorEulerRotation = {
-					X = 0.436332,
+					X = 0.436332017,
 					Y = 0,
 					Z = 0
 				}
@@ -140,14 +140,84 @@
 			CameraComponent = {
 				Primary = true,
 				ProjectionType = .InfinitePerspective,
-				PerspectiveFovY = 1.047198,
-				PerspectiveNearPlane = 0.1,
+				PerspectiveFovY = 1.30899692,
+				PerspectiveNearPlane = 0.100000001,
 				PerspectiveFarPlane = 10000,
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 2.156692,
+				AspectRatio = 2.19888878,
 				FixedAspectRatio = false
+			}
+		},
+		{
+			Id = 420718992779301759,
+			NameComponent = {
+				Name = "Entity"
+			},
+			TransformComponent = {
+				Position = {
+					X = 3,
+					Y = 0.501076996,
+					Z = -0.669378757
+				},
+				Rotation = {
+					X = 0.18301262,
+					Y = -0.683013558,
+					Z = 0.683012128,
+					W = 0.183013007
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 1.57079446,
+					Y = -2.61799312,
+					Z = 0
+				}
+			},
+			MeshComponent = {
+				Mesh = "Models/plane.glb"
+			},
+			MeshRendererComponent = {
+				Material = ""
+			}
+		},
+		{
+			Id = 8080288871271083510,
+			NameComponent = {
+				Name = "Rocket"
+			},
+			TransformComponent = {
+				Position = {
+					X = 2.37353587,
+					Y = 0.629615188,
+					Z = -1.34831977
+				},
+				Rotation = {
+					X = 0.270598024,
+					Y = -0.65328145,
+					Z = 0.65328151,
+					W = 0.270598054
+				},
+				Scale = {
+					X = 0.999999881,
+					Y = 0.999999821,
+					Z = 0.999999702
+				},
+				EditorEulerRotation = {
+					X = 1.57079637,
+					Y = -2.3561945,
+					Z = 8.94069743e-08
+				}
+			},
+			MeshComponent = {
+				Mesh = "Models/plane.glb"
+			},
+			MeshRendererComponent = {
+				Material = "Textures/RocketMaterial.mat"
 			}
 		}
 	]

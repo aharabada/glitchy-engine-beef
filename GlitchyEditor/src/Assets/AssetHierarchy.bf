@@ -34,6 +34,24 @@ public class SubAsset
 	public Texture2D PreviewImage ~ _?.ReleaseRef();
 }
 
+public static class AssetIdentifier
+{
+	public const char8 DirectorySeparatorChar = '/';
+
+	public static void Fixup(String assetIdentifier)
+	{
+		const String DotSeperator = $".{DirectorySeparatorChar}";
+		const String SeperatorDot = $"{DirectorySeparatorChar}.";
+
+		assetIdentifier.Replace('\\', DirectorySeparatorChar);
+		assetIdentifier.Replace(DotSeperator, "");
+		assetIdentifier.Replace(SeperatorDot, "");
+
+		if (assetIdentifier.StartsWith(DirectorySeparatorChar))
+			assetIdentifier.Remove(0, 1);
+	}
+}
+
 class AssetHierarchy
 {
 	FileSystemWatcher fsw ~ {
@@ -173,6 +191,7 @@ class AssetHierarchy
 		{
 			String identifier = scope .(node.Path.Length);
 			Path.GetRelativePath(node.Path, _contentDirectory, identifier);
+			AssetIdentifier.Fixup(identifier);
 
 			node.AssetFile = new AssetFile(_contentManager, identifier, node.Path, node.IsDirectory);
 		}
@@ -380,7 +399,7 @@ class AssetHierarchy
 		_pathToAssetNode.Remove(oldFileNameWithContentRoot);
 
 		node->Path.Set(newFileNameWithContentRoot);
-		_pathToAssetNode.Add(newFileNameWithContentRoot, node);
+		_pathToAssetNode.Add(node->Path, node);
 		
 		node->Name.Clear();
 		Path.GetFileName(newFileNameWithContentRoot, node->Name);
@@ -388,7 +407,10 @@ class AssetHierarchy
 		String oldIdentifier = scope .(node->AssetFile.[Friend]_identifier);
 
 		node->AssetFile.[Friend]_path.Set(node->Path);
+
 		node->AssetFile.[Friend]_identifier.Set(newFilePath);
+		AssetIdentifier.Fixup(node->AssetFile.[Friend]_identifier);
+
 		node->AssetFile.[Friend]_assetConfigPath..Set(node->Path).Append(AssetFile.ConfigFileExtension);
 
 		OnFileRenamed(node.Value, oldIdentifier);

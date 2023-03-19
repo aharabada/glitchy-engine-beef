@@ -63,7 +63,15 @@ abstract class Asset : RefCounter
 
 		Deserialize.String!(reader, ref identifier, environment);
 
-		Asset asset = Content.GetAsset<Asset>(Content.LoadAsset(identifier));
+		AssetHandle handle = Content.LoadAsset(identifier);
+
+		if (handle == .Invalid)
+		{
+			value.Assign<Asset>(null);
+			return .Ok;
+		}
+
+		Asset asset = Content.GetAsset<Asset>(handle);
 
 		if (asset != null)
 		{

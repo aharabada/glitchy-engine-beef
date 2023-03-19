@@ -59,9 +59,8 @@ class EditorContentManager : IContentManager
 
 		Asset asset = assetNode.AssetFile.LoadedAsset;
 
-		asset.Identifier = assetNode.AssetFile.Identifier;
-
 		_identiferToHandle.Remove(oldIdentifier);
+		asset.Identifier = assetNode.AssetFile.Identifier;
 		_identiferToHandle.Add(asset.Identifier, asset.Handle);
 	}
 
@@ -333,24 +332,6 @@ class EditorContentManager : IContentManager
 	private append List<(PlaceholderAsset placeholder, Asset newAsset)> _finishedEntries = .();
 
 	private class MissingAsset : Asset {}
-
-	public class AssetIdentifier
-	{
-		public const char8 DirectorySeparatorChar = '/';
-
-		public static void Fixup(String assetIdentifier)
-		{
-			const String DotSeperator = $".{DirectorySeparatorChar}";
-			const String SeperatorDot = $"{DirectorySeparatorChar}.";
-
-			assetIdentifier.Replace('\\', DirectorySeparatorChar);
-			assetIdentifier.Replace(DotSeperator, "");
-			assetIdentifier.Replace(SeperatorDot, "");
-
-			if (assetIdentifier.StartsWith(DirectorySeparatorChar))
-				assetIdentifier.Remove(0, 1);
-		}
-	}
 
 	public AssetHandle LoadAsset(StringView identifier, bool blocking = false)
 	{

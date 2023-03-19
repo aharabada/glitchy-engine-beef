@@ -5,26 +5,8 @@ using GlitchyEngine.Content;
 namespace GlitchyEngine.World
 {
 	/// A component that allows to render a mesh.
-	public struct MeshRendererComponent// : IDisposableComponent
+	public struct MeshRendererComponent
 	{
-		private AssetHandle<Material> _material = .Invalid;
-
-		public AssetHandle<Material> Material
-		{
-			[Inline]
-			get => _material;
-			set mut
-			{
-				if(_material == value)
-					return;
-
-				_material = value;
-			}
-		}
-
-		/*public void Dispose() mut
-		{
-			_material?.ReleaseRef();
-		}*/
+		public AssetHandle<Material> Material = .Invalid;
 	}
 }

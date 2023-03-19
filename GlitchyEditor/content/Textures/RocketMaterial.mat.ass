@@ -1,0 +1,4 @@
+{
+	AssetLoader = "MaterialAssetLoader",
+	Config = (GlitchyEditor.Assets.ModelAssetLoaderConfig){}/* No reflection data for GlitchyEditor.Assets.ModelAssetLoaderConfig. Add [BonTarget] or force it */
+}

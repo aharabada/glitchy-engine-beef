@@ -1,9 +1,12 @@
+using Bon;
+using Bon.Integrated;
 using System;
 using xxHash;
 using System.Collections;
 using System.Reflection;
 using System.Diagnostics;
 using GlitchyEngine.Core;
+
 namespace GlitchyEngine.Content;
 
 struct AssetHandle : IHashable
@@ -27,6 +30,12 @@ struct AssetHandle : IHashable
 		_uuid = uuid;
 	}
 
+	static this
+	{
+		gBonEnv.typeHandlers.Add(typeof(AssetHandle),
+			    ((.)new => AssetSerialize, new => AssetDeserialize));
+	}
+
 	[Inline]
 	public T Get<T>(IContentManager contentManager = null) where T : Asset
 	{
@@ -34,6 +43,36 @@ struct AssetHandle : IHashable
 	}
 
 	public int GetHashCode() => _uuid.GetHashCode();
+
+	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
+	{
+		Log.EngineLogger.Assert(value.type == typeof(AssetHandle));
+
+		AssetHandle handle = value.Get<AssetHandle>();
+
+		if (handle.IsInvalid)
+	    	writer.String("");
+		else
+		{
+	    	let identifier = handle.Get<Asset>().Identifier;
+	    	writer.String(identifier);
+		}
+	}
+
+	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
+	{
+		Log.EngineLogger.Assert(value.type == typeof(AssetHandle));
+
+		String identifier = scope .();
+
+		Deserialize.String!(reader, ref identifier, environment);
+
+		AssetHandle handle = Content.LoadAsset(identifier);
+		
+		value.Assign<AssetHandle>(handle);
+
+		return .Ok;
+	}
 }
 
 struct AssetHandle<T> where T : Asset
@@ -70,6 +109,12 @@ struct AssetHandle<T> where T : Asset
 		//_currentFrame = 0;
 		_contentManager = null;
 		_asset = null;
+	}
+
+	static this
+	{
+		gBonEnv.typeHandlers.Add(typeof(AssetHandle<T>),
+			    ((.)new => AssetSerialize, new => AssetDeserialize));
 	}
 
 	public static implicit operator Self(AssetHandle handle)
@@ -257,5 +302,35 @@ struct AssetHandle<T> where T : Asset
 	public AssetHandle<NewT> Cast<NewT>() where NewT : T
 	{
 		return AssetHandle<NewT>(this._handle, this._contentManager);
+	}
+	
+	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
+	{
+		Log.EngineLogger.Assert(value.type == typeof(AssetHandle<T>));
+
+		AssetHandle handle = value.Get<AssetHandle<T>>();
+
+		if (handle.IsInvalid)
+	    	writer.String("");
+		else
+		{
+	    	let identifier = handle.Get<Asset>().Identifier;
+	    	writer.String(identifier);
+		}
+	}
+
+	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
+	{
+		Log.EngineLogger.Assert(value.type == typeof(AssetHandle<T>));
+
+		String identifier = scope .();
+
+		Deserialize.String!(reader, ref identifier, environment);
+
+		AssetHandle<T> handle = Content.LoadAsset(identifier);
+		
+		value.Assign<AssetHandle<T>>(handle);
+
+		return .Ok;
 	}
 }
