@@ -85,6 +85,7 @@ namespace GlitchyEngine.Renderer
 					SetBlendState(_nonblendingState);
 
 					_clearUintFx.Variables["ClearValue"].SetData(value);
+					_clearUintFx.ApplyChanges();
 					_clearUintFx.Bind();
 	
 					FullscreenQuad.Draw();
