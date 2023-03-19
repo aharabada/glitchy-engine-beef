@@ -235,7 +235,7 @@ namespace GlitchyEditor
 			{
 				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _activeScene)))
 				{
-					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection, _camera.Projection * _camera.View, .White);
+					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection, .White);
 				}
 				
 				Matrix world = Billboard(transform.WorldTransform);

@@ -96,7 +96,7 @@ namespace GlitchyEngine.Renderer
 		{
 			_rendererAPI.SetDepthStencilState(depthStencilState, stencilReference);
 		}
-
+		
 		[Inline]
 		public static void DrawIndexed(GeometryBinding geometry)
 		{

@@ -59,7 +59,7 @@ namespace GlitchyEngine.Renderer
 		 * @param observerVP The view projection of the rendering camera.
 		 * @param color The color of the frustum.
 		 */
-		public static void DrawViewFrustum(Matrix worldTransform, Matrix projection, Matrix observerVP, ColorRGBA color = .Red)
+		public static void DrawViewFrustum(Matrix worldTransform, Matrix projection, ColorRGBA color = .Red)
 		{
 			/*if (_frustumGeometry == null)
 			{
@@ -184,7 +184,7 @@ namespace GlitchyEngine.Renderer
 				uint16 index0 = indices[i];
 				uint16 index1 = indices[i + 1];
 
-				Renderer.DrawLine(corners[index0], corners[index1], color, worldTransform, observerVP);
+				Renderer2D.DrawLine(worldTransform * corners[index0], worldTransform * corners[index1], color);
 			}
 		}
 

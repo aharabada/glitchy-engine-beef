@@ -333,8 +333,8 @@ namespace GlitchyEngine.Renderer.Text
 			Renderer2D.Flush();
 
 			// TODO: this is very not good!
-			var lastEffect = Renderer2D.[Friend]s_currentEffect;
-			Renderer2D.[Friend]s_currentEffect = _msdfEffect..AddRef();
+			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect..AddRef();
 			// TODO: oh no....
 			// Copy viewProjection from current effect
 			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
@@ -410,7 +410,7 @@ namespace GlitchyEngine.Renderer.Text
 			// TODO: not good!
 			// Change back effect
 			_msdfEffect.ReleaseRef();
-			Renderer2D.[Friend]s_currentEffect = lastEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
 			
 			// release all atlas textures
 			for(int i < atlasses.Count)
@@ -439,8 +439,8 @@ namespace GlitchyEngine.Renderer.Text
 			Renderer2D.Flush();
 
 			// TODO: this is very not good!
-			var lastEffect = Renderer2D.[Friend]s_currentEffect;
-			Renderer2D.[Friend]s_currentEffect = _msdfEffect..AddRef();
+			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect..AddRef();
 			// TODO: oh no....
 			// Copy viewProjection from current effect
 			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
@@ -664,7 +664,7 @@ namespace GlitchyEngine.Renderer.Text
 			// TODO: not good!
 			// Change back effect
 			_msdfEffect.ReleaseRef();
-			Renderer2D.[Friend]s_currentEffect = lastEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
 			
 			// release all atlas textures
 			for(int i < atlasses.Count)

@@ -80,7 +80,7 @@ namespace GlitchyEngine.Renderer
 
 		static SceneConstants _sceneConstants;
 
-		static AssetHandle<Effect> LineEffect;
+		//static AssetHandle<Effect> LineEffect;
 		static VertexBuffer LineVertices;
 		static GeometryBinding LineGeometry;
 
@@ -133,7 +133,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			LineEffect = Content.LoadAsset("Shaders\\lineShader.hlsl");
+			//LineEffect = Content.LoadAsset("Shaders\\lineShader.hlsl");
 
 			LineGeometry = new GeometryBinding();
 			LineGeometry.SetPrimitiveTopology(.LineList);
@@ -487,9 +487,10 @@ namespace GlitchyEngine.Renderer
 		 * @param end The end point of the line.
 		 * @param color The color of the line.
 		 */
-		public static void DrawLine(Vector3 start, Vector3 end, Color color)
+		public static void DrawLine(Vector3 start, Vector3 end, ColorRGBA color)
 		{
-			DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), (ColorRGBA)color, .Identity);
+			Renderer2D.DrawLine(start, end, color);
+			//DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), (ColorRGBA)color, .Identity);
 		}
 		
 		/** @brief Draws a line.
@@ -500,7 +501,7 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static void DrawLine(Vector3 start, Vector3 end, ColorRGBA color, Matrix transform)
 		{
-			DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), color, transform);
+			Renderer2D.DrawLine(transform * Vector4(start, 1.0f), transform * Vector4(end, 1.0f), color);
 		}
 		
 		/** @brief Draws a ray.
@@ -510,7 +511,7 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static void DrawRay(Vector3 start, Vector3 direction, ColorRGBA color)
 		{
-			DrawLine(Vector4(start, 1.0f), Vector4(direction, 0.0f), color, .Identity);
+			Renderer2D.DrawRay(start, direction, color);
 		}
 
 		/** @brief Draws a ray.
@@ -521,50 +522,7 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static void DrawRay(Vector3 start, Vector3 direction, ColorRGBA color, Matrix transform)
 		{
-			DrawLine(Vector4(start, 1.0f), Vector4(direction, 0.0f), color, transform);
-		}
-		
-		/** @brief Draws a line.
-		 * @param start The start point of the line.
-		 * @param end The end point of the line.
-		 * @param color The color of the line.
-		 * @param transform A transform matrix transforming the line.
-		 */
-		public static void DrawLine(Vector4 start, Vector4 end, ColorRGBA color, Matrix transform)
-		{
-			Debug.Profiler.ProfileRendererFunction!();
-
-			LineVertices.SetData(Vector4[2](start, end), 0, .WriteDiscard);
-			LineEffect.Variables["ViewProjection"].SetData(_sceneConstants.ViewProjection * transform);
-			LineEffect.Variables["Color"].SetData(color);
-
-			LineEffect.ApplyChanges();
-			LineEffect.Bind();
-
-			LineGeometry.Bind();
-			RenderCommand.DrawIndexed(LineGeometry);
-		}
-		
-		/** @brief Draws a line.
-		 * @param start The start point of the line.
-		 * @param end The end point of the line.
-		 * @param color The color of the line.
-		* @param transform A transform matrix transforming the line.
-		 * @param viewProjection The observing cameras viewprojection
-		 */
-		public static void DrawLine(Vector4 start, Vector4 end, ColorRGBA color, Matrix transform, Matrix viewProjection)
-		{
-			Debug.Profiler.ProfileRendererFunction!();
-
-			LineVertices.SetData(Vector4[2](start, end), 0, .WriteDiscard);
-			LineEffect.Variables["ViewProjection"].SetData(viewProjection * transform);
-			LineEffect.Variables["Color"].SetData(color);
-			
-			LineEffect.ApplyChanges();
-			LineEffect.Bind();
-
-			LineGeometry.Bind();
-			RenderCommand.DrawIndexed(LineGeometry);
+			Renderer2D.DrawLine(transform * Vector4(start, 1.0f), transform * Vector4(direction, 0.0f), color);
 		}
 	}
 }
