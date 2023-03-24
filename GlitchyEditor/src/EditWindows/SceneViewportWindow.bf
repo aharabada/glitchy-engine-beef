@@ -27,6 +27,8 @@ namespace GlitchyEditor.EditWindows
 		private float _angleSnap = 45.0f;
 		private bool _doSnap = false;
 
+		private bool _visible;
+
 		public uint32 SelectedEntityId {get; private set; }
 		public bool SelectionChanged { get; private set; }
 
@@ -52,6 +54,8 @@ namespace GlitchyEditor.EditWindows
 		/// Gets or sets whether the editor functionality (gizmo, picking etc.) is enabled.
 		public bool EditorMode { get; set; } = true
 
+		public bool Visible => _visible;
+
 		public this(Editor editor)
 		{
 			_editor = editor;
@@ -65,8 +69,12 @@ namespace GlitchyEditor.EditWindows
 			if(!ImGui.Begin(s_WindowTitle, &_open, .NoScrollbar | .MenuBar))
 			{
 				ImGui.End();
+				
+				_visible = false;
 				return;
 			}
+
+			_visible = true;
 
 			let viewportSize = ImGui.GetContentRegionAvail();
 
@@ -78,30 +86,27 @@ namespace GlitchyEditor.EditWindows
 
 			_hasFocus = ImGui.IsWindowFocused();
 			
-			if (EditorMode)
+			ShowMenuBar();
+			
+			if (_editor.CurrentCamera.[Friend]BindMouse && _hasFocus)
+				WrapMouseInViewport();
+
+			// If we wrapped this frame we weren't hovering because the cursor has to be be out of bounds to wrap
+			_editor.CurrentCamera.AllowMove = _hasFocus && (ImGui.IsWindowHovered() || _wrappedCursor);
+
+			if (_hasFocus && !_editor.CurrentCamera.InUse)
 			{
-				ShowMenuBar();
-				
-				if (_editor.CurrentCamera.[Friend]BindMouse && _hasFocus)
-					WrapMouseInViewport();
+				if (Input.IsKeyPressing(.Q))
+					_gizmoType = .TRANSLATE;
+				if (Input.IsKeyPressing(.W))
+					_gizmoType = .ROTATE;
+				if (Input.IsKeyPressing(.E))
+					_gizmoType = .SCALE;
 
-				// If we wrapped this frame we weren't hovering because the cursor has to be be out of bounds to wrap
-				_editor.CurrentCamera.AllowMove = _hasFocus && (ImGui.IsWindowHovered() || _wrappedCursor);
-
-				if (_hasFocus && !_editor.CurrentCamera.InUse)
-				{
-					if (Input.IsKeyPressing(.Q))
-						_gizmoType = .TRANSLATE;
-					if (Input.IsKeyPressing(.W))
-						_gizmoType = .ROTATE;
-					if (Input.IsKeyPressing(.E))
-						_gizmoType = .SCALE;
-
-					if (Input.IsKeyPressing(.G))
-						_gizmoMode = .WORLD;
-					if (Input.IsKeyPressing(.L))
-						_gizmoMode = .LOCAL;
-				}
+				if (Input.IsKeyPressing(.G))
+					_gizmoMode = .WORLD;
+				if (Input.IsKeyPressing(.L))
+					_gizmoMode = .LOCAL;
 			}
 			
 			if(_renderTarget != null)
@@ -111,14 +116,11 @@ namespace GlitchyEditor.EditWindows
 				//ImGui.Image(_editor.CurrentScene.[Friend]_compositeTarget.GetViewBinding(0), viewportSize);
 			}
 
-			if (EditorMode)
-			{
-				HandleDropTarget();
-	
-				bool gizmoUsed = DrawImGuizmo(viewportSize);
-	
-				MousePicking(viewportSize, gizmoUsed);
-			}
+			HandleDropTarget();
+
+			bool gizmoUsed = DrawImGuizmo(viewportSize);
+
+			MousePicking(viewportSize, gizmoUsed);
 	
 			ImGui.End();
 
@@ -156,25 +158,27 @@ namespace GlitchyEditor.EditWindows
 			let winPos = (Vector2)ImGui.GetWindowPos();
 			let regionMin = winPos + (Vector2)ImGui.GetWindowContentRegionMin();
 			let regionMax = winPos + (Vector2)ImGui.GetWindowContentRegionMax();
-			
+
+			ImGui.DrawRect((.)regionMin, (.)regionMax, .(0, 255, 0));
+
 			Vector2 newMousePos = mousePos;
 
-			if (mousePos.X < regionMin.X)
+			if (mousePos.X < regionMin.X + 1)
 			{
-				newMousePos.X = regionMax.X - 1;
+				newMousePos.X = regionMax.X - 2;
 			}
 			else if (mousePos.X > regionMax.X - 1)
 			{
-				newMousePos.X = regionMin.X + 1;
+				newMousePos.X = regionMin.X + 2;
 			}
 			
-			if (mousePos.Y < regionMin.Y)
+			if (mousePos.Y < regionMin.Y + 1)
 			{
-				newMousePos.Y = regionMax.Y - 1;
+				newMousePos.Y = regionMax.Y - 100;
 			}
 			else if (mousePos.Y > regionMax.Y - 1)
 			{
-				newMousePos.Y = regionMin.Y + 1;
+				newMousePos.Y = regionMin.Y + 10;
 			}
 
 			if (newMousePos != mousePos)
@@ -193,8 +197,8 @@ namespace GlitchyEditor.EditWindows
 		{
 			Vector2 relativeMouse = (Vector2)ImGui.GetMousePos() - (Vector2)ImGui.GetItemRectMin();
 
-			int rtWidth = _editor.CurrentScene.[Friend]_compositeTarget.Width;
-			int rtHeight = _editor.CurrentScene.[Friend]_compositeTarget.Height;
+			int rtWidth = _editor.EditorSceneRenderer.CompositeTarget.Width;
+			int rtHeight = _editor.EditorSceneRenderer.CompositeTarget.Height;
 
 			if (Input.IsMouseButtonPressing(.LeftButton) &&
 				ImGui.IsWindowHovered() && !gizmoUsed && !_editor.CurrentCamera.InUse && 
@@ -204,7 +208,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				uint32 id = uint32.MaxValue;
 
-				_editor.CurrentScene.[Friend]_compositeTarget.GetData<uint32>(&id, 1, (.)relativeMouse.X, (.)relativeMouse.Y, 1, 1);
+				_editor.EditorSceneRenderer.CompositeTarget.GetData<uint32>(&id, 1, (.)relativeMouse.X, (.)relativeMouse.Y, 1, 1);
 
 				SelectionChanged = true;
 				SelectedEntityId = id;

@@ -17,7 +17,8 @@ namespace GlitchyEditor
 
 		private EntityHierarchyWindow _entityHierarchyWindow ~ delete _;
 		private ComponentEditWindow _componentEditWindow ~ delete _;
-		private SceneViewportWindow _sceneViewportWindow~ delete _;
+		private SceneViewportWindow _sceneViewportWindow ~ delete _;
+		private GameViewportWindow _gameViewportWindow ~ delete _;
 		private ContentBrowserWindow _contentBrowserWindow ~ delete _;
 		private PropertiesWindow _propertiesWindow ~ delete _;
 
@@ -39,12 +40,16 @@ namespace GlitchyEditor
 		public EntityHierarchyWindow EntityHierarchyWindow => _entityHierarchyWindow;
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
 		public SceneViewportWindow SceneViewportWindow => _sceneViewportWindow;
+		public GameViewportWindow GameViewportWindow => _gameViewportWindow;
 		public ContentBrowserWindow ContentBrowserWindow => _contentBrowserWindow;
 		public PropertiesWindow PropertiesWindow => _propertiesWindow;
 
 		public EditorCamera* CurrentCamera { get; set; }
 
 		public Event<EventHandler<StringView>> RequestOpenScene ~ _.Dispose();
+
+		public SceneRenderer GameSceneRenderer {get; set;}
+		public SceneRenderer EditorSceneRenderer {get; set;}
 
 		/// Creates a new editor for the given world
 		public this(Scene scene, EditorContentManager contentManager)
@@ -58,6 +63,7 @@ namespace GlitchyEditor
 		private void InitWindows()
 		{
 			_sceneViewportWindow = new SceneViewportWindow(this);
+			_gameViewportWindow = new GameViewportWindow(this);
 			_entityHierarchyWindow = new EntityHierarchyWindow(this, _scene);
 			_componentEditWindow = new ComponentEditWindow(_entityHierarchyWindow);
 			_contentBrowserWindow = new ContentBrowserWindow((.)Application.Get().ContentManager);
@@ -67,6 +73,7 @@ namespace GlitchyEditor
 		public void Update()
 		{
 			_sceneViewportWindow.Show();
+			_gameViewportWindow.Show();
 			_entityHierarchyWindow.Show();
 			_componentEditWindow.Show();
 			_contentBrowserWindow.Show();

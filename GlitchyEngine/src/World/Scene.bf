@@ -19,13 +19,6 @@ namespace GlitchyEngine.World
 
 		private Dictionary<Type, function void(Entity entity, Type componentType, void* component)> _onComponentAddedHandlers = new .() ~ delete _;
 
-		private RenderTargetGroup _compositeTarget ~ _.ReleaseRef();
-
-		// Temporary target for camera. Needs to change as soon as we support multiple cameras
-		private RenderTargetGroup _cameraTarget ~ _.ReleaseRef();
-
-		private AssetHandle _gammaCorrectEffect;
-
 		private uint32 _viewportWidth, _viewportHeight;
 
 		// Maps ids to the entities they represent.
@@ -52,25 +45,6 @@ namespace GlitchyEngine.World
 
 				cameraComponent.Camera.SetViewportSize(e.Scene._viewportWidth, e.Scene._viewportHeight);
 			});
-
-			RenderTargetGroupDescription desc = .(100, 100,
-				TargetDescription[](
-				RenderTargetFormat.R16G16B16A16_Float,
-				.(RenderTargetFormat.R32_UInt) {ClearColor = .UInt(uint32.MaxValue)}),
-				RenderTargetFormat.D24_UNorm_S8_UInt);
-			_compositeTarget = new RenderTargetGroup(desc);
-
-			_cameraTarget = new RenderTargetGroup(.(){
-					Width = 100,
-					Height = 100,
-					ColorTargetDescriptions = TargetDescription[](
-						.(.R16G16B16A16_Float),
-						.(.R32_UInt)
-					),
-					DepthTargetDescription = .(.D24_UNorm_S8_UInt)
-				});
-
-			_gammaCorrectEffect = Content.LoadAsset("Shaders/GammaCorrect.hlsl");//Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
 		}
 
 		public ~this()
@@ -215,207 +189,62 @@ namespace GlitchyEngine.World
 			_physicsWorld2D = null;
 		}
 
-		public void UpdateRuntime(GameTime gameTime, RenderTargetGroup finalTarget)
+		public enum UpdateMode
 		{
-			Debug.Profiler.ProfileRendererFunction!();
-
-			finalTarget.AddRef();
-			
-			TransformSystem.Update(_ecsWorld);
-
-			// Run scripts
-			for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
-			{
-				if (script.Instance == null)
-				{
-					script.Instance = script.InstantiateFunction();
-					script.Instance._entity = Entity(entity, this);
-					script.Instance.[Friend]OnCreate();
-				}
-
-				script.Instance.[Friend]OnUpdate(gameTime);
-			}
-
-			// Update 2D physics
-			{
-				const int32 velocityIterations = 6;
-				const int32 positionIterations = 2;
-				const int32 particleIterations = 2;
-
-				Box2D.World.Step(_physicsWorld2D, gameTime.DeltaTime, velocityIterations, positionIterations, particleIterations);
-
-				// Retrieve transform from Box2D
-				for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
-				{
-					Entity entity = .(entry.Entity, this);
-	
-					var transform = entity.Transform;
-					var rigidbody = entry.Component;
-
-					b2Body* body = rigidbody.RuntimeBody;
-					b2Vec2 position = Box2D.Body.GetPosition(body);
-					float angle = Box2D.Body.GetAngle(body);
-
-					transform.Position = .(position.x, position.y, transform.Position.Z);
-					transform.RotationEuler = .(transform.RotationEuler.XY, angle);
-				}
-			}
-
-			// Find camera
-			Camera* primaryCamera = null;
-			Matrix primaryCameraTransform = default;
-			RenderTargetGroup renderTarget = null;
-
-			for (var (entity, transform, camera) in _ecsWorld.Enumerate<TransformComponent, CameraComponent>())
-			{
-				if (camera.Primary)// && camera.RenderTarget != null)
-				{
-					primaryCamera = &camera.Camera;
-					primaryCameraTransform = transform.WorldTransform;
-					// TODO: bind render targets to cameras
-					// renderTarget = camera.RenderTarget..AddRef();
-				}
-			}
-
-			renderTarget = _cameraTarget..AddRef();
-
-			// 3D render
-			Renderer.BeginScene(*primaryCamera, primaryCameraTransform, renderTarget, _compositeTarget);
-
-			for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
-			{
-				Renderer.Submit(mesh.Mesh, meshRenderer.Material, entity, transform.WorldTransform);
-			}
-
-			for (var (entity, transform, light) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
-			{
-				Renderer.Submit(light.SceneLight, transform.WorldTransform);
-			}
-
-			Renderer.EndScene();
-
-			renderTarget.ReleaseRef();
-
-			// TODO: alphablending (handle in Renderer2D)
-			// TODO: 2D-Postprocessing requires rendering into separate target instead of directly into compositeTarget
-
-			RenderCommand.SetRenderTargetGroup(_compositeTarget);
-			RenderCommand.BindRenderTargets();
-
-			// Sprite renderer
-			Renderer2D.BeginScene(*primaryCamera, primaryCameraTransform, .BackToFront);
-
-			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent>())
-			{
-				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
-			}
-
-			for (var (entity, transform, circle) in _ecsWorld.Enumerate<TransformComponent, CircleRendererComponent>())
-			{
-				Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
-			}
-
-			Renderer2D.EndScene();
-
-			// Gamma correct composit target and draw it into viewport
-			{
-				RenderCommand.UnbindRenderTargets();
-				RenderCommand.SetRenderTargetGroup(finalTarget, false);
-				RenderCommand.BindRenderTargets();
-
-				Effect gammaEffect = Content.GetAsset<Effect>(_gammaCorrectEffect);
-
-				gammaEffect.SetTexture("Texture", _compositeTarget, 0);
-				// TODO: iiihhh
-				gammaEffect.ApplyChanges();
-				gammaEffect.Bind();
-	
-				FullscreenQuad.Draw();
-			}
-
-			finalTarget.ReleaseRef();
+			Editor = 0x01,
+			Physics = 0x02,
+			Runtime = 0x04 | Physics,
 		}
 
-		public void UpdateEditor(GameTime gameTime, EditorCamera camera, RenderTargetGroup viewportTarget, delegate void() DebugDraw3D, delegate void() DrawDebug2D)
+		public void Update(GameTime gameTime, UpdateMode mode)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			viewportTarget.AddRef();
-
 			TransformSystem.Update(_ecsWorld);
 
-			// 3D render
-			Renderer.BeginScene(camera, _compositeTarget);
-
-			for (var (entity, transform, mesh, meshRenderer) in _ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
+			if (mode.HasFlag(.Runtime))
 			{
-				if (mesh.Mesh == .Invalid || meshRenderer.Material == .Invalid)
-					continue;
-
-				Renderer.Submit(mesh.Mesh, meshRenderer.Material, entity, transform.WorldTransform);
-			}
-
-			for (var (entity, transform, light) in _ecsWorld.Enumerate<TransformComponent, LightComponent>())
-			{
-				Renderer.Submit(light.SceneLight, transform.WorldTransform);
-			}
-
-			DebugDraw3D();
-
-			Renderer.EndScene();
-
-			// TODO: alphablending (handle in Renderer2D)
-			// TODO: 2D-Postprocessing requires rendering into separate target instead of directly into compositeTarget
-
-			RenderCommand.SetRenderTargetGroup(_compositeTarget);
-			RenderCommand.BindRenderTargets();
-
-			// Sprite renderer
-			Renderer2D.BeginScene(camera, .BackToFront);
-
-			for (var (entity, transform, sprite) in _ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent>())
-			{
-				Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
-			}
-
-			for (var (entity, transform, circle) in _ecsWorld.Enumerate<TransformComponent, CircleRendererComponent>())
-			{
-				Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
-			}
-
-			Renderer2D.DrawLine(Vector3.Zero, Vector3.Up, .Red);
-			Renderer2D.DrawLine(Vector3.Zero, Vector3(0, 0, 1), .Green);
-			Renderer2D.DrawRay(Vector3.Zero, Vector3(1, 0, 0), .Blue);
-
-			Renderer2D.DrawRect(Vector2(2.0f, 1.0f), Vector2(1.0f, 2.0f), .Yellow);
-
-			Renderer2D.DrawRect(Matrix.Translation(2, 2, 1) * Matrix.RotationZ(MathHelper.PiOverFour), .Purple);
-
-			Renderer2D.EndScene();
-
-			Renderer2D.BeginScene(camera, .BackToFront);
-
-			DrawDebug2D();
-
-			Renderer2D.EndScene();
-
-			// Gamma correct composit target and draw it into viewport
-			{
-				RenderCommand.UnbindRenderTargets();
-				RenderCommand.SetRenderTargetGroup(viewportTarget, false);
-				RenderCommand.BindRenderTargets();
-				
-				Effect gammaEffect = Content.GetAsset<Effect>(_gammaCorrectEffect);
-
-				gammaEffect.SetTexture("Texture", _compositeTarget, 0);
-				// TODO: iiihhh
-				gammaEffect.ApplyChanges();
-				gammaEffect.Bind();
+				// Run scripts
+				for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
+				{
+					if (script.Instance == null)
+					{
+						script.Instance = script.InstantiateFunction();
+						script.Instance._entity = Entity(entity, this);
+						script.Instance.[Friend]OnCreate();
+					}
 	
-				FullscreenQuad.Draw();
+					script.Instance.[Friend]OnUpdate(gameTime);
+				}
 			}
+			
+			if (mode.HasFlag(.Physics))
+			{
+				// Update 2D physics
+				{
+					const int32 velocityIterations = 6;
+					const int32 positionIterations = 2;
+					const int32 particleIterations = 2;
 
-			viewportTarget.ReleaseRef();
+					Box2D.World.Step(_physicsWorld2D, gameTime.DeltaTime, velocityIterations, positionIterations, particleIterations);
+
+					// Retrieve transform from Box2D
+					for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
+					{
+						Entity entity = .(entry.Entity, this);
+
+						var transform = entity.Transform;
+						var rigidbody = entry.Component;
+
+						b2Body* body = rigidbody.RuntimeBody;
+						b2Vec2 position = Box2D.Body.GetPosition(body);
+						float angle = Box2D.Body.GetAngle(body);
+
+						transform.Position = .(position.x, position.y, transform.Position.Z);
+						transform.RotationEuler = .(transform.RotationEuler.XY, angle);
+					}
+				}
+			}
 		}
 
 		/// Creates a new Entity with the given name.
@@ -479,9 +308,6 @@ namespace GlitchyEngine.World
 					cameraComponent.Camera.SetViewportSize(width, height);
 				}
 			}
-
-			_compositeTarget.Resize(_viewportWidth, _viewportHeight);
-			_cameraTarget.Resize(_viewportWidth, _viewportHeight);
 		}
 
 		private void OnComponentAdded(Entity entity, Type componentType, void* component)
