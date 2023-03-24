@@ -126,6 +126,16 @@ namespace GlitchyEngine.World
 
 		public void OnRuntimeStart()
 		{
+			OnSimulationStart();
+		}
+
+		public void OnRuntimeStop()
+		{
+			OnSimulationStop();
+		}
+		
+		public void OnSimulationStart()
+		{
 			_physicsWorld2D = Box2D.World.Create(ref _gravity2D);
 
 			for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
@@ -183,7 +193,7 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public void OnRuntimeStop()
+		public void OnSimulationStop()
 		{
 			Box2D.World.Delete(_physicsWorld2D);
 			_physicsWorld2D = null;
@@ -191,8 +201,13 @@ namespace GlitchyEngine.World
 
 		public enum UpdateMode
 		{
+			/// No special update configuration (this does NOT mean nothing will be updated!)
+			None = 0x00,
+			/// Update editor-specific stuff
 			Editor = 0x01,
+			/// Update the physics related stuff
 			Physics = 0x02,
+			/// Update the runtume related stuff (e.g. execute scripts). Also run physics!
 			Runtime = 0x04 | Physics,
 		}
 

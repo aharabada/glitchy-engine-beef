@@ -69,11 +69,11 @@ namespace GlitchyEditor
 		{
 			Edit,
 			Play,
-			// Pause,
-			// Simulate
+			Simulate
 		}
 
 		SceneState _sceneState = .Edit;
+		bool _isPaused = false;
 
 		public this(EditorContentManager contentManager) : base("Example")
 		{
@@ -197,11 +197,25 @@ namespace GlitchyEditor
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			_camera.Update(gameTime);
-
 			_editor.CurrentScene = _activeScene;
-			
-			_activeScene.Update(gameTime, (_sceneState == .Edit) ? .Editor : .Runtime);
+
+			Scene.UpdateMode updateMode;
+
+			switch (_sceneState)
+			{
+			case .Edit:
+				updateMode = .Editor;
+			case .Play:
+				updateMode = .Runtime;
+			case .Simulate:
+				updateMode = .Physics;
+			}
+
+			if (_sceneState != .Edit && _isPaused)
+				updateMode = .None;
+
+
+			_activeScene.Update(gameTime, updateMode);
 
 			// Clear the swapchain-buffer
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
@@ -211,6 +225,8 @@ namespace GlitchyEditor
 			
 			if (_editor.SceneViewportWindow.Visible)
 			{
+				_camera.Update(gameTime);
+
 				_editorSceneRenderer.Scene = _activeScene;
 
 				RenderCommand.Clear(_editorViewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
@@ -366,22 +382,86 @@ namespace GlitchyEditor
 
 			ImGui.Begin("##toolbar", null, .NoDecoration | .NoScrollbar | .NoScrollWithMouse);
 
-			SubTexture2D icon = _sceneState == .Edit ? _editorIcons.Play : _editorIcons.Stop;
+			float padding = 2.0f;
 
-			float size = ImGui.GetWindowHeight() - 4.0f;
-			
-			ImGui.SameLine((ImGui.GetContentRegionMax().x / 2 - size / 2));
+			float size = ImGui.GetWindowHeight() - 2 * padding;
 
-			if (ImGui.ImageButton(icon, .(size, size), .Zero, .Ones, 0))
+			float centerX = ImGui.GetContentRegionMax().x / 2;
+
+
+			if (_sceneState == .Edit)
+			EditorButtons:
 			{
-				if (_sceneState == .Edit)
-				{
+				// Display the buttons for edit state
+
+				float totalWidth = size * 3 + padding * 4;
+
+				float penX = centerX - totalWidth / 2;
+
+				ImGui.SameLine(penX);
+
+				if (ImGui.ImageButton(_editorIcons.Play, .(size, size), .Zero, .Ones, 0))
 					OnScenePlay();
-				}
-				else if (_sceneState == .Play)
+
+				ImGui.AttachTooltip("Play the game.");
+				
+				ImGui.SameLine(penX += size + 2 * padding);
+
+				ImGui.PushID(1);
+
+				if (ImGui.ImageButton(_editorIcons.Simulate, .(size, size), .Zero, .Ones, 0))
+					OnSceneSimulate();
+				
+				ImGui.PopID();
+
+				ImGui.AttachTooltip("Enter simulation mode.\nThis only runs the physics engine.");
+
+				if (_isPaused)
 				{
-					OnSceneStop();
+					ImGui.PushStyleColor(.Button, *ImGui.GetStyleColorVec4(.ButtonActive));
+					
+					defer:EditorButtons { ImGui.PopStyleColor(); }
 				}
+				
+				ImGui.PushID(2);
+
+				ImGui.SameLine(penX += size + 2 * padding);
+
+				if (ImGui.ImageButton(_editorIcons.Pause, .(size, size), .Zero, .Ones, 0))
+					_isPaused = !_isPaused;
+				
+				ImGui.PopID();
+
+				ImGui.AttachTooltip("If enabled the game or simulation will be started in paused state.");
+
+			}
+			else
+			{
+				// Display the buttons for play/simulation state
+
+				ImGui.SameLine(centerX - size - padding);
+
+				SubTexture2D pauseButtonIcon = _isPaused ? _editorIcons.Play : _editorIcons.Pause;
+
+				if (ImGui.ImageButton(pauseButtonIcon, .(size, size), .Zero, .Ones, 0))
+				{
+					if (_isPaused)
+						OnSceneResume();
+					else
+						OnScenePause();
+				}
+
+				ImGui.AttachTooltip(_isPaused ? "Resume" : "Pause");
+				
+				ImGui.SameLine(centerX + padding);
+				ImGui.PushID(1);
+
+				if (ImGui.ImageButton(_editorIcons.Stop, .(size, size), .Zero, .Ones, 0))
+					OnSceneStop();
+
+				ImGui.PopID();
+
+				ImGui.AttachTooltip("Stop");
 			}
 
 			ImGui.End();
@@ -407,15 +487,48 @@ namespace GlitchyEditor
 			_editor.CurrentScene = _activeScene;
 		}
 
+		private void OnSceneSimulate()
+		{
+			_editor.SceneViewportWindow.EditorMode = false;
+			_sceneState = .Simulate;
+
+			using (Scene simulationScene = new Scene())
+			{
+				_editorScene.CopyTo(simulationScene);
+
+				simulationScene.OnSimulationStart();
+
+				SetReference!(_activeScene, simulationScene);
+			}
+
+			_editor.CurrentScene = _activeScene;
+		}
+
+		private void OnScenePause()
+		{
+			_isPaused = true;
+		}
+		
+		private void OnSceneResume()
+		{
+			_isPaused = false;
+		}
+
 		private void OnSceneStop()
 		{
-			_activeScene.OnRuntimeStop();
+			if (_sceneState == .Play)
+				_activeScene.OnRuntimeStop();
+			else
+				_activeScene.OnSimulationStop();
+
 			SetReference!(_activeScene, _editorScene);
 
 			_editor.SceneViewportWindow.EditorMode = true;
 			_sceneState = .Edit;
 
 			_editor.CurrentScene = _activeScene;
+			
+			_isPaused = false;
 
 			/*
 			 * Update the viewport size because if the game windows size changed in
