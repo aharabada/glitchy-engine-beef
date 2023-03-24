@@ -183,14 +183,6 @@ class SceneRenderer
 			Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
 		}
 
-		Renderer2D.DrawLine(Vector3.Zero, Vector3.Up, .Red);
-		Renderer2D.DrawLine(Vector3.Zero, Vector3(0, 0, 1), .Green);
-		Renderer2D.DrawRay(Vector3.Zero, Vector3(1, 0, 0), .Blue);
-
-		Renderer2D.DrawRect(Vector2(2.0f, 1.0f), Vector2(1.0f, 2.0f), .Yellow);
-
-		Renderer2D.DrawRect(Matrix.Translation(2, 2, 1) * Matrix.RotationZ(MathHelper.PiOverFour), .Purple);
-
 		Renderer2D.EndScene();
 
 		Renderer2D.BeginScene(camera, .BackToFront);
