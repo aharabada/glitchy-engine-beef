@@ -144,7 +144,7 @@ namespace GlitchyEngine.Math
 		{
 			// http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
 
-			var m = matrix.V;
+			var m = matrix;
 
 			Quaternion result = ?;
 

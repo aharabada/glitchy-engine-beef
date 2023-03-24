@@ -231,7 +231,7 @@ namespace GlitchyEditor
 				return Math.Clamp(1.5f - Vector3.Distance(_editor.CurrentCamera.Position, pos) / 50, 0, 1);
 			}
 
-			for (var (entity, transform, camera) in _activeScene.[Friend]_ecsWorld.Enumerate<TransformComponent, CameraComponent>())
+			for (var (entity, transform, camera) in _activeScene.GetEntities<TransformComponent, CameraComponent>())
 			{
 				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _activeScene)))
 				{
@@ -245,7 +245,7 @@ namespace GlitchyEditor
 				//Renderer2D.DrawQuad(world, _iconCamera, .White, .(0, 0, 1, 1), entity.Index);
 			}
 
-			for (var (entity, transform, light) in _activeScene.[Friend]_ecsWorld.Enumerate<TransformComponent, LightComponent>())
+			for (var (entity, transform, light) in _activeScene.GetEntities<TransformComponent, LightComponent>())
 			{
 				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _activeScene)))
 				{
@@ -263,7 +263,16 @@ namespace GlitchyEditor
 				
 				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
 				Renderer2D.DrawQuad(world, _editorIcons.DirectionalLight, ColorRGBA(light.SceneLight.Color.R * alpha, light.SceneLight.Color.G * alpha, light.SceneLight.Color.B * alpha, alpha), .(0, 0, 1, 1), entity.Index);
-				//Renderer2D.DrawQuad(world, _iconDirectionalLight, ColorRGBA(light.SceneLight.Color, alpha), .(0, 0, 1, 1), entity.Index);
+			}
+			
+			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, BoxCollider2DComponent>())
+			{
+				Renderer2D.DrawRect(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Size.X * 2, collider.Size.Y * 2, 0));
+			}
+
+			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, CircleCollider2DComponent>())
+			{
+				Renderer2D.DrawCircle(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Radius * 2), (Texture2D)null, ColorRGBA(0f, 1f, 0f), 0.01f);
 			}
 		}
 

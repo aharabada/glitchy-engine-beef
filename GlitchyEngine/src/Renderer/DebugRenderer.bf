@@ -111,15 +111,15 @@ namespace GlitchyEngine.Renderer
 			
 			Vector4[8] corners;
 			// Perspective
-			if(projection.V._43 != 0.0f)
+			if(projection._43 != 0.0f)
 			{
 				// near plane for perspective projection, far plane if reversed
-				float d1 = -projection.V._34 / projection.V._33;
+				float d1 = -projection._34 / projection._33;
 
-				float d2 = projection.V._34 / (1.0f - projection.V._33);
+				float d2 = projection._34 / (1.0f - projection._33);
 
-				float gOverS = projection.V._11;
-				float g = projection.V._22;
+				float gOverS = projection._11;
+				float g = projection._22;
 
 				//var corners = //(Vector4*)&_vbFrustum.Data;
 
@@ -158,14 +158,14 @@ namespace GlitchyEngine.Renderer
 			}
 			else
 			{
-				float l = -(projection.V._14 + 1.0f) / projection.V._11;
-				float r = (1.0f - projection.V._14) / projection.V._11;
+				float l = -(projection._14 + 1.0f) / projection._11;
+				float r = (1.0f - projection._14) / projection._11;
 
-				float t = -(projection.V._24 + 1.0f) / projection.V._22;
-				float b = (1.0f - projection.V._24) / projection.V._22;
+				float t = -(projection._24 + 1.0f) / projection._22;
+				float b = (1.0f - projection._24) / projection._22;
 
-				float n = -projection.V._34 / projection.V._33;
-				float f = (1 - projection.V._34) / projection.V._33;
+				float n = -projection._34 / projection._33;
+				float f = (1 - projection._34) / projection._33;
 				
 				//var corners = (Vector4*)&_vbFrustum.Data;
 				corners[0] = .(r, t, n, 1.0f);

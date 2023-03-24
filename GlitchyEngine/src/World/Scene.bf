@@ -491,5 +491,25 @@ namespace GlitchyEngine.World
 				handler(entity, componentType, component);
 			}
 		}
+
+		public WorldEnumerator<TComponent> GetEntities<TComponent>() where TComponent : struct
+		{
+			return _ecsWorld.Enumerate<TComponent>();
+		}
+
+		public WorldEnumerator<TComponent1, TComponent2> GetEntities<TComponent1, TComponent2>()
+			where TComponent1 : struct
+			where TComponent2 : struct
+		{
+			return _ecsWorld.Enumerate<TComponent1, TComponent2>();
+		}
+
+		public WorldEnumerator<TComponent1, TComponent2, TComponent3> GetEntities<TComponent1, TComponent2, TComponent3>()
+			where TComponent1 : struct
+			where TComponent2 : struct
+			where TComponent3 : struct
+		{
+			return _ecsWorld.Enumerate<TComponent1, TComponent2, TComponent3>();
+		}
 	}
 }
