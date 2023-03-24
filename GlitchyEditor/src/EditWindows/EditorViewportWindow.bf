@@ -9,7 +9,7 @@ using GlitchyEngine.Events;
 
 namespace GlitchyEditor.EditWindows
 {
-	class SceneViewportWindow : EditorWindow
+	class EditorViewportWindow : EditorWindow
 	{
 		public const String s_WindowTitle = "Scene";
 

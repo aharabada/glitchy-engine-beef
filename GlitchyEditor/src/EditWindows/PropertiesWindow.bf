@@ -10,6 +10,8 @@ namespace GlitchyEditor.EditWindows;
 
 class PropertiesWindow : EditorWindow
 {
+	public const String s_WindowTitle = "Properties";
+
 	private AssetPropertiesEditor _currentPropertiesEditor ~ delete _;
 
 	private bool _lockCurrentAsset;
@@ -28,7 +30,7 @@ class PropertiesWindow : EditorWindow
 	protected override void InternalShow()
 	{
 		defer { ImGui.End(); }
-		if(!ImGui.Begin("Properties", &_open, .None))
+		if(!ImGui.Begin(s_WindowTitle, &_open, .None))
 			return;
 
 		// TODO: make a little button in title bar?

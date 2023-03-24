@@ -14,6 +14,8 @@ namespace GlitchyEditor.EditWindows
 
 	class ContentBrowserWindow : EditorWindow
 	{
+		public const String s_WindowTitle = "Content Browser";
+
 		private append String _currentDirectory = .();
 
 		private append String _selectedFile = .();
@@ -40,7 +42,7 @@ namespace GlitchyEditor.EditWindows
 				_currentDirectory.Set(_manager.ContentDirectory);
 			}
 
-			if(!ImGui.Begin("Content Browser", &_open, .None))
+			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
 			{
 				ImGui.End();
 				return;

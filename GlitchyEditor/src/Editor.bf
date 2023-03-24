@@ -17,7 +17,7 @@ namespace GlitchyEditor
 
 		private EntityHierarchyWindow _entityHierarchyWindow ~ delete _;
 		private ComponentEditWindow _componentEditWindow ~ delete _;
-		private SceneViewportWindow _sceneViewportWindow ~ delete _;
+		private EditorViewportWindow _sceneViewportWindow ~ delete _;
 		private GameViewportWindow _gameViewportWindow ~ delete _;
 		private ContentBrowserWindow _contentBrowserWindow ~ delete _;
 		private PropertiesWindow _propertiesWindow ~ delete _;
@@ -39,7 +39,7 @@ namespace GlitchyEditor
 		
 		public EntityHierarchyWindow EntityHierarchyWindow => _entityHierarchyWindow;
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
-		public SceneViewportWindow SceneViewportWindow => _sceneViewportWindow;
+		public EditorViewportWindow SceneViewportWindow => _sceneViewportWindow;
 		public GameViewportWindow GameViewportWindow => _gameViewportWindow;
 		public ContentBrowserWindow ContentBrowserWindow => _contentBrowserWindow;
 		public PropertiesWindow PropertiesWindow => _propertiesWindow;
@@ -62,7 +62,7 @@ namespace GlitchyEditor
 
 		private void InitWindows()
 		{
-			_sceneViewportWindow = new SceneViewportWindow(this);
+			_sceneViewportWindow = new EditorViewportWindow(this);
 			_gameViewportWindow = new GameViewportWindow(this);
 			_entityHierarchyWindow = new EntityHierarchyWindow(this, _scene);
 			_componentEditWindow = new ComponentEditWindow(_entityHierarchyWindow);

@@ -18,34 +18,40 @@ namespace GlitchyEditor
 {
 	class EditorLayer : Layer
 	{
+		enum SceneState
+		{
+			Edit,
+			Play,
+			Simulate
+		}
+
 		RasterizerState _rasterizerState ~ _?.ReleaseRef();
 		RasterizerState _rasterizerStateClockWise ~ _?.ReleaseRef();
 
+		// TODO: we shouldn't hold a reference to the context
 		GraphicsContext _context ~ _.ReleaseRef();
 		
 		BlendState _alphaBlendState ~ _.ReleaseRef();
 		BlendState _opaqueBlendState ~ _.ReleaseRef();
 		DepthStencilState _depthStencilState ~ _.ReleaseRef();
-		
+
+		/// Reference to the scene that is currently being played and worked on.
 		Scene _activeScene ~ _?.ReleaseRef();
+		
+		/**
+		 * Referece to the editor scene.
+		 * We hold a reference to the editor scene because we need it in order
+		 * to restore the original state once we stop the game/simulation.
+		 * Before starting the simulation the editor scene will be copied and
+		 * the reference in _activeScene will be replaced with the new scene.
+		 */
 		Scene _editorScene ~ _?.ReleaseRef();
 
 		SceneRenderer _gameSceneRenderer ~ delete _;
 		SceneRenderer _editorSceneRenderer ~ delete _;
-
-		String _sceneFilePath = new String() ~ delete _;
-
-		public String SceneFilePath
-		{
-			get => _sceneFilePath;
-			set
-			{
-				_sceneFilePath.Clear();
-
-				if (value != null)
-					_sceneFilePath.Append(value);
-			}
-		}
+		
+		/// Path of the current scene.
+		append String _sceneFilePath = .();
 
 		Editor _editor ~ delete _;
 
@@ -57,29 +63,30 @@ namespace GlitchyEditor
 
 		EditorCamera _camera ~ _.Dispose();
 
-		/*Texture2D _editorIcons ~ _.ReleaseRef();
-		SubTexture2D _iconDirectionalLight ~ _.ReleaseRef();
-		SubTexture2D _iconCamera ~ _.ReleaseRef();*/
-
 		EditorIcons _editorIcons ~ _.ReleaseRef();
 
 		EditorContentManager _contentManager;
 
-		enum SceneState
-		{
-			Edit,
-			Play,
-			Simulate
-		}
-
 		SceneState _sceneState = .Edit;
 		bool _isPaused = false;
+		
+		/// Gets or sets the path of the current scene.
+		public StringView SceneFilePath
+		{
+			get => _sceneFilePath;
+			set
+			{
+				_sceneFilePath.Clear();
 
-		public this(EditorContentManager contentManager) : base("Example")
+				if (!value.IsWhiteSpace)
+					_sceneFilePath.Append(value);
+			}
+		}
+
+		public this(EditorContentManager contentManager) : base("Editor")
 		{
 			Application.Get().Window.IsVSync = false;
 
-			//InitContentManager();
 			_contentManager = contentManager;
 
 			InitGraphics();
@@ -97,31 +104,6 @@ namespace GlitchyEditor
 
 			NewScene();
 		}
-
-		/*private void InitContentManager()
-		{
-			_contentManager = new EditorContentManager();
-			_contentManager.RegisterAssetLoader<EditorTextureAssetLoader>();
-			_contentManager.SetAsDefaultAssetLoader<EditorTextureAssetLoader>(".png", ".dds");
-			_contentManager.SetAssetPropertiesEditor<EditorTextureAssetLoader>(=> TextureAssetPropertiesEditor.Factory);
-			
-			_contentManager.RegisterAssetLoader<ModelAssetLoader>();
-			_contentManager.SetAsDefaultAssetLoader<ModelAssetLoader>(".glb", ".gltf");
-			_contentManager.SetAssetPropertiesEditor<ModelAssetLoader>(=> ModelAssetPropertiesEditor.Factory);
-			
-			_contentManager.RegisterAssetLoader<MaterialAssetLoader>();
-			_contentManager.SetAsDefaultAssetLoader<MaterialAssetLoader>(".mat");
-			_contentManager.SetAssetPropertiesEditor<MaterialAssetLoader>(=> MaterialAssetPropertiesEditor.Factory);
-			
-			_contentManager.RegisterAssetLoader<EffectAssetLoader>();
-			_contentManager.SetAsDefaultAssetLoader<EffectAssetLoader>(".hlsl");
-			_contentManager.SetAssetPropertiesEditor<EffectAssetLoader>(=> EffectAssetPropertiesEditor.Factory);
-
-			_contentManager.SetContentDirectory("./content");
-
-			// Todo: Sketchy...
-			Application.Get().[Friend]_contentManager = _contentManager;
-		}*/
 
 		private void InitGraphics()
 		{
@@ -172,11 +154,6 @@ namespace GlitchyEditor
 
 			ContentBrowserWindow.s_FolderTexture = _editorIcons.Folder;
 			ContentBrowserWindow.s_FileTexture = _editorIcons.File;
-
-			/*_editorIcons = new Texture2D("Textures/EditorIcons.dds");
-			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;
-			_iconDirectionalLight = .CreateFromGrid(_editorIcons, .(0, 0), .(64, 64));
-			_iconCamera = .CreateFromGrid(_editorIcons, .(1, 0), .(64, 64));*/
 		}
 
 		private void InitEditor()
@@ -396,16 +373,15 @@ namespace GlitchyEditor
 
 				float totalWidth = size * 3 + padding * 4;
 
-				float penX = centerX - totalWidth / 2;
-
-				ImGui.SameLine(penX);
+				ImGui.SameLine();
+				ImGui.SetCursorPosX(centerX - totalWidth / 2);
 
 				if (ImGui.ImageButton(_editorIcons.Play, .(size, size), .Zero, .Ones, 0))
 					OnScenePlay();
 
 				ImGui.AttachTooltip("Play the game.");
 				
-				ImGui.SameLine(penX += size + 2 * padding);
+				ImGui.SameLine();
 
 				ImGui.PushID(1);
 
@@ -425,7 +401,8 @@ namespace GlitchyEditor
 				
 				ImGui.PushID(2);
 
-				ImGui.SameLine(penX += size + 2 * padding);
+				//ImGui.SameLine(penX += size + 2 * padding);
+				ImGui.SameLine();
 
 				if (ImGui.ImageButton(_editorIcons.Pause, .(size, size), .Zero, .Ones, 0))
 					_isPaused = !_isPaused;
@@ -439,7 +416,8 @@ namespace GlitchyEditor
 			{
 				// Display the buttons for play/simulation state
 
-				ImGui.SameLine(centerX - size - padding);
+				ImGui.SameLine();
+				ImGui.SetCursorPosX(centerX - size - padding);
 
 				SubTexture2D pauseButtonIcon = _isPaused ? _editorIcons.Play : _editorIcons.Pause;
 
@@ -453,7 +431,7 @@ namespace GlitchyEditor
 
 				ImGui.AttachTooltip(_isPaused ? "Resume" : "Pause");
 				
-				ImGui.SameLine(centerX + padding);
+				ImGui.SameLine();
 				ImGui.PushID(1);
 
 				if (ImGui.ImageButton(_editorIcons.Stop, .(size, size), .Zero, .Ones, 0))
@@ -538,134 +516,6 @@ namespace GlitchyEditor
 			GameViewportSizeChanged(null, _editor.GameViewportWindow.ViewportSize);
 		}
 
-		// Just for testing
-		private void TestEntitiesWithModels()
-		{
-			/*{
-				var lightNtt = _scene.CreateEntity("My Sexy Sun 2");
-				let transform = lightNtt.GetComponent<TransformComponent>();
-				transform.Position = .(0, 0, 0);
-				transform.RotationEuler = .(MathHelper.ToRadians(70), MathHelper.ToRadians(-30), 0);
-
-				let light = lightNtt.AddComponent<LightComponent>();
-				light.SceneLight.Illuminance = 10.0f;
-				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}
-
-			{
-				var lightNtt = _scene.CreateEntity("My Sexy Sun 3");
-				let transform = lightNtt.GetComponent<TransformComponent>();
-				transform.Position = .(0, 0, 0);
-				transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(-55), 0);
-
-				let light = lightNtt.AddComponent<LightComponent>();
-				light.SceneLight.Illuminance = 10.0f;
-				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}
-
-			{
-				var cameraNtt = _scene.CreateEntity("My Camera");
-				let transform = cameraNtt.GetComponent<TransformComponent>();
-				transform.Position = .(5, 5, -5);
-				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-45), 0);
-
-				let camera = cameraNtt.AddComponent<CameraComponent>();
-				camera.Primary = true;
-				camera.Camera.SetPerspective(MathHelper.ToRadians(45), 0.1f, 10.0f);
-				camera.RenderTarget = _cameraTarget;
-			}
-
-			var fxLib = Application.Get().EffectLibrary;
-
-			using (Effect myEffect = fxLib.Load("content/Shaders/myEffect.hlsl"))
-			/*using (Texture2D albedo = new Texture2D("Textures/White.png", true))
-			using (Texture2D normal = new Texture2D("Textures/White.png"))
-			using (Texture2D rough = new Texture2D("Textures/White.png"))
-			using (Texture2D metal = new Texture2D("Textures/White.png"))*/
-			using (Texture2D albedo = new Texture2D("Textures/TestMat/rustediron2_albedo.png", true))
-			using (Texture2D normal = new Texture2D("Textures/TestMat/rustediron2_normal.png"))
-			using (Texture2D rough = new Texture2D("Textures/TestMat/rustediron2_roughness.png"))
-			using (Texture2D metal = new Texture2D("Textures/TestMat/rustediron2_metallic.png"))
-			{
-				albedo.SamplerState = SamplerStateManager.AnisotropicWrap;
-				normal.SamplerState = SamplerStateManager.AnisotropicWrap;
-				rough.SamplerState = SamplerStateManager.AnisotropicWrap;
-				metal.SamplerState = SamplerStateManager.AnisotropicWrap;
-				
-				List<AnimationClip> clips = scope .();
-
-				using (Material mat = new .(myEffect))
-				{
-					mat.SetTexture("AlbedoTexture", albedo);
-					mat.SetTexture("NormalTexture", normal);
-					mat.SetTexture("MetallicTexture", metal);
-					mat.SetTexture("RoughnessTexture", rough);
-
-					mat.SetVariable("AlbedoColor", ColorRGBA.White);
-					mat.SetVariable("NormalScaling", Vector2.One);
-					mat.SetVariable("MetallicFactor", 1.0f);
-					mat.SetVariable("RoughnessFactor", 1.0f);
-
-					// TODO: completely wrong!
-					EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", mat, _scene.[Friend]_ecsWorld, clips, "Sphere 1");
-					
-					Entity entity = .(e, _scene);
-					var transform = entity.GetComponent<TransformComponent>();
-					transform.Position = .(5, 0, 5);
-				}
-				
-				/*using (Material mat = new .(myEffect))
-				{
-					mat.SetTexture("AlbedoTexture", albedo);
-					mat.SetTexture("NormalTexture", normal);
-					mat.SetTexture("MetallicTexture", metal);
-					mat.SetTexture("RoughnessTexture", rough);
-					//mat.SetVariable("BaseColor", Vector4(1, 1, 0, 1));
-					//mat.SetVariable("LightDir", Vector3(0, 1, 0).Normalized());
-		
-		
-					ModelLoader.LoadModel("content/Models/sphere.glb", myEffect, mat, _scene.[Friend]_ecsWorld, clips);
-				}*/
-
-				ClearAndReleaseItems!(clips);
-			}
-
-			using (Effect myEffect = fxLib.Get("myEffect"))
-			using (Texture2D white = new Texture2D("Textures/White.png"))
-			using (Texture2D normal = new Texture2D("Textures/DefaultNormal.png"))
-			{
-				white.SamplerState = SamplerStateManager.PointClamp;
-				normal.SamplerState = SamplerStateManager.PointClamp;
-
-				List<AnimationClip> clips = scope .();
-
-				for (int x < 10)
-				for (int y < 10)
-				{
-					using (Material mat = new .(myEffect))
-					{
-						mat.SetTexture("AlbedoTexture", white);
-						mat.SetTexture("NormalTexture", normal);
-						mat.SetTexture("MetallicTexture", white);
-						mat.SetTexture("RoughnessTexture", white);
-
-						mat.SetVariable("AlbedoColor", Vector4(1, 0, 0, 1));
-						mat.SetVariable("NormalScaling", Vector2(1.0f));
-						mat.SetVariable("RoughnessFactor", (x + 1) / 10.0f);
-						mat.SetVariable("MetallicFactor", y / 9.0f);
-			
-						EcsEntity e = ModelLoader.LoadModel("content/Models/sphere.glb", mat, _scene.[Friend]_ecsWorld, clips, scope $"Sphere {x} {y}");
-
-						Entity entity = .(e, _scene);
-						var transform = entity.GetComponent<TransformComponent>();
-						transform.Position = .(x * 1.5f, y * 1.5f, 0);
-					}
-				}
-
-				ClearAndReleaseItems!(clips);
-			}*/
-		}
-
 		/// Creates a new scene.
 		private void NewScene()
 		{
@@ -673,43 +523,50 @@ namespace GlitchyEditor
 
 			SceneFilePath = null;
 
+			Scene newScene = new Scene();
+
+			_camera.Position = .(-1.5f, 1.5f, -2.5f);
+			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
+
+			// Create a default camera
+			{
+				let cameraEntity = newScene.CreateEntity("Camera");
+				let transform = cameraEntity.Transform;
+				transform.Position = Vector3(0, 2, -5);
+				transform.RotationEuler = Vector3(0, MathHelper.ToRadians(25), 0);
+				
+				let camera = cameraEntity.AddComponent<CameraComponent>();
+				camera.Primary = true;
+				camera.Camera.ProjectionType = .InfinitePerspective;
+				camera.Camera.PerspectiveFovY = MathHelper.ToRadians(75);
+				camera.Camera.PerspectiveNearPlane = 0.1f;
+			}
+
+			// Create a default light source
+			{
+				let lightEntity = newScene.CreateEntity("Light");
+				let transform = lightEntity.Transform;
+				transform.Position = .(-3, 4, -1.5f);
+				transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(75), MathHelper.ToRadians(20));
+
+				let light = lightEntity.AddComponent<LightComponent>();
+				light.SceneLight.Illuminance = 10.0f;
+				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
+			}
+
 			_editorScene.ReleaseRef();
-			_editorScene = new Scene();
+			_editorScene = newScene;
 			_editor.CurrentScene = _editorScene;
 			var vpSize = _editor.SceneViewportWindow.ViewportSize;
 			_editorScene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
 
 			SetReference!(_activeScene, _editorScene);
-
-			_camera.Position = .(-1.5f, 1.5f, -2.5f);
-			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
-
-			// Create default camera
-			/*{
-				let camEntity = _scene.CreateEntity("Camera");
-				let transform = camEntity.Transform;
-				transform.Position = 
-			}*/
-
-			/*// Create the default light source
-			{
-				let lightNtt = _scene.CreateEntity("Light");
-				let transform = lightNtt.Transform;
-				transform.Position = .(0, 0, 0);
-				transform.RotationEuler = .(MathHelper.ToRadians(45), MathHelper.ToRadians(-100), 0);
-
-				let light = lightNtt.AddComponent<LightComponent>();
-				light.SceneLight.Illuminance = 10.0f;
-				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}
-
-			TestEntitiesWithModels();*/
 		}
 		
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
 		private void SaveScene()
 		{
-			if (String.IsNullOrWhiteSpace(SceneFilePath))
+			if (SceneFilePath.IsWhiteSpace)
 			{
 				SaveSceneAs();
 				return;
@@ -799,24 +656,26 @@ namespace GlitchyEditor
 			
 			if(ImGui.BeginMenu("View", true))
 			{
-				if(ImGui.MenuItem(EntityHierarchyWindow.s_WindowTitle))
-				{
-					_editor.EntityHierarchyWindow.Open = true;
-				}
-
 				if(ImGui.MenuItem(ComponentEditWindow.s_WindowTitle))
-				{
 					_editor.ComponentEditWindow.Open = true;
-				}
 
-				if(ImGui.MenuItem(SceneViewportWindow.s_WindowTitle))
-				{
+				if(ImGui.MenuItem(ContentBrowserWindow.s_WindowTitle))
+					_editor.ComponentEditWindow.Open = true;
+				
+				if(ImGui.MenuItem(EditorViewportWindow.s_WindowTitle))
 					_editor.SceneViewportWindow.Open = true;
-				}
+
+				if(ImGui.MenuItem(EntityHierarchyWindow.s_WindowTitle))
+					_editor.EntityHierarchyWindow.Open = true;
+
+				if(ImGui.MenuItem(GameViewportWindow.s_WindowTitle))
+					_editor.GameViewportWindow.Open = true;
+
+				if(ImGui.MenuItem(GameViewportWindow.s_WindowTitle))
+					_editor.GameViewportWindow.Open = true;
 
 				ImGui.EndMenu();
 			}
-
 
 			ImGui.EndMainMenuBar();
 		}
