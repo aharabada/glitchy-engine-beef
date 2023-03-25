@@ -2,6 +2,7 @@
 
 using GlitchyEngine.Math;
 using GlitchyEngine.Platform.DX11;
+using System;
 
 using internal GlitchyEngine.Renderer;
 using internal GlitchyEngine.Platform.DX11;
@@ -14,6 +15,9 @@ namespace GlitchyEngine.Renderer
 	{
 		private GraphicsContext _context ~ _?.ReleaseRef();
 
+		private Effect _clearUintFx ~ _?.ReleaseRef();
+		private BlendState _nonblendingState ~ _?.ReleaseRef();
+
 		public GraphicsContext Context
 		{
 			get => _context;
@@ -25,6 +29,11 @@ namespace GlitchyEngine.Renderer
 		public override void Init()
 		{
 			Debug.Profiler.ProfileFunction!();
+
+			_clearUintFx = new Effect("content/Shaders/ClearUInt.hlsl");
+			BlendStateDescription desc =.Default;
+			desc.RenderTarget[0].BlendEnable = false;
+			_nonblendingState = new BlendState(desc);
 		}
 
 		private mixin RtOrBackbuffer(RenderTarget2D renderTarget)
@@ -61,18 +70,119 @@ namespace GlitchyEngine.Renderer
 			NativeContext.ClearDepthStencilView(target.nativeView, flags, depth, stencil);
 		}
 
+		private void ClearRtv(DirectX.D3D11.ID3D11RenderTargetView* rtv, ClearColor clearColor)
+		{
+			switch(clearColor)
+			{
+			case .Color(let color):
+				NativeContext.ClearRenderTargetView(rtv, color);
+			case .UInt(let value):
+#unwarn
+				NativeContext.OutputMerger.SetRenderTargets(1, &rtv, null);
+
+				using (BlendState lastBlendState = _currentBlendState..AddRef())
+				{
+					SetBlendState(_nonblendingState);
+
+					_clearUintFx.Variables["ClearValue"].SetData(value);
+					_clearUintFx.ApplyChanges();
+					_clearUintFx.Bind();
+	
+					FullscreenQuad.Draw();
+					
+					SetBlendState(lastBlendState);
+				}
+				
+				// Rebind the old render targets
+				BindRenderTargets();
+			default:
+				Runtime.NotImplemented();
+			}
+		}
+
+		public override void Clear(RenderTargetGroup renderTarget, ClearOptions options, ClearColor? color = null, float? depth = null, uint8? stencil = null)
+		{
+			if (options.HasFlag(.Color) && renderTarget._renderTargetViews != null)
+			{
+				for (int i < renderTarget._renderTargetViews.Count)
+				{
+					ClearRtv(renderTarget._renderTargetViews[i], color ?? renderTarget._colorTargetDescriptions[i].ClearColor);
+				}
+			}
+
+			if (renderTarget._nativeDepthTargetView != null)
+			{
+				DirectX.D3D11.ClearFlag flags = default;
+	
+				if(options.HasFlag(.Depth))
+				{
+					flags |= .Depth;
+				}
+	
+				if(options.HasFlag(.Stencil))
+				{
+					flags |= .Stencil;
+				}
+	
+				if (flags != default)
+				{
+					float clearDepth = 0.0f;
+					uint8 clearStencil = 0;
+
+					if (renderTarget._depthTargetDescription.ClearColor case .DepthStencil(let d, let s))
+					{
+						clearDepth = d;
+						clearStencil = s;
+					}
+					else
+					{
+						Log.EngineLogger.Error("Clear color of depth stencil target must be of type DepthStencil.");
+						Log.EngineLogger.AssertDebug(false);
+					}
+
+					clearDepth = depth ?? clearDepth;
+					clearStencil = stencil ?? clearStencil;
+
+					NativeContext.ClearDepthStencilView(renderTarget._nativeDepthTargetView, flags, clearDepth, clearStencil);
+				}
+			}
+		}
+
 		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthBuffer)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
 			_context.SetRenderTarget(renderTarget, slot, setDepthBuffer);
 		}
-		
+
+		public override void SetRenderTargetGroup(RenderTargetGroup renderTarget, bool setDepthBuffer)
+		{
+			if (renderTarget._renderTargetViews != null)
+			{
+				for (int i < renderTarget._renderTargetViews.Count)
+				{
+					_context.SetNativeRenderTargets(renderTarget._renderTargetViews, 0);
+				}
+			}
+
+			if (setDepthBuffer)
+			{
+				_context.SetNativeDepthStencilTarget(renderTarget._nativeDepthTargetView);
+			}
+		}
+
 		public override void SetDepthStencilTarget(DepthStencilTarget target)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
 			_context.SetDepthStencilTarget(target);
+		}
+
+		public override void UnbindRenderTargets()
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			_context.UnbindRenderTargets();
 		}
 
 		public override void BindRenderTargets()
@@ -126,7 +236,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			NativeContext.DrawIndexedInstanced(geometry.IndexCount, geometry.InstanceCount, geometry.IndexByteOffset, 0, 0);
+			_context.DrawIndexedInstanced(geometry.IndexCount, geometry.InstanceCount, geometry.IndexByteOffset, 0, 0);
 		}
 
 		public override void SetViewport(Viewport viewport)
@@ -134,6 +244,26 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			_context.SetViewport(viewport);
+		}
+
+		public override void UnbindTextures()
+		{
+			_context.UnbindTextures();
+		}
+
+		public override void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage)
+		{
+			_context.BindConstantBuffer(buffer, slot, stage);
+		}
+		
+		public override void BindVertexShader(VertexShader vertexShader)
+		{
+			_context.BindVertexShader(vertexShader);
+		}
+
+		public override void BindPixelShader(PixelShader pixelShader)
+		{
+			_context.BindPixelShader(pixelShader);
 		}
 	}
 }

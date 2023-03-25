@@ -10,6 +10,7 @@ using GlitchyEngine.Events;
 using System.Diagnostics;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
+using DirectX.Windows.Winuser.RawInput;
 using static System.Windows;
 
 using internal GlitchyEngine;
@@ -66,13 +67,13 @@ namespace GlitchyEngine
 		//
 		// Size
 		//
-		public override Point Size
+		public override Int2 Size
 		{
-			get => *(Point*)&_clientRect.Width;
+			get => *(Int2*)&_clientRect.Width;
 
 			set
 			{
-				*(Point*)&_clientRect.Width = value;
+				*(Int2*)&_clientRect.Width = value;
 				ApplyRectangle();
 			}
 		}
@@ -102,13 +103,13 @@ namespace GlitchyEngine
 		//
 		// Position
 		//
-		public override Point Position
+		public override Int2 Position
 		{
-			get => *(Point*)&_clientRect;
+			get => *(Int2*)&_clientRect;
 
 			set
 			{
-				*(Point*)&_clientRect = value;
+				*(Int2*)&_clientRect = value;
 				ApplyRectangle();
 			}
 		}
@@ -261,6 +262,8 @@ namespace GlitchyEngine
 
 			return .Ok;
 		}
+
+		internal Int2 _rawMouseMovementAccumulator;
 
 		private static LRESULT MessageHandler(HWND hwnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
 		{
@@ -457,6 +460,28 @@ namespace GlitchyEngine
 
 					var event = scope MouseMovedEvent(x, y);
 					window._eventCallback(event);
+				}
+			case WM_INPUT:
+				{
+					uint32 dataSize = ?;
+					GetRawInputData((.)lParam, RID_INPUT, null, &dataSize, sizeof(RAWINPUTHEADER));
+
+					if (dataSize > 0)
+					{
+						uint8[] rawData = scope .[dataSize];
+						if (GetRawInputData((.)lParam, RID_INPUT, rawData.CArray(), &dataSize, sizeof(RAWINPUTHEADER)) == dataSize)
+						{
+							RAWINPUT* raw = (.)rawData.CArray();
+							if (raw.Header.Type == RIM_TYPEMOUSE)
+							{
+								var event = scope MouseMovedEvent(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
+								window._eventCallback(event);
+
+								// We accumulate the raw movements an collect them once each frame in WindowsInput.Impl_NewFrame()
+								window._rawMouseMovementAccumulator += Int2(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
+							}
+						}
+					}
 				}
 
 				// Todo: DirectInput

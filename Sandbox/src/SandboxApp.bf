@@ -21,7 +21,7 @@ namespace Sandbox
 #if GAMMA_TEST
 			PushLayer(new GammaTestLayer());
 #elif SANDBOX_2D
-			PushLayer(new ExampleLayer2D());
+			//PushLayer(new ExampleLayer2D());
 #else
 			PushLayer(new ExampleLayer());
 #endif
@@ -31,6 +31,11 @@ namespace Sandbox
 		public static Application CreateApplication()
 		{
 			return new SandboxApp();
+		}
+
+		protected override IContentManager InitContentManager()
+		{
+			Runtime.NotImplemented();
 		}
 	}
 }

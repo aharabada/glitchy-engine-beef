@@ -3,6 +3,9 @@ using GlitchyEngine.World;
 using System;
 using GlitchyEngine.Math;
 using System.Collections;
+using GlitchyEngine.Renderer;
+using GlitchyEngine;
+using GlitchyEngine.Content;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -57,7 +60,14 @@ namespace GlitchyEditor.EditWindows
 
 			ShowComponentEditor<TransformComponent>("Transform", entity, => ShowTransformComponentEditor);
 			ShowComponentEditor<CameraComponent>("Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
-			ShowComponentEditor<SpriterRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriterRendererComponent>);
+			ShowComponentEditor<SpriteRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriteRendererComponent>);
+			ShowComponentEditor<CircleRendererComponent>("Circle Renderer", entity, => ShowCircleRendererComponentEditor, => ShowComponentContextMenu<CircleRendererComponent>);
+			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
+			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
+			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
+			ShowComponentEditor<Rigidbody2DComponent>("Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
+			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
+			ShowComponentEditor<CircleCollider2DComponent>("Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
 
 			ShowAddComponentButton(entity);
 		}
@@ -108,18 +118,18 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowNameComponentEditor(Entity entity)
 		{
-			if (!entity.HasComponent<DebugNameComponent>())
+			if (!entity.HasComponent<NameComponent>())
 				return;
 
 			char8[256] nameBuffer = default;
 
-			DebugNameComponent* component = entity.GetComponent<DebugNameComponent>();
+			NameComponent* component = entity.GetComponent<NameComponent>();
 
-			String name = null;
+			StringView name = null;
 
 			if(component != null)
 			{
-				name = component.DebugName;
+				name = component.Name;
 			}
 			else
 			{
@@ -133,11 +143,10 @@ namespace GlitchyEditor.EditWindows
 			{
 				if(component == null)
 				{
-					component = entity.AddComponent<DebugNameComponent>();
+					component = entity.AddComponent<NameComponent>();
 				}
 
-				component.DebugName.Clear();
-				component.DebugName.Append(&nameBuffer);
+				component.Name = StringView(&nameBuffer);
 			}
 		}
 
@@ -241,9 +250,285 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriterRendererComponent* spriteRendererComponent)
+		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriteRendererComponent* spriteRendererComponent)
 		{
-			ImGui.ColorEdit4("Color", ref spriteRendererComponent.Color);
+			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(spriteRendererComponent.Color);
+			if (ImGui.ColorEdit4("Color", ref spriteColor))
+				spriteRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
+
+			ImGui.Button("Texture");
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					Log.EngineLogger.Warning("");
+
+					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+					spriteRendererComponent.Sprite = Content.LoadAsset(path);
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+
+
+			ImGui.EditVector<4>("UV Transform", ref *(float[4]*)&spriteRendererComponent.UvTransform);
+		}
+
+		private static void ShowCircleRendererComponentEditor(Entity entity, CircleRendererComponent* circleRendererComponent)
+		{
+			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(circleRendererComponent.Color);
+			if (ImGui.ColorEdit4("Color", ref spriteColor))
+				circleRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
+
+			ImGui.Button("Texture");
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					Log.EngineLogger.Warning("");
+
+					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+					circleRendererComponent.Sprite = Content.LoadAsset(path);
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+
+
+			ImGui.EditVector<4>("UV Transform", ref *(float[4]*)&circleRendererComponent.UvTransform);
+
+			ImGui.DragFloat("Inner Radius", &circleRendererComponent.InnerRadius, 0.1f, 0.0f, 1.0f);
+		}
+
+		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
+		{
+			ImGui.TextUnformatted("Material:");
+			ImGui.SameLine();
+			
+			Material material = meshRendererComponent.Material;
+
+			StringView identifier = material?.Identifier ?? "None";
+			ImGui.Button(identifier.ToScopeCStr!());
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
+
+					meshRendererComponent.Material = Content.LoadAsset(fullpath);
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+
+			/*Effect effect = material?.Effect;
+
+			if (effect == null)
+				return;*/
+
+			// Show a preview of the material here!
+		}
+		
+		private static void ShowRigidBody2DComponentEditor(Entity entity, Rigidbody2DComponent* rigidBodyComponent)
+		{
+			const String[?] bodyTypeStrings = .("Static", "Dynamic", "Kinematic");
+			String bodyTypeName = bodyTypeStrings[rigidBodyComponent.BodyType.Underlying];
+
+			if (ImGui.BeginCombo("Type", bodyTypeName.CStr()))
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					bool isSelected = (bodyTypeName == bodyTypeStrings[i]);
+
+					if (ImGui.Selectable(bodyTypeStrings[i], isSelected))
+					{
+						rigidBodyComponent.BodyType = (.)i;
+					}
+
+					if (isSelected)
+						ImGui.SetItemDefaultFocus();
+				}
+
+				ImGui.EndCombo();
+			}
+
+
+			ImGui.Checkbox("Fixed Rotation", &rigidBodyComponent.FixedRotation);
+		}
+
+		private static void ShowBoxCollider2DComponentEditor(Entity entity, BoxCollider2DComponent* boxCollider)
+		{
+			float textWidth = ImGui.CalcTextSize("Offset".CStr()).x;
+			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
+
+
+			Vector2 offset = boxCollider.Offset;
+			if (ImGui.EditVector2("Offset", ref offset, .Zero, 0.1f, textWidth))
+				boxCollider.Offset = offset;
+
+			Vector2 size = boxCollider.Size;
+			if (ImGui.EditVector2("Size", ref size, .Zero, 0.1f, textWidth))
+				boxCollider.Size = size;
+			
+			float density = boxCollider.Density;
+			if (ImGui.DragFloat("Density", &density, 0.0f, 0.1f, textWidth))
+				boxCollider.Density = density;
+			
+			float friction = boxCollider.Friction;
+			if (ImGui.DragFloat("Friction", &friction, 0.0f, 0.1f, textWidth))
+				boxCollider.Friction = friction;
+
+			float restitution = boxCollider.Restitution;
+			if (ImGui.DragFloat("Restitution", &restitution, 0.0f, 0.1f, textWidth))
+				boxCollider.Restitution = restitution;
+
+			float restitutionThreshold = boxCollider.RestitutionThreshold;
+			if (ImGui.DragFloat("RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, textWidth))
+				boxCollider.RestitutionThreshold = restitutionThreshold;
+		}
+
+		private static void ShowCircleCollider2DComponentEditor(Entity entity, CircleCollider2DComponent* circleCollider)
+		{
+			float textWidth = ImGui.CalcTextSize("Offset".CStr()).x;
+			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
+
+
+			Vector2 offset = circleCollider.Offset;
+			if (ImGui.EditVector2("Offset", ref offset, .Zero, 0.1f, textWidth))
+				circleCollider.Offset = offset;
+
+			float radius = circleCollider.Radius;
+			if (ImGui.DragFloat("Radius", &radius, 0.0f, 0.1f, textWidth))
+				circleCollider.Radius = radius;
+			
+			float density = circleCollider.Density;
+			if (ImGui.DragFloat("Density", &density, 0.0f, 0.1f, textWidth))
+				circleCollider.Density = density;
+			
+			float friction = circleCollider.Friction;
+			if (ImGui.DragFloat("Friction", &friction, 0.0f, 0.1f, textWidth))
+				circleCollider.Friction = friction;
+
+			float restitution = circleCollider.Restitution;
+			if (ImGui.DragFloat("Restitution", &restitution, 0.0f, 0.1f, textWidth))
+				circleCollider.Restitution = restitution;
+
+			float restitutionThreshold = circleCollider.RestitutionThreshold;
+			if (ImGui.DragFloat("RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, textWidth))
+				circleCollider.RestitutionThreshold = restitutionThreshold;
+		}
+
+		private static void LabelColumn(StringView label)
+		{
+			ImGui.TextUnformatted(label);
+			ImGui.NextColumn();
+		}
+
+		private static void ShowLightComponentEditor(Entity entity, LightComponent* lightComponent)
+		{
+			ImGui.Columns(2);
+			defer ImGui.Columns(1);
+
+			const String[?] strings = String[]("Directional", "Point", "Spot");
+
+			var light = ref lightComponent.SceneLight;
+
+			String typeName = strings[light.LightType.Underlying];
+			
+			LabelColumn("Type");
+
+			if (ImGui.BeginCombo("##Type", typeName.CStr()))
+			{
+				for (int i = 0; i < 3; i++)
+				{
+					bool isSelected = (typeName == strings[i]);
+
+					if (ImGui.Selectable(strings[i], isSelected))
+					{
+						light.LightType = (.)i;
+					}
+
+					if (isSelected)
+						ImGui.SetItemDefaultFocus();
+				}
+
+				ImGui.EndCombo();
+			}
+			
+			ImGui.NextColumn();
+			LabelColumn("Color");
+
+			ColorRGB color = ColorRGB.LinearToSRGB(light.Color);
+			if (ImGui.ColorEdit3("##Color", ref color))
+				light.Color = ColorRGB.SRgbToLinear(color);
+
+			ImGui.NextColumn();
+			LabelColumn("Illuminance");
+
+			float illuminance = light.Illuminance;
+			if (ImGui.DragFloat("##Illuminance", &illuminance, 0.1f, 0.0f, float.MaxValue))
+				light.Illuminance = illuminance;
+		}
+
+		private static void ShowMeshComponentEditor(Entity entity, MeshComponent* meshComponent)
+		{
+			ImGui.TextUnformatted("Mesh:");
+			ImGui.SameLine();
+
+			GeometryBinding mesh = meshComponent.Mesh;
+
+			StringView identifier = mesh?.Identifier ?? "None";
+			ImGui.Button(identifier.ToScopeCStr!());
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+
+				if (payload != null)
+				{
+					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
+
+					/*int idx = fullpath.IndexOf('#');
+
+					if (idx == -1)
+					{
+						// Doesn't make sense here, we NEED a sub asset
+						Runtime.NotImplemented();
+					}
+
+					StringView filePath = fullpath.Substring(0, idx);
+					StringView meshName = fullpath.Substring(idx + 1);*/
+
+					meshComponent.Mesh = Content.LoadAsset(fullpath);
+
+					// TODO: support multiple primitives (treat every primitive as a single mesh? or: mesh can have multiple primitives)
+					/*using (GeometryBinding binding = ModelLoader.LoadMesh(filePath, meshName, 0))
+					{
+						meshComponent.Mesh = binding;
+					}*/
+
+					//ModelLoader.LoadModel(scope .(path), )
+
+					/*using (Texture2D newTexture = new Texture2D(path, true))
+					{
+						newTexture.SamplerState = SamplerStateManager.AnisotropicWrap;
+						material.SetTexture(texture.key, newTexture);
+					}*/
+				}
+
+				ImGui.EndDragDropTarget();
+			}
 		}
 
 		private static void ShowAddComponentButton(Entity entity)
@@ -259,6 +544,10 @@ namespace GlitchyEditor.EditWindows
 
 			void ShowComponentButton<TComponent>(String name) where TComponent : struct, new
 			{
+				// If the entity already has this component, don't show the option to add it
+				if (entity.HasComponent<TComponent>())
+					return;
+
 				float textWidth = ImGui.CalcTextSize(name.CStr()).x;
 				buttonWidth = Math.Max(buttonWidth, textWidth + ImGui.GetStyle().FramePadding.x * 2);
 
@@ -287,7 +576,14 @@ namespace GlitchyEditor.EditWindows
 				ImGui.Separator();
 
 				ShowComponentButton<CameraComponent>("Camera");
-				ShowComponentButton<SpriterRendererComponent>("Sprite Renderer");
+				ShowComponentButton<SpriteRendererComponent>("Sprite Renderer");
+				ShowComponentButton<CircleRendererComponent>("Circle Renderer");
+				ShowComponentButton<LightComponent>("Light");
+				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
+				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");
+				ShowComponentButton<CircleCollider2DComponent>("Circle collider 2D");
+				ShowComponentButton<MeshComponent>("Mesh");
+				ShowComponentButton<MeshRendererComponent>("Mesh Renderer");
 
 				ImGui.EndCombo();
 			}

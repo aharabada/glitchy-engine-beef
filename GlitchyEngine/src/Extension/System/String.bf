@@ -17,5 +17,11 @@ namespace System
 
 			target[copiedChars] = '\0';
 		}
+
+		/// Converts camel case and delimiter-separated words to normal words.
+		public void ToHumanReadable()
+		{
+			// TODO!
+		}
 	}
 }

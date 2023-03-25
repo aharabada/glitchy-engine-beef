@@ -23,16 +23,58 @@ namespace GlitchyEditor.EditWindows
 
 		public List<Entity> SelectedEntities => _selectedEntities;
 
-		public this(Scene scene)
+		public this(Editor editor, Scene scene)
 		{
+			_editor = editor;
 			SetContext(scene);
 		}
 
 		public void SetContext(Scene scene)
 		{
+			ClearEntitySelection();
 			_scene = scene;
 		}
-		
+
+		/*public bool SelectEntityWithId(uint32 id, bool addToSelection = false)
+		{
+			if (!addToSelection)
+				_selectedEntities.Clear();
+
+			_scene.[Friend]_ecsWorld.IsValid(id);
+
+			_selectedEntities.Add();
+		}*/
+
+		/// Deselects all entities.
+		public void ClearEntitySelection()
+		{
+			_selectedEntities.Clear();
+		}
+
+		/// Selects the given entity.
+		/// @param entity The entity to select.
+		/// @param clearOldSelection If true the previously selected entities will be deselected. If false, the given entity will be added to the current selection.
+		public void SelectEntity(Entity entity, bool clearOldSelection = false)
+		{
+			if (clearOldSelection)
+				ClearEntitySelection();
+
+			_selectedEntities.Add(entity);
+		}
+
+		/// Deselects the given entity.
+		/// @param entity The entity to deselect.
+		public bool DeselectEntity(Entity entity)
+		{
+			return _selectedEntities.Remove(entity);
+		}
+
+		/// Returns whether or not the given entity is currently selected.
+		public bool IsEntitySelected(Entity entity)
+		{
+			return _selectedEntities.Contains(entity);
+		}
+
 		protected override void InternalShow()
 		{
 			if(!ImGui.Begin(s_WindowTitle, &_open, .MenuBar))
@@ -50,10 +92,26 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndPopup();
 			}
 
+			if (_editor.SceneViewportWindow.SelectionChanged)
+			{
+				var handle = _scene.[Friend]_ecsWorld.GetCurrentVersion(EcsEntity.[Friend]CreateEntityID(_editor.SceneViewportWindow.SelectedEntityId, 0));
+
+				if (handle case .Ok(let h))
+				{
+					Entity e = .(h, _scene);
+
+					SelectEntity(e, Input.IsKeyReleased(.Control));
+				}
+				else if (Input.IsKeyReleased(.Control))
+				{
+					ClearEntitySelection();
+				}
+			}
+
 			ShowEntityHierarchy();
 			
 			if ((ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right)) && !ImGui.IsAnyItemHovered() && !ImGui.GetIO().KeyCtrl && ImGui.IsWindowHovered(.AllowWhenBlockedByPopup))
-				_selectedEntities.Clear();
+				ClearEntitySelection();
 
 			ImGui.End();
 		}
@@ -102,6 +160,8 @@ namespace GlitchyEditor.EditWindows
 			{
 				_scene.DestroyEntity(entity, true);
 			}
+
+			_selectedEntities.Clear();
 		}
 
 		private void ShowEntityHierarchyMenuBar()
@@ -241,11 +301,11 @@ namespace GlitchyEditor.EditWindows
 		{
 			String name = null;
 
-			var nameComponent = tree.Value.GetComponent<DebugNameComponent>();
+			var nameComponent = tree.Value.GetComponent<NameComponent>();
 
 			if(nameComponent != null)
 			{
-				name = nameComponent.DebugName;
+				name = scope:: .(nameComponent.Name);
 			}
 			else
 			{
@@ -257,7 +317,7 @@ namespace GlitchyEditor.EditWindows
 			if(tree.Children.Count == 0)
 				flags |= .Leaf;
 			
-			bool inSelectedList = _selectedEntities.Contains(tree.Value);
+			bool inSelectedList = IsEntitySelected(tree.Value);
 			
 			if(inSelectedList)
 				flags |= .Selected;
@@ -350,17 +410,12 @@ namespace GlitchyEditor.EditWindows
 			{
 				if (inSelectedList && !clickedRight)
 				{
-					_selectedEntities.Remove(tree.Value);
+					DeselectEntity(tree.Value);
 					inSelectedList = false;
 				}
 				else
 				{
-					if (!ImGui.GetIO().KeyCtrl && !clickedRight)
-					{
-						_selectedEntities.Clear();
-					}
-
-					_selectedEntities.Add(tree.Value);
+					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl && !clickedRight);
 					inSelectedList = true;
 				}
 			}
@@ -446,13 +501,13 @@ namespace GlitchyEditor.EditWindows
 				{
 					Entity entity = .(entityId, _scene);
 
-					String name = null;
+					StringView name = null;
 
-					var nameComponent = entity.GetComponent<DebugNameComponent>();
+					var nameComponent = entity.GetComponent<NameComponent>();
 
 					if(nameComponent != null)
 					{
-						name = nameComponent.DebugName;
+						name = nameComponent.Name;
 					}
 					else
 					{

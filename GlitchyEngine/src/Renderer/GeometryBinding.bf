@@ -1,10 +1,12 @@
 using System;
 using System.Collections;
+using GlitchyEngine.Content;
 using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
-	public class GeometryBinding : RefCounter
+	// Todo: Rename to Mesh?
+	public class GeometryBinding : Asset
 	{
 		internal List<VertexBufferBinding> _vertexBuffers = new .() ~ delete _;
 		internal IndexBuffer _indexBuffer ~ _?.ReleaseRef();

@@ -1,0 +1,39 @@
+#include "ACES.hlsl"
+
+Texture2D CameraTarget : register(t0);
+SamplerState CameraTargetSampler : register(s0);
+
+struct VS_IN
+{
+	float2 Position : POSITION;
+	float2 TexCoord : TEXCOORD0;
+};
+
+struct PS_IN
+{
+	float4 Position : SV_POSITION;
+	float2 TexCoord : TEXCOORD;
+};
+
+PS_IN VS(VS_IN input)
+{
+	PS_IN output;
+
+	output.Position = float4(input.Position, 0, 1);
+	output.TexCoord = input.TexCoord;
+
+	return output;
+}
+
+float4 PS(PS_IN input) : SV_TARGET
+{
+	float4 rawColor = CameraTarget.Sample(CameraTargetSampler, input.TexCoord);
+
+	// float3 color = rawColor.rgb / (rawColor.rgb + 1.0f);
+
+	float3 color = ACESFitted(rawColor.rgb);
+	
+	return float4(color, 1);
+}
+
+#pragma Effect[VS = VS; PS = PS]

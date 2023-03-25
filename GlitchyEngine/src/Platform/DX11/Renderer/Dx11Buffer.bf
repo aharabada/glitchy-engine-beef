@@ -84,7 +84,7 @@ namespace GlitchyEngine.Renderer
 			return .Ok;
 		}
 
-		protected override Result<void> PlatformSetData(void* data, uint32 byteLength, uint32 dstByteOffset, GlitchyEngine.Renderer.MapType mapType)
+		protected override Result<void> PlatformSetData(void* data, uint32 byteLength, uint32 dstByteOffset, Renderer.MapType mapType)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -102,7 +102,7 @@ namespace GlitchyEngine.Renderer
 				Box dataBox = .(dstByteOffset, 0, 0, dstByteOffset + byteLength, 1, 1);
 				NativeContext.UpdateSubresource(nativeBuffer, 0, &dataBox, data, byteLength, byteLength);
 			case .Dynamic:
-				Debug.Assert(mapType.CanWrite, "The map type has to have write access.");
+				Log.EngineLogger.Assert(mapType == .WriteDiscard || mapType == .WriteNoOverwrite, scope $"When writing to dynamic resources the map type must be {nameof(Renderer.MapType.WriteDiscard)} or {nameof(Renderer.MapType.WriteNoOverwrite)}.");
 				// Todo: DoNotWaitFlag
 				MappedSubresource map = ?;
 				NativeContext.Map(nativeBuffer, 0, (.)mapType, .None, &map);

@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using GlitchyEngine.Core;
 
 using internal GlitchyEngine.World;
 
@@ -27,7 +28,7 @@ namespace GlitchyEngine.World
 
 		public ChildEnumerator EnumerateChildren => .(this);
 
-		public bool IsValid => _entity.IsValid;
+		public bool IsValid => _entity.IsValid && _scene != null;
 
 		public Entity? Parent
 		{
@@ -63,6 +64,16 @@ namespace GlitchyEngine.World
 			}
 		}
 
+		public UUID UUID => GetComponent<IDComponent>().ID;
+
+		public StringView Name
+		{
+			get => GetComponent<NameComponent>().Name;
+			set => GetComponent<NameComponent>().Name = value;
+		}
+
+		public TransformComponent* Transform => GetComponent<TransformComponent>();
+
 		public T* AddComponent<T>(T value = T()) where T: struct, new
 		{
 			Log.EngineLogger.AssertDebug(!HasComponent<T>(), scope $"Entity already has component.");
@@ -84,6 +95,18 @@ namespace GlitchyEngine.World
 		public bool HasComponent<T>() where T: struct, new
 		{
 			return _scene._ecsWorld.HasComponent<T>(_entity);
+		}
+
+		public bool TryGetComponent<T>(out T* component) where T: struct, new
+		{
+			if (HasComponent<T>())
+			{
+				component = GetComponent<T>();
+				return true;
+			}
+
+			component = null;
+			return false;
 		}
 		
 		public void RemoveComponent<T>() where T: struct, new

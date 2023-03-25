@@ -90,4 +90,4 @@ float4 PS(PS_Input input) : SV_Target0
 }
 */
 
-#effect[VS=VS, PS=PS]
+#pragma Effect[VS=VS; PS=PS]

@@ -2,10 +2,16 @@ using System.Collections;
 
 namespace GlitchyEngine.Collections
 {
+	// TODO: TreeNode is very bare minimum
+	// Destructor?
+	// RemoveChild?
+	// Remove in enumerator?
+
 	public class TreeNode<T>
 	{
 		public T Value;
 
+		public Self Parent;
 		public List<Self> Children = new .() ~ DeleteContainerAndItems!(_);
 
 		public this() {}
@@ -24,6 +30,7 @@ namespace GlitchyEngine.Collections
 			}
 
 			Self newChild = new .(value);
+			newChild.Parent = this;
 
 			Children.Add(newChild);
 
@@ -43,6 +50,33 @@ namespace GlitchyEngine.Collections
 			}
 
 			return null;
+		}
+
+		public static ref T operator ->(TreeNode<T> node)
+		{
+			return ref node.Value;
+		}
+	}
+
+	static
+	{
+		public static mixin DeleteTreeAndChildren<T>(TreeNode<T> tree) where T : class, delete
+		{
+			InternalDeleteTreeAndChildren(tree);
+		}
+
+		private static void InternalDeleteTreeAndChildren<T>(TreeNode<T> tree) where T : class, delete
+		{
+			for (var child in tree.Children)
+			{
+				InternalDeleteTreeAndChildren(child);
+			}
+
+			delete tree.Value;
+
+			tree.Children.Clear();
+
+			delete tree;
 		}
 	}
 }

@@ -21,6 +21,9 @@ namespace GlitchyEngine.Renderer
 
 		public extern void Clear(DepthStencilTarget target, ClearOptions options, float depth, uint8 stencil);
 		
+		//public extern void Clear(RenderTargetGroup renderTarget, ClearOptions options, ColorRGBA? color = null, float? depth = null, uint8? stencil = null);
+		public extern void Clear(RenderTargetGroup renderTarget, ClearOptions options, ClearColor? color = null, float? depth = null, uint8? stencil = null);
+
 		public void Clear(RenderTarget2D renderTarget, ClearOptions options, ColorRGBA color, float depth, uint8 stencil)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -36,13 +39,17 @@ namespace GlitchyEngine.Renderer
 
 		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthBuffer);
 
+		public extern void SetRenderTargetGroup(RenderTargetGroup renderTarget, bool setDepthBuffer);
+
 		public extern void SetDepthStencilTarget(DepthStencilTarget target);
+
+		public extern void UnbindRenderTargets();
 
 		public extern void BindRenderTargets();
 
 		public extern void SetRasterizerState(RasterizerState rasterizerState);
 
-		public extern void SetBlendState(BlendState blendState, ColorRGBA blendFactor);
+		public extern void SetBlendState(BlendState blendState, ColorRGBA blendFactor = .White);
 
 		public extern void SetDepthStencilState(DepthStencilState depthStencilState, uint8 stencilReference);
 
@@ -53,5 +60,13 @@ namespace GlitchyEngine.Renderer
 		public extern void DrawIndexedInstanced(GeometryBinding geometry);
 
 		public extern void SetViewport(Viewport viewport);
+
+		public extern void UnbindTextures();
+
+		public extern void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage);
+
+		public extern void BindVertexShader(VertexShader vertexShader);
+
+		public extern void BindPixelShader(PixelShader pixelShader);
 	}
 }

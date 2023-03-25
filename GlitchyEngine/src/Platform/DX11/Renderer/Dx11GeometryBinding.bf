@@ -15,7 +15,6 @@ namespace GlitchyEngine.Renderer
 		internal uint32[DirectX.D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] bufferStrides;
 		internal uint32[DirectX.D3D11.D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT] bufferOffsets;
 		
-		internal ID3D11InputLayout* nativeVertexLayout;
 		internal ID3D11Buffer* nativeIndexBuffer;
 
 		public ~this()
@@ -25,7 +24,6 @@ namespace GlitchyEngine.Renderer
 				buffer?.Release();
 			}
 			
-			nativeVertexLayout?.Release();
 			nativeIndexBuffer?.Release();
 		}
 
@@ -61,10 +59,6 @@ namespace GlitchyEngine.Renderer
 
 		protected override void PlatformSetVertexLayout(VertexLayout vertexLayout)
 		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			nativeVertexLayout?.Release();
-			nativeVertexLayout = vertexLayout?.nativeLayout..AddRef();
 		}
 
 		protected override void PlatformSetIndexBuffer(IndexBuffer indexBuffer)
@@ -88,7 +82,7 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
-			NativeContext.InputAssembler.SetInputLayout(_vertexLayout.nativeLayout);
+			GraphicsContext.Get().SetVertexLayout(_vertexLayout);
 			NativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
 
 			if(_indexBuffer != null)

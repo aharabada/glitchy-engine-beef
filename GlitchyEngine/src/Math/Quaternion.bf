@@ -1,7 +1,9 @@
+using Bon;
 using System;
 
 namespace GlitchyEngine.Math
 {
+	[BonTarget]
 	public struct Quaternion
 	{
 		public const Quaternion Zero = .();
@@ -142,7 +144,7 @@ namespace GlitchyEngine.Math
 		{
 			// http://www.euclideanspace.com/maths/geometry/rotations/conversions/matrixToQuaternion/
 
-			var m = matrix.V;
+			var m = matrix;
 
 			Quaternion result = ?;
 

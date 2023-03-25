@@ -3,7 +3,6 @@ using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
-	
 	/**
 	 * Type of data contained in an input slot.
 	*/
@@ -61,7 +60,7 @@ namespace GlitchyEngine.Renderer
 
 		public this() => this = default;
 
-		public this(Format format, String semanticName, bool ownsName = false, uint32 semanticIndex = 0, uint32 inputSlot = 0, uint32 offset = (.)-1, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
+		public this(Format format, String semanticName, bool ownsName = false, uint32 semanticIndex = 0, uint32 inputSlot = 0, uint32 offset = VertexElement.AppendAligned, InputClassification slotClass = .PerVertexData, uint32 instanceStepRate = 0)
 		{
 			Format = format;
 			SemanticName = semanticName;
@@ -86,6 +85,12 @@ namespace GlitchyEngine.Renderer
 
 		public VertexElement[] Elements => _elements;
 
+		public this(VertexElement[] elements, bool ownsElements)
+		{
+			_elements = elements;
+			_ownsElements = ownsElements;
+		}
+
 		public ~this()
 		{
 			if(_ownsElements)
@@ -99,8 +104,6 @@ namespace GlitchyEngine.Renderer
 				delete _elements;
 			}
 		}
-
-		protected extern void CreateNativeLayout();
 	}
 
 	public interface IVertexData

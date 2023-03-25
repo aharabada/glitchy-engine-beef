@@ -1,8 +1,10 @@
+using Bon;
 using System;
 
 namespace GlitchyEngine.Math
 {
-	[SwizzleVector(4, "Vector")]
+	[BonTarget]
+	[SwizzleVector(4, "GlitchyEngine.Math.Vector")]
 	public struct Vector4
 	{
 		public const Vector4 Zero 	= .(0f, 0f, 0f, 0f);
@@ -320,5 +322,9 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 		public static explicit operator Self(float value) => Self(value);
+
+		[Inline]
+#unwarn
+		public static explicit operator float[4](Vector4 value) => *(float[4]*)&value;
 	}
 }

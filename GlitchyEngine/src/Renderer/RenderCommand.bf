@@ -3,20 +3,17 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Renderer
 {
-	/*
-	public enum DepthStencilClearFlag
-	{
-		None = 0,
-		Depth = 1,
-		Stencil = 2
-	}
-	*/
 	public enum ClearOptions
 	{
 		None = 0,
 		Color = 1,
 		Depth = 2,
-		Stencil = 4
+		Stencil = 4,
+
+		ColorDepth = Color | Depth,
+		ColorStencil = Color | Stencil,
+		DepthStencil = Depth | Stencil,
+		All = Color | Depth | Stencil
 	}
 
 	public static class RenderCommand
@@ -37,7 +34,9 @@ namespace GlitchyEngine.Renderer
 			_rendererAPI.Init();
 		}
 
-		[Inline]
+		// REPORT!!!!!!!!!
+		// Inline doesn't compile
+		//[Inline]
 		public static void Clear(RenderTarget2D renderTarget, ColorRGBA color)
 		{
 			_rendererAPI.Clear(renderTarget, color);
@@ -53,14 +52,29 @@ namespace GlitchyEngine.Renderer
 			_rendererAPI.Clear(renderTarget, options, color, depth, stencil);
 		}
 
+		public static void Clear(RenderTargetGroup renderTarget, ClearOptions options, ColorRGBA? color = null, float? depth = null, uint8? stencil = null)
+		{
+			_rendererAPI.Clear(renderTarget, options, color, depth, stencil);
+		}
+
 		public static void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0, bool setDepthBuffer = false)
 		{
 			_rendererAPI.SetRenderTarget(renderTarget, slot, setDepthBuffer);
 		}
 
+		public static void SetRenderTargetGroup(RenderTargetGroup renderTarget, bool setDepthBuffer = true)
+		{
+			_rendererAPI.SetRenderTargetGroup(renderTarget, setDepthBuffer);
+		}
+
 		public static void SetDepthStencilTarget(DepthStencilTarget target)
 		{
 			_rendererAPI.SetDepthStencilTarget(target);
+		}
+
+		public static void UnbindRenderTargets()
+		{
+			_rendererAPI.UnbindRenderTargets();
 		}
 
 		public static void BindRenderTargets()
@@ -82,7 +96,7 @@ namespace GlitchyEngine.Renderer
 		{
 			_rendererAPI.SetDepthStencilState(depthStencilState, stencilReference);
 		}
-
+		
 		[Inline]
 		public static void DrawIndexed(GeometryBinding geometry)
 		{
@@ -103,6 +117,26 @@ namespace GlitchyEngine.Renderer
 		public static void SetViewport(float left, float top, float width, float height, float minDepth = 0.0f, float maxDepth = 1.0f)
 		{
 			SetViewport(.(left, top, width, height, minDepth, maxDepth));
+		}
+
+		public static void UnbindTextures()
+		{
+			_rendererAPI.UnbindTextures();
+		}
+
+		public static void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage)
+		{
+			_rendererAPI.BindConstantBuffer(buffer, slot, stage);
+		}
+
+		public static void BindVertexShader(VertexShader vertexShader)
+		{
+			_rendererAPI.BindVertexShader(vertexShader);
+		}
+
+		public static void BindPixelShader(PixelShader pixelShader)
+		{
+			_rendererAPI.BindPixelShader(pixelShader);
 		}
 	}
 }

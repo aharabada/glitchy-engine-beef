@@ -5,6 +5,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Renderer.Animation;
 using GlitchyEngine.World;
+using System.IO;
 
 namespace GlitchyEngine.Content
 {
@@ -12,148 +13,223 @@ namespace GlitchyEngine.Content
 	{
 		static readonly Matrix RightToLeftHand = .Scaling(1, 1, -1);
 
-		public static void LoadModel(String filename, Effect validationEffect, Material material, EcsWorld world,
-			List<AnimationClip> outClips)
+		public static Result<void> GetMeshNames(String filename, List<String> meshNames)
 		{
 			CGLTF.Options options = .();
 			CGLTF.Data* data;
 			CGLTF.Result result = CGLTF.ParseFile(options, filename, out data);
-			
-			Log.EngineLogger.Assert(result == .Success, "Failed to load model.");
 
-			result = CGLTF.LoadBuffers(options, data, filename);
+			if (!(result case .Success))
+				return .Err;
 
-			Log.EngineLogger.Assert(result == .Success, "Failed to load buffers");
-
-			for(var node in data.Scenes[0].Nodes)
+			for (var mesh in data.Meshes)
 			{
-				NodesToEntities(data, node, null, world, validationEffect, material, outClips);
+				meshNames.Add(new String(mesh.Name));
 			}
-			
+
 			CGLTF.Free(data);
+
+			return .Ok;
 		}
 
-		private static void NodesToEntities(CGLTF.Data* data, CGLTF.Node* node, EcsEntity? parentEntity, EcsWorld world, Effect validationEffect, Material material, List<AnimationClip> clips)
+		public static GeometryBinding LoadMesh(StringView fileName, StringView meshName, int primitiveIndex)
 		{
-			EcsEntity entity = world.NewEntity();
+			// TODO: add a context to remember which buffers were loaded before so that we don't load the same data multiple times.
 
-#if DEBUG
-			var nameComponent = world.AssignComponent<DebugNameComponent>(entity);
+			char8* scopedFileName = fileName.ToScopeCStr!();
 
-			if (node.Name != null)
+			CGLTF.Options options = .();
+			CGLTF.Data* data;
+			CGLTF.Result result = CGLTF.ParseFile(options, scopedFileName, out data);
+
+			if (!(result case .Success))
+				return null;
+
+			result = CGLTF.LoadBuffers(options, data, scopedFileName);
+
+			GeometryBinding geoBinding = null;
+
+			for (var mesh in data.Meshes)
 			{
-				nameComponent.SetName(StringView(node.Name));
-			}
-			else
-			{
-				nameComponent.SetName("Unnamed Node");
-			}
-#endif
+				var name = StringView(mesh.Name);
 
-			if(parentEntity.HasValue)
-			{
-				var childParent = world.AssignComponent<ParentComponent>(entity);
-				childParent.Entity = parentEntity.Value;
-			}
-
-			var childTransform = world.AssignComponent<TransformComponent>(entity);
-
-			if(node.HasMatrix)
-			{
-				childTransform.LocalTransform = *(Matrix*)&node.Matrix;
-			}
-			else
-			{
-				if(node.HasTranslation)
-					childTransform.Position = *(Vector3*)&node.Translation;
-				else
-					childTransform.Position = .Zero;
-	
-				if(node.HasRotation)
-					childTransform.Rotation = *(Quaternion*)&node.Rotation;
-				else
-					childTransform.Rotation = .Identity;
-	
-				if(node.HasScale)
-					childTransform.Scale = *(Vector3*)&node.Scale;
-				else
-					childTransform.Scale = .(1, 1, 1);
-			}
-
-			// Invert the Z-Axis of the root Node to convert the coordinate system from right-handed to left-handed
-			if(parentEntity == null)
-				childTransform.Scale *= .(1, 1, -1);
-
-			Skeleton skeleton = null;
-
-			if(node.Skin != null)
-			{
-				skeleton = ExtractSkeleton(node.Skin);
-
-				LoadAnimationClips(data, node.Skin, skeleton, clips);
-			}
-
-			if(node.Mesh != null)
-			{
-				// If we have only one primitive, add it directly to the entity
-				if(node.Mesh.Primitives.Length == 1)
+				if (name == meshName)
 				{
-					var mesh = world.AssignComponent<MeshComponent>(entity);
+					Log.EngineLogger.AssertDebug(primitiveIndex >= 0 && primitiveIndex < mesh.Primitives.Length);
 
-					using (var geo = PrimitiveToGeoBinding(node.Mesh.Primitives[0], validationEffect))
-					{
-						mesh.Mesh = geo;
-					}
+					geoBinding = PrimitiveToGeoBinding(mesh.Primitives[primitiveIndex]);
+					break;
+				}
+			}
 
-					if(skeleton == null)
+			CGLTF.Free(data);
+
+			return geoBinding;
+		}
+
+		public static GeometryBinding LoadMesh(Stream data, StringView meshName, int primitiveIndex)
+		{
+			// TODO: add a context to remember which buffers were loaded before so that we don't load the same data multiple times.
+
+			uint8[] rawData = new:ScopedAlloc! uint8[data.Length];
+
+			var dataReadResult = data.TryRead(rawData);
+
+			if (dataReadResult case .Err(let err))
+			{
+				Log.EngineLogger.Error($"Failed to read data from stream. Error: {err}");
+			}
+
+			CGLTF.Options options = .();
+			CGLTF.Data* modelData;
+			CGLTF.Result result = CGLTF.Parse(options, (Span<uint8>)rawData, out modelData);
+
+			if (!(result case .Success))
+				return null;
+
+			// TODO: one buffer can be used by multiple primitives, the content manager could manage the buffers
+
+			// TODO: load with content manager
+
+			result = CGLTF.LoadBuffers(options, modelData, (char8*)null);
+			//result = LoadBuffersWithContentManager(options, modelData, meshName, Application.Get().ContentManager);
+
+			GeometryBinding geoBinding = null;
+
+			for (var mesh in modelData.Meshes)
+			{
+				var name = StringView(mesh.Name);
+
+				//if (name == meshName)
+				{
+					Log.EngineLogger.AssertDebug(primitiveIndex >= 0 && primitiveIndex < mesh.Primitives.Length);
+
+					geoBinding = PrimitiveToGeoBinding(mesh.Primitives[primitiveIndex]);
+					break;
+				}
+			}
+
+			CGLTF.Free(modelData);
+
+			return geoBinding;
+		}
+
+		private static CGLTF.Result LoadBuffersWithContentManager(CGLTF.Options options, CGLTF.Data* data, StringView fileName, IContentManager contentManager)
+		{
+			if (data.Buffers.Length > 0 && data.Buffers[0].Data == null && data.Buffers[0].Uri == null && !data.Bin.IsEmpty)
+			{
+				if ((uint)data.Bin.Length < data.Buffers[0].Size)
+					return .DataTooShort;
+
+				data.Buffers[0].Data = data.Bin.Ptr;
+				data.Buffers[0].DataFreeMethod = .None;
+			}
+
+			for (ref CGLTF.Buffer buffer in ref data.Buffers)
+			{
+				if (buffer.Data != null)
+					continue;
+
+				if (buffer.Uri == null)
+					continue;
+
+				StringView uri = StringView(buffer.Uri);
+
+				if (uri.StartsWith("data:"))
+				{
+					int commaIndex = uri.IndexOf(',');
+
+					//char* comma = strchr(uri, ',');
+
+					if (commaIndex == -1 || commaIndex >= 7 || uri.StartsWith(";base64"))
+						return .UnknownFormat;
+
+					StringView dataView = uri.Substring(commaIndex + 1);
+
+#unwarn
+					CGLTF.Result loadBufferResult = CGLTF.LoadBuffersBase64(&options, buffer.Size, dataView.Ptr, &buffer.Data);
+					buffer.DataFreeMethod = .MemoryFree;
+					
+					return loadBufferResult;
+				}
+				else
+				{
+					Runtime.NotImplemented();
+
+					// TODO: Request Buffer from Content Manager
+
+					//int index = uri.IndexOf("://");
+
+					//if (index == -1)
+					//	return .UnknownFormat;
+
+					// TODO: load buffer file...
+					//CGLTF.Result res = //cgltf_load_buffer_file(options, data->buffers[i].size, uri, gltf_path, &data->buffers[i].data);
+					//buffer.DataFreeMethod = cgltf_data_free_method_file_release;
+
+					/*if (res != cgltf_result_success)
 					{
-						var meshRenderer = world.AssignComponent<MeshRendererComponent>(entity);
-						meshRenderer.Material = material;
+						return res;
+					}*/
+				}
+			}
+
+			/*
+
+			for (cgltf_size i = 0; i < data->buffers_count; ++i)
+			{
+				if (data->buffers[i].data)
+				{
+					continue;
+				}
+
+				const char* uri = data->buffers[i].uri;
+
+				if (uri == NULL)
+				{
+					continue;
+				}
+
+				if (strncmp(uri, "data:", 5) == 0)
+				{
+					const char* comma = strchr(uri, ',');
+
+					if (comma && comma - uri >= 7 && strncmp(comma - 7, ";base64", 7) == 0)
+					{
+						cgltf_result res = cgltf_load_buffer_base64(options, data->buffers[i].size, comma + 1, &data->buffers[i].data);
+						data->buffers[i].data_free_method = cgltf_data_free_method_memory_free;
+
+						if (res != cgltf_result_success)
+						{
+							return res;
+						}
 					}
 					else
 					{
-						var meshRenderer = world.AssignComponent<SkinnedMeshRendererComponent>(entity);
-						meshRenderer.Material = material;
-						meshRenderer.Skeleton = skeleton;
+						return cgltf_result_unknown_format;
 					}
 				}
-				// otherwise one child-entity per primitive
+				else if (strstr(uri, "://") == NULL && gltf_path)
+				{
+					cgltf_result res = cgltf_load_buffer_file(options, data->buffers[i].size, uri, gltf_path, &data->buffers[i].data);
+					data->buffers[i].data_free_method = cgltf_data_free_method_file_release;
+
+					if (res != cgltf_result_success)
+					{
+						return res;
+					}
+				}
 				else
 				{
-					for(var primitive in node.Mesh.Primitives)
-					{
-						EcsEntity meshEntity = world.NewEntity();
-
-						var meshParent = world.AssignComponent<ParentComponent>(meshEntity);
-						meshParent.Entity = entity;
-
-						var mesh = world.AssignComponent<MeshComponent>(meshEntity);
-						mesh.Mesh = PrimitiveToGeoBinding(primitive, validationEffect);
-						
-						if(skeleton == null)
-						{
-							var meshRenderer = world.AssignComponent<MeshRendererComponent>(meshEntity);
-							meshRenderer.Material = material;
-						}
-						else
-						{
-							var meshRenderer = world.AssignComponent<SkinnedMeshRendererComponent>(meshEntity);
-							meshRenderer.Material = material;
-							meshRenderer.Skeleton = skeleton;
-						}
-					}
+					return cgltf_result_unknown_format;
 				}
 			}
+			*/
 
-			skeleton?.ReleaseRef();
-
-			for(var child in node.Children)
-			{
-				NodesToEntities(data, child, entity, world, validationEffect, material, clips);
-			}
+			return .Success;
 		}
 
-		public static GeometryBinding PrimitiveToGeoBinding(CGLTF.Primitive primitive, Effect validationEffect)
+		public static GeometryBinding PrimitiveToGeoBinding(CGLTF.Primitive primitive)
 		{
 			GeometryBinding binding = new GeometryBinding();
 
@@ -265,7 +341,7 @@ namespace GlitchyEngine.Content
 					StringView strView = .(attribute.Name);
 
 					// Remove number from end of name
-					while((*(strView.EndPtr - 1)).IsDigit)
+					while((*(strView.EndPtr - 1)).IsDigit || (*(strView.EndPtr - 1)) == '_')
 					{
 						strView.Length--;
 					}
@@ -318,7 +394,7 @@ namespace GlitchyEngine.Content
 					vertexElements[i] = elements[i];
 				}
 
-				VertexLayout layout = new VertexLayout(vertexElements, true, validationEffect.VertexShader);
+				VertexLayout layout = new VertexLayout(vertexElements, true);
 				binding.SetVertexLayout(layout..ReleaseRefNoDelete());
 			}
 

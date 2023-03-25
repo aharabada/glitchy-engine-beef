@@ -1,3 +1,5 @@
+#define EDITOR
+
 Texture2D Texture : register(t0);
 SamplerState Sampler : register(s0);
 
@@ -14,6 +16,9 @@ struct VS_Input
     float4 Color        : COLOR;
     float4 UVTransform  : TEXCOORD1;
     float InnerRadius   : TEXCOORD2;
+#ifdef EDITOR
+    uint EntityId : ENTITYID;
+#endif
 };
 
 struct PS_Input
@@ -22,6 +27,9 @@ struct PS_Input
     float2 RawPos       : TEXCOORD0;
     float2 Texcoord     : TEXCOORD1;
     float4 Color        : COLOR;
+#ifdef EDITOR
+    nointerpolation uint EntityId : ENTITYID;
+#endif
     float InnerRadius   : TEXCOORD2;
 };
 
@@ -35,11 +43,25 @@ PS_Input VS(VS_Input input)
     output.Color = input.Color;
     output.InnerRadius = input.InnerRadius;
 
+#ifdef EDITOR
+    output.EntityId = input.EntityId;
+#endif
+
     return output;
 }
 
-float4 PS(PS_Input input) : SV_Target0
+struct PS_Output
 {
+    float4 Color : SV_Target0;
+#ifdef EDITOR
+    uint EntityId : SV_TARGET1;
+#endif
+};
+
+PS_Output PS(PS_Input input)
+{
+    PS_Output output;
+
     float2 uv = input.RawPos * 2;
 
     float distance = 1.0f - length(uv);
@@ -53,10 +75,14 @@ float4 PS(PS_Input input) : SV_Target0
     // Discard invisible pixels
     clip(amount - 0.5f);
 
-    float4 color = Texture.Sample(Sampler, input.Texcoord) * input.Color;
-    color.a *= amount;
+    output.Color = Texture.Sample(Sampler, input.Texcoord) * input.Color;
+    output.Color.a *= amount;
 
-    return color;
+#ifdef EDITOR
+    output.EntityId = input.EntityId;
+#endif
+
+    return output;
 }
 
-#effect[VS=VS, PS=PS]
+#pragma Effect[VS=VS; PS=PS]

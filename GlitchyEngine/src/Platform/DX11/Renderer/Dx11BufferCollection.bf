@@ -14,6 +14,9 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
+			// Clear
+			nativeBuffers = .();
+
 			for(let buffer in _buffers)
 			{
 				nativeBuffers[buffer.Index] = buffer.Buffer.nativeBuffer;

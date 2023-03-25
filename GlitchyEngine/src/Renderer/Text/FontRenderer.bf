@@ -3,6 +3,7 @@ using FreeType;
 using System.Diagnostics;
 using GlitchyEngine.Math;
 using System.Collections;
+using GlitchyEngine.Core;
 using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
@@ -61,7 +62,7 @@ namespace GlitchyEngine.Renderer.Text
 			FreeType.Done_FreeType(s_Library);
 		}
 
-		public class PreparedText : RefCounted
+		public class PreparedText : RefCounter
 		{
 			//public List<PreparedLine> Lines ~ ClearAndDeleteItems!(_);
 			public Font Font ~ _?.ReleaseRef();
@@ -332,8 +333,8 @@ namespace GlitchyEngine.Renderer.Text
 			Renderer2D.Flush();
 
 			// TODO: this is very not good!
-			var lastEffect = Renderer2D.[Friend]s_currentEffect;
-			Renderer2D.[Friend]s_currentEffect = _msdfEffect..AddRef();
+			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect..AddRef();
 			// TODO: oh no....
 			// Copy viewProjection from current effect
 			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
@@ -397,7 +398,7 @@ namespace GlitchyEngine.Renderer.Text
 
 				Matrix glyphTransform = transform * Matrix.Translation(position) * Matrix.Scaling(viewportRect.Z, viewportRect.W, 1.0f);
 				
-				Renderer2D.DrawQuad(glyphTransform, atlas, glyphColor, texRect);
+				Renderer2D.DrawQuad(glyphTransform, atlas, (ColorRGBA)glyphColor, texRect);
 				//Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
 
 				// Show pen positions
@@ -409,7 +410,7 @@ namespace GlitchyEngine.Renderer.Text
 			// TODO: not good!
 			// Change back effect
 			_msdfEffect.ReleaseRef();
-			Renderer2D.[Friend]s_currentEffect = lastEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
 			
 			// release all atlas textures
 			for(int i < atlasses.Count)
@@ -438,8 +439,8 @@ namespace GlitchyEngine.Renderer.Text
 			Renderer2D.Flush();
 
 			// TODO: this is very not good!
-			var lastEffect = Renderer2D.[Friend]s_currentEffect;
-			Renderer2D.[Friend]s_currentEffect = _msdfEffect..AddRef();
+			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect..AddRef();
 			// TODO: oh no....
 			// Copy viewProjection from current effect
 			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
@@ -648,7 +649,7 @@ namespace GlitchyEngine.Renderer.Text
 
 				texRect /= Vector4(atlasSize, atlasSize);
 
-				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, (ColorRGBA)glyphColor, texRect);
 
 				//renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
 
@@ -663,7 +664,7 @@ namespace GlitchyEngine.Renderer.Text
 			// TODO: not good!
 			// Change back effect
 			_msdfEffect.ReleaseRef();
-			Renderer2D.[Friend]s_currentEffect = lastEffect;
+			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
 			
 			// release all atlas textures
 			for(int i < atlasses.Count)

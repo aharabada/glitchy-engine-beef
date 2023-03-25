@@ -1,8 +1,10 @@
+using Bon;
 using System;
 
 namespace GlitchyEngine.Math
 {
-	[SwizzleVector(2, "Vector")]
+	[BonTarget]
+	[SwizzleVector(2, "GlitchyEngine.Math.Vector")]
 	public struct Vector2
 	{
 		public const Vector2 Zero  = .(0f, 0f);
@@ -282,12 +284,16 @@ namespace GlitchyEngine.Math
 
 		public override void ToString(String strBuffer) => strBuffer.AppendF("X:{0} Y:{1}", X, Y);
 
-		[Inline]
-		public static explicit operator Self(float value) => Self(value);
-
 		public bool Equals(Vector2 v, float epsilon = Math.[Friend]sMachineEpsilonFloat)
 		{
 			return (Math.Abs(v.X - X) < epsilon) && (Math.Abs(v.Y - Y) < epsilon);
 		}
+		
+		[Inline]
+		public static explicit operator Self(float value) => Self(value);
+
+		[Inline]
+#unwarn
+		public static explicit operator float[2](Vector2 value) => *(float[2]*)&value;
 	}
 }

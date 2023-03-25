@@ -707,9 +707,9 @@ namespace GlitchyEngine.Renderer.Text
 	
 					int index = ((desc.Height - y - 1) * desc.Width + x) * 4;
 	
-					pixels[index + 0] = ToInt8(pixel.Red);
-					pixels[index + 1] = ToInt8(pixel.Green);
-					pixels[index + 2] = ToInt8(pixel.Blue);
+					pixels[index + 0] = ToInt8(pixel.R);
+					pixels[index + 1] = ToInt8(pixel.G);
+					pixels[index + 2] = ToInt8(pixel.B);
 	
 					pixels[index + 3] = Int8.MaxValue;
 				}

@@ -18,7 +18,7 @@ namespace GlitchyEngine.Renderer
 
 	extension Texture
 	{
-		protected internal ID3D11ShaderResourceView* nativeResourceView ~ _?.Release();
+		protected internal ID3D11ShaderResourceView* _nativeResourceView ~ _?.Release();
 
 		/** \brief Loads the texture from the specified path.
 		 * @param path The path of the texture to load.
@@ -39,17 +39,17 @@ namespace GlitchyEngine.Renderer
 			}
 
 			((ID3D11Resource*)texture)?.Release();
-			nativeResourceView?.Release();
+			_nativeResourceView?.Release();
 
 			HResult loadResult = DDSTextureLoader.CreateDDSTextureFromMemory(NativeDevice,
-				ddsData.Ptr, (uint)ddsData.Count, (.)&texture, &nativeResourceView);
+				ddsData.Ptr, (uint)ddsData.Count, (.)&texture, &_nativeResourceView);
 
 			if(loadResult.Failed)
 			{
 				Log.EngineLogger.Error($"Failed to load texture. Error({(int)loadResult}): {loadResult}");
 
 				ReleaseAndNullify!(texture);
-				ReleaseAndNullify!(nativeResourceView);
+				ReleaseAndNullify!(_nativeResourceView);
 
 				return false;
 			}
@@ -101,7 +101,7 @@ namespace GlitchyEngine.Renderer
 			LoadDdsResourcePlatform(stream, ref nativeTexture);
 
 			let resType = nativeTexture.GetResourceType();
-			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture \"{_path}\" is not a 2D texture (it is {resType}).");
+			Log.EngineLogger.Assert(resType == .Texture2D, scope $"The texture is not a 2D texture (it is {resType}).");
 
 			nativeTexture.GetDescription(out nativeDesc);
 		}
@@ -126,7 +126,7 @@ namespace GlitchyEngine.Renderer
 			var result = NativeDevice.CreateTexture2D(ref nativeDesc, resDataPtr, &nativeTexture);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture 2D. Error ({result.Underlying}): {result}");
 
-			result = NativeDevice.CreateShaderResourceView(nativeTexture, null, &nativeResourceView);
+			result = NativeDevice.CreateShaderResourceView(nativeTexture, null, &_nativeResourceView);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture view. Error ({result.Underlying}): {result}");
 		}
 
@@ -136,8 +136,8 @@ namespace GlitchyEngine.Renderer
 
 			nativeTexture?.Release();
 			nativeTexture = null;
-			nativeResourceView?.Release();
-			nativeResourceView = null;
+			_nativeResourceView?.Release();
+			_nativeResourceView = null;
 
 			nativeDesc = (NativeTex2DDesc)desc;
 
@@ -146,7 +146,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		// TODO: Update Texture Arrays!
-		protected override System.Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
+		protected override Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
 			uint32 destY, uint32 destWidth, uint32 destHeight, uint32 arraySlice, uint32 mipLevel, GlitchyEngine.Renderer.MapType mapType)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
@@ -256,6 +256,11 @@ namespace GlitchyEngine.Renderer
 					nativeTexture, D3D11.CalcSubresource(mipSlice, arraySlice, MipLevels), (.)&sourceBox);
 			}
 		}
+
+		protected override TextureViewBinding PlatformGetViewBinding()
+		{
+			return .(_nativeResourceView, _samplerState?.nativeSamplerState);
+		}
 	}
 
 	extension TextureCube
@@ -281,6 +286,11 @@ namespace GlitchyEngine.Renderer
 
 			Log.EngineLogger.Assert(nativeDesc.MiscFlags.HasFlag(.TextureCube), scope $"The texture \"{_path}\" is not a texture cube.");
 			// TODO: load fallback texture
+		}
+
+		protected override TextureViewBinding PlatformGetViewBinding()
+		{
+			return .(_nativeResourceView, _samplerState.nativeSamplerState);
 		}
 	}
 }

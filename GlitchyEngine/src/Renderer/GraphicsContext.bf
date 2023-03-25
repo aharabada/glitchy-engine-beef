@@ -34,6 +34,11 @@ namespace GlitchyEngine.Renderer
 		 * @param setDepthTarget If set to true the depth stencil target of the given renderTarget will be bound (only applies if slot is 0).
 		 */
 		public extern void SetRenderTarget(RenderTarget2D renderTarget, int slot = 0, bool setDepthTarget = true);
+		
+		/**
+		 * Unbinds all rendertargets.
+		 */
+		public extern void UnbindRenderTargets();
 
 		/**
 		 * Binds all.
@@ -74,6 +79,8 @@ namespace GlitchyEngine.Renderer
 		public extern void Draw(uint32 vertexCount, uint32 startVertexIndex = 0);
 
 		public extern void DrawIndexed(uint32 indexCount, uint32 startIndexLocation = 0, int32 vertexOffset = 0);
+
+		public extern void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation);
 		
 		public void SetIndexBuffer(IndexBuffer indexBuffer, uint32 byteOffset = 0)
 		{
@@ -91,16 +98,9 @@ namespace GlitchyEngine.Renderer
 		}
 		
 		[Inline]
-		public void SetViewports(Viewport[] viewports)
+		public void SetViewports(Span<Viewport> viewports)
 		{
-			SetViewports((.)viewports.Count, viewports.CArray());
-		}
-
-		[Inline]
-		public void SetViewports<CSize>(Viewport[CSize] viewports) where CSize : const uint32
-		{
-			var viewports;
-			SetViewports(CSize, &viewports);
+			SetViewports((.)viewports.Length, viewports.Ptr);
 		}
 
 		public extern void SetViewports(uint32 viewportsLength, Viewport* viewports);
@@ -109,8 +109,12 @@ namespace GlitchyEngine.Renderer
 
 		public extern void SetPrimitiveTopology(PrimitiveTopology primitiveTopology);
 		
-		public extern void SetVertexShader(VertexShader vertexShader);
+		public extern void BindVertexShader(VertexShader vertexShader);
 
-		public extern void SetPixelShader(PixelShader pixelShader);
+		public extern void BindPixelShader(PixelShader pixelShader);
+
+		public extern void UnbindTextures();
+
+		public extern void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage);
 	}
 }

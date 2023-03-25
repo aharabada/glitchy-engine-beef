@@ -39,7 +39,7 @@ namespace Sandbox
 
 		public this()
 		{
-			_context = Renderer.[Friend]_context..AddRef();
+			_context = Application.Get().Window.Context..AddRef();
 
 			InitEffect();
 			InitState();
@@ -157,7 +157,7 @@ namespace Sandbox
 
 			if(_moving)
 			{
-				Point movement = Input.GetMouseMovement();
+				Int2 movement = Input.GetMouseMovement();
 
 				_position.X += movement.X;
 				_position.Y += movement.Y;

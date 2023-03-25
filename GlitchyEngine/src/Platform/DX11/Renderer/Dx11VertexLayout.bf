@@ -5,6 +5,7 @@ using System.Diagnostics;
 using DirectX.Common;
 using DirectX.D3D11;
 using GlitchyEngine.Platform.DX11;
+using System.Collections;
 
 using internal GlitchyEngine.Renderer;
 using internal GlitchyEngine.Platform.DX11;
@@ -13,19 +14,19 @@ namespace GlitchyEngine.Renderer
 {
 	public extension VertexLayout
 	{
-		internal ID3D11InputLayout* nativeLayout ~ _?.Release();
+		private Dictionary<ID3DBlob*, ID3D11InputLayout*> _validatedShaders = new .() ~
+			{
+				if (_ != null)
+				{
+					for (let entry in _)
+					{
+						entry.key.Release();
+						entry.value.Release();
+					}
 
-		public ID3DBlob* nativeShaderCode ~ _?.Release();
-
-		public this(VertexElement[] elements, bool ownsElements, VertexShader vertexShader)
-		{
-			nativeShaderCode = vertexShader.nativeCode..AddRef();
-
-			_elements = elements;
-			_ownsElements = ownsElements;
-
-			CreateNativeLayout();
-		}
+					delete _;
+				}
+			};
 
 		private void ToNativeLayout(VertexElement[] input, InputElementDescription[] output)
 		{
@@ -35,19 +36,30 @@ namespace GlitchyEngine.Renderer
 				output[i] = .(input[i].SemanticName, input[i].SemanticIndex, input[i].Format, input[i].InputSlot, input[i].AlignedByteOffset, (.)input[i].InputSlotClass, input[i].InstanceDataStepRate);
 		}
 
-		protected override void CreateNativeLayout()
+		/// Validates or gets the validated input layout for the given vertexshader.
+		internal ID3D11InputLayout* GetNativeVertexLayout(ID3DBlob* vertexShaderCode)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			var nativeElements = scope InputElementDescription[_elements.Count];
+			ID3D11InputLayout* layout = null;
 
-			ToNativeLayout(_elements, nativeElements);
-
-			var result = NativeDevice.CreateInputLayout(nativeElements.CArray(), (.)nativeElements.Count, nativeShaderCode.GetBufferPointer(), nativeShaderCode.GetBufferSize(), &nativeLayout);
-			if(result.Failed)
+			if (!_validatedShaders.TryGetValue(vertexShaderCode, out layout))
 			{
-				Log.EngineLogger.Error($"Failed to create D3D11 input layout: Message({(int)result}): {result}");
+				var nativeElements = scope InputElementDescription[_elements.Count];
+
+				ToNativeLayout(_elements, nativeElements);
+
+				var result = NativeDevice.CreateInputLayout(nativeElements.CArray(), (.)nativeElements.Count, vertexShaderCode.GetBufferPointer(), vertexShaderCode.GetBufferSize(), &layout);
+				if(result.Failed)
+				{
+					Log.EngineLogger.Error($"Failed to create D3D11 input layout: Message({(int)result}): {result}");
+					Debug.FatalError();
+				}
+
+				_validatedShaders[vertexShaderCode..AddRef()] = layout;
 			}
+
+			return layout;
 		}
 	}
 }

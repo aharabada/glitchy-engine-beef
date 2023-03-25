@@ -7,13 +7,12 @@ using GlitchyEngine.Content;
 
 namespace GlitchyEngine
 {
-	public class Application
+	public abstract class Application
 	{
 		static Application s_Instance = null;
 
 		private Window _window;
 		private RendererAPI _rendererApi;
-		private EffectLibrary _effectLibrary;
 
 		private bool _running = true;
 		private bool _isMinimized = false;
@@ -31,11 +30,11 @@ namespace GlitchyEngine
 		public bool IsRunning => _running;
 		public Window Window => _window;
 
-		public EffectLibrary EffectLibrary => _effectLibrary;
-
 		public IContentManager ContentManager => _contentManager;
 
 		public bool IsMinimized => _isMinimized;
+
+		public GameTime GameTime => _gameTime;
 
 		[Inline]
 		public static Application Get() => s_Instance;
@@ -55,18 +54,20 @@ namespace GlitchyEngine
 			_window = new Window(.Default);
 			_window.EventCallback = new => OnEvent;
 
+			Input.Init();
+			
+			_contentManager = InitContentManager();
+
+			// TODO: RenderAPI in RenderCommand initialisieren?
 			_rendererApi = new RendererAPI();
 			_rendererApi.Context = _window.Context;
 
-			_contentManager = new ContentManager("./content");
-
 			SamplerStateManager.Init();
 
+			// TODO: Rendercommmand in Renderer initialisieren?
 			RenderCommand.RendererAPI = _rendererApi;
 
-			_effectLibrary = new EffectLibrary();
-
-			Renderer.Init(_window.Context, _effectLibrary);
+			Renderer.Init();
 
 #if IMGUI
 			_imGuiLayer = new ImGuiLayer();
@@ -77,14 +78,19 @@ namespace GlitchyEngine
 			Settings.Apply();
 		}
 
+		/// Initializes the content manager.
+		protected abstract IContentManager InitContentManager();
+		//{
+			// TODO: init default content manager?
+			//_contentManager = new ContentManager("./content");
+		//}
+
 		public ~this()
 		{
 			Profiler.ProfileFunction!();
 
 			SamplerStateManager.Uninit();
 			Renderer.Deinit();
-
-			delete _effectLibrary;
 
 			delete _contentManager;
 
@@ -165,6 +171,12 @@ namespace GlitchyEngine
 					_window.Context.SwapChain.Present();
 				}
 			}
+		}
+
+		/// Closes the applcation.
+		public void Close()
+		{
+			_running = false;
 		}
 
 		public void PushLayer(Layer ownLayer)

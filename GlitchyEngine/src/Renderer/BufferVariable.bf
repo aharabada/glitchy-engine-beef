@@ -29,6 +29,9 @@ namespace GlitchyEngine.Renderer
 
 		public bool IsUsed => _isUsed;
 
+		public uint32 Columns => _columns;
+		public uint32 Rows => _rows;
+
 		/**
 		 * Gets a pointer to the start of the variable in the constant buffers backing data.
 		 */
@@ -49,15 +52,19 @@ namespace GlitchyEngine.Renderer
 
 		public void EnsureTypeMatch(int rows, int cols, ShaderVariableType type)
 		{
+			Debug.Profiler.ProfileRendererFunction!();
+
 #if GE_SHADER_MATRIX_MISMATCH_IS_ERROR
-	   		Log.EngineLogger.Assert(rows == _rows || cols == _columns, scope $"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
+			if (rows != _rows || cols != _columns)
+				Log.EngineLogger.Assert(false, scope $"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #elif GE_SHADER_MATRIX_MISMATCH_IS_WARNING
 			if (rows != _rows || cols != _columns)
 	   			Log.EngineLogger.Warning($"The matrix-dimensions do not match: Expected {_rows} rows and {_rows} columns but Received {rows} rows and {cols} columns instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #endif
 
 #if GE_SHADER_VAR_TYPE_MISMATCH_IS_ERROR
-	   		Log.EngineLogger.Assert(type == _type, scope $"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
+			if (type != _type)
+				Log.EngineLogger.Assert(false, scope $"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #elif GE_SHADER_VAR_TYPE_MISMATCH_IS_WARNING
 			if (type != _type)
 	   			Log.EngineLogger.Warning($"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
@@ -88,6 +95,9 @@ namespace GlitchyEngine.Renderer
 					EnsureTypeMatch(1, 3, .Int);
 			case typeof(Int4):
 					EnsureTypeMatch(1, 4, .Int);
+
+			case typeof(uint32):
+					EnsureTypeMatch(1, 1, .UInt);
 
 			case typeof(Matrix4x3):
 				EnsureTypeMatch(4, 3, .Float);
@@ -130,11 +140,12 @@ namespace GlitchyEngine.Renderer
 		public void SetData(Int2 value) => SetData<Int2>(value);
 		public void SetData(Int3 value) => SetData<Int3>(value);
 		public void SetData(Int4 value) => SetData<Int4>(value);
+
+		public void SetData(uint32 value) => SetData<uint32>(value);
 		
 		public void SetData(ColorRGB value) => SetData<ColorRGB>(value);
 		public void SetData(ColorRGBA value) => SetData<ColorRGBA>(value);
 		public void SetData(Color value) => SetData<ColorRGBA>((ColorRGBA)value);
-
 
 		public void SetData(Matrix4x3 value) => SetData<Matrix4x3>(value);
 

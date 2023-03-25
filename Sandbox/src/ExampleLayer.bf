@@ -1,4 +1,4 @@
-using GlitchyEngine.Renderer;
+/*using GlitchyEngine.Renderer;
 using GlitchyEngine.Events;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Math;
@@ -63,8 +63,8 @@ namespace Sandbox
 			
 			Material _checkerMaterial ~ _?.ReleaseRef();
 			Material _logoMaterial ~ _?.ReleaseRef();
-			Texture2D _texture ~ _?.ReleaseRef();
-			Texture2D _ge_logo ~ _?.ReleaseRef();
+			AssetHandle _texture;
+			AssetHandle _ge_logo;
 
 			BlendState _alphaBlendState ~ _?.ReleaseRef();
 			BlendState _opaqueBlendState ~ _?.ReleaseRef();
@@ -85,21 +85,21 @@ namespace Sandbox
 
 				_context = Application.Get().Window.Context..AddRef();
 
-				var effectLibrary = Application.Get().EffectLibrary;
+				//var effectLibrary = Application.Get().EffectLibrary;
 
-				effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
+				//effectLibrary.LoadNoRefInc("content\\Shaders\\basicShader.hlsl");
 
-				effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
+				//effectLibrary.LoadNoRefInc("content\\Shaders\\testShader.hlsl");
 				
-				var textureEffect = effectLibrary.Load("content\\Shaders\\textureShader.hlsl");
+				Effect textureEffect = Content.GetAsset<Effect>(Content.LoadAsset("Shaders\\textureShader.hlsl"));
 
 				_depthTarget = new DepthStencilTarget(_context.SwapChain.Width, _context.SwapChain.Height);
 
 				// Create Input Layout
 
-				VertexLayout vertexLayout = new VertexLayout(VertexColorTexture.VertexElements, false, textureEffect.VertexShader);
+				VertexLayout vertexLayout = new VertexLayout(VertexColorTexture.VertexElements, false);
 
-				textureEffect.ReleaseRef();
+				//textureEffect.ReleaseRef();
 
 				// Create hexagon
 				{
@@ -174,8 +174,11 @@ namespace Sandbox
 				rsDesc.FrontCounterClockwise = false;
 				_rasterizerStateClockWise = new RasterizerState(rsDesc);
 
-				_texture = new Texture2D("content/Textures/Checkerboard.dds");
-				_ge_logo = new Texture2D("content/Textures/GE_Logo.dds");
+				_texture = Content.LoadAsset("content/Textures/Checkerboard.dds");//new Texture2D("content/Textures/Checkerboard.dds");
+				_ge_logo = Content.LoadAsset("content/Textures/GE_Logo.dds");//new Texture2D("content/Textures/GE_Logo.dds");
+
+				Texture2D texture = Content.GetAsset<Texture2D>(_texture);
+				Texture2D ge_logo = Content.GetAsset<Texture2D>(_ge_logo);
 
 				let sampler = SamplerStateManager.GetSampler(
 					SamplerStateDescription()
@@ -183,8 +186,8 @@ namespace Sandbox
 						MagFilter = .Point
 					});
 				
-				_texture.SamplerState = sampler;
-				_ge_logo.SamplerState = sampler;
+				texture.SamplerState = sampler;
+				ge_logo.SamplerState = sampler;
 
 				sampler.ReleaseRef();
 
@@ -214,7 +217,7 @@ namespace Sandbox
 
 			void TestLoadModel()
 			{
-				var testEffect = Application.Get().EffectLibrary.Get("testShader");
+				Effect testEffect = Content.LoadAsset<Effect>("Shaders\\testShader.hlsl");//Application.Get().EffectLibrary.Get("testShader");
 				var materialTestMaterial = new Material(testEffect);
 				animationMat = materialTestMaterial;
 
@@ -233,7 +236,7 @@ namespace Sandbox
 				materialTestMaterial.SetVariable("BaseColor", Color.White);
 				materialTestMaterial.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
 
-				ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", testEffect, materialTestMaterial, _world, Clips);
+				ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", materialTestMaterial, _world, Clips);
 
 				materialTestMaterial.ReleaseRef();
 				testEffect.ReleaseRef();
@@ -266,7 +269,7 @@ namespace Sandbox
 				_world.Register<CameraComponent>();
 				_world.Register<AnimationComponent>();
 				
-				var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
+				Effect basicEffect = Content.LoadAsset<Effect>("Shaders\\basicShader.hlsl");//Application.Get().EffectLibrary.Get("basicShader");
 
 				testMaterial1 = new Material(basicEffect);
 				testMaterial1.SetVariable("BaseColor", _squareColor0);
@@ -352,7 +355,7 @@ namespace Sandbox
 				
 				RenderCommand.SetBlendState(_opaqueBlendState);
 
-				var basicEffect = Application.Get().EffectLibrary.Get("basicShader");
+				Effect basicEffect = Content.LoadAsset<Effect>("Shaders\\basicShader.hlsl");//Application.Get().EffectLibrary.Get("basicShader");
 
 				RenderCommand.SetRasterizerState(_rasterizerState);
 				
@@ -518,4 +521,4 @@ namespace Sandbox
 			}
 		}
 
-}
+}*/

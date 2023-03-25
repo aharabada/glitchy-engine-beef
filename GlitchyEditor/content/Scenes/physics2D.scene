@@ -1,0 +1,303 @@
+{
+	Name = "Scene name here pls!!!",
+	Entities = [
+		{
+			Id = 820806682740348099,
+			NameComponent = {
+				Name = "Quad"
+			},
+			SpriteRendererComponent = {
+				Color = {
+					R = 0,
+					G = 0.55117774,
+					B = 0.32878688,
+					A = 1
+				},
+				Sprite = "Textures/TestMat/rustediron2_albedo.png",
+				UvTransform = {
+					X = 0,
+					Y = 0,
+					Z = 1,
+					W = 1
+				}
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 2,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			Rigidbody2D = {
+				BodyType = .Dynamic,
+				FixedRotation = false
+			},
+			BoxCollider2D = {
+				Offset = {
+					X = 0,
+					Y = 0
+				},
+				Size = {
+					X = 0.5,
+					Y = 0.5
+				},
+				Density = 1,
+				Friction = 0.5,
+				Restitution = 0,
+				RestitutionThreshold = 0.5
+			}
+		},
+		{
+			Id = 15398726361722237419,
+			NameComponent = {
+				Name = "Floor"
+			},
+			SpriteRendererComponent = {
+				Color = {
+					R = 1,
+					G = 0.941886365,
+					B = 0.401484847,
+					A = 1
+				},
+				Sprite = "",
+				UvTransform = {
+					X = 0,
+					Y = 0,
+					Z = 1,
+					W = 1
+				}
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = -0.5,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 10,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			Rigidbody2D = {
+				BodyType = .Static,
+				FixedRotation = false
+			},
+			BoxCollider2D = {
+				Offset = {
+					X = 0,
+					Y = 0
+				},
+				Size = {
+					X = 0.5,
+					Y = 0.5
+				},
+				Density = 1,
+				Friction = 0.5,
+				Restitution = 0,
+				RestitutionThreshold = 0.5
+			}
+		},
+		{
+			Id = 1491484622542812645,
+			NameComponent = {
+				Name = "Camera"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 1,
+					Z = -5
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			CameraComponent = {
+				Primary = true,
+				ProjectionType = .InfinitePerspective,
+				PerspectiveFovY = 1.30899692,
+				PerspectiveNearPlane = 0.100000001,
+				PerspectiveFarPlane = 10000,
+				OrthographicHeight = 10,
+				OrthographicNearPlane = 0,
+				OrthographicFarPlane = 10,
+				AspectRatio = 3.22169805,
+				FixedAspectRatio = false
+			}
+		},
+		{
+			Id = 15710354273720487680,
+			NameComponent = {
+				Name = "Circle"
+			},
+			CircleRendererComponent = {
+				Color = {
+					R = 1,
+					G = 0,
+					B = 0,
+					A = 1
+				},
+				InnerRadius = 0.300000012,
+				Sprite = "",
+				UvTransform = {
+					X = 0,
+					Y = 0,
+					Z = 1,
+					W = 1
+				}
+			},
+			TransformComponent = {
+				Position = {
+					X = -0.12120308,
+					Y = 0.660160363,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			Rigidbody2D = {
+				BodyType = .Dynamic,
+				FixedRotation = false
+			},
+			CircleCollider2D = {
+				Offset = {
+					X = 0,
+					Y = 0
+				},
+				Radius = 0.5,
+				Density = 1,
+				Friction = 0.5,
+				Restitution = 0,
+				RestitutionThreshold = 0.5
+			}
+		},
+		{
+			Id = 935640822766280888,
+			NameComponent = {
+				Name = "Light"
+			},
+			TransformComponent = {
+				Position = {
+					X = 3.88327599,
+					Y = 0,
+					Z = -0.808795214
+				},
+				Rotation = {
+					X = 0.497987002,
+					Y = -0.103420995,
+					Z = 0.155380026,
+					W = 0.846859217
+				},
+				Scale = {
+					X = 0.999997795,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 1.0908947,
+					Y = -0.340793997,
+					Z = 0.160857916
+				}
+			},
+			LightComponent = {
+				LightType = .Directional,
+				Illuminance = 12.8999996,
+				Color = {
+					R = 0.985467017,
+					G = 1,
+					B = 0.569978654
+				}
+			}
+		},
+		{
+			Id = 721949523193525565,
+			NameComponent = {
+				Name = "Sphere"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 0,
+					Z = -1.47202551
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			MeshComponent = {
+				Mesh = "Models/sphere.glb"
+			},
+			MeshRendererComponent = {
+				Material = "Textures/TestMaterial.mat"
+			}
+		}
+	]
+}

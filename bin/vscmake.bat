@@ -4,6 +4,7 @@ for /f "usebackq tokens=*" %%i in (`vswhere.exe -latest -products * -requires Mi
     if exist "%%i\VC\Auxiliary\Build\vcvarsall.bat" (
         "%%i\VC\Auxiliary\Build\vcvarsall.bat" %1
         cd /D %2
-        cmake --preset %3
+        cmake --preset=%3
+        cmake --build --preset=%3
     )
 )
