@@ -1,0 +1,8 @@
+FileVersion = 1
+
+[Project]
+Name = "ScriptCore"
+TargetType = "CustomBuild"
+
+[Configs.Debug.Win64]
+PostBuildCmds = ["dotnet build \"$(WorkspaceDir)/ScriptCore/ScriptCore.csproj\" -c Debug"]

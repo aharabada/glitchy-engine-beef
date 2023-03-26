@@ -1,0 +1,5 @@
+namespace Mono;
+
+class Jit
+{
+}

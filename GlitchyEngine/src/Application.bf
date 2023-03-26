@@ -4,6 +4,7 @@ using GlitchyEngine.ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Debug;
 using GlitchyEngine.Content;
+using GlitchyEngine.Scripting;
 
 namespace GlitchyEngine
 {
@@ -68,6 +69,7 @@ namespace GlitchyEngine
 			RenderCommand.RendererAPI = _rendererApi;
 
 			Renderer.Init();
+			ScriptEngine.Init();
 
 #if IMGUI
 			_imGuiLayer = new ImGuiLayer();
@@ -90,6 +92,8 @@ namespace GlitchyEngine
 			Profiler.ProfileFunction!();
 
 			SamplerStateManager.Uninit();
+
+			ScriptEngine.Shutdown();
 			Renderer.Deinit();
 
 			delete _contentManager;

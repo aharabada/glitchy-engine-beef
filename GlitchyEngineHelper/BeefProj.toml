@@ -9,7 +9,7 @@ StartupObject = "GlitchyEngineHelper.Program"
 [Configs.Debug.Win64]
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
-LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib"]
+LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "$(ProjectDir)/vendor/mono/lib/Windows/Debug/libmono-static-sgen.lib", "$(ProjectDir)/vendor/mono/lib/Windows/Debug/libmonoutils.lib", "$(ProjectDir)/vendor/mono/lib/Windows/Debug/libmonoruntime-sgen.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
 PreBuildCmds = ["$(ProjectDir)/../bin/vscmake.bat x64 $(ProjectDir) x64-debug"]
 
 [Configs.Release.Win64]
