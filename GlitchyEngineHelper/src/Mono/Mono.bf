@@ -61,6 +61,7 @@ static class Mono
 	public static extern char8* mono_metadata_string_heap(MonoImage *meta, uint32 table_index);
 
 	typealias gconstpointer = void*;
+	typealias gpointer = void*;
 
 	[LinkName(.C)]
 	public static extern void mono_add_internal_call(char8* name, gconstpointer method);
@@ -96,6 +97,32 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern void* mono_domain_unload(MonoDomain* domain);
+
+	
+	[LinkName(.C)]
+	public static extern gpointer mono_method_get_unmanaged_thunk(MonoMethod *method);
+	
+	[LinkName(.C)]
+	public static extern mono_bool mono_class_is_subclass_of(MonoClass *monoClass, MonoClass *parentClass,
+		mono_bool check_interfaces);
+
+	[LinkName(.C)]
+	public static extern uint32 mono_gchandle_new(MonoObject* obj, mono_bool pinned);
+	
+	[LinkName(.C)]
+	public static extern void mono_gchandle_free(uint32 gchandle);
+	
+	[LinkName(.C)]
+	public static extern char8* mono_string_to_utf8(MonoString *s);
+	
+	[LinkName(.C)]
+	public static extern void mono_free(void* ptr);
+	
+	[LinkName(.C)]
+	public static extern MonoClassField* mono_class_get_field_from_name(MonoClass* monoClass, char8* name);
+
+	[LinkName(.C)]
+	public static extern void mono_field_set_value(MonoObject* obj, MonoClassField* field, void* value);
 }
 
 struct MonoDomain;
@@ -113,6 +140,10 @@ struct MonoClass;
 struct MonoObject;
 
 struct MonoMethod;
+
+struct MonoException;
+
+struct MonoClassField;
 
 enum MonoImageOpenStatus
 {

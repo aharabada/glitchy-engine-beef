@@ -4,6 +4,8 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Core;
 using Box2D;
 using GlitchyEngine.Content;
+using GlitchyEngine.Scripting;
+using Mono;
 
 namespace GlitchyEngine.World
 {
@@ -441,5 +443,27 @@ namespace GlitchyEngine.World
 		
 		[Inline]
 		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
+	}
+
+	struct ScriptComponent : IDisposableComponent
+	{
+		private ScriptInstance _instance = null;
+
+		public ScriptInstance Instance
+		{
+			[Inline]
+			get => _instance;
+			[Inline]
+			set mut => SetReference!(_instance, value);
+		}
+
+		public bool InInstantiated => _instance?.IsInstatiated ?? false;
+
+		public void Dispose() mut
+		{
+			ReleaseRefAndNullify!(_instance);
+
+
+		}
 	}
 }

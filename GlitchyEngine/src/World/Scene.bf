@@ -5,6 +5,7 @@ using System.Collections;
 using Box2D;
 using GlitchyEngine.Core;
 using GlitchyEngine.Content;
+using GlitchyEngine.Scripting;
 
 namespace GlitchyEngine.World
 {
@@ -75,7 +76,8 @@ namespace GlitchyEngine.World
 			CopyComponents<Rigidbody2DComponent>(this, target);
 			CopyComponents<BoxCollider2DComponent>(this, target);
 			CopyComponents<CircleCollider2DComponent>(this, target);
-
+			CopyComponents<ScriptComponent>(this, target);
+			
 			// Copy transforms
 			for (let (sourceHandle, sourceTransform) in _ecsWorld.Enumerate<TransformComponent>())
 			{
@@ -127,10 +129,12 @@ namespace GlitchyEngine.World
 		public void OnRuntimeStart()
 		{
 			OnSimulationStart();
+			ScriptEngine.SetContext(this);
 		}
 
 		public void OnRuntimeStop()
 		{
+			ScriptEngine.SetContext(null);
 			OnSimulationStop();
 		}
 		
@@ -211,6 +215,8 @@ namespace GlitchyEngine.World
 			Runtime = 0x04 | Physics,
 		}
 
+		//private append List<UUID> _destroyQueue = .();
+
 		public void Update(GameTime gameTime, UpdateMode mode)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -230,6 +236,17 @@ namespace GlitchyEngine.World
 					}
 	
 					script.Instance.[Friend]OnUpdate(gameTime);
+				}
+
+				// Run scripts
+				for (var (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
+				{
+					if (!script.InInstantiated)
+					{
+						ScriptEngine.InitializeInstance(Entity(entity, this), script);
+					}
+	
+					script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
 				}
 			}
 			

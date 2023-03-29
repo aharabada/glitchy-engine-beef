@@ -6,6 +6,7 @@ using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine;
 using GlitchyEngine.Content;
+using GlitchyEngine.Scripting;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -68,6 +69,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<Rigidbody2DComponent>("Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
 			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
 			ShowComponentEditor<CircleCollider2DComponent>("Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
+			ShowComponentEditor<ScriptComponent>("Script Component", entity, => ShowScriptComponentEditor, => ShowComponentContextMenu<ScriptComponent>);
 
 			ShowAddComponentButton(entity);
 		}
@@ -429,6 +431,35 @@ namespace GlitchyEditor.EditWindows
 				circleCollider.RestitutionThreshold = restitutionThreshold;
 		}
 
+		private static void ShowScriptComponentEditor(Entity entity, ScriptComponent* scriptComponent)
+		{
+			static char8[64] buffer = .();
+
+			StringView search = StringView();
+
+			if (ImGui.InputText("##ScriptName", &buffer, buffer.Count))
+			{
+				search = StringView(&buffer);
+			}
+
+			if (ImGui.BeginCombo("##Type", scriptComponent.Instance?.ScriptClass.FullName.ToScopeCStr!()))
+			{
+				for (let (className, script) in ScriptEngine.EntityClasses)
+				{
+					if (!search.IsWhiteSpace && !className.Contains(search, true))
+						continue;
+
+					if (ImGui.Selectable(className.ToScopeCStr!(),
+						className == scriptComponent.Instance?.ScriptClass.FullName))
+					{
+						scriptComponent.Instance = new ScriptInstance(script);
+					}
+				}
+
+				ImGui.EndCombo();
+			}
+		}
+
 		private static void LabelColumn(StringView label)
 		{
 			ImGui.TextUnformatted(label);
@@ -584,6 +615,7 @@ namespace GlitchyEditor.EditWindows
 				ShowComponentButton<CircleCollider2DComponent>("Circle collider 2D");
 				ShowComponentButton<MeshComponent>("Mesh");
 				ShowComponentButton<MeshRendererComponent>("Mesh Renderer");
+				ShowComponentButton<ScriptComponent>("C# Script");
 
 				ImGui.EndCombo();
 			}
