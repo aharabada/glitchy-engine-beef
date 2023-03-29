@@ -120,7 +120,18 @@ public struct Vector3
     {
         return !(a == b);
     }
-
+    
+    public override int GetHashCode()
+    {
+        unchecked
+        {
+            var hashCode = X.GetHashCode();
+            hashCode = (hashCode * 397) ^ Y.GetHashCode();
+            hashCode = (hashCode * 397) ^ Z.GetHashCode();
+            return hashCode;
+        }
+    }
+    
     public override string ToString()
     {
         return $"X:{X}, Y:{Y}, Z:{Z}";

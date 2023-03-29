@@ -44,6 +44,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Components\Component.cs" />
+    <Compile Include="Components\RigidBody2D.cs" />
     <Compile Include="Components\Transform.cs" />
     <Compile Include="Core\EngineObject.cs" />
     <Compile Include="Core\UUID.cs" />

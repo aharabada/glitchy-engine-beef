@@ -52,6 +52,8 @@ static class ScriptEngine
 
 		LoadAssembly("resources/scripts/ScriptCore.dll");
 
+		ScriptGlue.RegisterManagedComponents();
+
 		//Samples();
 	}
 

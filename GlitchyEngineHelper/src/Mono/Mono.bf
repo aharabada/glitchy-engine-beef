@@ -123,6 +123,12 @@ static class Mono
 
 	[LinkName(.C)]
 	public static extern void mono_field_set_value(MonoObject* obj, MonoClassField* field, void* value);
+
+	[LinkName(.C)]
+	public static extern MonoType* mono_reflection_type_from_name(char8* name, MonoImage* image);
+
+	[LinkName(.C)]
+	public static extern MonoType* mono_reflection_type_get_type(MonoReflectionType* reflectionType);
 }
 
 struct MonoDomain;
@@ -144,6 +150,10 @@ struct MonoMethod;
 struct MonoException;
 
 struct MonoClassField;
+
+struct MonoType;
+
+struct MonoReflectionType;
 
 enum MonoImageOpenStatus
 {

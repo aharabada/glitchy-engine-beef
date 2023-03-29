@@ -5,7 +5,7 @@ namespace GlitchyEngine;
 
 class MyTestEntity : Entity
 {
-    //Rigidbody2D _rigidBody;
+    RigidBody2D _rigidBody;
 
     /// <summary>
     /// Called after the script component was created. (The entity might not be fully created yet)
@@ -14,7 +14,7 @@ class MyTestEntity : Entity
     {
         Log.Info($"Create! {UUID}");
 
-        //_rigidBody = GetComponent<Rigidbody2D>();
+        _rigidBody = GetComponent<RigidBody2D>();
     }
 
     ///// <summary>
@@ -31,17 +31,24 @@ class MyTestEntity : Entity
     /// <param name="deltaTime"></param>
     void OnUpdate(float deltaTime)
     {
+        Vector2 force = Vector2.Zero;
+
         if (Input.IsKeyPressed(Key.A))
         {
-            Log.Info($"HALLO!");
-
-            Vector3 translation = Translation;
-            translation.Y += 1.0f * deltaTime;
-
-            Translation = translation;
-
-            //_rigidBody.ApplyImpulse(new Vector2(0, 10));
+            force.X -= 1000 * deltaTime;
         }
+
+        if (Input.IsKeyPressed(Key.D))
+        {
+            force.X += 1000 * deltaTime;
+        }
+
+        if (Input.IsKeyPressing(Key.Space))
+        {
+            force.Y += 2000;
+        }
+
+        _rigidBody.ApplyForceToCenter(force);
 
         if (Input.IsMouseButtonReleasing(MouseButton.LeftButton))
         {
