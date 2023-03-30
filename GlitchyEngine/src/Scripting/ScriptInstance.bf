@@ -17,7 +17,7 @@ class ScriptInstance : RefCounter
 	public this(ScriptClass scriptClass)
 	{
 		Log.EngineLogger.AssertDebug(scriptClass != null);
-		_scriptClass = scriptClass;
+		_scriptClass = scriptClass..AddRef();
 	}
 
 	private ~this()
@@ -27,6 +27,7 @@ class ScriptInstance : RefCounter
 			_scriptClass.OnDestroy(_instance);
 			Mono.mono_gchandle_free(_gcHandle);
 		}
+		_scriptClass?.ReleaseRef();
 	}
 
 	public void Instantiate(UUID uuid)

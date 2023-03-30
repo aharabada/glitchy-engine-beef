@@ -14,7 +14,8 @@ class MyTestEntity : Entity
     {
         Log.Info($"Create! {UUID}");
 
-        _rigidBody = GetComponent<RigidBody2D>();
+        //_rigidBody = GetComponent<RigidBody2D>();
+        RemoveComponent<RigidBody2D>();
     }
 
     ///// <summary>
@@ -31,24 +32,24 @@ class MyTestEntity : Entity
     /// <param name="deltaTime"></param>
     void OnUpdate(float deltaTime)
     {
-        Vector2 force = Vector2.Zero;
+        //Vector2 force = Vector2.Zero;
 
-        if (Input.IsKeyPressed(Key.A))
-        {
-            force.X -= 1000 * deltaTime;
-        }
+        //if (Input.IsKeyPressed(Key.A))
+        //{
+        //    force.X -= 1000 * deltaTime;
+        //}
 
-        if (Input.IsKeyPressed(Key.D))
-        {
-            force.X += 1000 * deltaTime;
-        }
+        //if (Input.IsKeyPressed(Key.D))
+        //{
+        //    force.X += 1000 * deltaTime;
+        //}
 
-        if (Input.IsKeyPressing(Key.Space))
-        {
-            force.Y += 2000;
-        }
+        //if (Input.IsKeyPressing(Key.Space))
+        //{
+        //    force.Y += 2000;
+        //}
 
-        _rigidBody.ApplyForceToCenter(force);
+        //_rigidBody.ApplyForceToCenter(force);
 
         if (Input.IsMouseButtonReleasing(MouseButton.LeftButton))
         {

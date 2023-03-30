@@ -18,13 +18,13 @@ static class ScriptEngine
 
 	private static Scene s_Context ~ _?.ReleaseRef();
 
-	private static ScriptClass s_EntityRoot ~ delete _;
-	private static ScriptClass s_EngineObject ~ delete _;
+	private static ScriptClass s_EntityRoot ~ _?.ReleaseRef();
+	private static ScriptClass s_EngineObject ~ _?.ReleaseRef();
 
 	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ {
 		for (var entry in _)
 		{
-			delete entry.value;
+			entry.value.ReleaseRef();
 		}
 		delete _entityScripts;
 	};
@@ -62,12 +62,22 @@ static class ScriptEngine
 		SetReference!(s_Context, scene);
 	}
 
+	public static void OnRuntimeStop()
+	{
+		for (var entry in _entityScriptInstances)
+		{
+			entry.value.ReleaseRef();
+		}
+		_entityScriptInstances.Clear();
+
+		SetContext(null);
+	}
+
 	public static void InitializeInstance(Entity entity, ScriptComponent* script)
 	{
 		_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
 
 		script.Instance.Instantiate(entity.UUID);
-		script.Instance.InvokeOnCreate();
 	}
 
 	private static MonoAssembly* LoadCSharpAssembly(StringView assemblyPath)
@@ -111,7 +121,7 @@ static class ScriptEngine
 	{
 		for (var entry in _entityScripts)
 		{
-			delete entry.value;
+			entry.value.ReleaseRef();
 		}
 		_entityScripts.Clear();
 

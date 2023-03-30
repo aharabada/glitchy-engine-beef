@@ -4,7 +4,7 @@ using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Scripting;
 
-class ScriptClass
+class ScriptClass : RefCounter
 {
 	private String _namespace ~ delete _;
 	private String _className ~ delete _;

@@ -462,8 +462,6 @@ namespace GlitchyEngine.World
 		public void Dispose() mut
 		{
 			ReleaseRefAndNullify!(_instance);
-
-
 		}
 	}
 }

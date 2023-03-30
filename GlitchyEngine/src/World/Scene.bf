@@ -76,8 +76,21 @@ namespace GlitchyEngine.World
 			CopyComponents<Rigidbody2DComponent>(this, target);
 			CopyComponents<BoxCollider2DComponent>(this, target);
 			CopyComponents<CircleCollider2DComponent>(this, target);
-			CopyComponents<ScriptComponent>(this, target);
+			//CopyComponents<ScriptComponent>(this, target);
 			
+			for (let (sourceHandle, sourceComponent) in _ecsWorld.Enumerate<ScriptComponent>())
+			{
+				Entity sourceEntity = .(sourceHandle, this);
+
+				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
+				ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
+
+				// TODO: Do proper copy
+
+				targetComponent.Instance = new ScriptInstance(sourceComponent.Instance.ScriptClass);
+				targetComponent.Instance..ReleaseRef();
+			}
+
 			// Copy transforms
 			for (let (sourceHandle, sourceTransform) in _ecsWorld.Enumerate<TransformComponent>())
 			{
@@ -134,8 +147,8 @@ namespace GlitchyEngine.World
 
 		public void OnRuntimeStop()
 		{
-			ScriptEngine.SetContext(null);
 			OnSimulationStop();
+			ScriptEngine.OnRuntimeStop();
 		}
 		
 		public void OnSimulationStart()
@@ -244,11 +257,27 @@ namespace GlitchyEngine.World
 					if (!script.InInstantiated)
 					{
 						ScriptEngine.InitializeInstance(Entity(entity, this), script);
+						script.Instance.InvokeOnCreate();
 					}
 	
 					script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
 				}
 			}
+
+			/*if (mode.HasFlag(.Editor))
+			{
+				// Run editor scripts
+				for (var (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
+				{
+					if (!script.InInstantiated)
+					{
+						ScriptEngine.InitializeInstance(Entity(entity, this), script);
+					}
+
+					// TODO: Editor update
+					//script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
+				}
+			}*/
 			
 			if (mode.HasFlag(.Physics))
 			{

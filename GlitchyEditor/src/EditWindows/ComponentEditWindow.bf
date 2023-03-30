@@ -453,6 +453,7 @@ namespace GlitchyEditor.EditWindows
 						className == scriptComponent.Instance?.ScriptClass.FullName))
 					{
 						scriptComponent.Instance = new ScriptInstance(script);
+						scriptComponent.Instance.ReleaseRef();
 					}
 				}
 
