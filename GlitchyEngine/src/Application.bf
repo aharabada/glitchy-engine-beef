@@ -93,7 +93,6 @@ namespace GlitchyEngine
 
 			SamplerStateManager.Uninit();
 
-			ScriptEngine.Shutdown();
 			Renderer.Deinit();
 
 			delete _contentManager;
@@ -103,6 +102,8 @@ namespace GlitchyEngine
 			
 			delete _gameTime;
 			delete _layerStack;
+
+			ScriptEngine.Shutdown();
 		}
 
 		public void OnEvent(Event e)

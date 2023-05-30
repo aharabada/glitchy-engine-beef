@@ -7,6 +7,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.World;
 using GlitchyEngine.Core;
 using System.Collections;
+using Box2D;
 
 namespace GlitchyEngine.Scripting;
 
@@ -94,7 +95,6 @@ static class ScriptGlue
 		}
 	}
 
-
 	[RegisterCall("Log::LogMessage_Impl")]
 	static void Log(int32 logLevel, MonoString* message)
 	{
@@ -147,8 +147,8 @@ static class ScriptGlue
 		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
 		if (s_AddComponentMethods.TryGetValue(type, let addMethod))
 			addMethod(entity);
-
-		Log.EngineLogger.AssertDebug(false, "No managed component with the given type registered.");
+		else
+			Log.EngineLogger.AssertDebug(false, "No managed component with the given type registered.");
 	}
 	
 	[RegisterCall("ScriptGlue::Entity_HasComponent")]
@@ -173,8 +173,8 @@ static class ScriptGlue
 		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
 		if (s_RemoveComponentMethods.TryGetValue(type, let removeMethod))
 			removeMethod(entity);
-
-		Log.EngineLogger.AssertDebug(false, "No managed component with the given type registered.");
+		else
+			Log.EngineLogger.AssertDebug(false, "No managed component with the given type registered.");
 	}
 	/*[RegisterCall("Input::IsMouseButtonReleasing")]
 	static void Destroy()
@@ -229,6 +229,30 @@ static class ScriptGlue
 	}
 
 #endregion RigidBody2D
+
+#region Physics2D
+
+	// TODO: We need a wrapper class!
+
+	[RegisterCall("ScriptGlue::Physics2D_GetGravity")]
+	static void Physics2D_GetGravity(ref Vector2 gravity)
+	{
+		Scene scene = ScriptEngine.Context;
+
+		var box2DGravity = Box2D.World.GetGravity(scene.[Friend]_physicsWorld2D);
+		gravity = *(Vector2*)&box2DGravity;
+	}
+
+	[RegisterCall("ScriptGlue::Physics2D_SetGravity")]
+	static void Physics2D_SetGravity(ref Vector2 gravity)
+	{
+		Scene scene = ScriptEngine.Context;
+
+#unwarn
+		Box2D.World.SetGravity(scene.[Friend]_physicsWorld2D, ref *(b2Vec2*)&gravity);
+	}
+
+#endregion Physics2D
 
 	private static void RegisterCall<T>(String name, T method) where T : var
 	{

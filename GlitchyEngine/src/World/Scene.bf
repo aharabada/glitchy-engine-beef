@@ -46,6 +46,15 @@ namespace GlitchyEngine.World
 
 				cameraComponent.Camera.SetViewportSize(e.Scene._viewportWidth, e.Scene._viewportHeight);
 			});
+
+			/*_onComponentAddedHandlers.Add(typeof(Rigidbody2DComponent), (e, t, c) => {
+				if ()
+
+
+				Rigidbody2DComponent* rigidBodyComponent = (.)c;
+
+				//cameraComponent.Camera.SetViewportSize(e.Scene._viewportWidth, e.Scene._viewportHeight);
+			});*/
 		}
 
 		public ~this()
@@ -155,58 +164,62 @@ namespace GlitchyEngine.World
 		{
 			_physicsWorld2D = Box2D.World.Create(ref _gravity2D);
 
-			for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
+			for (let (ecsHandle, rigidBody) in _ecsWorld.Enumerate<Rigidbody2DComponent>())
 			{
-				Entity entity = .(entry.Entity, this);
+				Entity entity = .(ecsHandle, this);
 
-				var transform = entity.Transform;
-				var rigidBody = entry.Component;
+				InitializeRigidbody2D(entity, rigidBody);
+			}
+		}
 
-				b2BodyDef def = .();
-				def.type = GetBox2DBodyType(rigidBody.BodyType);
+		private void InitializeRigidbody2D(Entity entity, Rigidbody2DComponent* rigidBody)
+		{
+			var transform = entity.Transform;
 
-				// TODO: breaks with hierarchy
-				def.position = b2Vec2(transform.Position.X, transform.Position.Y);
-				def.angle = transform.RotationEuler.Z;
+			b2BodyDef def = .();
+			def.type = GetBox2DBodyType(rigidBody.BodyType);
 
-				b2Body* body = Box2D.World.CreateBody(_physicsWorld2D, &def);
-				Box2D.Body.SetFixedRotation(body, rigidBody.FixedRotation);
+			// TODO: breaks with hierarchy
+			def.position = b2Vec2(transform.Position.X, transform.Position.Y);
+			def.angle = transform.RotationEuler.Z;
 
-				rigidBody.RuntimeBody = body;
+			b2Body* body = Box2D.World.CreateBody(_physicsWorld2D, &def);
+			Box2D.Body.SetFixedRotation(body, rigidBody.FixedRotation);
 
-				if (entity.TryGetComponent<BoxCollider2DComponent>(let boxCollider))
-				{
-					b2Shape* boxShape = Box2D.Shape.CreatePolygon();
-					Box2D.Shape.PolygonSetAsBox(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y);
-					Box2D.Shape.PolygonSetAsBoxWithCenterAngle(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y, ref boxCollider.b2Offset, 0.0f);
+			rigidBody.RuntimeBody = body;
 
-					b2FixtureDef fixtureDef = .();
-					fixtureDef.shape = boxShape;
-					fixtureDef.density = boxCollider.Density;
-					fixtureDef.friction = boxCollider.Friction;
-					fixtureDef.restitution = boxCollider.Restitution;
-					fixtureDef.restitutionThreshold = boxCollider.RestitutionThreshold;
+			if (entity.TryGetComponent<BoxCollider2DComponent>(let boxCollider))
+			{
+				b2Shape* boxShape = Box2D.Shape.CreatePolygon();
+				Box2D.Shape.PolygonSetAsBox(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y);
+				Box2D.Shape.PolygonSetAsBoxWithCenterAngle(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y, ref boxCollider.b2Offset, 0.0f);
 
-					b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
-					boxCollider.RuntimeFixture = fixture;
-				}
+				b2FixtureDef fixtureDef = .();
+				fixtureDef.shape = boxShape;
+				fixtureDef.density = boxCollider.Density;
+				fixtureDef.friction = boxCollider.Friction;
+				fixtureDef.restitution = boxCollider.Restitution;
+				fixtureDef.restitutionThreshold = boxCollider.RestitutionThreshold;
 
-				if (entity.TryGetComponent<CircleCollider2DComponent>(let circleCollider))
-				{
-					b2Shape* circleShape = Box2D.Shape.CreateCircle();
-					Box2D.Shape.CircleSetPosition(circleShape, ref circleCollider.b2Offset);
-					Box2D.Shape.SetRadius(circleShape, circleCollider.Radius);
+				b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
+				boxCollider.RuntimeFixture = fixture;
+			}
 
-					b2FixtureDef fixtureDef = .();
-					fixtureDef.shape = circleShape;
-					fixtureDef.density = circleCollider.Density;
-					fixtureDef.friction = circleCollider.Friction;
-					fixtureDef.restitution = circleCollider.Restitution;
-					fixtureDef.restitutionThreshold = circleCollider.RestitutionThreshold;
+			if (entity.TryGetComponent<CircleCollider2DComponent>(let circleCollider))
+			{
+				b2Shape* circleShape = Box2D.Shape.CreateCircle();
+				Box2D.Shape.CircleSetPosition(circleShape, ref circleCollider.b2Offset);
+				Box2D.Shape.SetRadius(circleShape, circleCollider.Radius);
 
-					b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
-					circleCollider.RuntimeFixture = fixture;
-				}
+				b2FixtureDef fixtureDef = .();
+				fixtureDef.shape = circleShape;
+				fixtureDef.density = circleCollider.Density;
+				fixtureDef.friction = circleCollider.Friction;
+				fixtureDef.restitution = circleCollider.Restitution;
+				fixtureDef.restitutionThreshold = circleCollider.RestitutionThreshold;
+
+				b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
+				circleCollider.RuntimeFixture = fixture;
 			}
 		}
 

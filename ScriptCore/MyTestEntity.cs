@@ -13,48 +13,40 @@ class MyTestEntity : Entity
     void OnCreate()
     {
         Log.Info($"Create! {UUID}");
-
-        //_rigidBody = GetComponent<RigidBody2D>();
-        RemoveComponent<RigidBody2D>();
+        
+        _rigidBody ??= GetComponent<RigidBody2D>() ?? AddComponent<RigidBody2D>();
     }
-
-    ///// <summary>
-    ///// Called after the entity was created completely.
-    ///// </summary>
-    //void OnInstantiate()
-    //{
-    //    Log.Warning($"Instantiated!");
-    //}
-
+    
     /// <summary>
     /// Called every frame.
     /// </summary>
     /// <param name="deltaTime"></param>
     void OnUpdate(float deltaTime)
     {
-        //Vector2 force = Vector2.Zero;
+        Vector2 force = Vector2.Zero;
 
-        //if (Input.IsKeyPressed(Key.A))
-        //{
-        //    force.X -= 1000 * deltaTime;
-        //}
-
-        //if (Input.IsKeyPressed(Key.D))
-        //{
-        //    force.X += 1000 * deltaTime;
-        //}
-
-        //if (Input.IsKeyPressing(Key.Space))
-        //{
-        //    force.Y += 2000;
-        //}
-
-        //_rigidBody.ApplyForceToCenter(force);
-
-        if (Input.IsMouseButtonReleasing(MouseButton.LeftButton))
+        if (Input.IsKeyPressed(Key.A))
         {
-            Log.Info("Ouha!");
+            force.X -= 1000 * deltaTime;
         }
+
+        if (Input.IsKeyPressed(Key.D))
+        {
+            force.X += 1000 * deltaTime;
+        }
+
+        if (Input.IsKeyPressing(Key.Space))
+        {
+            force.Y += 2000;
+        }
+
+        _rigidBody.ApplyForceToCenter(force);
+
+        //if (Input.IsMouseButtonReleasing(MouseButton.MiddleButton))
+        //{
+        //    Log.Info("Ouha!");
+        //    Physics2D.Gravity *= new Vector2(1, -1);
+        //}
     }
 
     /// <summary>

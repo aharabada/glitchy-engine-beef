@@ -459,6 +459,14 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.EndCombo();
 			}
+
+			if (scriptComponent.Instance?.ScriptClass != null)
+			{
+				for (let (fieldName, scriptField) in scriptComponent.Instance?.ScriptClass.Fields)
+				{
+					ImGui.TextUnformatted(fieldName);
+				}
+			}
 		}
 
 		private static void LabelColumn(StringView label)

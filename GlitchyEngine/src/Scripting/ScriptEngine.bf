@@ -129,10 +129,22 @@ static class ScriptEngine
 	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(image, .MONO_TABLE_TYPEDEF);
 	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
 
+	    /*MonoTableInfo* fieldsTable = Mono.mono_image_get_table_info(image, .MONO_TABLE_FIELD);
+	    int32 numFields = Mono.mono_table_info_get_rows(fieldsTable);*/
+
 		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject");
 		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity");
 
 		Log.EngineLogger.Assert(s_EntityRoot != null);
+
+		/*for (int32 fieldIndex < numFields)
+		{
+			uint32[(.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE] fieldCols = .();
+			Mono.mono_metadata_decode_row(fieldsTable, fieldIndex, (.)&fieldCols, (.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE);
+			
+			char8* fieldName = Mono.mono_metadata_string_heap(image, (.)fieldCols[(.)FIELD_TABLE_FLAGS.MONO_FIELD_NAME]);
+			Log.EngineLogger.Info($"{StringView(fieldName)}");
+		}*/
 
 	    for (int32 i = 0; i < numTypes; i++)
 	    {
@@ -140,8 +152,35 @@ static class ScriptEngine
 	        Mono.mono_metadata_decode_row(typeDefinitionsTable, i, (.)&cols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
 
 	        char8* nameSpace = Mono.mono_metadata_string_heap(image, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAMESPACE]);
-	        char8* name = Mono.mono_metadata_string_heap(image, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
+			char8* name = Mono.mono_metadata_string_heap(image, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
+			
+			/*int32 firstFieldIndex = cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_FIELD_LIST] - 1;
+			if (firstFieldIndex >= 0)
+			{
+				int32 lastFieldIndex;
 
+				if ((i + 1) < numTypes)
+				{
+					int32[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE] nextCols = .();
+					Mono.mono_metadata_decode_row(typeDefinitionsTable, i + 1, (.)&nextCols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
+					lastFieldIndex = nextCols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_FIELD_LIST] - 1;
+				}
+				else
+				{
+					lastFieldIndex = numFields;
+				}
+
+				for (int32 fieldIndex = firstFieldIndex; fieldIndex < lastFieldIndex; fieldIndex++)
+				{
+					uint32[(.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE] fieldCols = .();
+					Mono.mono_metadata_decode_row(fieldsTable, fieldIndex, (.)&fieldCols, (.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE);
+					
+					char8* fieldName = Mono.mono_metadata_string_heap(image, (.)fieldCols[(.)FIELD_TABLE_FLAGS.MONO_FIELD_NAME]);
+					Log.EngineLogger.Info($"{StringView(nameSpace)}.{StringView(name)}::{StringView(fieldName)}");
+					//char8* fieldSignature = Mono.mono_metadata_blob_heap(image, (.)fieldCols[(.)FIELD_TABLE_FLAGS.MONO_FIELD_SIGNATURE]);
+				}
+			}*/
+			
 			MonoClass* monoClass = Mono.mono_class_from_name(image, nameSpace, name);
 
 			if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot.[Friend]_monoClass, false))

@@ -1,8 +1,23 @@
 using Mono;
 using System;
 using GlitchyEngine.Core;
+using System.Collections;
 
 namespace GlitchyEngine.Scripting;
+
+using internal GlitchyEngine.Scripting;
+
+public struct ScriptField
+{
+	public StringView Name;
+	internal MonoClassField* _monoField;
+
+	internal this(StringView name, MonoClassField* monoField)
+	{
+		Name = name;
+		_monoField = monoField;
+	}
+}
 
 class ScriptClass : RefCounter
 {
@@ -11,6 +26,9 @@ class ScriptClass : RefCounter
 	private String _fullName ~ delete _;
 
 	private MonoClass* _monoClass;
+
+	//private List<MonoClassField*> _monoFields ~ delete _;
+	private Dictionary<StringView, ScriptField> _monoFields ~ delete _;
 
 	//typealias ConstructorMethod = function void(MonoObject* instance, UUID uuid, MonoException** exception);
 	typealias OnCreateMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
@@ -27,6 +45,8 @@ class ScriptClass : RefCounter
 	public StringView ClassName => _className;
 	public StringView FullName => _fullName;
 
+	public Dictionary<StringView, ScriptField> Fields => _monoFields;
+
 	[AllowAppend]
 	public this(StringView classNamespace, StringView className)
 	{
@@ -41,6 +61,24 @@ class ScriptClass : RefCounter
 		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");
 		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
+
+		ExtractFields();
+	}
+
+	private void ExtractFields()
+	{
+		//_monoFields = new List<MonoClassField*>();´
+		_monoFields = new Dictionary<StringView, ScriptField>();
+		
+		void* iterator = null;
+		MonoClassField* currentField = null;
+		while ((currentField = Mono.mono_class_get_fields(_monoClass, &iterator)) != null)
+		{
+			// TODO: does the pointer from mono really never move?
+			StringView name = StringView(Mono.mono_field_get_name(currentField));
+
+			_monoFields[name] = .(name, currentField);
+		}
 	}
 
 	public void OnCreate(MonoObject* instance)

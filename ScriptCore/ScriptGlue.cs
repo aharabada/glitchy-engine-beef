@@ -43,4 +43,14 @@ internal static class ScriptGlue
 
 #endregion RigidBody2D
 
+#region Physics2D
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Physics2D_GetGravity(out Vector2 gravity);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Physics2D_SetGravity(in Vector2 gravity);
+
+#endregion Physics2D
+
 }

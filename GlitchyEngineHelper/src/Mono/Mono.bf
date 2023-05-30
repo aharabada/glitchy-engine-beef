@@ -58,7 +58,11 @@ static class Mono
 				       int32 res_size);
 
 	[LinkName(.C)]
-	public static extern char8* mono_metadata_string_heap(MonoImage *meta, uint32 table_index);
+	public static extern char8* mono_metadata_string_heap(MonoImage* meta, uint32 table_index);
+	[LinkName(.C)]
+	public static extern uint8* mono_metadata_blob_heap(MonoImage* meta, uint32 index);
+	[LinkName(.C)]
+	public static extern uint32 mono_metadata_decode_blob_size(uint8* xptr, out uint8* newPosition);
 
 	typealias gconstpointer = void*;
 	typealias gpointer = void*;
@@ -129,6 +133,12 @@ static class Mono
 
 	[LinkName(.C)]
 	public static extern MonoType* mono_reflection_type_get_type(MonoReflectionType* reflectionType);
+
+	[LinkName(.C)]
+	public static extern MonoClassField* mono_class_get_fields(MonoClass* klass, gpointer* iter);
+	
+	[LinkName(.C)]
+	public static extern char8* mono_field_get_name(MonoClassField* field);
 }
 
 struct MonoDomain;
@@ -171,6 +181,14 @@ enum SOME_RANDOM_ENUM{
 	MONO_TYPEDEF_FIELD_LIST,
 	MONO_TYPEDEF_METHOD_LIST,
 	MONO_TYPEDEF_SIZE
+}
+
+enum FIELD_TABLE_FLAGS : uint32
+{
+	MONO_FIELD_FLAGS,
+	MONO_FIELD_NAME,
+	MONO_FIELD_SIGNATURE,
+	MONO_FIELD_SIZE
 }
 
 enum MonoMetaTableEnum : int32
