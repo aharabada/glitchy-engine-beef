@@ -1,5 +1,6 @@
 using Mono;
 using GlitchyEngine.Core;
+using System;
 
 namespace GlitchyEngine.Scripting;
 
@@ -49,5 +50,23 @@ class ScriptInstance : RefCounter
 	public void InvokeOnDestroy()
 	{
 		_scriptClass.OnDestroy(_instance);
+	}
+
+	public T GetFieldValue<T>(MonoClassField* field)
+	{
+		return _scriptClass.GetFieldValue<T>(_instance, field);
+	}
+
+	public void SetFieldValue<T>(MonoClassField* field, in T value)
+	{
+		_scriptClass.SetFieldValue<T>(_instance, field, value);
+	}
+
+	public void CopyEditorFieldsTo(ScriptInstance target)
+	{
+		for (let (fieldName, field) in ScriptClass.Fields)
+		{
+
+		}
 	}
 }
