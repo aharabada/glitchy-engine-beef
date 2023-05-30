@@ -79,6 +79,15 @@ static class Mono
 	[LinkName(.C)]
 	public static extern MonoClass* mono_class_from_name(MonoImage* image, char8* name_space,
 		char8* name);
+	
+	[LinkName(.C)]
+	public static extern char8* mono_class_get_name(MonoClass* monoClass);
+
+	[LinkName(.C)]
+	public static extern char8* mono_class_get_namespace(MonoClass* monoClass);
+	
+	[LinkName(.C)]
+	public static extern MonoImage* mono_class_get_image(MonoClass* monoClass);
 
 	[LinkName(.C)]
 	public static extern MonoClass* mono_class_load_from_name(MonoImage* image, char8* name_space,
@@ -139,6 +148,40 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern char8* mono_field_get_name(MonoClassField* field);
+
+	[LinkName(.C)]
+	public static extern MonoType* mono_field_get_type(MonoClassField* field);
+
+	[LinkName(.C)]
+	public static extern MonoClass* mono_field_get_parent(MonoClassField* field);
+
+	[LinkName(.C)]
+	public static extern uint32 mono_field_get_flags(MonoClassField* field);
+
+	[LinkName(.C)]
+	public static extern uint8* mono_field_get_data(MonoClassField* field);
+
+	[LinkName(.C)]
+	public static extern void mono_field_get_value(MonoObject* object, MonoClassField* field, void* value);
+
+
+	[LinkName(.C)]
+	public static extern MonoCustomAttrInfo* mono_custom_attrs_from_field(MonoClass* monoClass, MonoClassField* field);
+	
+	[LinkName(.C)]
+	public static extern mono_bool mono_custom_attrs_has_attr(MonoCustomAttrInfo* attributeInfo, MonoClass* attributeClass);
+
+	[LinkName(.C)]
+	public static extern MonoObject* mono_custom_attrs_get_attr(MonoCustomAttrInfo* attributeInfo, MonoClass* attributeClass);
+
+	[LinkName(.C)]
+	public static extern Mono.MonoTypeEnum mono_type_get_type(MonoType* type);
+	
+	[LinkName(.C)]
+	public static extern char8* mono_type_get_name(MonoType* type);
+	
+	[LinkName(.C)]
+	public static extern MonoClass* mono_type_get_class(MonoType* type);
 }
 
 struct MonoDomain;
@@ -164,6 +207,8 @@ struct MonoClassField;
 struct MonoType;
 
 struct MonoReflectionType;
+
+struct MonoCustomAttrInfo;
 
 enum MonoImageOpenStatus
 {
@@ -254,4 +299,72 @@ enum MonoMetaTableEnum : int32
 //#define MONO_TABLE_LAST MONO_TABLE_CUSTOMDEBUGINFORMATION
 //#define MONO_TABLE_NUM (MONO_TABLE_LAST + 1)
 
+}
+
+enum FieldAttribute
+{
+	FieldAccessMask = 0x0007,
+	CompilerControlled = 0x0000,
+	Private = 0x0001,
+	FamAndAssem = 0x0002,
+	Assembly = 0x0003,
+	Family = 0x0004,
+	FamOrAssem = 0x0005,
+	Public = 0x0006,
+	Static = 0x0010,
+	InitOnly = 0x0020,
+	Literal = 0x0040,
+	NotSerialized = 0x0080,
+	SpecialName = 0x0200,
+	PinvokeImpl = 0x2000,
+	/** For runtime use only */
+	ReservedMask = 0x9500,
+	/** For runtime use only */
+	RtSpecialName = 0x0400,
+	/** For runtime use only */
+	HasFieldMarshal = 0x1000,
+	/** For runtime use only */
+	HasDefault = 0x8000,
+	/** For runtime use only */
+	HasFieldRva = 0x0100
+}
+
+enum MonoTypeEnum : int32
+{
+	End = 0x00,       /* End of List */
+	Void = 0x01,
+	Boolean = 0x02,
+	Char = 0x03,
+	I1 = 0x04,
+	U1 = 0x05,
+	I2 = 0x06,
+	U2 = 0x07,
+	I4 = 0x08,
+	U4 = 0x09,
+	I8 = 0x0a,
+	U8 = 0x0b,
+	R4 = 0x0c,
+	R8 = 0x0d,
+	String = 0x0e,
+	Ptr = 0x0f,       /* arg: <type> token */
+	Byref = 0x10,       /* arg: <type> token */
+	Valuetype = 0x11,       /* arg: <type> token */
+	Class = 0x12,       /* arg: <type> token */
+	Var = 0x13,	   /* number */
+	Array = 0x14,       /* type, rank, boundsCount, bound1, loCount, lo1 */
+	Genericins = 0x15,	   /* <type> <type-arg-count> <type-1> \x{2026} <type-n> */
+	Typedbyref = 0x16,
+	I = 0x18,
+	U = 0x19,
+	Fnptr = 0x1b,	      /* arg: full method signature */
+	Object = 0x1c,
+	SzArray = 0x1d,       /* 0-based one-dim-array */
+	Mvar = 0x1e,       /* number */
+	CmodReqd = 0x1f,       /* arg: typedef or typeref token */
+	CmodOpt = 0x20,       /* optional arg: typedef or typref token */
+	Internal = 0x21,       /* CLR internal type */
+	Modifier = 0x40,       /* Or with the following types */
+	Sentinel = 0x41,       /* Sentinel for varargs method signature */
+	Pinned = 0x45,       /* Local var that points to pinned object */
+	Enum = 0x55        /* an enumeration */
 }

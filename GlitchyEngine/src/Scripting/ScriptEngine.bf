@@ -8,6 +8,68 @@ using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Scripting;
 
+using internal GlitchyEngine.Scripting;
+
+enum ScriptFieldType
+{
+	None,
+
+	Class,
+	Enum,
+	Struct,
+
+	// TODO!
+	Bool,
+
+	SByte,
+	Short,
+	Int,// Int2, Int3, Int4,
+	Long,
+	Byte,
+	UShort,
+	UInt, // UInt2, UInt3, UInt4,
+	ULong,
+	// Half, Half2, Half3, Half4,
+	Float, Vector2, Vector3, Vector4,
+	Double, // Double2, Double3, Double4,
+
+	Entity
+}
+
+static sealed class ScriptEngineHelper
+{
+	private static Dictionary<StringView, ScriptFieldType> _scriptFieldTypes = new Dictionary<StringView, ScriptFieldType>()
+	{
+		("System.Boolean", .Bool),
+
+		("System.SByte", .SByte),
+		("System.Int16", .Short),
+		("System.Int32", .Int),
+		("System.Int64", .Long),
+		
+		("System.Byte", .Byte),
+		("System.UInt16", .UShort),
+		("System.UInt32", .UInt),
+		("System.UInt64", .ULong),
+
+		("System.Single", .Float),
+		("GlitchyEngine.Math.Vector2", .Vector2),
+		("GlitchyEngine.Math.Vector3", .Vector3),
+		("GlitchyEngine.Math.Vector4", .Vector4),
+
+		("System.Double", .Double),
+
+		("GlitchyEngine.Entity", .Entity),
+	} ~ delete _;
+
+	public static ScriptFieldType GetScriptFieldType(MonoType* monoType)
+	{
+		StringView typeName = StringView(Mono.mono_type_get_name(monoType));
+
+		return _scriptFieldTypes.TryGetValue(typeName, .. let scriptFieldType);
+	}
+}
+
 static class ScriptEngine
 {
 	private static MonoDomain* s_RootDomain;
@@ -16,30 +78,34 @@ static class ScriptEngine
 	private static MonoAssembly* s_CoreAssembly;
 	private static MonoImage* s_CoreAssemblyImage;
 
+	private static MonoAssembly* s_AppAssembly;
+	private static MonoImage* s_AppAssemblyImage;
+
 	private static Scene s_Context ~ _?.ReleaseRef();
 
 	private static ScriptClass s_EntityRoot ~ _?.ReleaseRef();
 	private static ScriptClass s_EngineObject ~ _?.ReleaseRef();
 
-	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ {
-		for (var entry in _)
-		{
-			entry.value.ReleaseRef();
-		}
-		delete _entityScripts;
-	};
-
-	private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
+	private static Dictionary<StringView, SharpType> _sharpClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
+	
+	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
+	
+	/*private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
 		for (var entry in _)
 		{
 			entry.value?.ReleaseRef();
 		}
 		delete _;
-	};
-
+	};*/
+	
 	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
 
 	public static Scene Context => s_Context;
+
+	internal static class Attributes
+	{
+		internal static MonoClass* s_ShowInEditorAttribute;
+	}
 
 	public static void Init()
 	{
@@ -50,7 +116,11 @@ static class ScriptEngine
 		
 		ScriptGlue.Init();
 
-		LoadAssembly("resources/scripts/ScriptCore.dll");
+		CreateAppDomain("GlitchyEngineScriptRuntime");
+		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll");
+		(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly("SandboxProject/Assets/Scripts/bin/Sandbox.dll");
+		
+		GetEntitiesFromAssemblies();
 
 		ScriptGlue.RegisterManagedComponents();
 
@@ -64,18 +134,18 @@ static class ScriptEngine
 
 	public static void OnRuntimeStop()
 	{
-		for (var entry in _entityScriptInstances)
+		/*for (var entry in _entityScriptInstances)
 		{
 			entry.value.ReleaseRef();
 		}
-		_entityScriptInstances.Clear();
+		_entityScriptInstances.Clear();*/
 
 		SetContext(null);
 	}
 
 	public static void InitializeInstance(Entity entity, ScriptComponent* script)
 	{
-		_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
+		//_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
 
 		script.Instance.Instantiate(entity.UUID);
 	}
@@ -107,85 +177,54 @@ static class ScriptEngine
 	    return assembly;
 	}
 
-	static void LoadAssembly(StringView filepath)
+	static void CreateAppDomain(StringView name)
 	{
-		s_AppDomain = Mono.mono_domain_create_appdomain("GlitchyEngineScriptRuntime", null);
+		s_AppDomain = Mono.mono_domain_create_appdomain(name.ToScopeCStr!(), null);
 		Mono.mono_domain_set(s_AppDomain, true);
-
-		s_CoreAssembly = LoadCSharpAssembly(filepath);
-		s_CoreAssemblyImage = Mono.mono_assembly_get_image(s_CoreAssembly);
-		GetEntitiesFromAssembly(s_CoreAssembly);
 	}
 
-	private static void GetEntitiesFromAssembly(MonoAssembly* assembly)
+	static (MonoAssembly* assembly, MonoImage* image) LoadAssembly(StringView filepath)
+	{
+		MonoAssembly* assembly = LoadCSharpAssembly(filepath);
+		MonoImage* image = Mono.mono_assembly_get_image(assembly);
+
+		return (assembly, image);
+	}
+
+	private static void GetEntitiesFromAssemblies()
 	{
 		for (var entry in _entityScripts)
 		{
 			entry.value.ReleaseRef();
 		}
 		_entityScripts.Clear();
-
-	    MonoImage* image = Mono.mono_assembly_get_image(assembly);
-	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(image, .MONO_TABLE_TYPEDEF);
-	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
-
-	    /*MonoTableInfo* fieldsTable = Mono.mono_image_get_table_info(image, .MONO_TABLE_FIELD);
-	    int32 numFields = Mono.mono_table_info_get_rows(fieldsTable);*/
-
-		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject");
-		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity");
-
-		Log.EngineLogger.Assert(s_EntityRoot != null);
-
-		/*for (int32 fieldIndex < numFields)
+		
+		if (s_EngineObject == null)
 		{
-			uint32[(.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE] fieldCols = .();
-			Mono.mono_metadata_decode_row(fieldsTable, fieldIndex, (.)&fieldCols, (.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE);
-			
-			char8* fieldName = Mono.mono_metadata_string_heap(image, (.)fieldCols[(.)FIELD_TABLE_FLAGS.MONO_FIELD_NAME]);
-			Log.EngineLogger.Info($"{StringView(fieldName)}");
-		}*/
+			s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage);
+			s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage);
+
+			Log.EngineLogger.Assert(s_EntityRoot != null);
+		}
+
+		Attributes.s_ShowInEditorAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "ShowInEditorAttribute");
+
+	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_AppAssemblyImage, .MONO_TABLE_TYPEDEF);
+	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
 
 	    for (int32 i = 0; i < numTypes; i++)
 	    {
 	        int32[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE] cols = .();
 	        Mono.mono_metadata_decode_row(typeDefinitionsTable, i, (.)&cols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
 
-	        char8* nameSpace = Mono.mono_metadata_string_heap(image, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAMESPACE]);
-			char8* name = Mono.mono_metadata_string_heap(image, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
+	        char8* nameSpace = Mono.mono_metadata_string_heap(s_AppAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAMESPACE]);
+			char8* name = Mono.mono_metadata_string_heap(s_AppAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
 			
-			/*int32 firstFieldIndex = cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_FIELD_LIST] - 1;
-			if (firstFieldIndex >= 0)
-			{
-				int32 lastFieldIndex;
-
-				if ((i + 1) < numTypes)
-				{
-					int32[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE] nextCols = .();
-					Mono.mono_metadata_decode_row(typeDefinitionsTable, i + 1, (.)&nextCols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
-					lastFieldIndex = nextCols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_FIELD_LIST] - 1;
-				}
-				else
-				{
-					lastFieldIndex = numFields;
-				}
-
-				for (int32 fieldIndex = firstFieldIndex; fieldIndex < lastFieldIndex; fieldIndex++)
-				{
-					uint32[(.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE] fieldCols = .();
-					Mono.mono_metadata_decode_row(fieldsTable, fieldIndex, (.)&fieldCols, (.)FIELD_TABLE_FLAGS.MONO_FIELD_SIZE);
-					
-					char8* fieldName = Mono.mono_metadata_string_heap(image, (.)fieldCols[(.)FIELD_TABLE_FLAGS.MONO_FIELD_NAME]);
-					Log.EngineLogger.Info($"{StringView(nameSpace)}.{StringView(name)}::{StringView(fieldName)}");
-					//char8* fieldSignature = Mono.mono_metadata_blob_heap(image, (.)fieldCols[(.)FIELD_TABLE_FLAGS.MONO_FIELD_SIGNATURE]);
-				}
-			}*/
-			
-			MonoClass* monoClass = Mono.mono_class_from_name(image, nameSpace, name);
+			MonoClass* monoClass = Mono.mono_class_from_name(s_AppAssemblyImage, nameSpace, name);
 
 			if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot.[Friend]_monoClass, false))
 			{
-				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name));
+				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage);
 				_entityScripts.Add(entityScript.FullName, entityScript);
 
 				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
@@ -205,6 +244,51 @@ static class ScriptEngine
 		s_RootDomain = null;
 	}
 
+	internal static void RegisterSharpType(SharpType sharpType)
+	{
+		_sharpClasses.Add(sharpType.FullName, sharpType..AddRef());
+	}
+
+	internal static SharpType GetSharpType(MonoType* monoType)
+	{
+		StringView typeName = StringView(Mono.mono_type_get_name(monoType));
+
+		if (_sharpClasses.TryGetValue(typeName, let sharpType))
+			return sharpType;
+
+		Mono.MonoTypeEnum fieldType = Mono.Mono.mono_type_get_type(monoType);
+
+		MonoClass* monoClass = Mono.mono_type_get_class(monoType);
+
+		if (monoClass == null)
+			return null;
+
+		StringView className = StringView(Mono.mono_class_get_name(monoClass));
+		StringView classNamespace = StringView(Mono.mono_class_get_namespace(monoClass));
+
+		// TODO: at the moment only allow user-structs
+		if (classNamespace.StartsWith("GlitchyEngine"))
+			return null;
+
+		switch (fieldType)
+		{
+		case .Class, .Valuetype, .Enum:
+			ScriptFieldType scriptType = .None;
+
+			if (fieldType == .Class)
+				scriptType = .Class;
+			else if (fieldType == .Enum)
+				scriptType = .Enum;
+			else if (fieldType == .Valuetype)
+				scriptType = .Struct;
+
+			Log.EngineLogger.AssertDebug(scriptType != .None);
+
+			return new SharpClass(classNamespace, className, Mono.mono_class_get_image(monoClass), scriptType);
+		default:
+			return null;
+		}
+	}
 
 
 

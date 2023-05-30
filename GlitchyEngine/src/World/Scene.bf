@@ -98,6 +98,8 @@ namespace GlitchyEngine.World
 
 				targetComponent.Instance = new ScriptInstance(sourceComponent.Instance.ScriptClass);
 				targetComponent.Instance..ReleaseRef();
+
+				sourceComponent.Instance.CopyEditorFieldsTo(targetComponent.Instance);
 			}
 
 			// Copy transforms
@@ -263,17 +265,23 @@ namespace GlitchyEngine.World
 	
 					script.Instance.[Friend]OnUpdate(gameTime);
 				}
-
+			/*}
+			
+			if (mode.HasFlag(.Runtime) || mode.HasFlag(.Editor))
+			{*/
 				// Run scripts
 				for (var (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
 				{
 					if (!script.InInstantiated)
 					{
 						ScriptEngine.InitializeInstance(Entity(entity, this), script);
-						script.Instance.InvokeOnCreate();
+
+						if (mode.HasFlag(.Runtime))
+							script.Instance.InvokeOnCreate();
 					}
-	
-					script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
+					
+					if (mode.HasFlag(.Runtime))
+						script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
 				}
 			}
 

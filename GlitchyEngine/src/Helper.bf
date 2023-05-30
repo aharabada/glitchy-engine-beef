@@ -1,5 +1,6 @@
 using DirectX.Common;
 using GlitchyEngine.Core;
+using System.Collections;
 
 namespace GlitchyEngine
 {
@@ -20,7 +21,7 @@ namespace GlitchyEngine
 			value?.ReleaseRef();
 			value = null;
 		}
-
+		
 		public static mixin DeleteContainerAndReleaseItems(var container)
 		{
 			if (container != null)
@@ -36,6 +37,18 @@ namespace GlitchyEngine
 			for (var value in container)
 				value?.ReleaseRef();
 			container.Clear();
+		}
+
+		public static mixin DeleteDictionaryAndReleaseValues(var container)
+		{
+			if (container != null)
+			{
+				for (var value in container)
+				{
+					value.value?.ReleaseRef();
+				}
+				delete container;
+			}
 		}
 	}
 }

@@ -454,18 +454,173 @@ namespace GlitchyEditor.EditWindows
 					{
 						scriptComponent.Instance = new ScriptInstance(script);
 						scriptComponent.Instance.ReleaseRef();
+						ScriptEngine.InitializeInstance(entity, scriptComponent);
 					}
 				}
 
 				ImGui.EndCombo();
 			}
-
-			if (scriptComponent.Instance?.ScriptClass != null)
+			
+			/*T GetFieldValue<T>()
 			{
-				for (let (fieldName, scriptField) in scriptComponent.Instance?.ScriptClass.Fields)
+				return scriptComponent.Instance.GetFieldValue<T>(monoField);
+			}
+
+			void SetFieldValue<T>(in T value)
+			{
+				scriptComponent.Instance.SetFieldValue<T>(monoField, value);
+			}*/
+			
+			T GetFieldValue<T>(ScriptInstance scriptInstance, in ScriptField scriptField)
+			{
+				return scriptInstance.GetFieldValue<T>(scriptField.[Friend]_monoField);
+			}
+			
+			void GetFieldValue<T>(ScriptInstance scriptInstance, in ScriptField scriptField, out T value)
+			{
+				value = scriptInstance.GetFieldValue<T>(scriptField.[Friend]_monoField);
+			}
+
+			void SetFieldValue<T>(ScriptInstance scriptInstance, in ScriptField scriptField, in T value)
+			{
+				scriptInstance.SetFieldValue<T>(scriptField.[Friend]_monoField, value);
+			}
+
+
+			void ShowClassFields(SharpClass sharpClass, ScriptInstance scriptInstance)
+			{
+				for (let (fieldName, scriptField) in sharpClass.Fields)
 				{
-					ImGui.TextUnformatted(fieldName);
+					var monoField = scriptField.[Friend]_monoField;
+					
+					switch (scriptField.FieldType)
+					{
+					case .Bool:
+						var value = GetFieldValue<bool>(scriptInstance, scriptField);
+						if (ImGui.Checkbox(fieldName.ToScopeCStr!(), &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+
+					case .SByte:
+						var value = GetFieldValue<int8>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S8, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .Short:
+						var value = GetFieldValue<int16>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S16, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .Int:
+						var value = GetFieldValue<int32>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S32, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .Long:
+						var value = GetFieldValue<int64>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S64, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+
+					case .Byte:
+						var value = GetFieldValue<uint8>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U8, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .UShort:
+						var value = GetFieldValue<uint16>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U16, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .UInt:
+						var value = GetFieldValue<uint32>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U32, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .ULong:
+						var value = GetFieldValue<uint64>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U64, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+
+					case .Float:
+						var value = GetFieldValue<float>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Float, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+
+					case .Vector2:
+						GetFieldValue<Vector2>(scriptInstance, scriptField, var value);
+						if (ImGui.EditVector2(fieldName, ref value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .Vector3:
+						GetFieldValue<Vector3>(scriptInstance, scriptField, var value);
+						if (ImGui.EditVector3(fieldName, ref value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .Vector4:
+						GetFieldValue<Vector4>(scriptInstance, scriptField, var value);
+						if (ImGui.EditVector4(fieldName, ref value))
+							SetFieldValue(scriptInstance, scriptField, value);
+
+					case .Double:
+						var value = GetFieldValue<double>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+
+					case .Entity:
+						// TODO!
+						
+					case .Class:
+						// TODO!
+					case .Enum:
+						// TODO!
+					case .Struct:
+						// TODO!
+					/*case .Struct:
+						ShowStructFields();
+						{
+							
+							uint8[128] bla = ?;
+							GetFieldValue<uint8[128]>(scriptInstance, scriptField);
+
+							Mono.MonoObject* dings = (Mono.MonoObject*)&bla;
+
+							//ShowFields
+						}*/
+					default:
+						Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
+					}
 				}
+			}
+			/*void ShowStructFields(SharpClass sharpClass, ScriptInstance scriptInstance)
+			{
+				for (let (fieldName, scriptField) in sharpClass.Fields)
+				{
+					var monoField = scriptField.[Friend]_monoField;
+					
+					switch (scriptField.FieldType)
+					{
+					case .Int:
+						int32 value = GetFieldValue<int32>(scriptInstance, scriptField);
+						if (ImGui.DragInt(fieldName.ToScopeCStr!(), &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .Float:
+						float value = GetFieldValue<int32>(scriptInstance, scriptField);
+						if (ImGui.DragFloat(fieldName.ToScopeCStr!(), &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					case .Double:
+						double value = GetFieldValue<double>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+					/*case .Struct:
+						{
+							
+							uint8[128] bla = ?;
+							GetFieldValue<uint8[128]>(scriptInstance, scriptField);
+
+							Mono.MonoObject* dings = (Mono.MonoObject*)&bla;
+
+							//ShowFields
+						}*/
+					default:
+						Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
+					}
+				}
+			}*/
+
+			if (scriptComponent.Instance?.IsInstatiated == true)
+			{
+				ShowClassFields(scriptComponent.Instance.ScriptClass, scriptComponent.Instance);
 			}
 		}
 

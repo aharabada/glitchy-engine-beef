@@ -11,56 +11,55 @@ public struct ScriptField
 {
 	public StringView Name;
 	internal MonoClassField* _monoField;
+	public bool IsStatic;
+	public ScriptFieldType FieldType;
 
-	internal this(StringView name, MonoClassField* monoField)
+	internal this(StringView name, MonoClassField* monoField, bool isStatic, ScriptFieldType fieldType)
 	{
 		Name = name;
 		_monoField = monoField;
+		IsStatic = isStatic;
+		FieldType = fieldType;
 	}
 }
 
-class ScriptClass : RefCounter
+abstract class SharpType : RefCounter
 {
-	private String _namespace ~ delete _;
-	private String _className ~ delete _;
-	private String _fullName ~ delete _;
-
-	private MonoClass* _monoClass;
-
-	//private List<MonoClassField*> _monoFields ~ delete _;
-	private Dictionary<StringView, ScriptField> _monoFields ~ delete _;
-
-	//typealias ConstructorMethod = function void(MonoObject* instance, UUID uuid, MonoException** exception);
-	typealias OnCreateMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
-	typealias OnUpdateMethod = function MonoObject*(MonoObject* instance, float deltaTime, MonoException** exception);
-	typealias OnDestroyMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
-
-	private MonoMethod* _constructor;
-	//private ConstructorMethod _constructor;
-	private OnCreateMethod _onCreate;
-	private OnUpdateMethod _onUpdate;
-	private OnDestroyMethod _onDestroy;
+	protected String _namespace ~ delete _;
+	protected String _className ~ delete _;
+	protected String _fullName ~ delete _;
+	protected ScriptFieldType _scriptType;
+	
+	protected Dictionary<StringView, ScriptField> _monoFields ~ delete _;
 
 	public StringView Namespace => _namespace;
 	public StringView ClassName => _className;
 	public StringView FullName => _fullName;
-
+	public ScriptFieldType ScriptType => _scriptType;
+	
 	public Dictionary<StringView, ScriptField> Fields => _monoFields;
-
-	[AllowAppend]
-	public this(StringView classNamespace, StringView className)
+	
+	public this(StringView classNamespace, StringView className, ScriptFieldType scriptType)
 	{
 		_namespace = new String(classNamespace);
 		_className = new String(className);
 		_fullName = new $"{_namespace}.{_className}";
+		_scriptType = scriptType;
+		
+		ScriptEngine.RegisterSharpType(this);
+	}
+}
 
-		_monoClass = Mono.mono_class_from_name(ScriptEngine.[Friend]s_CoreAssemblyImage, _namespace, _className);
+class SharpClass : SharpType
+{
+	protected internal MonoClass* _monoClass;
+	
+	public this(StringView classNamespace, StringView className, MonoImage* image, ScriptFieldType fieldType = .Class) :
+		base(classNamespace, className, fieldType)
+	{
+		_monoClass = Mono.mono_class_from_name(image, _namespace, _className);
 
-		//_constructor = (ConstructorMethod)GetMethodThunk(".ctor", 1); // GetMethod(".ctor", 1);//
-		_constructor = GetMethod(".ctor", 1);
-		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");
-		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
-		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
+		Log.EngineLogger.AssertDebug(_monoClass != null);
 
 		ExtractFields();
 	}
@@ -74,11 +73,88 @@ class ScriptClass : RefCounter
 		MonoClassField* currentField = null;
 		while ((currentField = Mono.mono_class_get_fields(_monoClass, &iterator)) != null)
 		{
-			// TODO: does the pointer from mono really never move?
 			StringView name = StringView(Mono.mono_field_get_name(currentField));
 
-			_monoFields[name] = .(name, currentField);
+			MonoType* type = Mono.mono_field_get_type(currentField);
+
+			ScriptFieldType fieldType = ScriptEngineHelper.GetScriptFieldType(type);
+
+			// If field type is none the field might be a struct, class or enum
+			if (fieldType == .None)
+			{
+				SharpType sharpType = ScriptEngine.GetSharpType(type);
+				fieldType = sharpType?.ScriptType ?? .None;
+				
+				if (sharpType == null)
+					continue;
+			}
+
+			//Mono.MonoTypeEnum fieldType = Mono.Mono.mono_type_get_type(type);
+
+			FieldAttribute flags = (.)Mono.mono_field_get_flags(currentField);
+
+			MonoCustomAttrInfo* attributes = Mono.mono_custom_attrs_from_field(_monoClass, currentField);
+
+			if (flags.HasFlag(.Public) ||
+				(attributes != null &&
+				Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Attributes.s_ShowInEditorAttribute)))
+			{
+				_monoFields[name] = .(name, currentField, flags.HasFlag(.Static), fieldType);
+			}
 		}
+	}
+}
+
+class SharpStruct : SharpClass
+{
+	protected int _size;
+
+	public int Size => _size;
+
+	public this(StringView classNamespace, StringView className, MonoImage* image)
+		: base(classNamespace, className, image)
+	{
+
+	}
+}
+
+class ScriptClass : SharpClass
+{
+	/*private String _namespace ~ delete _;
+	private String _className ~ delete _;
+	private String _fullName ~ delete _;
+
+	private MonoClass* _monoClass;
+
+	//private List<MonoClassField*> _monoFields ~ delete _;
+	private Dictionary<StringView, ScriptField> _monoFields ~ delete _;*/
+
+	//typealias ConstructorMethod = function void(MonoObject* instance, UUID uuid, MonoException** exception);
+	typealias OnCreateMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
+	typealias OnUpdateMethod = function MonoObject*(MonoObject* instance, float deltaTime, MonoException** exception);
+	typealias OnDestroyMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
+
+	private MonoMethod* _constructor;
+	//private ConstructorMethod _constructor;
+	private OnCreateMethod _onCreate;
+	private OnUpdateMethod _onUpdate;
+	private OnDestroyMethod _onDestroy;
+
+	/*public StringView Namespace => _namespace;
+	public StringView ClassName => _className;
+	public StringView FullName => _fullName;
+
+	public Dictionary<StringView, ScriptField> Fields => _monoFields;*/
+
+	[AllowAppend]
+	public this(StringView classNamespace, StringView className, MonoImage* image) :
+		base(classNamespace, className, image)
+	{
+		//_constructor = (ConstructorMethod)GetMethodThunk(".ctor", 1); // GetMethod(".ctor", 1);//
+		_constructor = GetMethod(".ctor", 1);
+		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");
+		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
+		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
 	}
 
 	public void OnCreate(MonoObject* instance)
@@ -154,5 +230,17 @@ class ScriptClass : RefCounter
  	{
 		 MonoObject* object = Invoke(method, instance, args.Ptr);
 		 return *(T*)Mono.mono_object_unbox(object);
+	}
+
+	public T GetFieldValue<T>(MonoObject* instance, MonoClassField* field)
+	{
+		T value = default;
+		Mono.Mono.mono_field_get_value(instance, field, &value);
+		return value;
+	}
+
+	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value)
+	{
+		Mono.Mono.mono_field_set_value(instance, field, &value);
 	}
 }
