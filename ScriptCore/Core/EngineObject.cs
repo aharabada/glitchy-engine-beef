@@ -1,6 +1,8 @@
+using System;
+
 namespace GlitchyEngine.Core;
 
-public class EngineObject
+public abstract class EngineObject
 {
     protected internal UUID _uuid;
 
@@ -12,8 +14,7 @@ public class EngineObject
     /// <summary>
     /// Empty constructor not used. Do NOT USE!
     /// </summary>
-    protected EngineObject()
-    {}
+    protected EngineObject() { }
 
     /// <summary>
     /// Creates a new EngineObject with the given ID.

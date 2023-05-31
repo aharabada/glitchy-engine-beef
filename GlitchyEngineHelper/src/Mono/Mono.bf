@@ -106,6 +106,9 @@ static class Mono
 	public static extern MonoObject* mono_runtime_invoke(MonoMethod* method, void* obj, void** param, MonoObject** exc);
 	
 	[LinkName(.C)]
+	public static extern MonoMethod* mono_object_get_virtual_method(MonoObject* obj, MonoMethod* method);
+
+	[LinkName(.C)]
 	public static extern void* mono_object_unbox(MonoObject* obj);
 	
 	[LinkName(.C)]

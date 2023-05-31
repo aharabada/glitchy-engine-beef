@@ -437,13 +437,17 @@ namespace GlitchyEditor.EditWindows
 
 			StringView search = StringView();
 
-			if (ImGui.InputText("##ScriptName", &buffer, buffer.Count))
-			{
-				search = StringView(&buffer);
-			}
+			char8* scriptLabel = scriptComponent.Instance?.ScriptClass.FullName.ToScopeCStr!() ?? "Select Script...";
 
-			if (ImGui.BeginCombo("##Type", scriptComponent.Instance?.ScriptClass.FullName.ToScopeCStr!()))
+			if (ImGui.Button(scriptLabel))
+				ImGui.OpenPopup("SelectScript");
+
+			if (ImGui.BeginPopup("SelectScript"))
 			{
+				ImGui.InputText("##ScriptSearch", &buffer, buffer.Count);
+
+				search = StringView(&buffer);
+
 				for (let (className, script) in ScriptEngine.EntityClasses)
 				{
 					if (!search.IsWhiteSpace && !className.Contains(search, true))
@@ -457,10 +461,9 @@ namespace GlitchyEditor.EditWindows
 						ScriptEngine.InitializeInstance(entity, scriptComponent);
 					}
 				}
-
-				ImGui.EndCombo();
+				ImGui.EndPopup();
 			}
-			
+
 			/*T GetFieldValue<T>()
 			{
 				return scriptComponent.Instance.GetFieldValue<T>(monoField);
@@ -473,17 +476,17 @@ namespace GlitchyEditor.EditWindows
 			
 			T GetFieldValue<T>(ScriptInstance scriptInstance, in ScriptField scriptField)
 			{
-				return scriptInstance.GetFieldValue<T>(scriptField.[Friend]_monoField);
+				return scriptInstance.GetFieldValue<T>(scriptField);
 			}
 			
 			void GetFieldValue<T>(ScriptInstance scriptInstance, in ScriptField scriptField, out T value)
 			{
-				value = scriptInstance.GetFieldValue<T>(scriptField.[Friend]_monoField);
+				value = scriptInstance.GetFieldValue<T>(scriptField);
 			}
 
 			void SetFieldValue<T>(ScriptInstance scriptInstance, in ScriptField scriptField, in T value)
 			{
-				scriptInstance.SetFieldValue<T>(scriptField.[Friend]_monoField, value);
+				scriptInstance.SetFieldValue<T>(scriptField, value);
 			}
 
 
@@ -618,7 +621,7 @@ namespace GlitchyEditor.EditWindows
 				}
 			}*/
 
-			if (scriptComponent.Instance?.IsInstatiated == true)
+			if (scriptComponent.Instance?.IsInitialized == true)
 			{
 				ShowClassFields(scriptComponent.Instance.ScriptClass, scriptComponent.Instance);
 			}

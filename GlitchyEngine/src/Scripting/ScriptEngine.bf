@@ -254,7 +254,7 @@ static class ScriptEngine
 		StringView typeName = StringView(Mono.mono_type_get_name(monoType));
 
 		if (_sharpClasses.TryGetValue(typeName, let sharpType))
-			return sharpType;
+			return sharpType..AddRef();
 
 		Mono.MonoTypeEnum fieldType = Mono.Mono.mono_type_get_type(monoType);
 

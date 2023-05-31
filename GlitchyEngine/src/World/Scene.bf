@@ -73,7 +73,6 @@ namespace GlitchyEngine.World
 
 			// TODO: perhaps use reflection and comptime
 			// Copy components
-			//CopyComponents<TransformComponent>(this, target); /* Parent will be copied below*/
 			CopyComponents<MeshRendererComponent>(this, target);
 			CopyComponents<MeshComponent>(this, target);
 			CopyComponents<EditorComponent>(this, target);
@@ -85,8 +84,8 @@ namespace GlitchyEngine.World
 			CopyComponents<Rigidbody2DComponent>(this, target);
 			CopyComponents<BoxCollider2DComponent>(this, target);
 			CopyComponents<CircleCollider2DComponent>(this, target);
-			//CopyComponents<ScriptComponent>(this, target);
-			
+
+			// Copy ScriptComponents... needs extra handling for the script instances
 			for (let (sourceHandle, sourceComponent) in _ecsWorld.Enumerate<ScriptComponent>())
 			{
 				Entity sourceEntity = .(sourceHandle, this);
@@ -94,15 +93,16 @@ namespace GlitchyEngine.World
 				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
 				ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
 
-				// TODO: Do proper copy
-
 				targetComponent.Instance = new ScriptInstance(sourceComponent.Instance.ScriptClass);
 				targetComponent.Instance..ReleaseRef();
+
+				// We need an instance so we can copy the variables to it
+				ScriptEngine.InitializeInstance(targetEntity, targetComponent);
 
 				sourceComponent.Instance.CopyEditorFieldsTo(targetComponent.Instance);
 			}
 
-			// Copy transforms
+			// Copy transforms... needs special handling for the Parent<->Child relations
 			for (let (sourceHandle, sourceTransform) in _ecsWorld.Enumerate<TransformComponent>())
 			{
 				Entity sourceEntity = Entity(sourceHandle, this);
@@ -272,9 +272,10 @@ namespace GlitchyEngine.World
 				// Run scripts
 				for (var (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
 				{
-					if (!script.InInstantiated)
+					if (!script.IsCreated)
 					{
-						ScriptEngine.InitializeInstance(Entity(entity, this), script);
+						if (!script.IsInitialized)
+							ScriptEngine.InitializeInstance(Entity(entity, this), script);
 
 						if (mode.HasFlag(.Runtime))
 							script.Instance.InvokeOnCreate();

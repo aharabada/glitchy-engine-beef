@@ -87,6 +87,8 @@ class SharpClass : SharpType
 				
 				if (sharpType == null)
 					continue;
+
+				sharpType.ReleaseRef();
 			}
 
 			//Mono.MonoTypeEnum fieldType = Mono.Mono.mono_type_get_type(type);
@@ -182,6 +184,11 @@ class ScriptClass : SharpClass
 	{
 		MonoObject* instance = Mono.mono_object_new(ScriptEngine.[Friend]s_AppDomain, _monoClass);
 
+		// TODO: I think this is a bit dirty
+		// Invoke empty constructor to fill fields
+		Mono.mono_runtime_object_init(instance);
+
+		// Invoke constructor with UUID
 #unwarn
 		ScriptEngine.[Friend]s_EngineObject.Invoke(ScriptEngine.[Friend]s_EngineObject._constructor, instance, &uuid);
 

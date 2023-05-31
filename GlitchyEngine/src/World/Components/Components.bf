@@ -457,7 +457,9 @@ namespace GlitchyEngine.World
 			set mut => SetReference!(_instance, value);
 		}
 
-		public bool InInstantiated => _instance?.IsInstatiated ?? false;
+		public bool IsInitialized => _instance?.IsInitialized ?? false;
+
+		public bool IsCreated => _instance?.IsCreated ?? false;
 
 		public void Dispose() mut
 		{
