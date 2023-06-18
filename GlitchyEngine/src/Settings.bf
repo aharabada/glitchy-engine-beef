@@ -67,6 +67,11 @@ namespace GlitchyEngine
 		{
 			Settings settings = Application.Get().Settings;
 
+			if (!File.Exists("./settings.bon"))
+			{
+				settings.Save();
+			}
+
 			var result = Bon.DeserializeFromFile(ref settings, "./settings.bon");
 
 			if (result case .Err)

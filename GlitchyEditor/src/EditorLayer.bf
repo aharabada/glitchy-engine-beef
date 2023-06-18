@@ -70,6 +70,14 @@ namespace GlitchyEditor
 		SceneState _sceneState = .Edit;
 		bool _isPaused = false;
 		
+		append List<(String Name, String Path)> _recentProjectPaths = .() ~ {
+				for (var item in _)
+				{
+					delete item.Name;
+					delete item.Path;
+				}
+			};
+		
 		/// Gets or sets the path of the current scene.
 		public StringView SceneFilePath
 		{
@@ -623,6 +631,23 @@ namespace GlitchyEditor
 			SetReference!(_activeScene, _editorScene);
 		}
 
+		private void DrawOpenRecentProjectMenu()
+		{
+			int i = 0;
+
+			for (let (name, path) in _recentProjectPaths)
+			{
+				i++;
+				if (i >= 10)
+					break;
+
+				if (ImGui.MenuItem(scope $"{i}: {name} ({path})"))
+				{
+					LoadSceneFile(path);
+				}
+			}
+		}
+
 		private void DrawMainMenuBar()
 		{
 			ImGui.BeginMainMenuBar();
@@ -635,11 +660,18 @@ namespace GlitchyEditor
 				if (ImGui.MenuItem("Save", "Ctrl+S"))
 					SaveScene();
 
-				if (ImGui.MenuItem("Save as...", "Ctrl+Shift+N"))
+				if (ImGui.MenuItem("Save as...", "Ctrl+Shift+S"))
 					SaveSceneAs();
 
 				if (ImGui.MenuItem("Open...", "Ctrl+O"))
 					OpenScene();
+				
+				if (ImGui.BeginMenu("Open Recent"))
+				{
+					DrawOpenRecentProjectMenu();
+
+					ImGui.EndMenu();
+				}
 
 				ImGui.Separator();
 
