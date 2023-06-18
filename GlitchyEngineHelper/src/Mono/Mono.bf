@@ -167,6 +167,9 @@ static class Mono
 	[LinkName(.C)]
 	public static extern void mono_field_get_value(MonoObject* object, MonoClassField* field, void* value);
 
+	/// Gets the field as object, boxes the value if it is a valuetype.
+	[LinkName(.C)]
+	public static extern MonoObject* mono_field_get_value_object(MonoDomain* domain, MonoClassField* field, MonoObject* obj);
 
 	[LinkName(.C)]
 	public static extern MonoCustomAttrInfo* mono_custom_attrs_from_field(MonoClass* monoClass, MonoClassField* field);
