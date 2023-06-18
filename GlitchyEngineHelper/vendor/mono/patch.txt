@@ -1,0 +1,16 @@
+diff --git a/msvc/mono.props b/msvc/mono.props
+index 4aa149a7ab5..f9824d3020c 100644
+--- a/msvc/mono.props
++++ b/msvc/mono.props
+@@ -12,9 +12,9 @@
+     <!-- When true, build will get a separate build folder based on various configuration parameters. Makes it possible separate builds into different output folders under the same build prefix. -->
+     <MONO_USE_SEPARATE_BUILD_DIR>true</MONO_USE_SEPARATE_BUILD_DIR>
+     <!-- When true, all binaries and libraries will link using static c-runtime. When false, all binaries and libraries will link using dynamic c-runtime.  -->
+-    <MONO_USE_STATIC_C_RUNTIME>false</MONO_USE_STATIC_C_RUNTIME>
++    <MONO_USE_STATIC_C_RUNTIME>true</MONO_USE_STATIC_C_RUNTIME>
+     <!-- When true, mono binaries will link using static libmono. When false, mono binaries will link using dynamic libmono.  -->
+-    <MONO_USE_STATIC_LIBMONO>false</MONO_USE_STATIC_LIBMONO>
++    <MONO_USE_STATIC_LIBMONO>true</MONO_USE_STATIC_LIBMONO>
+     <!-- When true, mono binaries will link and include llvm. When false, mono binaries will not link and include llvm.  -->
+     <MONO_ENABLE_LLVM>false</MONO_ENABLE_LLVM>
+     <!-- When true, enable LLVM asserts for internal LLVM build. When false, disable LLVM asserts for internal LLVM build.  -->
