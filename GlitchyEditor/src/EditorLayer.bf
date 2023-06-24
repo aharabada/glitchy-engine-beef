@@ -735,11 +735,11 @@ namespace GlitchyEditor
 		
 		private void GameViewportSizeChanged(Object sender, Vector2 viewportSize)
 		{
+			if(viewportSize.X <= 0 || viewportSize.Y <= 0)
+				return;
+
 			uint32 sizeX = (uint32)viewportSize.X;
 			uint32 sizeY = (uint32)viewportSize.Y;
-
-			if(sizeX == 0 || sizeY == 0)
-				return;
 
 			_gameViewportTarget.Resize(sizeX, sizeY);
 
