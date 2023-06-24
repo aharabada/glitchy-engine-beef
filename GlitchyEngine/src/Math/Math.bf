@@ -188,7 +188,9 @@ static class FancyMath
 
 	// mul
 
-	// normalize
+	public static float2 normalize(float2 value) => value / length(value);
+	public static float3 normalize(float3 value) => value / length(value);
+	public static float4 normalize(float4 value) => value / length(value);
 
 	// pow
 
@@ -231,6 +233,59 @@ static class FancyMath
 	}
 
 	// Exp2?
+
+#endregion
+
+#region Reject / Project
+
+	
+	/**
+	 * Calculates the projection of a onto b
+	 */
+	public static float2 project(float2 a, float2 b)
+	{
+		return (b * (dot(a, b) / dot(b, b)));
+	}
+
+	/**
+	 * Calculates the projection of a onto b
+	 */
+	public static float3 project(float3 a, float3 b)
+	{
+		return (b * (dot(a, b) / dot(b, b)));
+	}
+
+	/**
+	 * Calculates the projection of a onto b
+	 */
+	public static float4 project(float4 a, float4 b)
+	{
+		return (b * (dot(a, b) / dot(b, b)));
+	}
+
+	/**
+	 * Calculates the rejection of a from b
+	 */
+	public static float2 reject(float2 a, float2 b)
+	{
+		return (a - b * (dot(a, b) / dot(b, b)));
+	}
+	
+	/**
+	 * Calculates the rejection of a from b
+	 */
+	public static float3 reject(float3 a, float3 b)
+	{
+		return (a - b * (dot(a, b) / dot(b, b)));
+	}
+	
+	/**
+	 * Calculates the rejection of a from b
+	 */
+	public static float4 reject(float4 a, float4 b)
+	{
+		return (a - b * (dot(a, b) / dot(b, b)));
+	}
 
 #endregion
 

@@ -1,6 +1,6 @@
 using System;
 
-namespace GlitchyEngine.Math.FancyMath;
+namespace GlitchyEngine.Math;
 
 [AttributeUsage(.Struct | .Class)]
 struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where ComponentCount : const int
@@ -13,7 +13,7 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 	{
 		GenerateFields(type);
 
-		GenerateSingleToVectorCast(type);
+		GenerateCasts(type);
 
 		GenerateConstructors(type);
 
@@ -40,7 +40,7 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 	}
 	
 	[Comptime]
-	private void GenerateSingleToVectorCast(Type type)
+	private void GenerateCasts(Type type)
 	{
 		String constructorBody = scope String();
 		
@@ -52,16 +52,26 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 			constructorBody.Append("value");
 		}
 
-		String cast = scope $"""
-			public static implicit operator {type}({typeof(T)} value)
+		String castSingleToVector = scope $"""
+			public static implicit operator Self({typeof(T)} value)
 			{{
-				return {type}({constructorBody});
+				return Self({constructorBody});
 			}}
 
 
 			""";
 
-		Compiler.EmitTypeBody(type, cast);
+		Compiler.EmitTypeBody(type, castSingleToVector);
+
+		String castVectorToArray = scope $"""
+			[System.Inline]
+			#unwarn
+			public static explicit operator {typeof(T)}[{ComponentCount}](Self value) => *({typeof(T)}[{ComponentCount}]*)&value;
+
+
+			""";
+
+		Compiler.EmitTypeBody(type, castVectorToArray);
 	}
 
 #region Constructors
