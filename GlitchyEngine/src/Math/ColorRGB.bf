@@ -53,10 +53,10 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 #unwarn
-		public static explicit operator Vector3(ColorRGB color) => *(Vector3*)&color;
+		public static explicit operator float3(ColorRGB color) => *(float3*)&color;
 		
 		[Inline]
 #unwarn
-		public static explicit operator ColorRGB(Vector3 color) => *(ColorRGB*)&color;
+		public static explicit operator ColorRGB(float3 color) => *(ColorRGB*)&color;
 	}
 }

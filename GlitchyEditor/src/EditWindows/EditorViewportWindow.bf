@@ -32,9 +32,9 @@ namespace GlitchyEditor.EditWindows
 		public uint32 SelectedEntityId {get; private set; }
 		public bool SelectionChanged { get; private set; }
 
-		public Vector2 ViewportSize => (Vector2)_oldViewportSize;
+		public float2 ViewportSize => (float2)_oldViewportSize;
 		// Occurs when the viewport is resized.
-		public Event<EventHandler<Vector2>> ViewportSizeChanged ~ _.Dispose();
+		public Event<EventHandler<float2>> ViewportSizeChanged ~ _.Dispose();
 		// Occurs when an entity was clicked.
 		public Event<EventHandler<uint32>> EntityClicked ~ _.Dispose();
 
@@ -126,7 +126,7 @@ namespace GlitchyEditor.EditWindows
 
 			if(_oldViewportSize != viewportSize)
 			{
-				ViewportSizeChanged.Invoke(this, (Vector2)viewportSize);
+				ViewportSizeChanged.Invoke(this, (float2)viewportSize);
 				_viewPortChanged = true;
 				_oldViewportSize = viewportSize;
 			}
@@ -154,14 +154,14 @@ namespace GlitchyEditor.EditWindows
 		{
 			_wrappedCursor = false;
 
-			let mousePos = (Vector2)ImGui.GetMousePos();
-			let winPos = (Vector2)ImGui.GetWindowPos();
-			let regionMin = winPos + (Vector2)ImGui.GetWindowContentRegionMin();
-			let regionMax = winPos + (Vector2)ImGui.GetWindowContentRegionMax();
+			let mousePos = (float2)ImGui.GetMousePos();
+			let winPos = (float2)ImGui.GetWindowPos();
+			let regionMin = winPos + (float2)ImGui.GetWindowContentRegionMin();
+			let regionMax = winPos + (float2)ImGui.GetWindowContentRegionMax();
 
 			ImGui.DrawRect((.)regionMin, (.)regionMax, .(0, 255, 0));
 
-			Vector2 newMousePos = mousePos;
+			float2 newMousePos = mousePos;
 
 			if (mousePos.X < regionMin.X + 1)
 			{
@@ -181,7 +181,7 @@ namespace GlitchyEditor.EditWindows
 				newMousePos.Y = regionMin.Y + 10;
 			}
 
-			if (newMousePos != mousePos)
+			if (any(newMousePos != mousePos))
 			{
 				Input.SetMousePosition((Int2)newMousePos);
 				// After wrapping the cursor the the other side, the camera controller must not compare the positions,
@@ -195,7 +195,7 @@ namespace GlitchyEditor.EditWindows
 		/// If the user clicks, the entity beneath the cursor will be selected.
 		private void MousePicking(ImGui.Vec2 viewportSize, bool gizmoUsed)
 		{
-			Vector2 relativeMouse = (Vector2)ImGui.GetMousePos() - (Vector2)ImGui.GetItemRectMin();
+			float2 relativeMouse = (float2)ImGui.GetMousePos() - (float2)ImGui.GetItemRectMin();
 
 			int rtWidth = _editor.EditorSceneRenderer.CompositeTarget.Width;
 			int rtHeight = _editor.EditorSceneRenderer.CompositeTarget.Height;
@@ -316,9 +316,9 @@ namespace GlitchyEditor.EditWindows
 				parentView = parentTransformCmp.WorldTransform.Invert();
 			}
 
-			Vector3 snap = .(_snap);
+			float3 snap = (float3)_snap;
 			if (_gizmoType.HasFlag(.ROTATE))
-				snap = .(_angleSnap);
+				snap = (float3)_angleSnap;
 			
 			if (ImGuizmo.Manipulate((.)&view, (.)&projection, _gizmoType, _gizmoMode, (.)&worldTransform, null, _doSnap ? (.)&snap : null))
 			{

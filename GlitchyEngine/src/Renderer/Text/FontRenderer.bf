@@ -103,12 +103,12 @@ namespace GlitchyEngine.Renderer.Text
 		{
 			public Font Font;
 			public uint32 GlyphId;
-			public Vector2 Position;
+			public float2 Position;
 			public float Scale;
 			//public float AdvanceX;
 			//public float AdvanceY;
 
-			public this(Font font, uint32 glyphId, Vector2 position, float scale)//, float advanceX, float advanceY)
+			public this(Font font, uint32 glyphId, float2 position, float scale)//, float advanceX, float advanceY)
 			{
 				Font = font;
 				GlyphId = glyphId;
@@ -341,7 +341,7 @@ namespace GlitchyEngine.Renderer.Text
 			_msdfEffect.Variables["ViewProjection"].SetData(viewProjection);
 			
 			// TODO: this doesn't really work with fallback fonts
-			Vector2 unitRange = Vector2((float)text.Font._range) / Vector2(text.Font._atlas.Width, text.Font._atlas.Height);
+			float2 unitRange = ((float)text.Font._range) / float2(text.Font._atlas.Width, text.Font._atlas.Height);
 			_msdfEffect.Variables["UnitRange"].SetData(unitRange);
 			
 			List<Texture2D> atlasses = scope .();
@@ -366,7 +366,7 @@ namespace GlitchyEngine.Renderer.Text
 					atlasses.Add(atlas..AddRef());
 				}
 
-				Vector2 atlasSize = .(atlas.Width, atlas.Height);
+				float2 atlasSize = .(atlas.Width, atlas.Height);
 
 				float adjustToPenX = glyphDesc.AdjustToPen;
 				//adjustToPenX *= glyphFontScale;
@@ -377,7 +377,7 @@ namespace GlitchyEngine.Renderer.Text
 				adjustToBaseline *= glyph.Scale;
 
 				// Rectangle on the screen
-				Vector4 viewportRect = .(
+				float4 viewportRect = .(
 					// TODO: merge adjustToPenX and adjustToBaseline into Position
 					glyph.Position.X + adjustToPenX,
 					glyph.Position.Y + adjustToBaseline,
@@ -385,24 +385,24 @@ namespace GlitchyEngine.Renderer.Text
 					glyphDesc.Height * glyph.Scale);
 
 				// Rectangle on the font atlas
-				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
+				float4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
 
 				Color glyphColor = fontColor;//Color.White;// TODO: glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
-				texRect /= Vector4(atlasSize, atlasSize);
+				texRect /= float4(atlasSize, atlasSize);
 
 				// Show quads
-				// Renderer2D.DrawQuad(Vector3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
+				// Renderer2D.DrawQuad(float3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
 
-				Vector3 position = .(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 0);
+				float3 position = .(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 0);
 
 				Matrix glyphTransform = transform * Matrix.Translation(position) * Matrix.Scaling(viewportRect.Z, viewportRect.W, 1.0f);
 				
 				Renderer2D.DrawQuad(glyphTransform, atlas, (ColorRGBA)glyphColor, texRect);
-				//Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+				//Renderer2D.DrawQuad(float2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
 
 				// Show pen positions
-				// Renderer2D.DrawQuad(Vector3(Vector2(x, y) + glyph.Position, -1), .(1), 0, .Green);
+				// Renderer2D.DrawQuad(float3(float2(x, y) + glyph.Position, -1), .(1), 0, .Green);
 			}
 
 			Renderer2D.Flush();
@@ -451,7 +451,7 @@ namespace GlitchyEngine.Renderer.Text
 			_msdfEffect.Variables["screenPixelRange"].SetData(scale * 4.0f);
 
 			// TODO: this doesn't really work with fallback fonts
-			Vector2 unitRange = Vector2((float)font._range) / Vector2(font._atlas.Width, font._atlas.Height);
+			float2 unitRange = ((float)font._range) / float2(font._atlas.Width, font._atlas.Height);
 			_msdfEffect.Variables["UnitRange"].SetData(unitRange);
 
 			// Space between two baselines
@@ -550,7 +550,7 @@ namespace GlitchyEngine.Renderer.Text
 					atlasses.Add(atlas..AddRef());
 				}
 
-				Vector2 atlasSize = .(atlas.Width, atlas.Height);
+				float2 atlasSize = .(atlas.Width, atlas.Height);
 
 				float adjustToPenX = glyphDesc.AdjustToPen;
 				adjustToPenX *= glyphFontScale;
@@ -559,26 +559,26 @@ namespace GlitchyEngine.Renderer.Text
 				adjustToBaseline *= glyphFontScale;
 
 				// Rectangle on the screen
-				Vector4 viewportRect = .(
+				float4 viewportRect = .(
 					penPosition + adjustToPenX,
 					baseline + adjustToBaseline,
 					glyphDesc.Width * glyphFontScale,
 					glyphDesc.Height * glyphFontScale);
 
 				// Rectangle on the font atlas
-				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
+				float4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
 
 				Color glyphColor = glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
-				texRect /= Vector4(atlasSize, atlasSize);
+				texRect /= float4(atlasSize, atlasSize);
 
 				// Show quads
-				// Renderer2D.DrawQuad(Vector3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
+				// Renderer2D.DrawQuad(float3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
 
-				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
+				Renderer2D.DrawQuad(float2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
 
 				// Show pen positions
-				// Renderer2D.DrawQuad(Vector3(penPosition, baseline, -1), .(1), 0, .Green);
+				// Renderer2D.DrawQuad(float3(penPosition, baseline, -1), .(1), 0, .Green);
 
 			    penPosition += (x_advance / 64) * glyphFontScale;
 			    baseline += (y_advance / 64) * glyphFontScale;
@@ -627,7 +627,7 @@ namespace GlitchyEngine.Renderer.Text
 					atlasses.Add(atlas..AddRef());
 				}
 
-				Vector2 atlasSize = .(atlas.Width, atlas.Height);
+				float2 atlasSize = .(atlas.Width, atlas.Height);
 
 				float adjustToPenX = glyphDesc.AdjustToPen;
 				adjustToPenX *= glyphFontScale;
@@ -636,20 +636,20 @@ namespace GlitchyEngine.Renderer.Text
 				adjustToBaseline *= glyphFontScale;
 				
 				// Rectangle on the screen
-				Vector4 viewportRect = .(
+				float4 viewportRect = .(
 					penPosition + adjustToPenX,
 					baseline + adjustToBaseline,
 					glyphDesc.Width * glyphFontScale,
 					glyphDesc.Height * glyphFontScale);
 
 				// Rectangle on the font atlas
-				Vector4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
+				float4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
 
 				Color glyphColor = glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
-				texRect /= Vector4(atlasSize, atlasSize);
+				texRect /= float4(atlasSize, atlasSize);
 
-				Renderer2D.DrawQuad(Vector2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, (ColorRGBA)glyphColor, texRect);
+				Renderer2D.DrawQuad(float2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, (ColorRGBA)glyphColor, texRect);
 
 				//renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
 

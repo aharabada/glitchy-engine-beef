@@ -191,9 +191,9 @@ namespace GlitchyEngine.Math
 
 		public override void ToString(String strBuffer) => strBuffer.AppendF($"X:{X} Y:{Y} Z:{Z}");
 
-		public static explicit operator Vector3(Int3 point) => .(point.X, point.Y, point.Z);
+		public static explicit operator float3(Int3 point) => .(point.X, point.Y, point.Z);
 
-		public static explicit operator Int3(Vector3 point) => .((int32)point.X, (int32)point.Y, (int32)point.Z);
+		public static explicit operator Int3(float3 point) => .((int32)point.X, (int32)point.Y, (int32)point.Z);
 
 		[Inline]
 		public static explicit operator Int2(in Int3 point) => *(Int2*)&point;

@@ -25,11 +25,11 @@ namespace GlitchyEditor
 			set => _texture.Get().SamplerState = value;
 		}
 
-		public this(String texturePath, Vector2 iconSize)
+		public this(String texturePath, float2 iconSize)
 		{
 			_texture = Content.LoadAsset(texturePath, null, true);
 			
-			Vector2 pen = .();
+			float2 pen = .();
 
 			DirectionalLight = GetNextGridTexture(ref pen, iconSize);
 			Camera = GetNextGridTexture(ref pen, iconSize);
@@ -41,7 +41,7 @@ namespace GlitchyEditor
 			Pause = GetNextGridTexture(ref pen, iconSize);
 		}
 
-		private SubTexture2D GetNextGridTexture(ref Vector2 pen, Vector2 iconSize)
+		private SubTexture2D GetNextGridTexture(ref float2 pen, float2 iconSize)
 		{
 			SubTexture2D subTexture = .CreateFromGrid(_texture, pen, iconSize);
 

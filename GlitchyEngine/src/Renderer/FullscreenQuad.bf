@@ -11,9 +11,9 @@ namespace GlitchyEngine.Renderer
 			s_fullscreenQuadGeometry = new GeometryBinding();
 			s_fullscreenQuadGeometry.SetPrimitiveTopology(.TriangleList);
 
-			using(var quadVertices = new VertexBuffer(typeof(Vector4), 3, .Immutable))
+			using(var quadVertices = new VertexBuffer(typeof(float4), 3, .Immutable))
 			{
-				Vector4[4] vertices = .(
+				float4[4] vertices = .(
 				.(-1, 1, 0, 0),
 				.( 3, 1, 2, 0),
 				.(-1,-3, 0, 2),

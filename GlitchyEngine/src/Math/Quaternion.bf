@@ -22,7 +22,7 @@ namespace GlitchyEngine.Math
 			W = w;
 		}
 
-		public this(Vector3 xy, float z, float w)
+		public this(float3 xy, float z, float w)
 		{
 			X = xy.X;
 			Y = xy.Y;
@@ -30,7 +30,7 @@ namespace GlitchyEngine.Math
 			W = w;
 		}
 
-		public this(Vector3 xyz, float w)
+		public this(float3 xyz, float w)
 		{
 			X = xyz.X;
 			Y = xyz.Y;
@@ -38,7 +38,7 @@ namespace GlitchyEngine.Math
 			W = w;
 		}
 		
-		public this(Vector4 vector)
+		public this(float4 vector)
 		{
 			X = vector.X;
 			Y = vector.Y;
@@ -46,7 +46,7 @@ namespace GlitchyEngine.Math
 			W = vector.W;
 		}
 
-		public Vector3 Vector
+		public float3 Vector
 		{
 			get => .(X, Y, Z);
 			set mut
@@ -195,11 +195,11 @@ namespace GlitchyEngine.Math
 		{
 			Quaternion result;
 
-			Vector3 v = l.Vector * r.Vector + (l.W * r.Vector) + (r.W * l.Vector);
+			float3 v = l.Vector * r.Vector + (l.W * r.Vector) + (r.W * l.Vector);
 			result.X = v.X;
 			result.Y = v.Y;
 			result.Z = v.Z;
-			result.W = (l.W * r.W) - Vector3.Dot(l.Vector, r.Vector);
+			result.W = (l.W * r.W) - dot(l.Vector, r.Vector);
 
 			return result;
 		}
@@ -220,11 +220,11 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 #unwarn
-		public static implicit operator Vector4(in Self value) => *(Vector4*)&value;
+		public static implicit operator float4(in Self value) => *(float4*)&value;
 
 		[Inline]
 #unwarn
-		public static implicit operator Quaternion(in Vector4 value) => *(Quaternion*)&value;
+		public static implicit operator Quaternion(in float4 value) => *(Quaternion*)&value;
 
 		public static bool operator ==(Quaternion l, Quaternion r)
 		{
@@ -236,7 +236,7 @@ namespace GlitchyEngine.Math
 			return l.X != r.X && l.Y != r.Y && l.Z != r.Z && l.W != r.W;
 		}
 
-		public (Vector3 Axis, float Angle) ToAxisAngle()
+		public (float3 Axis, float Angle) ToAxisAngle()
 		{
 			// scalar part = cos(θ/2)
 			// So, we can extract the angle directly.
@@ -247,12 +247,12 @@ namespace GlitchyEngine.Math
 			// We assume quaternion is unit length, so subtracting w^2 gives us length of just vector part (aka sin(θ/2)).
 			float length = Math.Sqrt(1.0f - (W * W));
 
-			Vector3 axis;
+			float3 axis;
 
 			// Normalize vector part to get the axis!
 			if(length == 0)
 			{
-			    axis = Vector3.Zero;
+			    axis = float3.Zero;
 			}
 			else
 			{
@@ -265,9 +265,9 @@ namespace GlitchyEngine.Math
 			return (axis, angle);
 		}
 
-		public static Quaternion FromAxisAngle(Vector3 axis, float angle)
+		public static Quaternion FromAxisAngle(float3 axis, float angle)
 		{
-			float lengthSq = axis.MagnitudeSquared();
+			float lengthSq = lengthSq(axis);
 
 			if(lengthSq == 0)
 			{
@@ -316,11 +316,11 @@ namespace GlitchyEngine.Math
 			return result;
 		}
 
-		public static Vector3 ToEulerAngles(Quaternion q)
+		public static float3 ToEulerAngles(Quaternion q)
 		{
 			// http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
 			
-			Vector3 result;
+			float3 result;
 
 		    float sqw = q.W*q.W;
 		    float sqx = q.X*q.X;
@@ -354,7 +354,7 @@ namespace GlitchyEngine.Math
 			float y = 2.0f * (Y * Z + W * X);
 			float x = W * W - X * X - Y * Y + Z * Z;
 
-			if (Vector2(x, y).Equals(.Zero)) //avoid atan2(0,0) - handle singularity - Matiis
+			if (float2(x, y).Equals(.Zero)) //avoid atan2(0,0) - handle singularity - Matiis
 				return 2.0f * Math.Atan2(X, W);
 
 			return Math.Atan2(y, x);
@@ -370,7 +370,7 @@ namespace GlitchyEngine.Math
 			float y = 2.0f * (X * Y + W * Z);
 			float x = W * W + X * X - Y * Y - Z * Z;
 
-			if (Vector2(x, y).Equals(.Zero)) //avoid atan2(0,0) - handle singularity - Matiis
+			if (float2(x, y).Equals(.Zero)) //avoid atan2(0,0) - handle singularity - Matiis
 				return 0;
 
 			return Math.Atan2(y, x);

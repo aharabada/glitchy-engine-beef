@@ -12,8 +12,8 @@ namespace GlitchyEngine
 		private float _aspectRatio;
 		private float _fovY = Math.PI_f / 4;
 		
-		private Vector3 _cameraPosition;
-		private Vector3 _cameraRotation;
+		private float3 _cameraPosition;
+		private float3 _cameraRotation;
 		
 		private float _cameraTranslationSpeed = 1.0f;
 		private float _cameraRotationSpeedX = 0.001f;
@@ -27,7 +27,7 @@ namespace GlitchyEngine
 			set => _cameraTranslationSpeed = value;
 		}
 
-		public Vector2 RotationSpeed
+		public float2 RotationSpeed
 		{
 			get => .(_cameraRotationSpeedX, _cameraRotationSpeedY);
 			set
@@ -37,7 +37,7 @@ namespace GlitchyEngine
 			}
 		}
 
-		public Vector3 CameraPosition
+		public float3 CameraPosition
 		{
 			get => _cameraPosition;
 			set
@@ -48,7 +48,7 @@ namespace GlitchyEngine
 			}
 		}
 		
-		public Vector3 CameraRotation
+		public float3 CameraRotation
 		{
 			get => _cameraRotation;
 			set
@@ -100,7 +100,7 @@ namespace GlitchyEngine
 
 			if(Application.Get().Window.IsActive)
 			{
-				Vector3 movement = .();
+				float3 movement = .();
 
 				if(Input.IsKeyPressed(Key.W))
 				{
@@ -129,14 +129,14 @@ namespace GlitchyEngine
 					movement.Y -= 1;
 				}
 
-				if(movement != .Zero)
-					movement.Normalize();
+				if(any(movement != .Zero))
+					normalize(movement);
 
 				movement *= (float)(gameTime.FrameTime.TotalSeconds) * _cameraTranslationSpeed;
 				
-				Vector4 delta = Vector4(movement, 1.0f) * _camera.View;
+				float4 delta = float4(movement, 1.0f) * _camera.View;
 
-				_cameraPosition += Vector3(delta.X, delta.Y, delta.Z);
+				_cameraPosition += float3(delta.X, delta.Y, delta.Z);
 				//_cameraPosition += movement;
 
 				// Camera rotation

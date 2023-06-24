@@ -5,14 +5,14 @@ namespace GlitchyEngine.Math
 {
 	[BonTarget]
 	[SwizzleVector(4, "GlitchyEngine.Math.Vector")]
-	public struct Vector4
+	public struct float4
 	{
-		public const Vector4 Zero 	= .(0f, 0f, 0f, 0f);
-		public const Vector4 UnitX 	= .(1f, 0f, 0f, 0f);
-		public const Vector4 UnitY 	= .(0f, 1f, 0f, 0f);
-		public const Vector4 UnitZ 	= .(0f, 0f, 1f, 0f);
-		public const Vector4 UnitW 	= .(0f, 0f, 0f, 1f);
-		public const Vector4 One 	= .(1f, 1f, 1f, 1f);
+		public const float4 Zero 	= .(0f, 0f, 0f, 0f);
+		public const float4 UnitX 	= .(1f, 0f, 0f, 0f);
+		public const float4 UnitY 	= .(0f, 1f, 0f, 0f);
+		public const float4 UnitZ 	= .(0f, 0f, 1f, 0f);
+		public const float4 UnitW 	= .(0f, 0f, 0f, 1f);
+		public const float4 One 	= .(1f, 1f, 1f, 1f);
 		
 		public const int ComponentCount = 4;
 
@@ -44,7 +44,7 @@ namespace GlitchyEngine.Math
 			W = value2.Y;
 		}
 
-		public this(Vector3 value, float w)
+		public this(float3 value, float w)
 		{
 			X = value.X;
 			Y = value.Y;
@@ -133,7 +133,7 @@ namespace GlitchyEngine.Math
 			this /= Magnitude();
 		}
 		
-		public static Vector4 Normalize(Vector4 v)
+		public static float4 Normalize(float4 v)
 		{
 			if(v == .Zero)
 				return .Zero;
@@ -142,12 +142,12 @@ namespace GlitchyEngine.Math
 		}
 		
 		[Unchecked]
-		public static Vector4 Normalize(Vector4 v)
+		public static float4 Normalize(float4 v)
 		{
 			return v / v.Magnitude();
 		}
 
-		public static float Dot(Vector4 l, Vector4 r)
+		public static float Dot(float4 l, float4 r)
 		{
 			return l.X * r.X + l.Y * r.Y + l.Z * r.Z + l.W * r.W;
 		}
@@ -155,7 +155,7 @@ namespace GlitchyEngine.Math
 		/**
 		 * Calculates the projection of a onto b
 		 */
-		public static Vector4 Project(Vector4 a, Vector4 b)
+		public static float4 Project(float4 a, float4 b)
 		{
 			return (b * (Dot(a, b) / Dot(b, b)));
 		}
@@ -163,7 +163,7 @@ namespace GlitchyEngine.Math
 		/**
 		 * Calculates the rejection of a from b
 		 */
-		public static Vector4 Reject(Vector4 a, Vector4 b)
+		public static float4 Reject(float4 a, float4 b)
 		{
 			return (a - b * (Dot(a, b) / Dot(b, b)));
 		}
@@ -176,17 +176,17 @@ namespace GlitchyEngine.Math
 		 *        (0 means a will be returned, 1 means b will be returned.)
 		 * @returns The resulting linear interpolation.
 		 */
-		public static Vector4 Lerp(Vector4 a, Vector4 b, float interpolationValue)
+		public static float4 Lerp(float4 a, float4 b, float interpolationValue)
 		{
 			return a + interpolationValue * (b - a);
 		}
 		
-		public static Vector4 Min(Vector4 a, Vector4 b)
+		public static float4 Min(float4 a, float4 b)
 		{
 			return .(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z), Math.Min(a.W, b.W));
 		}
 
-		public static Vector4 Max(Vector4 a, Vector4 b)
+		public static float4 Max(float4 a, float4 b)
 		{
 			return .(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Min(a.Z, b.Z), Math.Min(a.W, b.W));
 		}
@@ -197,7 +197,7 @@ namespace GlitchyEngine.Math
 
 		// Addition
 		
-		public void operator +=(Vector4 value) mut
+		public void operator +=(float4 value) mut
 		{
 			X += value.X;
 			Y += value.Y;
@@ -215,7 +215,7 @@ namespace GlitchyEngine.Math
 
 		// Subtraction
 
-		public void operator -=(Vector4 value) mut
+		public void operator -=(float4 value) mut
 		{
 			X -= value.X;
 			Y -= value.Y;
@@ -233,7 +233,7 @@ namespace GlitchyEngine.Math
 
 		// Multiplication
 		
-		public void operator *=(Vector4 value) mut
+		public void operator *=(float4 value) mut
 		{
 			X *= value.X;
 			Y *= value.Y;
@@ -260,7 +260,7 @@ namespace GlitchyEngine.Math
 			W *= f;
 		}
 
-		public void operator /=(Vector4 value) mut
+		public void operator /=(float4 value) mut
 		{
 			X /= value.X;
 			Y /= value.Y;
@@ -274,49 +274,49 @@ namespace GlitchyEngine.Math
 
 		// Addition
 
-		public static Vector4 operator +(Vector4 left, Vector4 right) => Vector4(left.X + right.X, left.Y + right.Y, left.Z + right.Z, left.W + right.W);
+		public static float4 operator +(float4 left, float4 right) => float4(left.X + right.X, left.Y + right.Y, left.Z + right.Z, left.W + right.W);
 
-		public static Vector4 operator +(Vector4 value, float scalar) => Vector4(value.X + scalar, value.Y + scalar, value.Z + scalar, value.W + scalar);
+		public static float4 operator +(float4 value, float scalar) => float4(value.X + scalar, value.Y + scalar, value.Z + scalar, value.W + scalar);
 		
-		public static Vector4 operator +(float scalar, Vector4 value) => Vector4(scalar + value.X, scalar + value.Y, scalar + value.Z, scalar + value.W);
+		public static float4 operator +(float scalar, float4 value) => float4(scalar + value.X, scalar + value.Y, scalar + value.Z, scalar + value.W);
 
-		public static Vector4 operator +(Vector4 value) => value;
+		public static float4 operator +(float4 value) => value;
 
 		// Subtraction
 		
-		public static Vector4 operator -(Vector4 left, Vector4 right) => Vector4(left.X - right.X, left.Y - right.Y, left.Z - right.Z, left.W - right.W);
+		public static float4 operator -(float4 left, float4 right) => float4(left.X - right.X, left.Y - right.Y, left.Z - right.Z, left.W - right.W);
 
-		public static Vector4 operator -(Vector4 value, float scalar) => Vector4(value.X - scalar, value.Y - scalar, value.Z - scalar, value.W - scalar);
+		public static float4 operator -(float4 value, float scalar) => float4(value.X - scalar, value.Y - scalar, value.Z - scalar, value.W - scalar);
 
-		public static Vector4 operator -(float scalar, Vector4 value) => Vector4(scalar - value.X, scalar - value.Y, scalar - value.Z, scalar - value.W);
+		public static float4 operator -(float scalar, float4 value) => float4(scalar - value.X, scalar - value.Y, scalar - value.Z, scalar - value.W);
 
-		public static Vector4 operator -(Vector4 value) => Vector4(-value.X, -value.Y, -value.Z, -value.W);
+		public static float4 operator -(float4 value) => float4(-value.X, -value.Y, -value.Z, -value.W);
 
 		// Multiplication
 
-		public static Vector4 operator *(Vector4 left, Vector4 right) => Vector4(left.X * right.X, left.Y * right.Y, left.Z * right.Z, left.W * right.W);
+		public static float4 operator *(float4 left, float4 right) => float4(left.X * right.X, left.Y * right.Y, left.Z * right.Z, left.W * right.W);
 
-		public static Vector4 operator *(Vector4 value, float scalar) => Vector4(value.X * scalar, value.Y * scalar, value.Z * scalar, value.W * scalar);
+		public static float4 operator *(float4 value, float scalar) => float4(value.X * scalar, value.Y * scalar, value.Z * scalar, value.W * scalar);
 
-		public static Vector4 operator *(float scalar, Vector4 value) => Vector4(scalar * value.X, scalar * value.Y, scalar * value.Z, scalar * value.W);
+		public static float4 operator *(float scalar, float4 value) => float4(scalar * value.X, scalar * value.Y, scalar * value.Z, scalar * value.W);
 
 		// Division
 		
-		public static Vector4 operator /(Vector4 left, Vector4 right) => Vector4(left.X / right.X, left.Y / right.Y, left.Z / right.Z, left.W / right.W);
+		public static float4 operator /(float4 left, float4 right) => float4(left.X / right.X, left.Y / right.Y, left.Z / right.Z, left.W / right.W);
 
-		public static Vector4 operator /(Vector4 value, float scalar)
+		public static float4 operator /(float4 value, float scalar)
 		{	
 			float inv = 1.0f / scalar;
-			return Vector4(value.X * inv, value.Y * inv, value.Z * inv, value.W * inv);
+			return float4(value.X * inv, value.Y * inv, value.Z * inv, value.W * inv);
 		}
 
-		public static Vector4 operator /(float scalar, Vector4 value) => Vector4(scalar / value.X, scalar / value.Y, scalar / value.Z, scalar / value.W);
+		public static float4 operator /(float scalar, float4 value) => float4(scalar / value.X, scalar / value.Y, scalar / value.Z, scalar / value.W);
 
 		// Equality
 
-		public static bool operator ==(Vector4 left, Vector4 right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z && left.W == right.W;
+		public static bool operator ==(float4 left, float4 right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z && left.W == right.W;
 
-		public static bool operator !=(Vector4 left, Vector4 right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z || left.W != right.W;
+		public static bool operator !=(float4 left, float4 right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z || left.W != right.W;
 
 		public override void ToString(String strBuffer) => strBuffer.AppendF("X:{0} Y:{1} Z:{2} W:{3}", X, Y, Z, W);
 
@@ -325,6 +325,6 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 #unwarn
-		public static explicit operator float[4](Vector4 value) => *(float[4]*)&value;
+		public static explicit operator float[4](float4 value) => *(float[4]*)&value;
 	}
 }

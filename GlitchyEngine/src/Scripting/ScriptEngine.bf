@@ -30,7 +30,7 @@ enum ScriptFieldType
 	UInt, // UInt2, UInt3, UInt4,
 	ULong,
 	// Half, Half2, Half3, Half4,
-	Float, Vector2, Vector3, Vector4,
+	Float, float2, float3, float4,
 	Double, // Double2, Double3, Double4,
 
 	Entity
@@ -53,9 +53,9 @@ static sealed class ScriptEngineHelper
 		("System.UInt64", .ULong),
 
 		("System.Single", .Float),
-		("GlitchyEngine.Math.Vector2", .Vector2),
-		("GlitchyEngine.Math.Vector3", .Vector3),
-		("GlitchyEngine.Math.Vector4", .Vector4),
+		("GlitchyEngine.Math.float2", .float2),
+		("GlitchyEngine.Math.float3", .float3),
+		("GlitchyEngine.Math.float4", .float4),
 
 		("System.Double", .Double),
 
@@ -314,9 +314,9 @@ static class ScriptEngine
 
 		Mono.mono_add_internal_call("GlitchyEngine.CSharpTesting::Sample", v);
 
-		function void(in Vector3, in Vector3, out Vector3) v2 = => Add;
+		function void(in float3, in float3, out float3) v2 = => Add;
 
-		Mono.mono_add_internal_call("GlitchyEngine.Vector3::Add_Internal", v2);
+		Mono.mono_add_internal_call("GlitchyEngine.float3::Add_Internal", v2);
 
 		// Create object
 		ScriptClass myClass = scope .("GlitchyEngine", "CSharpTesting");
@@ -342,7 +342,7 @@ static class ScriptEngine
 	}
 
 	[LinkName(.C), AlwaysInclude, Export]
-	public static void Add(in Vector3 a, in Vector3 b, out Vector3 c)
+	public static void Add(in float3 a, in float3 b, out float3 c)
 	{
 		c = a + b;
 	}

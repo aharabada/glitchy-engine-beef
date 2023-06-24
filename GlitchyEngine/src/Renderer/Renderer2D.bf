@@ -14,10 +14,10 @@ namespace GlitchyEngine.Renderer
 		[CRepr]
 		struct QuadVertex : IVertexData
 		{
-			public Vector2 Position;
-			public Vector2 Texcoord;
+			public float2 Position;
+			public float2 Texcoord;
 
-			public this(Vector2 position, Vector2 texcoord)
+			public this(float2 position, float2 texcoord)
 			{
 				Position = position;
 				Texcoord = texcoord;
@@ -46,12 +46,12 @@ namespace GlitchyEngine.Renderer
 		[CRepr]
 		struct LineBatchVertex
 		{
-			public Vector4 Position;
+			public float4 Position;
 			public ColorRGBA Color;
 
 			public uint32 EntityId;
 
-			public this(Vector4 position, ColorRGBA color, uint32 entityId)
+			public this(float4 position, ColorRGBA color, uint32 entityId)
 			{
 				Position = position;
 				Color = color;
@@ -64,11 +64,11 @@ namespace GlitchyEngine.Renderer
 		{
 			public Matrix Transform;
 			public ColorRGBA Color;
-			public Vector4 UVTransform;
+			public float4 UVTransform;
 
 			public uint32 EntityId;
 
-			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform, uint32 entityId)
+			public this(Matrix transform, ColorRGBA color, float4 uvTransform, uint32 entityId)
 			{
 				Transform = transform;
 				Color = color;
@@ -82,7 +82,7 @@ namespace GlitchyEngine.Renderer
 		{
 			public float InnerRadius;
 
-			public this(Matrix transform, ColorRGBA color, Vector4 uvTransform, float innerRadius, uint32 entityId)
+			public this(Matrix transform, ColorRGBA color, float4 uvTransform, float innerRadius, uint32 entityId)
 				 : base(transform, color, uvTransform, entityId)
 			{
 				InnerRadius = innerRadius;
@@ -110,15 +110,15 @@ namespace GlitchyEngine.Renderer
 			FrontToBack
 		}
 		
-		struct QueueLine: this(Vector4 Start, Vector4 End, ColorRGBA Color, float Depth, uint32 entityId = uint32.MaxValue) { }
+		struct QueueLine: this(float4 Start, float4 End, ColorRGBA Color, float Depth, uint32 entityId = uint32.MaxValue) { }
 
-		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform, uint32 entityId = uint32.MaxValue) { }
+		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, float4 uvTransform, uint32 entityId = uint32.MaxValue) { }
 
 		struct QueueCircle : QueueQuad
 		{
 			public float InnerRadius;
 
-			public this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, Vector4 uvTransform, float innerRadius, uint32 entityId = uint32.MaxValue)
+			public this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, float4 uvTransform, float innerRadius, uint32 entityId = uint32.MaxValue)
 				 : base(Transform, Color, Texture, Depth, uvTransform, entityId)
 			{
 				InnerRadius = innerRadius;
@@ -632,7 +632,7 @@ namespace GlitchyEngine.Renderer
 
 		/// Adds a quad instance to the instance queue.
 		[Inline]
-		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture texture, float depth, Vector4 uvTransform, uint32 id = uint32.MaxValue)
+		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture texture, float depth, float4 uvTransform, uint32 id = uint32.MaxValue)
 		{
 			s_QuadinstanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform, id));
 			s_statistics.QuadCount++;
@@ -640,7 +640,7 @@ namespace GlitchyEngine.Renderer
 		
 		/// Adds a circle instance to the instance queue.
 		[Inline]
-		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, Vector4 uvTransform, float innerRadius, uint32 id = uint32.MaxValue)
+		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, float4 uvTransform, float innerRadius, uint32 id = uint32.MaxValue)
 		{
 			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, depth, uvTransform, innerRadius, id));
 			s_statistics.CircleCount++;
@@ -648,7 +648,7 @@ namespace GlitchyEngine.Renderer
 			
 		/// Adds a line instance to the instance queue.
 		[Inline]
-		private static void QueueLineInstance(Vector4 start, Vector4 end, ColorRGBA color, uint32 id = uint32.MaxValue)
+		private static void QueueLineInstance(float4 start, float4 end, ColorRGBA color, uint32 id = uint32.MaxValue)
 		{
 			s_lineInstanceQueue.Add(QueueLine(start, end, color, id));
 			s_statistics.LineCount++;
@@ -908,7 +908,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		/// A specialized function that calculates the 2D transform matrix
-		private static Matrix Calculate2DTransform(Vector3 translation, Vector2 scale, float rotation)
+		private static Matrix Calculate2DTransform(float3 translation, float2 scale, float rotation)
 		{
 			float sin = 0.0f;
 			float cos = 1.0f;
@@ -933,9 +933,9 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the line.
 		 * @param entityId The optional ID of the entity that belongs to this line (for picking).
 		 */
-		public static void DrawLine(Vector3 start, Vector3 end, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
+		public static void DrawLine(float3 start, float3 end, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
 		{
-			DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), color, entityId);
+			DrawLine(float4(start, 1.0f), float4(end, 1.0f), color, entityId);
 		}
 		
 		/** @brief Draws a ray.
@@ -944,9 +944,9 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the ray.
 		 * @param entityId The optional ID of the entity that belongs to this ray (for picking).
 		 */
-		public static void DrawRay(Vector3 start, Vector3 direction, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
+		public static void DrawRay(float3 start, float3 direction, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
 		{
-			DrawLine(Vector4(start, 1.0f), Vector4(direction, 0.0f), color, entityId);
+			DrawLine(float4(start, 1.0f), float4(direction, 0.0f), color, entityId);
 		}
 		
 		/** @brief Draws a rectangle.
@@ -955,14 +955,14 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the rectangle.
 		 * @param entityId The optional ID of the entity that belongs to this rectangle (for picking).
 		 */
-		public static void DrawRect(Vector2 position, Vector2 size, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
+		public static void DrawRect(float2 position, float2 size, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
 		{
-			Vector2 halfSize = size / 2;
+			float2 halfSize = size / 2;
 
-			Vector4 p0 = Vector4(position + Vector2(-halfSize.X, -halfSize.Y), 0.0f, 1.0f);
-			Vector4 p1 = Vector4(position + Vector2(halfSize.X, -halfSize.Y), 0.0f, 1.0f);
-			Vector4 p2 = Vector4(position + Vector2(halfSize.X, halfSize.Y), 0.0f, 1.0f);
-			Vector4 p3 = Vector4(position + Vector2(-halfSize.X, halfSize.Y), 0.0f, 1.0f);
+			float4 p0 = float4(position + float2(-halfSize.X, -halfSize.Y), 0.0f, 1.0f);
+			float4 p1 = float4(position + float2(halfSize.X, -halfSize.Y), 0.0f, 1.0f);
+			float4 p2 = float4(position + float2(halfSize.X, halfSize.Y), 0.0f, 1.0f);
+			float4 p3 = float4(position + float2(-halfSize.X, halfSize.Y), 0.0f, 1.0f);
 
 			DrawLine(p0, p1, color, entityId);
 			DrawLine(p1, p2, color, entityId);
@@ -977,12 +977,12 @@ namespace GlitchyEngine.Renderer
 		 */
 		public static void DrawRect(Matrix transform, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
 		{
-			Vector2 halfSize = Vector2.One / 2.0f;
+			float2 halfSize = float2.One / 2.0f;
 
-			Vector4 p0 = transform * Vector4(-halfSize.X, -halfSize.Y, 0.0f, 1.0f);
-			Vector4 p1 = transform * Vector4(halfSize.X, -halfSize.Y, 0.0f, 1.0f);
-			Vector4 p2 = transform * Vector4(halfSize.X, halfSize.Y, 0.0f, 1.0f);
-			Vector4 p3 = transform * Vector4(-halfSize.X, halfSize.Y, 0.0f, 1.0f);
+			float4 p0 = transform * float4(-halfSize.X, -halfSize.Y, 0.0f, 1.0f);
+			float4 p1 = transform * float4(halfSize.X, -halfSize.Y, 0.0f, 1.0f);
+			float4 p2 = transform * float4(halfSize.X, halfSize.Y, 0.0f, 1.0f);
+			float4 p3 = transform * float4(-halfSize.X, halfSize.Y, 0.0f, 1.0f);
 
 			DrawLine(p0, p1, color, entityId);
 			DrawLine(p1, p2, color, entityId);
@@ -990,7 +990,7 @@ namespace GlitchyEngine.Renderer
 			DrawLine(p3, p0, color, entityId);
 		}
 
-		public static void DrawLine(Vector4 start, Vector4 end, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
+		public static void DrawLine(float4 start, float4 end, ColorRGBA color = .White, uint32 entityId = uint32.MaxValue)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -1008,23 +1008,23 @@ namespace GlitchyEngine.Renderer
 
 		// Colored Quad
 
-		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, ColorRGBA color)
+		public static void DrawQuad(float2 position, float2 size, float rotation, ColorRGBA color)
 		{
-			DrawQuad(Vector3(position, 0.0f), size, rotation, s_whiteTexture, color);
+			DrawQuad(float3(position, 0.0f), size, rotation, s_whiteTexture, color);
 		}
 
 		/// Like DrawQuad but the pivot point is the top left corner
-		public static void DrawQuadPivotCorner(Vector2 position, Vector2 size, float rotation, ColorRGBA color)
+		public static void DrawQuadPivotCorner(float2 position, float2 size, float rotation, ColorRGBA color)
 		{
-			DrawQuadPivotCorner(Vector3(position, 0.0f), size, rotation, s_whiteTexture, color);
+			DrawQuadPivotCorner(float3(position, 0.0f), size, rotation, s_whiteTexture, color);
 		}
 		
-		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, ColorRGBA color)
+		public static void DrawQuad(float3 position, float2 size, float rotation, ColorRGBA color)
 		{
 			DrawQuad(position, size, rotation, s_whiteTexture, color);
 		}
 		
-		public static void DrawQuadPivotCorner(Vector3 position, Vector2 size, float rotation, ColorRGBA color)
+		public static void DrawQuadPivotCorner(float3 position, float2 size, float rotation, ColorRGBA color)
 		{
 			DrawQuadPivotCorner(position, size, rotation, s_whiteTexture, color);
 		}
@@ -1037,9 +1037,9 @@ namespace GlitchyEngine.Renderer
 		// Quad Subtexture
 
 		[Inline]
-		private static Vector4 CalculateSubTexcoords(Vector4 texCoords, Vector4 innerTexcoords)
+		private static float4 CalculateSubTexcoords(float4 texCoords, float4 innerTexcoords)
 		{
-			Vector4 uv = texCoords;
+			float4 uv = texCoords;
 			uv.XY += innerTexcoords.XY * uv.ZW;
 			uv.ZW *= innerTexcoords.ZW;
 
@@ -1048,12 +1048,12 @@ namespace GlitchyEngine.Renderer
 
 		// Subtex only
 
-		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
+		public static void DrawQuad(float2 position, float2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
 		{
-			DrawQuad(Vector3(position, 0.0f), size, rotation, texture.Texture, .White, texture.TexCoords);
+			DrawQuad(float3(position, 0.0f), size, rotation, texture.Texture, .White, texture.TexCoords);
 		}
 
-		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
+		public static void DrawQuad(float3 position, float2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
 		{
 			DrawQuad(position, size, rotation, texture.Texture, .White, texture.TexCoords);
 		}
@@ -1065,42 +1065,42 @@ namespace GlitchyEngine.Renderer
 
 		// Subtex + Texcoords
 		
-		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float2 position, float2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			Vector4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
+			float4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
 
-			DrawQuad(Vector3(position, 0.0f), size, rotation, subtexture.Texture, .White, uv);
+			DrawQuad(float3(position, 0.0f), size, rotation, subtexture.Texture, .White, uv);
 		}
 
-		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float3 position, float2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			Vector4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
+			float4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
 
 			DrawQuad(position, size, rotation, subtexture.Texture, .White, uv);
 		}
 
-		public static void DrawQuad(Matrix transform, SubTexture2D subtexture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
+		public static void DrawQuad(Matrix transform, SubTexture2D subtexture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
-			Vector4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
+			float4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
 
 			DrawQuad(transform, subtexture.Texture, color, uv, entityId);
 		}
 		
 		// Textured Quad
 
-		public static void DrawQuad(Vector2 position, Vector2 size, float rotation, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float2 position, float2 size, float rotation, Texture texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawQuad(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
+			DrawQuad(float3(position, 0.0f), size, rotation, texture, color, uvTransform);
 		}
 
-		public static void DrawQuad(Vector3 position, Vector2 size, float rotation, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float3 position, float2 size, float rotation, Texture texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
 			Matrix transform = Calculate2DTransform(position, size, rotation);
 
 			DrawQuad(transform, texture, color, uvTransform);
 		}
 
-		public static void DrawQuad(Matrix transform, Texture texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
+		public static void DrawQuad(Matrix transform, Texture texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -1128,41 +1128,41 @@ namespace GlitchyEngine.Renderer
 
 		// Textured quad pivot
 
-		public static void DrawQuadPivotCorner(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuadPivotCorner(float2 position, float2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawQuadPivotCorner(Vector3(position, 0.0f), size, rotation, texture, color, uvTransform);
+			DrawQuadPivotCorner(float3(position, 0.0f), size, rotation, texture, color, uvTransform);
 		}
 
-		public static void DrawQuadPivotCorner(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuadPivotCorner(float3 position, float2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawQuad(position + Vector3(size.X / 2, size.Y / -2, 0), size, rotation, texture, color, uvTransform);
+			DrawQuad(position + float3(size.X / 2, size.Y / -2, 0), size, rotation, texture, color, uvTransform);
 		}
 
 		// Circle
 
-		public static void DrawCircle(Vector2 position, Vector2 size, ColorRGBA color, float innerRadius = 1.0f)
+		public static void DrawCircle(float2 position, float2 size, ColorRGBA color, float innerRadius = 1.0f)
 		{
-			DrawCircle(Vector3(position, 0.0f), size, 0, s_whiteTexture, color, innerRadius);
+			DrawCircle(float3(position, 0.0f), size, 0, s_whiteTexture, color, innerRadius);
 		}
 
-		public static void DrawCircle(Vector3 position, Vector2 size, ColorRGBA color, float innerRadius = 1.0f)
+		public static void DrawCircle(float3 position, float2 size, ColorRGBA color, float innerRadius = 1.0f)
 		{
 			DrawCircle(position, size, 0, s_whiteTexture, color, innerRadius);
 		}
 
-		public static void DrawCircle(Vector2 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawCircle(float2 position, float2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawCircle(Vector3(position, 0.0f), size, rotation, texture, color, innerRadius, uvTransform);
+			DrawCircle(float3(position, 0.0f), size, rotation, texture, color, innerRadius, uvTransform);
 		}
 
-		public static void DrawCircle(Vector3 position, Vector2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawCircle(float3 position, float2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, float4 uvTransform = .(0, 0, 1, 1))
 		{
 			Matrix transform = Calculate2DTransform(position, size, rotation);
 
 			DrawCircle(transform, texture, color, innerRadius, uvTransform);
 		}
 		
-		public static void DrawCircle(Matrix transform, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, Vector4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
+		public static void DrawCircle(Matrix transform, Texture2D texture, ColorRGBA color = .White, float innerRadius = 1.0f, float4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 

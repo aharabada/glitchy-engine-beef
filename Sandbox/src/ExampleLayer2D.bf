@@ -129,12 +129,12 @@ namespace Sandbox
 			_spriteSheet = Content.LoadAsset<Texture2D>("content/Rpg/textures/spritesheet.png");//new Texture2D("content/Rpg/textures/spritesheet.png");
 			_spriteSheet.SamplerState = SamplerStateManager.PointClamp;
 
-			_treeSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(5, 10), Vector2(128), .(1, 2));
-			_barrelSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(9, 11), Vector2(128));
+			_treeSprite = SubTexture2D.CreateFromGrid(_spriteSheet, float2(5, 10), float2(128), .(1, 2));
+			_barrelSprite = SubTexture2D.CreateFromGrid(_spriteSheet, float2(9, 11), float2(128));
 
-			_grassSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(1, 1), Vector2(128));
-			_dirtSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(6, 1), Vector2(128));
-			_waterSprite = SubTexture2D.CreateFromGrid(_spriteSheet, Vector2(11, 1), Vector2(128));
+			_grassSprite = SubTexture2D.CreateFromGrid(_spriteSheet, float2(1, 1), float2(128));
+			_dirtSprite = SubTexture2D.CreateFromGrid(_spriteSheet, float2(6, 1), float2(128));
+			_waterSprite = SubTexture2D.CreateFromGrid(_spriteSheet, float2(11, 1), float2(128));
 
 			_mapMap = new Dictionary<char8, SubTexture2D>();
 			_mapMap['W'] = _waterSprite..AddRef();
@@ -166,13 +166,13 @@ namespace Sandbox
 
 			float rotation = (float)gameTime.TotalTime.TotalSeconds;
 
-			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(20), 0, _checkerTexture, .White, .(0, 0, 10, 10));
+			Renderer2D.DrawQuad(float3(0, 0, 1), float2(20), 0, _checkerTexture, .White, .(0, 0, 10, 10));
 			
-			Renderer2D.DrawCircle(Vector3(0, 0, 0f), Vector2(5), rotation, _checkerTexture, .LightBlue, innerRadius, .(0, 0, 1, 1));
+			Renderer2D.DrawCircle(float3(0, 0, 0f), float2(5), rotation, _checkerTexture, .LightBlue, innerRadius, .(0, 0, 1, 1));
 			
-			Renderer2D.DrawQuad(Vector3(0, -7, 1), Vector2(2), -rotation, _checkerTexture, .White, .(0, 0, 10, 10));
+			Renderer2D.DrawQuad(float3(0, -7, 1), float2(2), -rotation, _checkerTexture, .White, .(0, 0, 10, 10));
 
-			Renderer2D.DrawCircle(Vector3(-2, -2, -2f), Vector2(1), .GreenYellow);
+			Renderer2D.DrawCircle(float3(-2, -2, -2f), float2(1), .GreenYellow);
 
 			Renderer2D.EndScene();
 			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
@@ -181,7 +181,7 @@ namespace Sandbox
 			for(float y = -5.0f; y < 5.0f; y += 0.1f)
 			{
 				ColorRGBA color = .((x + 5.0f) / 10.0f, 0.4f, (y + 5.0f) / 10.0f, 0.6f);
-				Renderer2D.DrawQuad(Vector3(x, y, 0.75f), Vector2(0.098f), 0, color);
+				Renderer2D.DrawQuad(float3(x, y, 0.75f), float2(0.098f), 0, color);
 			}
 			
 			for(int x < 10)
@@ -189,7 +189,7 @@ namespace Sandbox
 			{
 				int i = (x + y) % 2;
 
-				Renderer2D.DrawQuad(Vector3(2 * x, 2 * y, 0.5f), Vector2(1.5f, 1), MathHelper.PiOverFour, (i == 0) ? _squareColor0 : _squareColor1);
+				Renderer2D.DrawQuad(float3(2 * x, 2 * y, 0.5f), float2(1.5f, 1), MathHelper.PiOverFour, (i == 0) ? _squareColor0 : _squareColor1);
 			}
 
 			//var prepared = FontRenderer.PrepareText(fonty, text, 64, .White, .White);
@@ -201,10 +201,10 @@ namespace Sandbox
 
 			Renderer2D.BeginScene(cameraController.Camera, .BackToFront);
 			
-			Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(1, 2), 0, _treeSprite);
-			Renderer2D.DrawQuad(Vector3(1, 0, 1), Vector2(1, 1), 0, _grassSprite);
+			Renderer2D.DrawQuad(float3(0, 0, 1), float2(1, 2), 0, _treeSprite);
+			Renderer2D.DrawQuad(float3(1, 0, 1), float2(1, 1), 0, _grassSprite);
 
-			Vector2 position = Vector2.Zero;
+			float2 position = float2.Zero;
 
 			for(char8 c in s_MapTiles.RawChars)
 			{
@@ -217,7 +217,7 @@ namespace Sandbox
 
 				SubTexture2D tile = _mapMap[c];
 
-				Renderer2D.DrawQuad(Vector3(position, -5), Vector2.One, 0, tile);
+				Renderer2D.DrawQuad(float3(position, -5), float2.One, 0, tile);
 
 				position.X += 1.0f;
 			}

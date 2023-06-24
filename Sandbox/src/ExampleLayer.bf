@@ -17,20 +17,20 @@ namespace Sandbox
 			[Ordered]
 			struct VertexColorTexture : IVertexData
 			{
-				public Vector3 Position;
+				public float3 Position;
 				public Color Color;
-				public Vector2 TexCoord;
+				public float2 TexCoord;
 
 				public this() => this = default;
 
-				public this(Vector3 pos, Color color)
+				public this(float3 pos, Color color)
 				{
 					Position = pos;
 					Color = color;
 					TexCoord = .();
 				}
 				
-				public this(Vector3 pos, Color color, Vector2 texCoord)
+				public this(float3 pos, Color color, float2 texCoord)
 				{
 					Position = pos;
 					Color = color;
@@ -73,7 +73,7 @@ namespace Sandbox
 
 			PerspectiveCameraController _cameraController ~ delete _;
 
-			private Vector3 CircleCoord(float angle)
+			private float3 CircleCoord(float angle)
 			{
 				return .(Math.Cos(angle), Math.Sin(angle), 0);
 			}
@@ -144,10 +144,10 @@ namespace Sandbox
 					_quadGeometryBinding.SetVertexLayout(vertexLayout);
 		
 					VertexColorTexture[?] vertices = .(
-						VertexColorTexture(Vector3(-0.75f, 0.75f, 0), Color.White, .(0, 0)),
-						VertexColorTexture(Vector3(-0.75f, -0.75f, 0), Color.White, .(0, 1)),
-						VertexColorTexture(Vector3(0.75f, -0.75f, 0), Color.White, .(1, 1)),
-						VertexColorTexture(Vector3(0.75f, 0.75f, 0), Color.White, .(1, 0)),
+						VertexColorTexture(float3(-0.75f, 0.75f, 0), Color.White, .(0, 0)),
+						VertexColorTexture(float3(-0.75f, -0.75f, 0), Color.White, .(0, 1)),
+						VertexColorTexture(float3(0.75f, -0.75f, 0), Color.White, .(1, 1)),
+						VertexColorTexture(float3(0.75f, 0.75f, 0), Color.White, .(1, 0)),
 					);
 		
 					let qvb = new VertexBuffer(typeof(VertexColorTexture), (.)vertices.Count, .Immutable);
@@ -234,7 +234,7 @@ namespace Sandbox
 				materialTestMaterial.SetVariable("InvTransSkinningMatrices", matrices2);
 
 				materialTestMaterial.SetVariable("BaseColor", Color.White);
-				materialTestMaterial.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
+				materialTestMaterial.SetVariable("LightDir", float3(1, 1, -0.5f).Normalized());
 
 				ModelLoader.LoadModel("content\\Models\\RiggedFigure\\RiggedFigure.glb", materialTestMaterial, _world, Clips);
 
@@ -434,7 +434,7 @@ namespace Sandbox
 
 						if(parentId != uint8.MaxValue)
 						{
-							Vector3 start = mat.Translation;
+							float3 start = mat.Translation;
 
 							Joint parent = meshRenderer.Skeleton.Joints[parentId];
 
@@ -442,7 +442,7 @@ namespace Sandbox
 
 							Matrix parentMatrix = pose.SkinningMatricies[parentId] * parentBindPose;
 
-							Vector3 end = parentMatrix.Translation;
+							float3 end = parentMatrix.Translation;
 
 							Renderer.DrawLine(start, end, .Black, transform.WorldTransform);
 						}
@@ -457,7 +457,7 @@ namespace Sandbox
 
 					// non engine
 					material.SetVariable("BaseColor", Color.White);
-					material.SetVariable("LightDir", Vector3(1, 1, -0.5f).Normalized());
+					material.SetVariable("LightDir", float3(1, 1, -0.5f).Normalized());
 
 					Renderer.Submit(mesh.Mesh, material, transform.WorldTransform);
 				}

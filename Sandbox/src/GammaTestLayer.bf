@@ -111,30 +111,30 @@ namespace Sandbox
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
-			//Renderer2D.DrawQuad(Vector3(0, 0, 1), Vector2(8), 0, _checkerTexture, .White, .(0, 0, 1, 1));
-			//Renderer2D.DrawQuad(Vector3(0, 0, 0), Vector2(_smallLines.Width, _smallLines.Height), 0, _smallLines, .White, .(0, 0, 1, 1));
+			//Renderer2D.DrawQuad(float3(0, 0, 1), float2(8), 0, _checkerTexture, .White, .(0, 0, 1, 1));
+			//Renderer2D.DrawQuad(float3(0, 0, 0), float2(_smallLines.Width, _smallLines.Height), 0, _smallLines, .White, .(0, 0, 1, 1));
 
-			Renderer2D.DrawQuad(Vector3(_smallLines.Width / 2, _smallLines.Height / 2, 0), Vector2(_smallLines.Width, _smallLines.Height), 0, _smallLines, .White, .(0, 0, 1, 1));
+			Renderer2D.DrawQuad(float3(_smallLines.Width / 2, _smallLines.Height / 2, 0), float2(_smallLines.Width, _smallLines.Height), 0, _smallLines, .White, .(0, 0, 1, 1));
 			
 			FontRenderer.DrawText(_smallLinesInfo, 0, _smallLines.Height);
 
 			float f = _smallLines.Height / 2;
 
-			Renderer2D.DrawQuad(Vector3(_smallLines.Width * 2, f / 2, 0), Vector2(f, f), 0, .(0.5f, 0.5f, 0.5f));
-			Renderer2D.DrawQuad(Vector3(_smallLines.Width * 2, 3 * f / 2 + 1, 0), Vector2(f, f), 0, _zeroPointFive);
-			//Renderer2D.DrawQuad(Vector3(_smallLines.Width + f / 2, 3 * f / 2, 0), Vector2(f, f), 0, .(0.25f, 0.25f, 0.25f));
+			Renderer2D.DrawQuad(float3(_smallLines.Width * 2, f / 2, 0), float2(f, f), 0, .(0.5f, 0.5f, 0.5f));
+			Renderer2D.DrawQuad(float3(_smallLines.Width * 2, 3 * f / 2 + 1, 0), float2(f, f), 0, _zeroPointFive);
+			//Renderer2D.DrawQuad(float3(_smallLines.Width + f / 2, 3 * f / 2, 0), float2(f, f), 0, .(0.25f, 0.25f, 0.25f));
 
 			//FontRenderer.DrawText(_halfQuadInfo, _smallLines.Width + f, f / 2);
 			
-			//Renderer2D.DrawQuad(Vector3(_gammaCorrectionBrightness.Width / 2, _smallLines.Height * 1.5f, 0), Vector2(_gammaCorrectionBrightness.Width, _gammaCorrectionBrightness.Height), 0, _gammaCorrectionBrightness, .White, .(0, 0, 1, 1));
+			//Renderer2D.DrawQuad(float3(_gammaCorrectionBrightness.Width / 2, _smallLines.Height * 1.5f, 0), float2(_gammaCorrectionBrightness.Width, _gammaCorrectionBrightness.Height), 0, _gammaCorrectionBrightness, .White, .(0, 0, 1, 1));
 			
-			//Renderer2D.DrawQuad(Vector3(_smallLines.Width + f / 2, 500, 0), Vector2(f, f), 0, .(0.1f, 0.1f, 0.1f));
-			//Renderer2D.DrawQuad(Vector3(_gammaCorrectionBrightness.Width / 2, 0, 0), Vector2(_gammaCorrectionBrightness.Width, _gammaCorrectionBrightness.Height), 0, _gammaCorrectionBrightness, .White, .(0, 0, 1, 1));
+			//Renderer2D.DrawQuad(float3(_smallLines.Width + f / 2, 500, 0), float2(f, f), 0, .(0.1f, 0.1f, 0.1f));
+			//Renderer2D.DrawQuad(float3(_gammaCorrectionBrightness.Width / 2, 0, 0), float2(_gammaCorrectionBrightness.Width, _gammaCorrectionBrightness.Height), 0, _gammaCorrectionBrightness, .White, .(0, 0, 1, 1));
 
-			//Renderer2D.DrawQuad(Vector3(0, -200, 0), Vector2(100, 100), 0, .(0.5f, 0.5f, 0.5f));
-			//Renderer2D.DrawQuad(Vector3(0, -300, 0), Vector2(100, 100), 0, .(0.25f, 0.25f, 0.25f));
+			//Renderer2D.DrawQuad(float3(0, -200, 0), float2(100, 100), 0, .(0.5f, 0.5f, 0.5f));
+			//Renderer2D.DrawQuad(float3(0, -300, 0), float2(100, 100), 0, .(0.25f, 0.25f, 0.25f));
 
-			//Renderer2D.DrawQuad(Vector3(0, _gammaCorrectionBrightness.Height, 0), Vector2(_gammaCorrectionBrightness.Width, _gammaCorrectionBrightness.Height), 0, _gammaCorrectionBrightness, .(2, 2, 2), .(0, 0, 1, 1));
+			//Renderer2D.DrawQuad(float3(0, _gammaCorrectionBrightness.Height, 0), float2(_gammaCorrectionBrightness.Width, _gammaCorrectionBrightness.Height), 0, _gammaCorrectionBrightness, .(2, 2, 2), .(0, 0, 1, 1));
 
 			Renderer2D.EndScene();
 		}

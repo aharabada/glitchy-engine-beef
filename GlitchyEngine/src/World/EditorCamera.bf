@@ -8,10 +8,10 @@ namespace GlitchyEngine.World
 {
 	struct EditorCamera : Camera, IDisposable
 	{
-		private Vector3 _position;
+		private float3 _position;
 		private Quaternion _rotation;
 
-		private Vector3 _focalPosition = .Zero;
+		private float3 _focalPosition = .Zero;
 		private float _focalDistance = 5.0f;
 		
 		private float _cameraTranslationSpeed = 2.0f;
@@ -52,12 +52,12 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public Vector3 Position
+		public float3 Position
 		{
 			get => _position;
 			set mut
 			{
-				if (_position == value)
+				if (all(_position == value))
 					return;
 
 				_position = value;
@@ -78,7 +78,7 @@ namespace GlitchyEngine.World
 			}
 		}
 		
-		public Vector3 RotationEuler
+		public float3 RotationEuler
 		{
 			get => Quaternion.ToEulerAngles(_rotation);
 			set mut
@@ -92,7 +92,7 @@ namespace GlitchyEngine.World
 			}
 		}
 		
-		public (Vector3 Axis, float Angle) RotationAxisAngle
+		public (float3 Axis, float Angle) RotationAxisAngle
 		{
 			get => _rotation.ToAxisAngle();
 			set mut
@@ -145,7 +145,7 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public this(Vector3 position, Quaternion rotation, float fovY, float nearPlane, float aspectRatio)
+		public this(float3 position, Quaternion rotation, float fovY, float nearPlane, float aspectRatio)
 		{
 			_position = position;
 			_rotation = rotation;
@@ -190,7 +190,7 @@ namespace GlitchyEngine.World
 
 			bool transformChanged = false;
 
-			Vector3 movement = .();
+			float3 movement = .();
 
 			if(Input.IsKeyPressed(Key.W))
 				movement.Z += 1;
@@ -207,16 +207,16 @@ namespace GlitchyEngine.World
 			if(Input.IsKeyPressed(Key.Control))
 				movement.Y -= 1;
 
-			if(movement != .Zero)
+			if(any(movement != .Zero))
 			{
-				movement.Normalize();
+				normalize(movement);
 				
 				if(Input.IsKeyPressed(Key.Shift))
 					movement *= _cameraFastFactor;
 
 				movement *= (float)(gameTime.DeltaTime) * _cameraTranslationSpeed;
 
-				Vector4 delta = Vector4(movement, 1.0f) * _view;
+				float4 delta = float4(movement, 1.0f) * _view;
 
 				_position += delta.XYZ;
 
@@ -231,7 +231,7 @@ namespace GlitchyEngine.World
 			
 			if (MouseCooldown == 0)
 			{
-				Vector3 rotationEuler = RotationEuler + Vector3(rotX, rotY, 0);
+				float3 rotationEuler = RotationEuler + float3(rotX, rotY, 0);
 				_rotation = Quaternion.FromEulerAngles(rotationEuler.Y, rotationEuler.X, rotationEuler.Z);
 
 				transformChanged = true;
@@ -262,13 +262,13 @@ namespace GlitchyEngine.World
 			
 			if (MouseCooldown == 0 && Input.IsMouseButtonPressed(.LeftButton) && mouseDelta != .())
 			{
-				Vector2 movement = .(
+				float2 movement = .(
 					-mouseDelta.X,
 					mouseDelta.Y);
 
 				movement *= (float)(gameTime.DeltaTime) * _cameraTranslationSpeed * GetZoomSpeed();
 
-				Vector4 delta = Vector4(movement, 0.0f, 1.0f) * _view;
+				float4 delta = float4(movement, 0.0f, 1.0f) * _view;
 
 				_focalPosition += delta.XYZ;
 
@@ -280,7 +280,7 @@ namespace GlitchyEngine.World
 				float rotY = mouseDelta.X * _cameraRotationSpeedX;
 				float rotX = mouseDelta.Y * _cameraRotationSpeedY;
 
-				Vector3 rotationEuler = RotationEuler + Vector3(rotX, rotY, 0);
+				float3 rotationEuler = RotationEuler + float3(rotX, rotY, 0);
 				_rotation = Quaternion.FromEulerAngles(rotationEuler.Y, rotationEuler.X, rotationEuler.Z);
 
 				transformChanged = true;
@@ -294,7 +294,7 @@ namespace GlitchyEngine.World
 		{
 			Matrix viewRotation = Matrix.RotationQuaternion(Quaternion.Inverse(_rotation));
 
-			Vector4 offset = Vector4(0, 0, -_focalDistance, 1.0f) * viewRotation;
+			float4 offset = float4(0, 0, -_focalDistance, 1.0f) * viewRotation;
 			if (_isAltMode)
 				_position = _focalPosition + offset.XYZ;
 			else

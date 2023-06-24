@@ -8,7 +8,7 @@ namespace GlitchyEngine.Math
 {
 	extension ColorRGBA
 	{
-		internal uint32 ImGuiU32 => ImGui.ImGui.ColorConvertFloat4ToU32((.)(Vector4)this);
+		internal uint32 ImGuiU32 => ImGui.ImGui.ColorConvertFloat4ToU32((.)(float4)this);
 	}
 }
 
@@ -20,14 +20,14 @@ namespace ImGui
 	{
 		extension Vec2
 		{
-			public static explicit operator Vector2(Vec2 v) => .(v.x, v.y);
-			public static explicit operator Vec2(Vector2 v) => .(v.X, v.Y);
+			public static explicit operator float2(Vec2 v) => .(v.x, v.y);
+			public static explicit operator Vec2(float2 v) => .(v.X, v.Y);
 		}
 	
 		extension Vec4
 		{
-			public static explicit operator Vector4(Vec4 v) => .(v.x, v.y, v.z, v.w);
-			public static explicit operator Vec4(Vector4 v) => .(v.X, v.Y, v.Z, v.W);
+			public static explicit operator float4(Vec4 v) => .(v.x, v.y, v.z, v.w);
+			public static explicit operator Vec4(float4 v) => .(v.X, v.Y, v.Z, v.W);
 		}
 
 		/*public static bool IsItemJustDeactivated()
@@ -75,7 +75,7 @@ namespace ImGui
 			if (uv0 != .Zero || uv1 != .Ones)
 				Runtime.NotImplemented();
 	
-			Vector2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
+			float2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
 	
 			Image(subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, tint_col, border_col);
 		}
@@ -92,7 +92,7 @@ namespace ImGui
 			if (uv0 != .Zero || uv1 != .Ones)
 				Runtime.NotImplemented();
 	
-			Vector2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
+			float2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
 	
 			return ImageButton(subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, frame_padding, bg_col, tint_col);
 		}
@@ -107,19 +107,19 @@ namespace ImGui
 		protected internal static extern void CleanupFrame();
 	
 		/// Control to edit a vector 2 with drag functionality and reset buttons
-		public static bool EditVector2(StringView label, ref Vector2 value, Vector2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector2 minValue = .Zero, Vector2 maxValue = .Zero)
+		public static bool Editfloat2(StringView label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float2 minValue = .Zero, float2 maxValue = .Zero)
 		{
 			return EditVector<2>(label, ref *(float[2]*)&value, (float[2])resetValues, dragSpeed, columnWidth, (float[2])minValue, (float[2])maxValue);
 		}
 	
 		/// Control to edit a vector 3 with drag functionality and reset buttons
-		public static bool EditVector3(StringView label, ref Vector3 value, Vector3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector3 minValue = .Zero, Vector3 maxValue = .Zero)
+		public static bool Editfloat3(StringView label, ref float3 value, float3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float3 minValue = .Zero, float3 maxValue = .Zero)
 		{
 			return EditVector<3>(label, ref *(float[3]*)&value, (float[3])resetValues, dragSpeed, columnWidth, (float[3])minValue, (float[3])maxValue);
 		}
 	
 		/// Control to edit a vector 4 with drag functionality and reset buttons
-		public static bool EditVector4(StringView label, ref Vector4 value, Vector4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, Vector4 minValue = .Zero, Vector4 maxValue = .Zero)
+		public static bool Editfloat4(StringView label, ref float4 value, float4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float4 minValue = .Zero, float4 maxValue = .Zero)
 		{
 			return EditVector<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, columnWidth, (float[4])minValue, (float[4])maxValue);
 		}

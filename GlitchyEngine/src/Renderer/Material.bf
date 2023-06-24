@@ -119,9 +119,9 @@ public class Material : Asset
 	}
 
 	public void SetVariable(String name, float value) => SetVariable<float>(name, value);
-	public void SetVariable(String name, Vector2 value) => SetVariable<Vector2>(name, value);
-	public void SetVariable(String name, Vector3 value) => SetVariable<Vector3>(name, value);
-	public void SetVariable(String name, Vector4 value) => SetVariable<Vector4>(name, value);
+	public void SetVariable(String name, float2 value) => SetVariable<float2>(name, value);
+	public void SetVariable(String name, float3 value) => SetVariable<float3>(name, value);
+	public void SetVariable(String name, float4 value) => SetVariable<float4>(name, value);
 	
 	public void SetVariable(String name, int32 value) => SetVariable<int32>(name, value);
 	public void SetVariable(String name, Int2 value) => SetVariable<Int2>(name, value);

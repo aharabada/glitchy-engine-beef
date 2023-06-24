@@ -187,7 +187,7 @@ static class ScriptGlue
 #region TransformComponent
 	
 	[RegisterCall("ScriptGlue::Transform_GetTranslation")]
-	static void Transform_GetTranslation(UUID entityId, ref Vector3 translation)
+	static void Transform_GetTranslation(UUID entityId, ref float3 translation)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -196,12 +196,18 @@ static class ScriptGlue
 	}
 
 	[RegisterCall("ScriptGlue::Transform_SetTranslation")]
-	static void Transform_SetTranslation(UUID entityId, ref Vector3 translation)
+	static void Transform_SetTranslation(UUID entityId, ref float3 translation)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
 
 		entity.Transform.Position = translation;
+
+		// if necessary reposition Rigidbody2D
+		if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+		{
+			rigidbody2D.SetPosition(translation.XY);
+		}
 	}
 
 #endregion TransformComponent
@@ -209,7 +215,7 @@ static class ScriptGlue
 #region RigidBody2D
 	
 	[RegisterCall("ScriptGlue::RigidBody2D_ApplyForce")]
-	static void RigidBody2D_ApplyForce(UUID entityId, ref Vector2 force, ref Vector2 point, bool wakeUp)
+	static void RigidBody2D_ApplyForce(UUID entityId, ref float2 force, ref float2 point, bool wakeUp)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -219,7 +225,7 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall("ScriptGlue::RigidBody2D_ApplyForceToCenter")]
-	static void RigidBody2D_ApplyForceToCenter(UUID entityId, ref Vector2 force, bool wakeUp)
+	static void RigidBody2D_ApplyForceToCenter(UUID entityId, ref float2 force, bool wakeUp)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -235,16 +241,16 @@ static class ScriptGlue
 	// TODO: We need a wrapper class!
 
 	[RegisterCall("ScriptGlue::Physics2D_GetGravity")]
-	static void Physics2D_GetGravity(ref Vector2 gravity)
+	static void Physics2D_GetGravity(ref float2 gravity)
 	{
 		Scene scene = ScriptEngine.Context;
 
 		var box2DGravity = Box2D.World.GetGravity(scene.[Friend]_physicsWorld2D);
-		gravity = *(Vector2*)&box2DGravity;
+		gravity = *(float2*)&box2DGravity;
 	}
 
 	[RegisterCall("ScriptGlue::Physics2D_SetGravity")]
-	static void Physics2D_SetGravity(ref Vector2 gravity)
+	static void Physics2D_SetGravity(ref float2 gravity)
 	{
 		Scene scene = ScriptEngine.Context;
 

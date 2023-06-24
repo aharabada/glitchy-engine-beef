@@ -132,9 +132,9 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private static Vector2 DirectoryItemSize = .(110, 110);
+		private static float2 DirectoryItemSize = .(110, 110);
 
-		const Vector2 padding = .(24, 24);
+		const float2 padding = .(24, 24);
 
 		/// Renders the contents of _currentDirectory.
 		private void DrawCurrentDirectory()

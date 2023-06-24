@@ -11,7 +11,7 @@ namespace GlitchyEngine.Renderer
 		struct SceneConstants
 		{
 			public Matrix ViewProjection;
-			public Vector3 CameraPosition;
+			public float3 CameraPosition;
 			public RenderTargetGroup CameraTarget;
 			public RenderTargetGroup CompositionTarget;
 		}
@@ -102,7 +102,7 @@ namespace GlitchyEngine.Renderer
 			public Matrix4x3 Transform_InvT;
 			
 			public uint32 EntityId;
-			private Vector3 _padding;
+			private float3 _padding;
 		}
 
 		public static void Init()
@@ -138,9 +138,9 @@ namespace GlitchyEngine.Renderer
 			LineGeometry = new GeometryBinding();
 			LineGeometry.SetPrimitiveTopology(.LineList);
 			
-			Vector4[2] vertices = .(.Zero, .Zero);
-			LineVertices = new VertexBuffer(sizeof(Vector4), 2, .Dynamic, .Write);
-			LineVertices.SetData<Vector4>(vertices, 0, .WriteDiscard);
+			float4[2] vertices = .(.Zero, .Zero);
+			LineVertices = new VertexBuffer(sizeof(float4), 2, .Dynamic, .Write);
+			LineVertices.SetData<float4>(vertices, 0, .WriteDiscard);
 			LineGeometry.SetVertexBufferSlot(LineVertices, 0);
 			
 			uint16[2] indices = .(0, 1);
@@ -254,8 +254,8 @@ namespace GlitchyEngine.Renderer
 				// Material and Mesh equal: sort by distance
 				if (cmp == 0)
 				{
-					float distLeftSq = Vector3.DistanceSquared(_sceneConstants.CameraPosition, left.Transform.Translation);
-					float distRightSq = Vector3.DistanceSquared(_sceneConstants.CameraPosition, right.Transform.Translation);
+					float distLeftSq = distanceSq(_sceneConstants.CameraPosition, left.Transform.Translation);
+					float distRightSq = distanceSq(_sceneConstants.CameraPosition, right.Transform.Translation);
 
 					// Whether or not the values are squared doesn't affect the order (because square(root) is a monotonic function)
 					cmp = distLeftSq <=> distRightSq;
@@ -335,13 +335,13 @@ namespace GlitchyEngine.Renderer
 				RenderCommand.SetDepthStencilState(_fullscreenDepthState);
 
 				// Scaling to make sure that only the part of the gbuffer that we actually used gets rendered into the viewport.
-				Vector2 scaling = Vector2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height) / (Vector2)_gBuffer.Size;
+				float2 scaling = float2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height) / (float2)_gBuffer.Size;
 
 				for (SubmittedLight light in _lights)
 				{
 					Debug.Profiler.ProfileRendererScope!("Draw Light");
 
-					Vector3 lightDir = -light.Transform.Forward;
+					float3 lightDir = -light.Transform.Forward;
 
 					Effect fsEffect = TestFullscreenEffect.Get();
 					fsEffect.SetTexture("GBuffer_Albedo", _gBuffer.Target, 0);
@@ -487,10 +487,10 @@ namespace GlitchyEngine.Renderer
 		 * @param end The end point of the line.
 		 * @param color The color of the line.
 		 */
-		public static void DrawLine(Vector3 start, Vector3 end, ColorRGBA color)
+		public static void DrawLine(float3 start, float3 end, ColorRGBA color)
 		{
 			Renderer2D.DrawLine(start, end, color);
-			//DrawLine(Vector4(start, 1.0f), Vector4(end, 1.0f), (ColorRGBA)color, .Identity);
+			//DrawLine(float4(start, 1.0f), float4(end, 1.0f), (ColorRGBA)color, .Identity);
 		}
 		
 		/** @brief Draws a line.
@@ -499,9 +499,9 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the line.
 		 * @param transform A transform matrix transforming the line.
 		 */
-		public static void DrawLine(Vector3 start, Vector3 end, ColorRGBA color, Matrix transform)
+		public static void DrawLine(float3 start, float3 end, ColorRGBA color, Matrix transform)
 		{
-			Renderer2D.DrawLine(transform * Vector4(start, 1.0f), transform * Vector4(end, 1.0f), color);
+			Renderer2D.DrawLine(transform * float4(start, 1.0f), transform * float4(end, 1.0f), color);
 		}
 		
 		/** @brief Draws a ray.
@@ -509,7 +509,7 @@ namespace GlitchyEngine.Renderer
 		 * @param direction The direction of the ray.
 		 * @param color The color of the ray.
 		 */
-		public static void DrawRay(Vector3 start, Vector3 direction, ColorRGBA color)
+		public static void DrawRay(float3 start, float3 direction, ColorRGBA color)
 		{
 			Renderer2D.DrawRay(start, direction, color);
 		}
@@ -520,9 +520,9 @@ namespace GlitchyEngine.Renderer
 		 * @param color The color of the ray.
 		 * @param transform A transform matrix transforming the ray.
 		 */
-		public static void DrawRay(Vector3 start, Vector3 direction, ColorRGBA color, Matrix transform)
+		public static void DrawRay(float3 start, float3 direction, ColorRGBA color, Matrix transform)
 		{
-			Renderer2D.DrawLine(transform * Vector4(start, 1.0f), transform * Vector4(direction, 0.0f), color);
+			Renderer2D.DrawLine(transform * float4(start, 1.0f), transform * float4(direction, 0.0f), color);
 		}
 	}
 }

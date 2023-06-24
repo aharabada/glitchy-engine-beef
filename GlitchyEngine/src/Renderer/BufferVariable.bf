@@ -80,11 +80,11 @@ namespace GlitchyEngine.Renderer
 
 			case typeof(float):
 				EnsureTypeMatch(1, 1, .Float);
-			case typeof(Vector2):
+			case typeof(float2):
 				EnsureTypeMatch(1, 2, .Float);
-			case typeof(Vector3):
+			case typeof(float3):
 				EnsureTypeMatch(1, 3, .Float);
-			case typeof(Vector4):
+			case typeof(float4):
 				EnsureTypeMatch(1, 4, .Float);
 				
 			case typeof(int32):
@@ -132,9 +132,9 @@ namespace GlitchyEngine.Renderer
 		public void SetData(bool value) => SetData<bool>(value);
 
 		public void SetData(float value) => SetData<float>(value);
-		public void SetData(Vector2 value) => SetData<Vector2>(value);
-		public void SetData(Vector3 value) => SetData<Vector3>(value);
-		public void SetData(Vector4 value) => SetData<Vector4>(value);
+		public void SetData(float2 value) => SetData<float2>(value);
+		public void SetData(float3 value) => SetData<float3>(value);
+		public void SetData(float4 value) => SetData<float4>(value);
 
 		public void SetData(int32 value) => SetData<int32>(value);
 		public void SetData(Int2 value) => SetData<Int2>(value);

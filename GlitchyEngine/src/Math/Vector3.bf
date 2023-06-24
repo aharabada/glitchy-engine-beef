@@ -5,20 +5,20 @@ namespace GlitchyEngine.Math
 {
 	[BonTarget]
 	[SwizzleVector(3, "GlitchyEngine.Math.Vector")]
-	public struct Vector3
+	public struct float3
 	{
-		public const Vector3 Zero     = .(0f, 0f, 0f);
-		public const Vector3 UnitX    = .(1f, 0f, 0f);
-		public const Vector3 UnitY    = .(0f, 1f, 0f);
-		public const Vector3 UnitZ    = .(0f, 0f, 1f);
-		public const Vector3 One      = .(1f, 1f, 1f);
+		public const float3 Zero     = .(0f, 0f, 0f);
+		public const float3 UnitX    = .(1f, 0f, 0f);
+		public const float3 UnitY    = .(0f, 1f, 0f);
+		public const float3 UnitZ    = .(0f, 0f, 1f);
+		public const float3 One      = .(1f, 1f, 1f);
 		
-		public const Vector3 Forward  = .(0f, 0f, 1f);	
-		public const Vector3 Backward = .(0f, 0f, -1f);	
-		public const Vector3 Left     = .(-1f, 0f, 0f); 	
-		public const Vector3 Right    = .(1f, 0f, 0f);  	
-		public const Vector3 Up       = .(0f, 1f, 0f); 	
-		public const Vector3 Down     = .(0f, -1f, 0f);
+		public const float3 Forward  = .(0f, 0f, 1f);	
+		public const float3 Backward = .(0f, 0f, -1f);	
+		public const float3 Left     = .(-1f, 0f, 0f); 	
+		public const float3 Right    = .(1f, 0f, 0f);  	
+		public const float3 Up       = .(0f, 1f, 0f); 	
+		public const float3 Down     = .(0f, -1f, 0f);
 		
 		public const int ComponentCount = 3;
 
@@ -47,14 +47,14 @@ namespace GlitchyEngine.Math
 			Z = z;
 		}
 
-		public this(Vector3 value)
+		public this(float3 value)
 		{
 			X = value.X;
 			Y = value.Y;
 			Z = value.Z;
 		}
 
-		public this(Vector4 value)
+		public this(float4 value)
 		{
 			X = value.X;
 			Y = value.Y;
@@ -131,7 +131,7 @@ namespace GlitchyEngine.Math
 		
 		/// Returns a copy of this Vector with a magnitude of 1.
 		[Checked]
-		public Vector3 Normalized()
+		public float3 Normalized()
 		{
 			if(this == .Zero)
 				return .Zero;
@@ -140,28 +140,28 @@ namespace GlitchyEngine.Math
 		}
 
 		/// Returns a copy of this Vector with a magnitude of 1.
-		public Vector3 Normalized()
+		public float3 Normalized()
 		{
 			return this / Magnitude();
 		}
 		
 		/// Returns a copy of the given Vector with a magnitude of 1.
-		public static Vector3 Normalize(Vector3 v)
+		public static float3 Normalize(float3 v)
 		{
 			return v / v.Magnitude();
 		}
 
 		/// Calculates the dot product of two vectors.
-		public static float Dot(Vector3 l, Vector3 r) => l.X * r.X + l.Y * r.Y + l.Z * r.Z;
+		public static float Dot(float3 l, float3 r) => l.X * r.X + l.Y * r.Y + l.Z * r.Z;
 
 		/// Calculates the distance between two vectors.
-		public static float Distance(Vector3 a, Vector3 b) => (a - b).[Inline]Magnitude();
+		public static float Distance(float3 a, float3 b) => (a - b).[Inline]Magnitude();
 
 		/// Calculates the squared distance between two vectors.
-		public static float DistanceSquared(Vector3 a, Vector3 b) => (a - b).[Inline]MagnitudeSquared();
+		public static float DistanceSquared(float3 a, float3 b) => (a - b).[Inline]MagnitudeSquared();
 		
 		/// Calculates the cross product of two vectors.
-		public static Vector3 Cross(Vector3 l, Vector3 r)
+		public static float3 Cross(float3 l, float3 r)
 		{
 			return .(l.Y * r.Z - l.Z * r.Y,
 					 l.Z * r.X - l.X * r.Z,
@@ -169,20 +169,20 @@ namespace GlitchyEngine.Math
 		}
 
 		/// Calculates the projection of a onto b.
-		public static Vector3 Project(Vector3 a, Vector3 b)
+		public static float3 Project(float3 a, float3 b)
 		{
 			return (b * (Dot(a, b) / Dot(b, b)));
 		}
 
 		/// Calculates the rejection of a from b.
-		public static Vector3 Reject(Vector3 a, Vector3 b)
+		public static float3 Reject(float3 a, float3 b)
 		{
 			return (a - b * (Dot(a, b) / Dot(b, b)));
 		}
 
-		public static Vector3 Floor(Vector3 value) => .(Math.Floor(value.X), Math.Floor(value.Y), Math.Floor(value.Z));
+		public static float3 Floor(float3 value) => .(Math.Floor(value.X), Math.Floor(value.Y), Math.Floor(value.Z));
 
-		public static Vector3 Ceiling(Vector3 value) => .(Math.Ceiling(value.X), Math.Ceiling(value.Y), Math.Ceiling(value.Z));
+		public static float3 Ceiling(float3 value) => .(Math.Ceiling(value.X), Math.Ceiling(value.Y), Math.Ceiling(value.Z));
 		
 		/**
 		 * Interpolates linearly between two given vectors.
@@ -192,18 +192,18 @@ namespace GlitchyEngine.Math
 		 *        (0 means a will be returned, 1 means b will be returned.)
 		 * @returns The resulting linear interpolation.
 		 */
-		public static Vector3 Lerp(Vector3 a, Vector3 b, float interpolationValue)
+		public static float3 Lerp(float3 a, float3 b, float interpolationValue)
 		{
 			return a + interpolationValue * (b - a);
 		}
 		
-		public static Vector3 Min(Vector3 a, Vector3 b) => .(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
+		public static float3 Min(float3 a, float3 b) => .(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
 
-		public static Vector3 Max(Vector3 a, Vector3 b) => .(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Min(a.Z, b.Z));
+		public static float3 Max(float3 a, float3 b) => .(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Min(a.Z, b.Z));
 		
-		public static Vector3 Abs(Vector3 v) => .(Math.Abs(v.X), Math.Abs(v.Y), Math.Abs(v.Z));
+		public static float3 Abs(float3 v) => .(Math.Abs(v.X), Math.Abs(v.Y), Math.Abs(v.Z));
 
-		public static Vector3 Clamp(Vector3 v, Vector3 min, Vector3 max)
+		public static float3 Clamp(float3 v, float3 min, float3 max)
 		{
 			return .(Math.Clamp(v.X, min.X, max.X),
 			         Math.Clamp(v.Y, min.Y, max.Y),
@@ -216,7 +216,7 @@ namespace GlitchyEngine.Math
 		
 		// Addition
 
-		public void operator +=(Vector3 value) mut
+		public void operator +=(float3 value) mut
 		{
 			X += value.X;
 			Y += value.Y;
@@ -232,7 +232,7 @@ namespace GlitchyEngine.Math
 
 		// Subtraction
 
-		public void operator -=(Vector3 value) mut
+		public void operator -=(float3 value) mut
 		{
 			X -= value.X;
 			Y -= value.Y;
@@ -248,7 +248,7 @@ namespace GlitchyEngine.Math
 
 		// Multiplication
 
-		public void operator *=(Vector3 value) mut
+		public void operator *=(float3 value) mut
 		{
 			X *= value.X;
 			Y *= value.Y;
@@ -264,7 +264,7 @@ namespace GlitchyEngine.Math
 
 		// Division
 
-		public void operator /=(Vector3 value) mut
+		public void operator /=(float3 value) mut
 		{
 			X /= value.X;
 			Y /= value.Y;
@@ -285,57 +285,57 @@ namespace GlitchyEngine.Math
 
 		// Addition
 
-		public static Vector3 operator +(Vector3 left, Vector3 right) => Vector3(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
+		public static float3 operator +(float3 left, float3 right) => float3(left.X + right.X, left.Y + right.Y, left.Z + right.Z);
 
-		public static Vector3 operator +(Vector3 value, float scalar) => Vector3(value.X + scalar, value.Y + scalar, value.Z + scalar);
+		public static float3 operator +(float3 value, float scalar) => float3(value.X + scalar, value.Y + scalar, value.Z + scalar);
 		
-		public static Vector3 operator +(float scalar, Vector3 value) => Vector3(scalar + value.X, scalar + value.Y, scalar + value.Z);
+		public static float3 operator +(float scalar, float3 value) => float3(scalar + value.X, scalar + value.Y, scalar + value.Z);
 
-		public static Vector3 operator +(Vector3 value) => value;
+		public static float3 operator +(float3 value) => value;
 		
 		// Subtraction
 
-		public static Vector3 operator -(Vector3 left, Vector3 right) => Vector3(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
+		public static float3 operator -(float3 left, float3 right) => float3(left.X - right.X, left.Y - right.Y, left.Z - right.Z);
 
-		public static Vector3 operator -(Vector3 value, float scalar) => Vector3(value.X - scalar, value.Y - scalar, value.Z - scalar);
+		public static float3 operator -(float3 value, float scalar) => float3(value.X - scalar, value.Y - scalar, value.Z - scalar);
 
-		public static Vector3 operator -(float scalar, Vector3 value) => Vector3(scalar - value.X, scalar - value.Y, scalar - value.Z);
+		public static float3 operator -(float scalar, float3 value) => float3(scalar - value.X, scalar - value.Y, scalar - value.Z);
 
-		public static Vector3 operator -(Vector3 value) => Vector3(-value.X, -value.Y, -value.Z);
+		public static float3 operator -(float3 value) => float3(-value.X, -value.Y, -value.Z);
 
 		// Multiplication
 
-		public static Vector3 operator *(Vector3 left, Vector3 right) => Vector3(left.X * right.X, left.Y * right.Y, left.Z * right.Z);
+		public static float3 operator *(float3 left, float3 right) => float3(left.X * right.X, left.Y * right.Y, left.Z * right.Z);
 
-		public static Vector3 operator *(Vector3 value, float scalar) => Vector3(value.X * scalar, value.Y * scalar, value.Z * scalar);
+		public static float3 operator *(float3 value, float scalar) => float3(value.X * scalar, value.Y * scalar, value.Z * scalar);
 
-		public static Vector3 operator *(float scalar, Vector3 value) => Vector3(scalar * value.X, scalar * value.Y, scalar * value.Z);
+		public static float3 operator *(float scalar, float3 value) => float3(scalar * value.X, scalar * value.Y, scalar * value.Z);
 
 		// Division
 
-		public static Vector3 operator /(Vector3 left, Vector3 right) => Vector3(left.X / right.X, left.Y / right.Y, left.Z / right.Z);
+		public static float3 operator /(float3 left, float3 right) => float3(left.X / right.X, left.Y / right.Y, left.Z / right.Z);
 
-		public static Vector3 operator /(Vector3 value, float scalar)
+		public static float3 operator /(float3 value, float scalar)
 		{	
 			float inv = 1.0f / scalar;
-			return Vector3(value.X * inv, value.Y * inv, value.Z * inv);
+			return float3(value.X * inv, value.Y * inv, value.Z * inv);
 		}
 
-		public static Vector3 operator /(float scalar, Vector3 value) => Vector3(scalar / value.X, scalar / value.Y, scalar / value.Z);
+		public static float3 operator /(float scalar, float3 value) => float3(scalar / value.X, scalar / value.Y, scalar / value.Z);
 		
 		// Modulo
 
-		public static Vector3 operator %(Vector3 left, Vector3 right) => Vector3(left.X % right.X, left.Y % right.Y, left.Z % right.Z);
+		public static float3 operator %(float3 left, float3 right) => float3(left.X % right.X, left.Y % right.Y, left.Z % right.Z);
 
-		public static Vector3 operator %(Vector3 value, float scalar) => Vector3(value.X % scalar, value.Y % scalar, value.Z % scalar);
+		public static float3 operator %(float3 value, float scalar) => float3(value.X % scalar, value.Y % scalar, value.Z % scalar);
 
-		public static Vector3 operator %(float scalar, Vector3 value) => Vector3(scalar % value.X, scalar % value.Y, scalar % value.Z);
+		public static float3 operator %(float scalar, float3 value) => float3(scalar % value.X, scalar % value.Y, scalar % value.Z);
 
 		// Equality
 
-		public static bool operator ==(Vector3 left, Vector3 right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z;
+		public static bool operator ==(float3 left, float3 right) => left.X == right.X && left.Y == right.Y && left.Z == right.Z;
 
-		public static bool operator !=(Vector3 left, Vector3 right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
+		public static bool operator !=(float3 left, float3 right) => left.X != right.X || left.Y != right.Y || left.Z != right.Z;
 
 		public override void ToString(String strBuffer) => strBuffer.AppendF("X:{0} Y:{1} Z:{2}", X, Y, Z);
 
@@ -344,6 +344,6 @@ namespace GlitchyEngine.Math
 
 		[Inline]
 #unwarn
-		public static explicit operator float[3](Vector3 value) => *(float[3]*)&value;
+		public static explicit operator float[3](float3 value) => *(float[3]*)&value;
 	}
 }

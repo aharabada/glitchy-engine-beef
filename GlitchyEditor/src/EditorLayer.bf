@@ -105,7 +105,7 @@ namespace GlitchyEditor
 			_gameSceneRenderer = new SceneRenderer();
 			_editorSceneRenderer = new SceneRenderer();
 
-			_camera = EditorCamera(Vector3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
+			_camera = EditorCamera(float3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
 			_camera.RenderTarget = _cameraTarget;
 			
 			InitEditor();
@@ -256,14 +256,14 @@ namespace GlitchyEditor
 
 			Matrix Billboard(Matrix transform)
 			{
-				Vector3 worldPos = transform.Translation;
+				float3 worldPos = transform.Translation;
 
 				return Matrix.Translation(worldPos) * billboard;
 			}
 
-			float CalculateAlpha(Vector3 pos)
+			float CalculateAlpha(float3 pos)
 			{
-				return Math.Clamp(1.5f - Vector3.Distance(_editor.CurrentCamera.Position, pos) / 50, 0, 1);
+				return Math.Clamp(1.5f - distance(_editor.CurrentCamera.Position, pos) / 50, 0, 1);
 			}
 
 			for (var (entity, transform, camera) in _activeScene.GetEntities<TransformComponent, CameraComponent>())
@@ -288,7 +288,7 @@ namespace GlitchyEditor
 
 					for (float angle = 0; angle < MathHelper.TwoPi; angle += MathHelper.TwoPi / 5.0f)
 					{
-						Vector2 pos = MathHelper.CirclePoint(angle, 0.5f);
+						float2 pos = MathHelper.CirclePoint(angle, 0.5f);
 
 						Renderer.DrawRay(.(pos, 0), .(pos, 20), .White, transform.WorldTransform);
 					}
@@ -540,8 +540,8 @@ namespace GlitchyEditor
 			{
 				let cameraEntity = newScene.CreateEntity("Camera");
 				let transform = cameraEntity.Transform;
-				transform.Position = Vector3(0, 2, -5);
-				transform.RotationEuler = Vector3(0, MathHelper.ToRadians(25), 0);
+				transform.Position = float3(0, 2, -5);
+				transform.RotationEuler = float3(0, MathHelper.ToRadians(25), 0);
 				
 				let camera = cameraEntity.AddComponent<CameraComponent>();
 				camera.Primary = true;
@@ -717,13 +717,13 @@ namespace GlitchyEditor
 			return false;
 		}
 
-		private void EditorViewportSizeChanged(Object sender, Vector2 viewportSize)
+		private void EditorViewportSizeChanged(Object sender, float2 viewportSize)
 		{
+			if(viewportSize.X <= 0 || viewportSize.Y <= 0)
+				return;
+
 			uint32 sizeX = (uint32)viewportSize.X;
 			uint32 sizeY = (uint32)viewportSize.Y;
-
-			if(sizeX == 0 || sizeY == 0)
-				return;
 
 			_editorViewportTarget.Resize(sizeX, sizeY);
 			_cameraTarget.Resize(sizeX, sizeY);
@@ -733,7 +733,7 @@ namespace GlitchyEditor
 			_editorSceneRenderer.OnViewportResize(sizeX, sizeY);
 		}
 		
-		private void GameViewportSizeChanged(Object sender, Vector2 viewportSize)
+		private void GameViewportSizeChanged(Object sender, float2 viewportSize)
 		{
 			if(viewportSize.X <= 0 || viewportSize.Y <= 0)
 				return;

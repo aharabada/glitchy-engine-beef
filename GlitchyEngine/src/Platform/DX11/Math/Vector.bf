@@ -8,7 +8,7 @@ using Bon;
 
 namespace GlitchyEngine.Math
 {
-	extension Vector2
+	extension float2
 	{
 		[Inline]
 		public static implicit operator DirectX.Math.Vector2(in Self value) => *(DirectX.Math.Vector2*)&value;
@@ -17,7 +17,7 @@ namespace GlitchyEngine.Math
 		public static implicit operator Self(in DirectX.Math.Vector2 value) => *(Self*)&value;
 	}
 
-	extension Vector3
+	extension float3
 	{
 		[Inline]
 		public static implicit operator DirectX.Math.Vector3(in Self value) => *(DirectX.Math.Vector3*)&value;
@@ -26,7 +26,7 @@ namespace GlitchyEngine.Math
 		public static implicit operator Self(in DirectX.Math.Vector3 value) => *(Self*)&value;
 	}
 
-	extension Vector4
+	extension float4
 	{
 		[Inline]
 		public static implicit operator DirectX.Math.Vector4(in Self value) => *(DirectX.Math.Vector4*)&value;

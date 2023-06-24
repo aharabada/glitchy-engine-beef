@@ -21,7 +21,7 @@ public struct Matrix
 
 	public using Values V;
 	public float[4][4] Values;
-	public Vector4[4] Columns;
+	public float4[4] Columns;
 	
 	/// Creates a new zero-matrix.
 	public this() => this = default;
@@ -53,7 +53,7 @@ public struct Matrix
 	}
 
 	/// Creates a new matrix and initializes it with the given column-vectors.
-	public this(Vector4 c0, Vector4 c1, Vector4 c2, Vector4 c3)
+	public this(float4 c0, float4 c1, float4 c2, float4 c3)
 	{
 		Columns[0] = c0;
 		Columns[1] = c1;
@@ -61,47 +61,47 @@ public struct Matrix
 		Columns[3] = c3;
 	}
 
-	public ref Vector3 Right
+	public ref float3 Right
 	{
 		[Inline]
 		get
 		{
 #unwarn
-			return ref *(Vector3*)&Columns[0];
+			return ref *(float3*)&Columns[0];
 		}
 	}
 
-	public ref Vector3 Up
+	public ref float3 Up
 	{
 		[Inline]
 		get
 		{
 #unwarn
-			return ref *(Vector3*)&Columns[1];
+			return ref *(float3*)&Columns[1];
 		}
 	}
 
-	public ref Vector3 Forward
+	public ref float3 Forward
 	{
 		[Inline]
 		get
 		{
 #unwarn
-			return ref *(Vector3*)&Columns[2];
+			return ref *(float3*)&Columns[2];
 		}
 	}
 
-	public ref Vector3 Translation
+	public ref float3 Translation
 	{
 		[Inline]
 		get
 		{
 #unwarn
-			return ref *(Vector3*)&Columns[3];
+			return ref *(float3*)&Columns[3];
 		}
 	}
 
-	public Vector3 Scale
+	public float3 Scale
 	{
 		[Inline]
 		get => .(_11, _22, _33);
@@ -134,12 +134,12 @@ public struct Matrix
 		}
 	}
 	
-	public ref Vector4 this[int column]
+	public ref float4 this[int column]
 	{
 		get
 		{
 #unwarn
-			return ref *(Vector4*)&Columns[column];
+			return ref *(float4*)&Columns[column];
 		}
 
 		
@@ -150,7 +150,7 @@ public struct Matrix
 				Internal.ThrowIndexOutOfRange();
 			
 #unwarn
-			return ref *(Vector4*)&Columns[column];
+			return ref *(float4*)&Columns[column];
 		}
 	}
 
@@ -351,12 +351,12 @@ public struct Matrix
 	/**
 	 * Multiplies a matrix and a column-vector resulting in a column vector.
 	 */
-	public static Vector4 operator *(Matrix matrix, Vector4 columnVector)
+	public static float4 operator *(Matrix matrix, float4 columnVector)
 	{
 #unwarn
 		var m = &matrix.V;
 
-		Vector4 result = ?;
+		float4 result = ?;
 		result.X = (m._11 * columnVector.X) + (m._12 * columnVector.Y) + (m._13 * columnVector.Z) + (m._14 * columnVector.W);
 		result.Y = (m._21 * columnVector.X) + (m._22 * columnVector.Y) + (m._23 * columnVector.Z) + (m._24 * columnVector.W);
 		result.Z = (m._31 * columnVector.X) + (m._32 * columnVector.Y) + (m._33 * columnVector.Z) + (m._34 * columnVector.W);
@@ -367,12 +367,12 @@ public struct Matrix
 	/**
 	 * Multiplies a row-vector and a matrix resulting in a row vector.
 	 */
-	public static Vector4 operator *(Vector4 rowVector, Matrix matrix)
+	public static float4 operator *(float4 rowVector, Matrix matrix)
 	{
 #unwarn
 		var m = &matrix.V;
 
-		Vector4 result = ?;
+		float4 result = ?;
 		result.X = (rowVector.X * m._11) + (rowVector.Y * m._21) + (rowVector.Z * m._31) + (rowVector.W * m._41);
 		result.Y = (rowVector.X * m._12) + (rowVector.Y * m._22) + (rowVector.Z * m._32) + (rowVector.W * m._42);
 		result.Z = (rowVector.X * m._13) + (rowVector.Y * m._23) + (rowVector.Z * m._33) + (rowVector.W * m._43);
@@ -406,7 +406,7 @@ public struct Matrix
 				 0, 0, 0, 1);
 	}
 
-	public static Matrix Scaling(Vector3 scale)
+	public static Matrix Scaling(float3 scale)
 	{
 		return .(scale.X, 0, 0, 0,
 				 0, scale.Y, 0, 0,
@@ -422,7 +422,7 @@ public struct Matrix
 				 0, 0, 0, 1);
 	}
 
-	public static Matrix Translation(Vector3 translation)
+	public static Matrix Translation(float3 translation)
 	{
 		return .(1, 0, 0, translation.X,
 				 0, 1, 0, translation.Y,
@@ -470,25 +470,22 @@ public struct Matrix
 	 * @param up A vector defining the up direction of the camera.
 	 * @returns a view matrix.
 	 */
-	public static Matrix LookAt(Vector3 position, Vector3 target, Vector3 up)
+	public static Matrix LookAt(float3 position, float3 target, float3 up)
 	{
-		Vector3 forward = target - position;
-		forward.Normalize();
+		float3 forward = normalize(target - position);
 
-		Vector3 right = Vector3.Cross(up, forward);
-		right.Normalize();
+		float3 right = normalize(cross(up, forward));
 
-		Vector3 newUp = Vector3.Cross(forward, right);
-		newUp.Normalize();
+		float3 newUp = normalize(cross(forward, right));
 
 		Matrix result = .Identity;
 
 		result.Forward = forward;
 		result.Up = up;
 		result.Right = right;
-		result.Translation.X = -Vector3.Dot(position, right);
-		result.Translation.Y = -Vector3.Dot(position, up);
-		result.Translation.Z = -Vector3.Dot(position, forward);
+		result.Translation.X = -dot(position, right);
+		result.Translation.Y = -dot(position, up);
+		result.Translation.Z = -dot(position, forward);
 
 		return result;
 	}
@@ -511,22 +508,22 @@ public struct Matrix
 	{
 		// From: Lengyel, Eric. Foundations of Game Engine Development, Volume 1: Mathematics (S.61). Kindle-Version. 
 
-		Vector3 a = *(Vector3*)&Columns[0];
-		Vector3 b = *(Vector3*)&Columns[1];
-		Vector3 c = *(Vector3*)&Columns[2]; 
-		Vector3 d = *(Vector3*)&Columns[3];  
+		float3 a = *(float3*)&Columns[0];
+		float3 b = *(float3*)&Columns[1];
+		float3 c = *(float3*)&Columns[2]; 
+		float3 d = *(float3*)&Columns[3];  
 
 		float x = this[3, 0];
 		float y = this[3, 1];
 		float z = this[3, 2];
 		float w = this[3, 3];
 
-		Vector3 s = Vector3.Cross(a, b);
-		Vector3 t = Vector3.Cross(c, d);
-		Vector3 u = y * a - x * b;
-		Vector3 v = w * c - z * d;
+		float3 s = cross(a, b);
+		float3 t = cross(c, d);
+		float3 u = y * a - x * b;
+		float3 v = w * c - z * d;
 
-		return Vector3.Dot(s, v) + Vector3.Dot(t, u);
+		return dot(s, v) + dot(t, u);
 	}
 
 	/**
@@ -537,39 +534,39 @@ public struct Matrix
 		// From: Lengyel, Eric. Foundations of Game Engine Development, Volume 1: Mathematics (S.61). Kindle-Version. 
 
 #unwarn
-		Vector3 a = *(Vector3*)&Columns[0];
+		float3 a = *(float3*)&Columns[0];
 #unwarn
-		Vector3 b = *(Vector3*)&Columns[1];
+		float3 b = *(float3*)&Columns[1];
 #unwarn
-		Vector3 c = *(Vector3*)&Columns[2]; 
+		float3 c = *(float3*)&Columns[2]; 
 #unwarn
-		Vector3 d = *(Vector3*)&Columns[3];  
+		float3 d = *(float3*)&Columns[3];  
 
 		float x = this[3, 0];
 		float y = this[3, 1];
 		float z = this[3, 2];
 		float w = this[3, 3];
 
-		Vector3 s = Vector3.Cross(a, b);
-		Vector3 t = Vector3.Cross(c, d);
-		Vector3 u = y * a - x * b;
-		Vector3 v = w * c - z * d;
+		float3 s = cross(a, b);
+		float3 t = cross(c, d);
+		float3 u = y * a - x * b;
+		float3 v = w * c - z * d;
 
-		float invDet = 1.0f / (Vector3.Dot(s, v) + Vector3.Dot(t, u));
+		float invDet = 1.0f / (dot(s, v) + dot(t, u));
 
 		s *= invDet;
 		t *= invDet;
 		u *= invDet;
 		v *= invDet;
 
-		Vector3 r0 = Vector3.Cross(b, v) + t * y;
-		Vector3 r1 = Vector3.Cross(v, a) - t * x;
-		Vector3 r2 = Vector3.Cross(d, u) + s * w;
-		Vector3 r3 = Vector3.Cross(u, c) - s * z;
-		return .(r0.X, r0.Y, r0.Z, -Vector3.Dot(b, t),
-				 r1.X, r1.Y, r1.Z,  Vector3.Dot(a, t),
-				 r2.X, r2.Y, r2.Z, -Vector3.Dot(d, s),
-				 r3.X, r3.Y, r3.Z,  Vector3.Dot(c, s));
+		float3 r0 = cross(b, v) + t * y;
+		float3 r1 = cross(v, a) - t * x;
+		float3 r2 = cross(d, u) + s * w;
+		float3 r3 = cross(u, c) - s * z;
+		return .(r0.X, r0.Y, r0.Z, -dot(b, t),
+				 r1.X, r1.Y, r1.Z,  dot(a, t),
+				 r2.X, r2.Y, r2.Z, -dot(d, s),
+				 r3.X, r3.Y, r3.Z,  dot(c, s));
 	}
 
 	/// Calculates the inverse of the matrix.
@@ -578,39 +575,39 @@ public struct Matrix
 		// From: Lengyel, Eric. Foundations of Game Engine Development, Volume 1: Mathematics (S.61). Kindle-Version. 
 		
 #unwarn
-		Vector3 a = *(Vector3*)&matrix.Columns[0];
+		float3 a = *(float3*)&matrix.Columns[0];
 #unwarn
-		Vector3 b = *(Vector3*)&matrix.Columns[1];
+		float3 b = *(float3*)&matrix.Columns[1];
 #unwarn
-		Vector3 c = *(Vector3*)&matrix.Columns[2]; 
+		float3 c = *(float3*)&matrix.Columns[2]; 
 #unwarn
-		Vector3 d = *(Vector3*)&matrix.Columns[3];  
+		float3 d = *(float3*)&matrix.Columns[3];  
 
 		float x = matrix[3, 0];
 		float y = matrix[3, 1];
 		float z = matrix[3, 2];
 		float w = matrix[3, 3];
 
-		Vector3 s = Vector3.Cross(a, b);
-		Vector3 t = Vector3.Cross(c, d);
-		Vector3 u = y * a - x * b;
-		Vector3 v = w * c - z * d;
+		float3 s = cross(a, b);
+		float3 t = cross(c, d);
+		float3 u = y * a - x * b;
+		float3 v = w * c - z * d;
 
-		float invDet = 1.0f / (Vector3.Dot(s, v) + Vector3.Dot(t, u));
+		float invDet = 1.0f / (dot(s, v) + dot(t, u));
 
 		s *= invDet;
 		t *= invDet;
 		u *= invDet;
 		v *= invDet;
 
-		Vector3 r0 = Vector3.Cross(b, v) + t * y;
-		Vector3 r1 = Vector3.Cross(v, a) - t * x;
-		Vector3 r2 = Vector3.Cross(d, u) + s * w;
-		Vector3 r3 = Vector3.Cross(u, c) - s * z;
-		return .(r0.X, r0.Y, r0.Z, -Vector3.Dot(b, t),
-				 r1.X, r1.Y, r1.Z,  Vector3.Dot(a, t),
-				 r2.X, r2.Y, r2.Z, -Vector3.Dot(d, s),
-				 r3.X, r3.Y, r3.Z,  Vector3.Dot(c, s));
+		float3 r0 = cross(b, v) + t * y;
+		float3 r1 = cross(v, a) - t * x;
+		float3 r2 = cross(d, u) + s * w;
+		float3 r3 = cross(u, c) - s * z;
+		return .(r0.X, r0.Y, r0.Z, -dot(b, t),
+				 r1.X, r1.Y, r1.Z,  dot(a, t),
+				 r2.X, r2.Y, r2.Z, -dot(d, s),
+				 r3.X, r3.Y, r3.Z,  dot(c, s));
 	}
 	
 	/**
@@ -792,9 +789,9 @@ public struct Matrix
 	*/
 	public void Orthogonalize() mut
 	{
-		Columns[1] -= .Project(Columns[1], Columns[0]);
-		Columns[2] -= .Project(Columns[2], Columns[0]) + .Project(Columns[2], Columns[1]);
-		Columns[3] -= .Project(Columns[3], Columns[0]) + .Project(Columns[3], Columns[1]) + .Project(Columns[3], Columns[2]);
+		Columns[1] -= project(Columns[1], Columns[0]);
+		Columns[2] -= project(Columns[2], Columns[0]) + project(Columns[2], Columns[1]);
+		Columns[3] -= project(Columns[3], Columns[0]) + project(Columns[3], Columns[1]) + project(Columns[3], Columns[2]);
 	}
 
 	/**
@@ -802,10 +799,10 @@ public struct Matrix
 	*/
 	public void Orthonormalize() mut
 	{
-		Columns[0].Normalize();
-		Columns[1] = .Normalize(.Reject(Columns[1], Columns[0]));
-		Columns[2] = .Normalize(.Reject(.Reject(Columns[2], Columns[0]), Columns[1]));
-		Columns[3] = .Normalize(.Reject(.Reject(.Reject(Columns[2], Columns[0]), Columns[1]), Columns[2]));
+		Columns[0] = normalize(Columns[0]);
+		Columns[1] = normalize(reject(Columns[1], Columns[0]));
+		Columns[2] = normalize(reject(reject(Columns[2], Columns[0]), Columns[1]));
+		Columns[3] = normalize(reject(reject(reject(Columns[2], Columns[0]), Columns[1]), Columns[2]));
 	}
 	public static Self RotationQuaternion(Quaternion rotation)
 	{
@@ -845,7 +842,7 @@ public struct Matrix
 		return result;
 	}
 
-	public static void Decompose(Self matrix, out Vector3 position, out Quaternion rotation, out Vector3 scale)
+	public static void Decompose(Self matrix, out float3 position, out Quaternion rotation, out float3 scale)
 	{
 		var matrix;
 
@@ -857,9 +854,9 @@ public struct Matrix
 		// TODO: this doesn't detect mirroring
 
 		// Extract scaling from matrix
-		scale.X = (*(Vector3*)&matrix.Columns[0]).Magnitude();
-		scale.Y = (*(Vector3*)&matrix.Columns[1]).Magnitude();
-		scale.Z = (*(Vector3*)&matrix.Columns[2]).Magnitude();
+		scale.X = length(*(float3*)&matrix.Columns[0]);
+		scale.Y = length(*(float3*)&matrix.Columns[1]);
+		scale.Z = length(*(float3*)&matrix.Columns[2]);
 
 		if(MathHelper.IsZero(scale.X) || MathHelper.IsZero(scale.Y) || MathHelper.IsZero(scale.Z))
 		{

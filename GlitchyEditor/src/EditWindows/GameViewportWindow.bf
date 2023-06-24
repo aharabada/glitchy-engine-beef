@@ -20,9 +20,9 @@ namespace GlitchyEditor.EditWindows
 
 		private RenderTargetGroup _renderTarget ~ _?.ReleaseRef();
 
-		public Vector2 ViewportSize => (Vector2)_oldViewportSize;
+		public float2 ViewportSize => (float2)_oldViewportSize;
 		// Occurs when the viewport is resized.
-		public Event<EventHandler<Vector2>> ViewportSizeChanged ~ _.Dispose();
+		public Event<EventHandler<float2>> ViewportSizeChanged ~ _.Dispose();
 		// Occurs when an entity was clicked.
 		public Event<EventHandler<uint32>> EntityClicked ~ _.Dispose();
 
@@ -80,7 +80,7 @@ namespace GlitchyEditor.EditWindows
 
 			if(_oldViewportSize != viewportSize)
 			{
-				ViewportSizeChanged.Invoke(this, (Vector2)viewportSize);
+				ViewportSizeChanged.Invoke(this, (float2)viewportSize);
 				_viewPortChanged = true;
 				_oldViewportSize = viewportSize;
 			}

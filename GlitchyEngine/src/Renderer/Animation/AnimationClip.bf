@@ -188,9 +188,9 @@ namespace GlitchyEngine.Renderer.Animation
 
 	class JointAnimation// : IDisposable
 	{
-		public JointAnimationChannel<Vector3> TranslationChannel ~ delete _;
+		public JointAnimationChannel<float3> TranslationChannel ~ delete _;
 		public JointAnimationChannel<Quaternion> RotationChannel ~ delete _;
-		public JointAnimationChannel<Vector3> ScaleChannel ~ delete _;
+		public JointAnimationChannel<float3> ScaleChannel ~ delete _;
 
 		public float Duration
 		{
@@ -221,7 +221,7 @@ namespace GlitchyEngine.Renderer.Animation
 				case .Step:
 					result.Translation = previous;
 				case .Linear:
-					result.Translation = Vector3.Lerp(previous, next, interpolationValue);
+					result.Translation = lerp(previous, next, interpolationValue);
 				default:
 					result.Rotation = ?;
 					Runtime.NotImplemented();
@@ -262,7 +262,7 @@ namespace GlitchyEngine.Renderer.Animation
 				case .Step:
 					result.Scale = previous;
 				case .Linear:
-					result.Scale = Vector3.Lerp(previous, next, interpolationValue);
+					result.Scale = lerp(previous, next, interpolationValue);
 				default:
 					result.Rotation = ?;
 					Runtime.NotImplemented();

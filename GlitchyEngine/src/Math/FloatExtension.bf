@@ -13,12 +13,12 @@ namespace System
 		}
 
 		[Inline]
-		public Vector2 XX => Vector2((float)this);
+		public float2 XX => (float2)this;
 		
 		[Inline]
-		public Vector3 XXX => Vector3((float)this);
+		public float3 XXX => (float3)this;
 		
 		[Inline]
-		public Vector4 XXXX => Vector4((float)this);
+		public float4 XXXX => (float4)this;
 	}
 }

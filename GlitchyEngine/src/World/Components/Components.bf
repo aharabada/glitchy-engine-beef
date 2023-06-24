@@ -52,7 +52,7 @@ namespace GlitchyEngine.World
 		public AssetHandle<Texture2D> Sprite = .Invalid;
 
 		public ColorRGBA Color = .White;
-		public Vector4 UvTransform = .(0, 0, 1, 1);
+		public float4 UvTransform = .(0, 0, 1, 1);
 
 		public this()
 		{
@@ -70,7 +70,7 @@ namespace GlitchyEngine.World
 		public AssetHandle<Texture2D> Sprite = .Invalid;
 
 		public ColorRGBA Color = .White;
-		public Vector4 UvTransform = .(0, 0, 1, 1);
+		public float4 UvTransform = .(0, 0, 1, 1);
 
 		public float InnerRadius = 0.0f;
 
@@ -385,19 +385,79 @@ namespace GlitchyEngine.World
 
 		private int _runtimeBody = 0;
 
-		internal b2Body* RuntimeBody
+		protected internal b2Body* RuntimeBody
 		{
 			[Inline]
 			get => (b2Body*)(void*)_runtimeBody;
 			[Inline]
 			set mut => _runtimeBody = (int)(void*)value;
 		}
+		
+		public float2 GetPosition()
+		{
+			if (RuntimeBody != null)
+			{
+				Box2D.b2Vec2 vec = Box2D.Body.GetPosition(RuntimeBody);
+
+				return *(float2*)&vec;
+			}
+
+			return .Zero;
+		}
+
+		public void SetPosition(float2 position)
+		{
+			var position;
+
+			if (RuntimeBody != null)
+			{
+				float angle = Box2D.Body.GetAngle(RuntimeBody);
+
+				Box2D.Body.SetTransform(RuntimeBody, ref *(Box2D.b2Vec2*)&position, angle);
+			}
+		}
+		
+		public float GetAngle()
+		{
+			if (RuntimeBody != null)
+			{
+				return Box2D.Body.GetAngle(RuntimeBody);
+			}
+
+			return float.NaN;
+		}
+
+		public void SetAngle(float angle)
+		{
+			if (RuntimeBody != null)
+			{
+				var pos = Box2D.Body.GetPosition(RuntimeBody);
+
+				Box2D.Body.SetTransform(RuntimeBody, ref pos, angle);
+			}
+		}
 	}
+
+	/*struct InternalBug
+	{
+		private int i;
+
+		internal int MyInt
+		{
+			get => i;
+			set mut => i = value;
+		}
+
+		public void Bla()
+		{
+			MyInt = 5;
+		}
+	}*/
 
 	struct BoxCollider2DComponent
 	{
-		public Vector2 Offset = .(0.0f, 0.0f);
-		public Vector2 Size = .(0.5f, 0.5f);
+		public float2 Offset = .(0.0f, 0.0f);
+		public float2 Size = .(0.5f, 0.5f);
 
 		// TODO: move into 2D physics material
 		public float Density = 1.0f;
@@ -421,7 +481,7 @@ namespace GlitchyEngine.World
 
 	struct CircleCollider2DComponent
 	{
-		public Vector2 Offset = .(0.0f, 0.0f);
+		public float2 Offset = .(0.0f, 0.0f);
 
 		public float Radius = 0.5f;
 

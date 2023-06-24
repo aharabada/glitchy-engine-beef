@@ -150,9 +150,9 @@ namespace GlitchyEngine.Math
 
 		public override void ToString(String strBuffer) => strBuffer.AppendF($"X:{X} Y:{Y}");
 
-		public static explicit operator Vector2(Int2 point) => .(point.X, point.Y);
+		public static explicit operator float2(Int2 point) => .(point.X, point.Y);
 
-		public static explicit operator Int2(Vector2 point) => .((int32)point.X, (int32)point.Y);
+		public static explicit operator Int2(float2 point) => .((int32)point.X, (int32)point.Y);
 
 		public int GetHashCode()
 		{

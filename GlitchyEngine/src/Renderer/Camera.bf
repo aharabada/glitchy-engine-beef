@@ -31,8 +31,8 @@ namespace GlitchyEngine.Renderer
 		protected float _nearPlane;
 		protected float _farPlane;
 
-		protected Vector3 _position;
-		protected Vector3 _rotation;
+		protected float3 _position;
+		protected float3 _rotation;
 
 		/// If true the transform matrix is outdated and needs to be recalculated.
 		protected bool _transformOutdated = true;
@@ -76,12 +76,12 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public Vector3 Position
+		public float3 Position
 		{
 			get => _position;
 			set
 			{
-				if(_position == value)
+				if(all(_position == value))
 					return;
 
 				_position = value;
@@ -89,12 +89,12 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 		
-		public Vector3 Rotation
+		public float3 Rotation
 		{
 			get => _rotation;
 			set
 			{
-				if(_rotation == value)
+				if(all(_rotation == value))
 					return;
 
 				_rotation = value;

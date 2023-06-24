@@ -329,10 +329,10 @@ namespace GlitchyEngine.Math
 		
 		[Inline]
 #unwarn
-		public static explicit operator Vector4(ColorRGBA color) => *(Vector4*)&color;
+		public static explicit operator float4(ColorRGBA color) => *(float4*)&color;
 
 		[Inline]
 #unwarn
-		public static explicit operator ColorRGBA(Vector4 color) => *(ColorRGBA*)&color;
+		public static explicit operator ColorRGBA(float4 color) => *(ColorRGBA*)&color;
 	}
 }

@@ -14,7 +14,7 @@ namespace GlitchyEngine.Renderer.Animation
 	public struct JointPose
 	{
 		public Quaternion Rotation;
-		public Vector3 Translation;
-		public Vector3 Scale;
+		public float3 Translation;
+		public float3 Scale;
 	}
 }

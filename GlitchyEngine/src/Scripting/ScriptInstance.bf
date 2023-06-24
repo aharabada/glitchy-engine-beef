@@ -109,17 +109,17 @@ class ScriptInstance : RefCounter
 				var value = GetFieldValue<float>(field);
 				target.SetFieldValue(field, value);
 
-			/*case .Vector2:
-				GetFieldValue<Vector2>(field, var value);
-				if (ImGui.EditVector2(fieldName, ref value))
+			/*case .float2:
+				GetFieldValue<float2>(field, var value);
+				if (ImGui.Editfloat2(fieldName, ref value))
 					SetFieldValue(field, value);
-			case .Vector3:
-				GetFieldValue<Vector3>(field, var value);
-				if (ImGui.EditVector3(fieldName, ref value))
+			case .float3:
+				GetFieldValue<float3>(field, var value);
+				if (ImGui.Editfloat3(fieldName, ref value))
 					SetFieldValue(field, value);
-			case .Vector4:
-				GetFieldValue<Vector4>(field, var value);
-				if (ImGui.EditVector4(fieldName, ref value))
+			case .float4:
+				GetFieldValue<float4>(field, var value);
+				if (ImGui.Editfloat4(fieldName, ref value))
 					SetFieldValue(field, value);
 
 			case .Double:

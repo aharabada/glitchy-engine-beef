@@ -30,19 +30,19 @@ namespace GlitchyEngine.Math
 		}
 		
 		// Converts the given radians to degrees
-		public static Vector2 ToDegrees(Vector2 radians)
+		public static float2 ToDegrees(float2 radians)
 		{
 			return radians * RadToDeg;
 		}
 		
 		// Converts the given radians to degrees
-		public static Vector3 ToDegrees(Vector3 radians)
+		public static float3 ToDegrees(float3 radians)
 		{
 			return radians * RadToDeg;
 		}
 		
 		// Converts the given radians to degrees
-		public static Vector4 ToDegrees(Vector4 radians)
+		public static float4 ToDegrees(float4 radians)
 		{
 			return radians * RadToDeg;
 		}
@@ -54,19 +54,19 @@ namespace GlitchyEngine.Math
 		}
 
 		// Converts the given degrees to radians
-		public static Vector2 ToRadians(Vector2 degrees)
+		public static float2 ToRadians(float2 degrees)
 		{
 			return degrees * DegToRad;
 		}
 
 		// Converts the given degrees to radians
-		public static Vector3 ToRadians(Vector3 degrees)
+		public static float3 ToRadians(float3 degrees)
 		{
 			return degrees * DegToRad;
 		}
 
 		// Converts the given degrees to radians
-		public static Vector4 ToRadians(Vector4 degrees)
+		public static float4 ToRadians(float4 degrees)
 		{
 			return degrees * DegToRad;
 		}
@@ -79,24 +79,24 @@ namespace GlitchyEngine.Math
 		}
 
 		/// Returns the point that lies on the unit circle at the specified angle.
-		public static Vector2 CirclePoint(float angle, float radius = 1.0f)
+		public static float2 CirclePoint(float angle, float radius = 1.0f)
 		{
 			return .(Math.Cos(angle), Math.Sin(angle)) * radius;
 		}
 
-		public static Vector2 Pow(Vector2 v, float p)
+		public static float2 Pow(float2 v, float p)
 		{
-			return Vector2(Math.Pow(v.X, p), Math.Pow(v.Y, p));
+			return float2(Math.Pow(v.X, p), Math.Pow(v.Y, p));
 		}
 
-		public static Vector3 Pow(Vector3 v, float p)
+		public static float3 Pow(float3 v, float p)
 		{
-			return Vector3(Math.Pow(v.X, p), Math.Pow(v.Y, p), Math.Pow(v.Z, p));
+			return float3(Math.Pow(v.X, p), Math.Pow(v.Y, p), Math.Pow(v.Z, p));
 		}
 
-		public static Vector4 Pow(Vector4 v, float p)
+		public static float4 Pow(float4 v, float p)
 		{
-			return Vector4(Math.Pow(v.X, p), Math.Pow(v.Y, p), Math.Pow(v.Z, p), Math.Pow(v.W, p));
+			return float4(Math.Pow(v.X, p), Math.Pow(v.Y, p), Math.Pow(v.Z, p), Math.Pow(v.W, p));
 		}
 	}
 }

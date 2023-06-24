@@ -160,16 +160,32 @@ namespace GlitchyEditor.EditWindows
 
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
-			Vector3 position = transform.Position;
-			if (ImGui.EditVector3("Position", ref position, .Zero, 0.1f, textWidth))
+			float3 position = transform.Position;
+			if (ImGui.Editfloat3("Position", ref position, .Zero, 0.1f, textWidth))
+			{
 				transform.Position = position;
 
-			Vector3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
-			if (ImGui.EditVector3("Rotation", ref rotationEuler, .Zero, 0.1f, textWidth))
+				// if necessary reposition Rigidbody2D
+				if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+				{
+					rigidbody2D.SetPosition(position.XY);
+				}
+			}
+
+			float3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
+			if (ImGui.Editfloat3("Rotation", ref rotationEuler, .Zero, 0.1f, textWidth))
+			{
 				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
+				
+				// if necessary reposition Rigidbody2D
+				if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+				{
+					rigidbody2D.SetAngle(rotationEuler.Z);
+				}
+			}
 			
-			Vector3 scale = transform.Scale;
-			if (ImGui.EditVector3("Scale", ref scale, .One, 0.1f, textWidth))
+			float3 scale = transform.Scale;
+			if (ImGui.Editfloat3("Scale", ref scale, .One, 0.1f, textWidth))
 				transform.Scale = scale;
 		}
 		
@@ -375,12 +391,12 @@ namespace GlitchyEditor.EditWindows
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
 
-			Vector2 offset = boxCollider.Offset;
-			if (ImGui.EditVector2("Offset", ref offset, .Zero, 0.1f, textWidth))
+			float2 offset = boxCollider.Offset;
+			if (ImGui.Editfloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
 				boxCollider.Offset = offset;
 
-			Vector2 size = boxCollider.Size;
-			if (ImGui.EditVector2("Size", ref size, .Zero, 0.1f, textWidth))
+			float2 size = boxCollider.Size;
+			if (ImGui.Editfloat2("Size", ref size, .Zero, 0.1f, textWidth))
 				boxCollider.Size = size;
 			
 			float density = boxCollider.Density;
@@ -406,8 +422,8 @@ namespace GlitchyEditor.EditWindows
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
 
-			Vector2 offset = circleCollider.Offset;
-			if (ImGui.EditVector2("Offset", ref offset, .Zero, 0.1f, textWidth))
+			float2 offset = circleCollider.Offset;
+			if (ImGui.Editfloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
 				circleCollider.Offset = offset;
 
 			float radius = circleCollider.Radius;
@@ -542,17 +558,17 @@ namespace GlitchyEditor.EditWindows
 						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Float, &value))
 							SetFieldValue(scriptInstance, scriptField, value);
 
-					case .Vector2:
-						GetFieldValue<Vector2>(scriptInstance, scriptField, var value);
-						if (ImGui.EditVector2(fieldName, ref value))
+					case .float2:
+						GetFieldValue<float2>(scriptInstance, scriptField, var value);
+						if (ImGui.Editfloat2(fieldName, ref value))
 							SetFieldValue(scriptInstance, scriptField, value);
-					case .Vector3:
-						GetFieldValue<Vector3>(scriptInstance, scriptField, var value);
-						if (ImGui.EditVector3(fieldName, ref value))
+					case .float3:
+						GetFieldValue<float3>(scriptInstance, scriptField, var value);
+						if (ImGui.Editfloat3(fieldName, ref value))
 							SetFieldValue(scriptInstance, scriptField, value);
-					case .Vector4:
-						GetFieldValue<Vector4>(scriptInstance, scriptField, var value);
-						if (ImGui.EditVector4(fieldName, ref value))
+					case .float4:
+						GetFieldValue<float4>(scriptInstance, scriptField, var value);
+						if (ImGui.Editfloat4(fieldName, ref value))
 							SetFieldValue(scriptInstance, scriptField, value);
 
 					case .Double:

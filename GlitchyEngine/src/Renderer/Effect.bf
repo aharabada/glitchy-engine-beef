@@ -602,11 +602,11 @@ public class Effect : Asset
 			}
 
 			if (numComponents == 2)
-				return Variant.Create(*(Vector2*)floats.Ptr);
+				return Variant.Create(*(float2*)floats.Ptr);
 			else if (numComponents == 3)
-				return Variant.Create(*(Vector3*)floats.Ptr);
+				return Variant.Create(*(float3*)floats.Ptr);
 			else if (numComponents == 4)
-				return Variant.Create(*(Vector4*)floats.Ptr);
+				return Variant.Create(*(float4*)floats.Ptr);
 		}
 		else
 		{

@@ -113,25 +113,25 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 				if (variable.Columns == 3)
 				{
-					material.GetVariable<Vector3>(variable.Name, var value);
+					material.GetVariable<float3>(variable.Name, var value);
 
-					value = (Vector3)ColorRGB.LinearToSRGB((ColorRGB)value);
+					value = (float3)ColorRGB.LinearToSRGB((ColorRGB)value);
 
 					if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value))
 					{
-						value = (Vector3)ColorRGB.SRgbToLinear((ColorRGB)value);
+						value = (float3)ColorRGB.SRgbToLinear((ColorRGB)value);
 						material.SetVariable(variable.Name, value);
 					}
 				}
 				else if (variable.Columns == 4)
 				{
-					material.GetVariable<Vector4>(variable.Name, var value);
+					material.GetVariable<float4>(variable.Name, var value);
 					
-					value = (Vector4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
+					value = (float4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
 
 					if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value))
 					{
-						value = (Vector4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
+						value = (float4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
 						material.SetVariable(variable.Name, value);
 					}
 				}
@@ -154,28 +154,28 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 						if (ImGui.EditVector<1>(displayName, ref *(float[1]*)&value, .(), 0.1f, 100.0f, minV, maxV))
 							material.SetVariable(variable.Name, value);
 					case 2:
-						material.GetVariable<Vector2>(variable.Name, var value);
+						material.GetVariable<float2>(variable.Name, var value);
 						
-						Vector2 minV = hasMin ? min.Get<Vector2>() : .(float.MinValue);
-						Vector2 maxV = hasMax ? max.Get<Vector2>() : .(float.MaxValue);
+						float2 minV = hasMin ? min.Get<float2>() : (float2)float.MinValue;
+						float2 maxV = hasMax ? max.Get<float2>() : (float2)float.MaxValue;
 						
-						if (ImGui.EditVector2(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
+						if (ImGui.Editfloat2(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
 							material.SetVariable(variable.Name, value);
 					case 3:
-						material.GetVariable<Vector3>(variable.Name, var value);
+						material.GetVariable<float3>(variable.Name, var value);
 						
-						Vector3 minV = hasMin ? min.Get<Vector3>() : .(float.MinValue);
-						Vector3 maxV = hasMax ? max.Get<Vector3>() : .(float.MaxValue);
+						float3 minV = hasMin ? min.Get<float3>() : (float3)float.MinValue;
+						float3 maxV = hasMax ? max.Get<float3>() : (float3)float.MaxValue;
 
-						if (ImGui.EditVector3(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
+						if (ImGui.Editfloat3(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
 							material.SetVariable(variable.Name, value);
 					case 4:
-						material.GetVariable<Vector4>(variable.Name, var value);
+						material.GetVariable<float4>(variable.Name, var value);
 						
-						Vector4 minV = hasMin ? min.Get<Vector4>() : .(float.MinValue);
-						Vector4 maxV = hasMax ? max.Get<Vector4>() : .(float.MaxValue);
+						float4 minV = hasMin ? min.Get<float4>() : (float4)float.MinValue;
+						float4 maxV = hasMax ? max.Get<float4>() : (float4)float.MaxValue;
 
-						if (ImGui.EditVector4(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
+						if (ImGui.Editfloat4(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
 							material.SetVariable(variable.Name, value);
 					}
 				}
@@ -199,9 +199,9 @@ class MaterialAssetLoaderConfig : AssetLoaderConfig
 public enum VariableValue
 {
 	case Float(float Value);
-	case Float2(Vector2 Value);
-	case Float3(Vector3 Value);
-	case Float4(Vector4 Value);
+	case Float2(float2 Value);
+	case Float3(float3 Value);
+	case Float4(float4 Value);
 	case Int(int Value);
 	case Int2(Int2 Value);
 	case Int3(Int3 Value);
@@ -450,13 +450,13 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 					material.GetVariable<float>(variable.Name, let value);
 					variableValue = .Float(value);
 				case 2:
-					material.GetVariable<Vector2>(variable.Name, let value);
+					material.GetVariable<float2>(variable.Name, let value);
 					variableValue = .Float2(value);
 				case 3:
-					material.GetVariable<Vector3>(variable.Name, let value);
+					material.GetVariable<float3>(variable.Name, let value);
 					variableValue = .Float3(value);
 				case 4:
-					material.GetVariable<Vector4>(variable.Name, let value);
+					material.GetVariable<float4>(variable.Name, let value);
 					variableValue = .Float4(value);
 				}
 			}

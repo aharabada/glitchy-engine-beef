@@ -6,11 +6,11 @@ namespace GlitchyEngine.World
 	{
 		EcsEntity _parent = .InvalidEntity;
 
-		Vector3 _position = .(0, 0, 0);
+		float3 _position = .(0, 0, 0);
 		Quaternion _rotation = .(0, 0, 0, 1);
-		Vector3 _scale = .(1, 1, 1);
+		float3 _scale = .(1, 1, 1);
 
-		Vector3 _editorRotationEuler = .Zero;
+		float3 _editorRotationEuler = .Zero;
 
 		Matrix _localTransform = .Identity;
 		public bool IsDirty = false;
@@ -52,12 +52,12 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public Vector3 Position
+		public float3 Position
 		{
 			get => _position;
 			set mut
 			{
-				if(_position == value)
+				if(all(_position == value))
 					return;
 
 				_position = value;
@@ -82,12 +82,12 @@ namespace GlitchyEngine.World
 		}
 
 		/// Allows the user to edit the euler angles in the editor without rotations getting funky because of singularities or ambiguity of angles.
-		internal Vector3 EditorRotationEuler
+		internal float3 EditorRotationEuler
 		{
 			get => _editorRotationEuler;
 			set mut
 			{
-				if (_editorRotationEuler == value)
+				if (all(_editorRotationEuler == value))
 					return;
 
 				_editorRotationEuler = value;
@@ -101,7 +101,7 @@ namespace GlitchyEngine.World
 		 * Gets or sets the rotation using euler angles.
 		 * @Note The rotations will be applied in the following order: YZX (the order in the vector is still XYZ!)
 		 */
-		public Vector3 RotationEuler
+		public float3 RotationEuler
 		{
 			get => Quaternion.ToEulerAngles(_rotation);
 			set mut => Rotation = Quaternion.FromEulerAngles(value.Y, value.X, value.Z);
@@ -111,7 +111,7 @@ namespace GlitchyEngine.World
 		 * Gets or sets the rotation using axis angle, where Axis is the axis around which will be rotated and angle is the angle
 		 * that was rotated around the axis in radians.
 		 */
-		public (Vector3 Axis, float Angle) RotationAxisAngle
+		public (float3 Axis, float Angle) RotationAxisAngle
 		{
 			get => _rotation.ToAxisAngle();
 			set mut
@@ -126,12 +126,12 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public Vector3 Scale
+		public float3 Scale
 		{
 			get => _scale;
 			set mut
 			{
-				if(_scale == value)
+				if(all(_scale == value))
 					return;
 
 				_scale = value;

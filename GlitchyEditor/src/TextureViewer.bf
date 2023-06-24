@@ -64,7 +64,7 @@ namespace GlitchyEditor
 			_samplerPoint = SamplerStateManager.GetSampler(desc);
 		}
 
-		Vector2 _position;
+		float2 _position;
 
 		bool _moving;
 
@@ -124,7 +124,7 @@ namespace GlitchyEditor
 		{
 			var windowPos = ImGui.GetWindowPos();
 			var mousePos = ImGui.GetIO().MousePos;
-			Vector2 mouseInWindow = .(mousePos.x - windowPos.x, mousePos.y - windowPos.y);
+			float2 mouseInWindow = .(mousePos.x - windowPos.x, mousePos.y - windowPos.y);
 
 			bool windowHovered = ImGui.IsWindowHovered();
 
@@ -181,10 +181,10 @@ namespace GlitchyEditor
 			_context.SetDepthStencilTarget(_depth);
 			_context.BindRenderTargets();
 
-			Vector2 textureSize = Vector2(viewedTexture.Width, viewedTexture.Height);
-			Vector2 zoomedTextureSize = textureSize * _zoom;
+			float2 textureSize = float2(viewedTexture.Width, viewedTexture.Height);
+			float2 zoomedTextureSize = textureSize * _zoom;
 			
-			Vector2 targetSize = Vector2(_target.Width, _target.Height);
+			float2 targetSize = float2(_target.Width, _target.Height);
 
 			_effect.Variables["ColorOffset"].SetData(_colorOffset);
 			_effect.Variables["ColorScale"].SetData(_colorScale);
@@ -204,19 +204,19 @@ namespace GlitchyEditor
 			switch(_backgroundMode)
 			{
 			case .Black:
-				Renderer2D.DrawQuadPivotCorner(Vector3(0, 0, 1), targetSize, 0, .Black);
+				Renderer2D.DrawQuadPivotCorner(float3(0, 0, 1), targetSize, 0, .Black);
 			case .White:
-				Renderer2D.DrawQuadPivotCorner(Vector3(0, 0, 1), targetSize, 0, .White);
+				Renderer2D.DrawQuadPivotCorner(float3(0, 0, 1), targetSize, 0, .White);
 			case .Checkerboard:
 				float quadSize = 50.0f;
 
-				Vector2 numQuads = (targetSize / 500f) * 10f;
+				float2 numQuads = (targetSize / 500f) * 10f;
 
 				for(float x = 0; x < numQuads.X; x++)
 				{
 					for(float y = 0; y < numQuads.Y; y++)
 					{
-						Renderer2D.DrawQuadPivotCorner(Vector3(x * quadSize, -y * quadSize, 1), quadSize.XX, 0, ((x + y) % 2 == 0) ? .White : .Gray);
+						Renderer2D.DrawQuadPivotCorner(float3(x * quadSize, -y * quadSize, 1), quadSize.XX, 0, ((x + y) % 2 == 0) ? .White : .Gray);
 					}
 				}
 				break;
@@ -236,7 +236,7 @@ namespace GlitchyEditor
 
 			Renderer2D.BeginScene(_camera, .SortByTexture, _effect);
 
-			Renderer2D.DrawQuad(Vector3(_position * .(1, -1), 0), zoomedTextureSize, 0, viewedTexture);
+			Renderer2D.DrawQuad(float3(_position * .(1, -1), 0), zoomedTextureSize, 0, viewedTexture);
 			
 			Renderer2D.EndScene();
 

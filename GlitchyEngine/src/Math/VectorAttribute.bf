@@ -87,11 +87,11 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 
 		if (ComponentCount == 3)
 		{
-			GenerateVector3Constructors(type);
+			Generatefloat3Constructors(type);
 		}
 		else if (ComponentCount == 4)
 		{
-			GenerateVector4Constructors(type);
+			Generatefloat4Constructors(type);
 		}
 	}
 	
@@ -128,7 +128,7 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 	}
 
 	[Comptime]
-	private void GenerateVector3Constructors(Type type)
+	private void Generatefloat3Constructors(Type type)
 	{
 		String baseName = type.GetName(.. scope String());
 
@@ -161,12 +161,26 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 	}
 
 	[Comptime]
-	private void GenerateVector4Constructors(Type type)
+	private void Generatefloat4Constructors(Type type)
 	{
 		String baseName = type.GetName(.. scope String());
 
 		// Remove number from name
 		baseName.RemoveFromEnd(1);
+
+		String constructor = scope $"""
+			public this({baseName}2 xy, {baseName}2 zw)
+			{{
+				X = xy.X;
+				Y = xy.Y;
+				Z = zw.X;
+				W = zw.Y;
+			}}
+
+			""";
+		
+		Compiler.EmitTypeBody(type, constructor);
+
 
 		String constructor1 = scope $"""
 			public this({baseName}2 xy, {typeof(T)} z, {typeof(T)} w)

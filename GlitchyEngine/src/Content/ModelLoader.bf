@@ -367,15 +367,15 @@ namespace GlitchyEngine.Content
 
 					Log.EngineLogger.AssertDebug(positions != null, "The model appears to have no position data?!");
 					
-					Vector3[] normals = new Vector3[positions.Count];
+					float3[] normals = new float3[positions.Count];
 
 					if(primitive.Indices != null)
 						GenerateNormals(primitive.Indices, positions, normals);
 					else
 						GenerateNormals(positions, normals);
 
-					VertexBuffer vertexBuffer = new VertexBuffer((uint32)sizeof(Vector3), (uint32)normals.Count, .Immutable);
-					vertexBuffer.SetData<Vector3>(normals);
+					VertexBuffer vertexBuffer = new VertexBuffer((uint32)sizeof(float3), (uint32)normals.Count, .Immutable);
+					vertexBuffer.SetData<float3>(normals);
 					
 					bindings.Add(vertexBuffer.Binding);
 
@@ -405,20 +405,20 @@ namespace GlitchyEngine.Content
 		}
 
 		/// Generates the normals for one triangle
-		static mixin GenerateTriangleNormals(int index0, int index1, int index2, CGLTF.Accessor* positions, Vector3[] normals)
+		static mixin GenerateTriangleNormals(int index0, int index1, int index2, CGLTF.Accessor* positions, float3[] normals)
 		{
-			Vector3 position0 = GetEntry<Vector3>(positions, (.)index0);
-			Vector3 position1 = GetEntry<Vector3>(positions, (.)index1);
-			Vector3 position2 = GetEntry<Vector3>(positions, (.)index2);
+			float3 position0 = GetEntry<float3>(positions, (.)index0);
+			float3 position1 = GetEntry<float3>(positions, (.)index1);
+			float3 position2 = GetEntry<float3>(positions, (.)index2);
 
-			ref Vector3 normal0 = ref normals[(.)index0];
-			ref Vector3 normal1 = ref normals[(.)index1];
-			ref Vector3 normal2 = ref normals[(.)index2];
+			ref float3 normal0 = ref normals[(.)index0];
+			ref float3 normal1 = ref normals[(.)index1];
+			ref float3 normal2 = ref normals[(.)index2];
 
-			Vector3 e0 = position1 - position0;
-			Vector3 e1 = position2 - position0;
+			float3 e0 = position1 - position0;
+			float3 e1 = position2 - position0;
 
-			Vector3 normal = Vector3.Cross(e0, e1);
+			float3 normal = cross(e0, e1);
 
 			normal0 += normal;
 			normal1 += normal;
@@ -426,16 +426,16 @@ namespace GlitchyEngine.Content
 		}
 
 		[Inline]
-		static void NormalizeNormals(Vector3[] normals)
+		static void NormalizeNormals(float3[] normals)
 		{
 			for(int i < normals.Count)
 			{
-				normals[i].Normalize();
+				normalize(normals[i]);
 			}
 		}
 
 		/// Generates normals for the given model using indexed geometry
-		static void GenerateNormals(CGLTF.Accessor* indices, CGLTF.Accessor* positions, Vector3[] normals)
+		static void GenerateNormals(CGLTF.Accessor* indices, CGLTF.Accessor* positions, float3[] normals)
 		{
 			/// Enumerate triangle-wise
 			for(uint t = 0; t < indices.Count; t += 3)
@@ -451,7 +451,7 @@ namespace GlitchyEngine.Content
 		}
 		
 		/// Generates normals for the given model using nonindexed geometry
-		static void GenerateNormals(CGLTF.Accessor* positions, Vector3[] normals)
+		static void GenerateNormals(CGLTF.Accessor* positions, float3[] normals)
 		{
 			/// Enumerate triangle-wise
 			for(int i = 0; i < (.)positions.Count; i += 3)
@@ -554,7 +554,7 @@ namespace GlitchyEngine.Content
 						for(int i < samples)
 						{
 							float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
-							Vector3 sample = GetEntry<Vector3>(channel.Sampler.Output, i);
+							float3 sample = GetEntry<float3>(channel.Sampler.Output, i);
 							
 							jointAnimation.TranslationChannel.TimeStamps[i] = timeStamp;
 							jointAnimation.TranslationChannel.Values[i] = sample;
@@ -582,7 +582,7 @@ namespace GlitchyEngine.Content
 						for(int i < samples)
 						{
 							float timeStamp = GetEntry<float>(channel.Sampler.Input, i);
-							Vector3 sample = GetEntry<Vector3>(channel.Sampler.Output, i);
+							float3 sample = GetEntry<float3>(channel.Sampler.Output, i);
 
 							jointAnimation.ScaleChannel.TimeStamps[i] = timeStamp;
 							jointAnimation.ScaleChannel.Values[i] = sample;
@@ -606,11 +606,11 @@ namespace GlitchyEngine.Content
 			{
 			case typeof(float):
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 1);
-			case typeof(Vector2):
+			case typeof(float2):
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 2);
-			case typeof(Vector3):
+			case typeof(float3):
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 3);
-			case typeof(Vector4), typeof(Quaternion):
+			case typeof(float4), typeof(Quaternion):
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 4);
 			case typeof(Matrix):
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 16);

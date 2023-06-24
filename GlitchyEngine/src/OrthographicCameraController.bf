@@ -14,7 +14,7 @@ namespace GlitchyEngine
 
 		private bool _rotation;
 
-		private Vector3 _cameraPosition;
+		private float3 _cameraPosition;
 		private float _cameraRotation;
 		private float _cameraTranslationSpeed = 1.0f;
 		private float _cameraRotationSpeed = 1.0f;
@@ -41,7 +41,7 @@ namespace GlitchyEngine
 
 			if(Application.Get().Window.IsActive)
 			{
-				Vector3 movement = .();
+				float3 movement = .();
 
 				if(Input.IsKeyPressed(Key.W))
 				{
@@ -61,8 +61,8 @@ namespace GlitchyEngine
 					movement.X += 1;
 				}
 
-				if(movement != .Zero)
-					movement.Normalize();
+				if(any(movement != .Zero))
+					movement = normalize(movement);
 
 				movement *= (float)(gameTime.FrameTime.TotalSeconds) * _cameraTranslationSpeed * _zoomLevel;
 
