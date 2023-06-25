@@ -158,19 +158,28 @@ namespace GlitchyEngine.Renderer
 
 		public override void BindRenderTargets()
 		{
-			NativeContext.OutputMerger.SetRenderTargets(MaxRTVCount, &_renderTargets, _depthStencilTarget);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.OutputMerger.SetRenderTargets(MaxRTVCount, &_renderTargets, _depthStencilTarget);
+			}
 		}
 
 		public override void ClearRenderTarget(RenderTarget2D renderTarget, ColorRGBA color)
 		{
-			NativeContext.ClearRenderTargetView((renderTarget ?? _swapChain.BackBuffer)._nativeRenderTargetView, color);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.ClearRenderTargetView((renderTarget ?? _swapChain.BackBuffer)._nativeRenderTargetView, color);
+			}
 		}
 
 		public override void SetVertexBuffer(uint32 slot, Buffer buffer, uint32 stride, uint32 offset = 0)
 		{
 			// make stride and offset mutable so that we can take their pointers.
 			var stride, offset;
-			NativeContext.InputAssembler.SetVertexBuffers(slot, 1, &buffer.nativeBuffer, &stride, &offset);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.InputAssembler.SetVertexBuffers(slot, 1, &buffer.nativeBuffer, &stride, &offset);
+			}
 		}
 
 		[Inline]
@@ -180,8 +189,11 @@ namespace GlitchyEngine.Renderer
 			{
 				_currentInputLayout = _currentVertexLayout.GetNativeVertexLayout(_currentVertexShader.nativeCode);
 				_currentInputLayout.AddRef();
-
-				NativeContext.InputAssembler.SetInputLayout(_currentInputLayout);
+				
+				using (ContextMonitor.Enter())
+				{
+					NativeContext.InputAssembler.SetInputLayout(_currentInputLayout);
+				}
 			}
 		}
 
@@ -190,7 +202,7 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 			
 			BindInputLayout();
-
+			
 			if (_hasVs)
 				NativeContext.VertexShader.SetConstantBuffers(0, _vsBuffers.Count, &_vsBuffers);
 
@@ -200,33 +212,48 @@ namespace GlitchyEngine.Renderer
 
 		public override void Draw(uint32 vertexCount, uint32 startVertexIndex = 0)
 		{
-			BindState();
-
-			NativeContext.Draw(vertexCount, startVertexIndex);
+			using (ContextMonitor.Enter())
+			{
+				BindState();
+	
+				NativeContext.Draw(vertexCount, startVertexIndex);
+			}
 		}
 
 		public override void DrawIndexed(uint32 indexCount, uint32 startIndexLocation = 0, int32 vertexOffset = 0)
 		{
-			BindState();
-
-			NativeContext.DrawIndexed(indexCount, startIndexLocation, vertexOffset);
+			using (ContextMonitor.Enter())
+			{
+				BindState();
+	
+				NativeContext.DrawIndexed(indexCount, startIndexLocation, vertexOffset);
+			}
 		}
 
 		public override void DrawIndexedInstanced(uint32 indexCountPerInstance, uint32 instanceCount, uint32 startIndexLocation, int32 baseVertexLocation, uint32 startInstanceLocation)
 		{
-			BindState();
-
-			NativeContext.DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+			using (ContextMonitor.Enter())
+			{
+				BindState();
+	
+				NativeContext.DrawIndexedInstanced(indexCountPerInstance, instanceCount, startIndexLocation, baseVertexLocation, startInstanceLocation);
+			}
 		}
 
 		public override void SetIndexBuffer(Buffer buffer, IndexFormat indexFormat = .Index16Bit, uint32 byteOffset = 0)
 		{
-			NativeContext.InputAssembler.SetIndexBuffer(buffer.nativeBuffer, indexFormat == .Index32Bit ? .R32_UInt : .R16_UInt, byteOffset);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.InputAssembler.SetIndexBuffer(buffer.nativeBuffer, indexFormat == .Index32Bit ? .R32_UInt : .R16_UInt, byteOffset);
+			}
 		}
 
 		public override void SetViewports(uint32 viewportsCount, GlitchyEngine.Renderer.Viewport* viewports)
 		{
-			NativeContext.Rasterizer.SetViewports(viewportsCount, (.)viewports);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.Rasterizer.SetViewports(viewportsCount, (.)viewports);
+			}
 		}
 
 		public override void SetVertexLayout(VertexLayout vertexLayout)
@@ -241,7 +268,10 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetPrimitiveTopology(GlitchyEngine.Renderer.PrimitiveTopology primitiveTopology)
 		{
-			NativeContext.InputAssembler.SetPrimitiveTopology((DirectX.Common.PrimitiveTopology)primitiveTopology);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.InputAssembler.SetPrimitiveTopology((DirectX.Common.PrimitiveTopology)primitiveTopology);
+			}
 		}
 
 		private uint32 _ps_FirstTexture;
@@ -343,19 +373,28 @@ namespace GlitchyEngine.Renderer
 		public override void UnbindTextures()
 		{
 			void** voidArray = scope void*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT]*;
-
-			NativeContext.PixelShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
-			NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
+			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.PixelShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
+				NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
+			}
 		}
 
 		public override void BindVertexShader(VertexShader vertexShader)
 		{
-			BindShaderToStage(vertexShader);
+			using (ContextMonitor.Enter())
+			{
+				BindShaderToStage(vertexShader);
+			}
 		}
 
 		public override void BindPixelShader(PixelShader pixelShader)
 		{
-			BindShaderToStage(pixelShader);
+			using (ContextMonitor.Enter())
+			{
+				BindShaderToStage(pixelShader);
+			}
 		}
 
 		public override void BindConstantBuffer(Buffer buffer, int slot, ShaderStage stage)

@@ -443,12 +443,25 @@ namespace GlitchyEngine.Renderer
 			uint32 srcSubResource = D3D11.CalcSubresource(mipLevel, arraySlice, _mipLevels);
 
 			Box srcBox = .(x, y, arraySlice, x + width, y + height, arraySlice + 1);
-
-			NativeContext.CopySubresourceRegion(stagingTexture, 0, 0, 0, 0, texture, srcSubResource, &srcBox);
 			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.CopySubresourceRegion(stagingTexture, 0, 0, 0, 0, texture, srcSubResource, &srcBox);
+			}
+
 			MappedSubresource subresource = ?;
-			result = NativeContext.Map(stagingTexture, 0, .Read, .None, &subresource);
-			defer NativeContext.Unmap(stagingTexture, 0);
+			using (ContextMonitor.Enter())
+			{
+				result = NativeContext.Map(stagingTexture, 0, .Read, .None, &subresource);
+			}
+
+			defer
+			{
+				using (ContextMonitor.Enter())
+				{
+					NativeContext.Unmap(stagingTexture, 0);
+				}
+			} 
 
 			if (result != 0)
 				return .Err;
@@ -474,8 +487,11 @@ namespace GlitchyEngine.Renderer
 			// TODO: Mips/Arrays
 
 			Box srcBox = .((.)srcTopLeft.X, (.)srcTopLeft.Y, 0, (.)(srcTopLeft.X + size.X), (.)(srcTopLeft.Y + size.Y), 1);
-
-			NativeContext.CopySubresourceRegion(dstTexture, 0, (.)dstTopLeft.X, (.)dstTopLeft.Y, 0, srcTexture, 0, &srcBox);
+			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.CopySubresourceRegion(dstTexture, 0, (.)dstTopLeft.X, (.)dstTopLeft.Y, 0, srcTexture, 0, &srcBox);
+			}
 		}
 	}
 }

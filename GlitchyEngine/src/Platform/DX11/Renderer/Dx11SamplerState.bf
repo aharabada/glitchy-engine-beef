@@ -122,8 +122,11 @@ namespace GlitchyEngine.Renderer
 
 		public override void Bind(uint32 slot)
 		{
-			NativeContext.VertexShader.SetSamplers(slot, 1, &nativeSamplerState);
-			NativeContext.PixelShader.SetSamplers(slot, 1, &nativeSamplerState);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.VertexShader.SetSamplers(slot, 1, &nativeSamplerState);
+				NativeContext.PixelShader.SetSamplers(slot, 1, &nativeSamplerState);
+			}
 		}
 	}
 }

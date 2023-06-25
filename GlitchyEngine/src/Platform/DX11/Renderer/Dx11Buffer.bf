@@ -100,14 +100,24 @@ namespace GlitchyEngine.Renderer
 			{
 			case .Default:
 				Box dataBox = .(dstByteOffset, 0, 0, dstByteOffset + byteLength, 1, 1);
-				NativeContext.UpdateSubresource(nativeBuffer, 0, &dataBox, data, byteLength, byteLength);
+				using (ContextMonitor.Enter())
+				{
+					NativeContext.UpdateSubresource(nativeBuffer, 0, &dataBox, data, byteLength, byteLength);
+				}
 			case .Dynamic:
 				Log.EngineLogger.Assert(mapType == .WriteDiscard || mapType == .WriteNoOverwrite, scope $"When writing to dynamic resources the map type must be {nameof(Renderer.MapType.WriteDiscard)} or {nameof(Renderer.MapType.WriteNoOverwrite)}.");
 				// Todo: DoNotWaitFlag
 				MappedSubresource map = ?;
-				NativeContext.Map(nativeBuffer, 0, (.)mapType, .None, &map);
+				using (ContextMonitor.Enter())
+				{
+					NativeContext.Map(nativeBuffer, 0, (.)mapType, .None, &map);
+				}
 				Internal.MemCpy(((uint8*)map.Data) + dstByteOffset, data, byteLength);
-				NativeContext.Unmap(nativeBuffer, 0);
+				
+				using (ContextMonitor.Enter())
+				{
+					NativeContext.Unmap(nativeBuffer, 0);
+				}
 			case .Immutable:
 				Log.EngineLogger.Error("Can't set the data of an immutable resource.");
 				return .Err;

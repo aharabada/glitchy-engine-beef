@@ -104,6 +104,18 @@ public class EffectLibrary
 	public bool Exists(String effectName) => _effects.ContainsKey(effectName);
 }*/
 
+public enum TextureDimension
+{
+	Unknown,
+	Texture1D,
+	Texture1DArray,
+	Texture2D,
+	Texture2DArray,
+	Texture3D,
+	TextureCube,
+	TextureCubeArray
+}
+
 public class Effect : Asset
 {
 	internal VertexShader _vs ~ _?.ReleaseRef();
@@ -137,14 +149,16 @@ public class Effect : Asset
 	public struct TextureEntry
 	{
 		public TextureViewBinding BoundTexture;
+		public TextureDimension TextureDimension;
 		public ShaderTextureCollection.ResourceEntry* VsSlot;
 		public ShaderTextureCollection.ResourceEntry* PsSlot;
 
-		public this(TextureViewBinding boundTexture, ShaderTextureCollection.ResourceEntry* vsSlot, ShaderTextureCollection.ResourceEntry* psSlot)
+		public this(TextureViewBinding boundTexture, TextureDimension textureDimension, ShaderTextureCollection.ResourceEntry* vsSlot, ShaderTextureCollection.ResourceEntry* psSlot)
 		{
 			BoundTexture = boundTexture;
 			VsSlot = vsSlot;
 			PsSlot = psSlot;
+			TextureDimension = textureDimension;
 		}
 	}
 
@@ -741,7 +755,7 @@ public class Effect : Asset
 			// Get existing entry or create new
 			if(!_textures.TryGetValue(shaderEntry.Name, out entry))
 			{
-				entry = .(shaderEntry.BoundTexture, null, null);
+				entry = .(shaderEntry.BoundTexture, shaderEntry.Dimension, null, null);
 				entry.BoundTexture.AddRef();
 			}
 

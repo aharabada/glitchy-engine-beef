@@ -80,13 +80,16 @@ namespace GlitchyEngine.Renderer
 		public override void Bind()
 		{
 			Debug.Profiler.ProfileRendererFunction!();
-
-			NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
-			GraphicsContext.Get().SetVertexLayout(_vertexLayout);
-			NativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
-
-			if(_indexBuffer != null)
-				NativeContext.InputAssembler.SetIndexBuffer(_indexBuffer.nativeBuffer, _indexBuffer.Format == .Index32Bit ? .R32_UInt : .R16_UInt, _indexByteOffset);
+			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nativeBuffers, &bufferStrides, &bufferOffsets);
+				GraphicsContext.Get().SetVertexLayout(_vertexLayout);
+				NativeContext.InputAssembler.SetPrimitiveTopology((.)_primitiveTopology);
+	
+				if(_indexBuffer != null)
+					NativeContext.InputAssembler.SetIndexBuffer(_indexBuffer.nativeBuffer, _indexBuffer.Format == .Index32Bit ? .R32_UInt : .R16_UInt, _indexByteOffset);
+			}
 		}
 
 		public override void Unbind()
@@ -96,12 +99,15 @@ namespace GlitchyEngine.Renderer
 			ID3D11Buffer*[nativeBuffers.Count] nullBuffers = .();
 			uint32[nativeBuffers.Count] zeroStrides = .();
 			uint32[nativeBuffers.Count] zeroOffsets = .();
-
-			NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nullBuffers, &zeroStrides, &zeroOffsets);
-			NativeContext.InputAssembler.SetInputLayout(null);
-			NativeContext.InputAssembler.SetPrimitiveTopology(.Undefined);
 			
-			NativeContext.InputAssembler.SetIndexBuffer(null, .R16_UNorm, 0);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.InputAssembler.SetVertexBuffers(0, nativeBuffers.Count, &nullBuffers, &zeroStrides, &zeroOffsets);
+				NativeContext.InputAssembler.SetInputLayout(null);
+				NativeContext.InputAssembler.SetPrimitiveTopology(.Undefined);
+				
+				NativeContext.InputAssembler.SetIndexBuffer(null, .R16_UNorm, 0);
+			}
 		}
 	}
 }

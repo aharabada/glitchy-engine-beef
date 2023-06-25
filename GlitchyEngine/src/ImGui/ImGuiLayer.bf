@@ -142,7 +142,11 @@ namespace GlitchyEngine.ImGui
 			RenderCommand.BindRenderTargets();
 
 #if GE_GRAPHICS_DX11
-			ImGuiImplDX11.RenderDrawData(ImGui.GetDrawData());
+			
+			using (ContextMonitor.Enter())
+			{
+				ImGuiImplDX11.RenderDrawData(ImGui.GetDrawData());
+			}
 #endif
 
 			ImGui.CleanupFrame();

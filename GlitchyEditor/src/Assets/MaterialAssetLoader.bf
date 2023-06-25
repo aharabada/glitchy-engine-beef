@@ -347,6 +347,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		for (let (slotName, textureIdentifier) in materialFile.Textures)
 		{
+
 			AssetHandle<Texture> texture = contentManager.LoadAsset(textureIdentifier);
 
 			if (texture.IsInvalid)
@@ -402,7 +403,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		for (let (slotName, texture) in material.[Friend]_textures)
 		{
-			Texture textureAsset = texture.Get();
+			Texture textureAsset = texture.Handle.Get();
 
 			materialFile.Textures.Add(new String(slotName), new String(textureAsset?.Identifier ?? ""));
 		}

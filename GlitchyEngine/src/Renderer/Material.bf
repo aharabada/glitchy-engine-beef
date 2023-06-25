@@ -14,7 +14,7 @@ public class Material : Asset
 
 	private uint8[] _rawVariables ~ delete _;
 
-	private Dictionary<String, AssetHandle<Texture>> _textures = new .() ~ delete _;
+	private Dictionary<String, (AssetHandle<Texture> Handle, TextureDimension Dimension)> _textures = new .() ~ delete _;
 
 	private Dictionary<String, (uint32 Offset, BufferVariable Variable)> _variables = new .() ~ delete _;
 
@@ -34,7 +34,7 @@ public class Material : Asset
 			// At best whole paths. Shouldn't be that hard to do...
 			/*var texture = entry.BoundTexture;*/
 
-			_textures.Add(name, .Invalid);
+			_textures.Add(name, (AssetHandle<Texture>.Invalid, entry.TextureDimension));
 		}
 
 		InitRawData();
@@ -66,7 +66,19 @@ public class Material : Asset
 
 		for(let (name, texture) in _textures)
 		{
-			_effect.SetTexture(name, texture);
+			switch (texture.Dimension)
+			{
+			//case .Texture1D, .Texture1DArray:
+			case .Texture2D, .Texture2DArray:
+				AssetHandle<Texture2D> handle2D = .(texture.Handle);
+				_effect.SetTexture(name, handle2D);
+			case .TextureCube, .TextureCubeArray:
+				AssetHandle<TextureCube> cubeHandle = .(texture.Handle);
+				_effect.SetTexture(name, cubeHandle);
+			//case .Texture3D:
+			default:
+				Log.EngineLogger.Error("Tryied to bind undefined texture dimension!");
+			}
 		}
 
 		for(let (name, variable) in _variables)
@@ -86,13 +98,27 @@ public class Material : Asset
 	{
 		if(_textures.TryGetValue(name, var entry))
 		{
+			/*switch (texture.Get().GetType())
+			{
+			//case .Texture1D:
+			//	_textures[name].Dimension = .Texture1D;
+			case typeof(Texture2D):
+				_textures[name].Dimension = .Texture2D;
+			case typeof(TextureCube):
+				_textures[name].Dimension = .TextureCube;
+			//case .Texture3D:
+			//	_textures[name].Dimension = .Texture3D;
+			default:
+				_textures[name].Dimension = .Unknown;
+			}*/
 			//entry?.ReleaseRef();
-			_textures[name] = texture;
+			_textures[name].Handle = texture;
 			//texture?.AddRef();
 		}
 		else
 		{
-			Log.EngineLogger.Assert(false);
+			Log.EngineLogger.Error($"Material doesn't have the texture slot \"{name}\"");
+			//Log.EngineLogger.Assert(false);
 		}
 	}
 

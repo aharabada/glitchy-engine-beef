@@ -205,7 +205,30 @@ namespace GlitchyEngine.Renderer
 						buffer.ReleaseRef();
 					}
 				case .Texture:
-					_textures.Add(scope String(bindDesc.Name), bindDesc.BindPoint, TextureViewBinding(null, null));
+
+					TextureDimension texDim;
+					
+					switch (bindDesc.Dimension)
+					{
+					case .Texture1D:
+						texDim = .Texture1D;
+					case .Texture1DArray:
+						texDim = .Texture1DArray;
+					case .Texture2D:
+						texDim = .Texture2D;
+					case .Texture2DArray:
+						texDim = .Texture2DArray;
+					case .Texture3D:
+						texDim = .Texture3D;
+					case .TextureCube:
+						texDim = .TextureCube;
+					case .TextureCubeArray:
+						texDim = .TextureCubeArray;
+					default:
+						texDim = .Unknown;
+					}
+
+					_textures.Add(scope String(bindDesc.Name), bindDesc.BindPoint, TextureViewBinding(null, null), texDim);
 				case .Sampler:
 					// TODO: do we have to do something for samplers?
 				default:

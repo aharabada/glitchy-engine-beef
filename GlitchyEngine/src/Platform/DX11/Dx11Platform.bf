@@ -8,6 +8,7 @@ using DirectX.Common;
 using DirectX.D3D11;
 using DirectX.D3D11.SDKLayers;
 using System.Diagnostics;
+using System.Threading;
 
 namespace GlitchyEngine.Platform.DX11
 {
@@ -17,6 +18,8 @@ namespace GlitchyEngine.Platform.DX11
 		protected internal static bool IsDx11Initialized => NativeDevice != null;
 		protected internal static ID3D11Device* NativeDevice;
 		protected internal static ID3D11DeviceContext* NativeContext;
+
+		protected internal static Monitor ContextMonitor = new Monitor() ~ delete _;
 
 #if DEBUG	
 		protected internal static ID3D11Debug* DebugDevice;
@@ -42,7 +45,10 @@ namespace GlitchyEngine.Platform.DX11
 				HResult deviceResult;
 				{
 					Debug.Profiler.ProfileScope!("D3D11.CreateDevice");
-					deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &NativeDevice, &deviceLevel, &NativeContext);
+					using (ContextMonitor.Enter())
+					{
+						deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &NativeDevice, &deviceLevel, &NativeContext);
+					}
 				}
 				
 				Log.EngineLogger.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message({(int32)deviceResult}): {deviceResult}");

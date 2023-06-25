@@ -44,8 +44,11 @@ namespace GlitchyEngine.Renderer
 		public override void Clear(RenderTarget2D renderTarget, ColorRGBA color)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
-
-			NativeContext.ClearRenderTargetView(RtOrBackbuffer!(renderTarget)._nativeRenderTargetView, color);
+			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.ClearRenderTargetView(RtOrBackbuffer!(renderTarget)._nativeRenderTargetView, color);
+			}
 		}
 
 		public override void Clear(DepthStencilTarget target, ClearOptions clearOptions, float depth, uint8 stencil)
@@ -66,37 +69,43 @@ namespace GlitchyEngine.Renderer
 			{
 				flags |= .Stencil;
 			}
-
-			NativeContext.ClearDepthStencilView(target.nativeView, flags, depth, stencil);
+			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.ClearDepthStencilView(target.nativeView, flags, depth, stencil);
+			}
 		}
 
 		private void ClearRtv(DirectX.D3D11.ID3D11RenderTargetView* rtv, ClearColor clearColor)
 		{
-			switch(clearColor)
+			using (ContextMonitor.Enter())
 			{
-			case .Color(let color):
-				NativeContext.ClearRenderTargetView(rtv, color);
-			case .UInt(let value):
-#unwarn
-				NativeContext.OutputMerger.SetRenderTargets(1, &rtv, null);
-
-				using (BlendState lastBlendState = _currentBlendState..AddRef())
+				switch(clearColor)
 				{
-					SetBlendState(_nonblendingState);
-
-					_clearUintFx.Variables["ClearValue"].SetData(value);
-					_clearUintFx.ApplyChanges();
-					_clearUintFx.Bind();
+				case .Color(let color):
+					NativeContext.ClearRenderTargetView(rtv, color);
+				case .UInt(let value):
+	#unwarn
+					NativeContext.OutputMerger.SetRenderTargets(1, &rtv, null);
 	
-					FullscreenQuad.Draw();
+					using (BlendState lastBlendState = _currentBlendState..AddRef())
+					{
+						SetBlendState(_nonblendingState);
+	
+						_clearUintFx.Variables["ClearValue"].SetData(value);
+						_clearUintFx.ApplyChanges();
+						_clearUintFx.Bind();
+		
+						FullscreenQuad.Draw();
+						
+						SetBlendState(lastBlendState);
+					}
 					
-					SetBlendState(lastBlendState);
+					// Rebind the old render targets
+					BindRenderTargets();
+				default:
+					Runtime.NotImplemented();
 				}
-				
-				// Rebind the old render targets
-				BindRenderTargets();
-			default:
-				Runtime.NotImplemented();
 			}
 		}
 
@@ -143,7 +152,10 @@ namespace GlitchyEngine.Renderer
 					clearDepth = depth ?? clearDepth;
 					clearStencil = stencil ?? clearStencil;
 
-					NativeContext.ClearDepthStencilView(renderTarget._nativeDepthTargetView, flags, clearDepth, clearStencil);
+					using (ContextMonitor.Enter())
+					{
+						NativeContext.ClearDepthStencilView(renderTarget._nativeDepthTargetView, flags, clearDepth, clearStencil);
+					}
 				}
 			}
 		}
@@ -199,7 +211,10 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			SetReference!(_currentRasterizerState, rasterizerState);
-			NativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.Rasterizer.SetState(_currentRasterizerState.nativeRasterizerState);
+			}
 		}
 
 		private BlendState _currentBlendState ~ _?.ReleaseRef();
@@ -209,7 +224,11 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			SetReference!(_currentBlendState, blendState);
-			NativeContext.OutputMerger.SetBlendState(_currentBlendState.nativeBlendState, blendFactor);
+			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.OutputMerger.SetBlendState(_currentBlendState.nativeBlendState, blendFactor);
+			}
 		}
 		
 		private DepthStencilState _currentDepthStencilState ~ _?.ReleaseRef();
@@ -219,7 +238,11 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			SetReference!(_currentDepthStencilState, depthStencilState);
-			NativeContext.OutputMerger.SetDepthStencilState(_currentDepthStencilState.nativeDepthStencilState, stencilReference);
+			
+			using (ContextMonitor.Enter())
+			{
+				NativeContext.OutputMerger.SetDepthStencilState(_currentDepthStencilState.nativeDepthStencilState, stencilReference);
+			}
 		}
 
 		public override void DrawIndexed(GeometryBinding geometry)

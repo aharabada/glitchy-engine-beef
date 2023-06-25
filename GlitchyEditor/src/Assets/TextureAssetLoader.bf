@@ -8,6 +8,7 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using DirectXTK;
 using ImGui;
+using GlitchyEditor.Assets.Importers;
 
 namespace GlitchyEditor.Assets;
 
@@ -233,19 +234,34 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 	private static Texture LoadTexture(Stream data, EditorTextureAssetLoaderConfig config)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
+
+		List<LoadedSurface> surfaces = scope .();
+		LoadedTextureInfo textureInfo;
 		
-		Texture texture = null;
+		// Make sure we clean up the pixel data
+		defer { delete textureInfo.PixelData; }
+
 
 		switch(GetTextureType(data))
 		{
 		case .DDS:
-			texture = LoadDds(data, config);
+			Result<void> result = LoadDds(data, config, surfaces, out textureInfo);
+
+			if (result case .Err)
+				return null;
+
 		case .PNG:
-			texture = LoadPng(data, config);
+			Result<void> result = LoadPng(data, config, surfaces, out textureInfo);
+			
+			if (result case .Err)
+				return null;
+
 		case .Unknown:
 			Log.EngineLogger.Error("Unknown texture format.");
-			texture = null;
+			return null;
 		}
+		
+		Texture texture = CreateTexture(surfaces, textureInfo);
 
 		if (texture != null)
 		{
@@ -256,9 +272,74 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 		return texture;
 	}
 
-	private static Texture2D LoadPng(Stream data, EditorTextureAssetLoaderConfig config)
+	private static Texture CreateTexture(List<LoadedSurface> surfaces, LoadedTextureInfo textureInfo)
+	{
+		switch (textureInfo.Dimension)
+		{
+		//case .Texture1D:
+		case .Texture2D:
+			if (textureInfo.IsCubeMap)
+			{
+				Texture2DDesc staging = .();
+				
+				staging.Width = (.)textureInfo.Width;
+				staging.Height = (.)textureInfo.Height;
+
+				staging.MipLevels = (.)textureInfo.MipMapCount;
+				staging.ArraySize = (.)textureInfo.ArraySize;
+
+				staging.Format = textureInfo.PixelFormat;
+
+				// TODO: allow enabling read/write
+				staging.CpuAccess = .None;
+				staging.Usage = .Default;
+
+				TextureCube cubeTexture = new TextureCube(staging);
+
+				for (let surface in surfaces)
+				{
+					cubeTexture.SetData(surface.Data.Ptr, surface.Pitch / staging.Width, (TextureCubeFace)surface.CubeFace, (.)surface.ArrayIndex, (.)surface.MipLevel);
+				}
+				
+				return cubeTexture;
+			}
+			else
+			{
+				Texture2DDesc staging = .();
+				
+				staging.Width = (.)textureInfo.Width;
+				staging.Height = (.)textureInfo.Height;
+
+				staging.MipLevels = (.)textureInfo.MipMapCount;
+				staging.ArraySize = (.)textureInfo.ArraySize;
+
+				staging.Format = textureInfo.PixelFormat;
+
+				// TODO: allow enabling read/write
+				staging.CpuAccess = .None;
+				staging.Usage = .Default;
+
+				Texture2D stagingTexture = new Texture2D(staging);
+
+				for (let surface in surfaces)
+				{
+					stagingTexture.[Friend]PlatformSetData(surface.Data.Ptr, surface.Pitch / staging.Width, 0, 0, staging.Width, staging.Height, (.)surface.ArrayIndex, (.)surface.MipLevel, .Write);
+				}
+				
+				return stagingTexture;
+			}
+		default:
+			Runtime.NotImplemented();
+		}
+
+		return null;
+	}
+
+	private static Result<void> LoadPng(Stream data, EditorTextureAssetLoaderConfig config, List<LoadedSurface> surfaces, out LoadedTextureInfo textureInfo)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
+		
+		textureInfo = .();
 
 		uint8[] pngData = new:ScopedAlloc! uint8[data.Length];
 
@@ -267,7 +348,7 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 		if (result case .Err(let err))
 		{
 			Log.EngineLogger.Error($"Failed to read data from stream. Texture: Error: {err}");
-			return null;
+			return .Err;
 		}
 
 		uint8* rawData = null;
@@ -285,25 +366,55 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 			if (errorCode != 0)
 			{
 				Log.EngineLogger.Error($"Failed to decode PNG file {errorCode}.");
-				return null;
+				return .Err;
 			}
 		}
 
-		Texture2DDesc desc = .(width, height, config.IsSRGB ? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
-		Texture2D texture = new Texture2D(desc);
-		texture.SetData<Color>((.)rawData);
+		uint8[] pixelData = new uint8[4 * width * height];
+		Internal.MemCpy(pixelData.Ptr, rawData, pixelData.Count);
+
+		LoadedSurface surface = .();
+		surface.Data = Span<uint8>(pixelData);
+		surface.Pitch = 4 * width;
+		surface.SlicePitch = 0;
+		surface.ArrayIndex = 0;
+		surface.MipLevel = 0;
+
+		surfaces.Add(surface);
+
+		//Texture2DDesc desc = .(width, height, config.IsSRGB ? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm, 1, 1, .Immutable);
+		//Texture2D texture = new Texture2D(desc);
+		//texture.SetData<Color>((.)rawData);
 
 		// TODO: Generate mip maps
 
-		return texture;
+		textureInfo.PixelData = pixelData;
+		textureInfo.Width = width;
+		textureInfo.Height = height;
+		textureInfo.Depth = 1;
+
+		textureInfo.ArraySize = 1;
+		textureInfo.MipMapCount = 1;
+
+		textureInfo.Dimension = .Texture2D;
+
+		textureInfo.IsCubeMap = false;
+
+		textureInfo.PixelFormat = config.IsSRGB ? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm;
+
+		return .Ok;
+
+		//return texture;
 	}
 
-	private static Texture LoadDds(Stream data, EditorTextureAssetLoaderConfig config)
+	private static Result<void> LoadDds(Stream data, EditorTextureAssetLoaderConfig config, List<LoadedSurface> surfaces, out LoadedTextureInfo textureInfo)
 	{
-		// TODO: Move the loading of Dds files here.
-		Texture2D texture = new [Friend]Texture2D(data);
+		var result = DdsImporter.LoadDds(data, config.IsSRGB, surfaces, out textureInfo);
 
-		return texture;
+		if (result case .Err)
+			return .Err;
+
+		return .Ok;
 	}
 	
 	private static void SetSampler(Texture texture, EditorTextureAssetLoaderConfig config)
@@ -315,12 +426,38 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 	}
 
 	private static Texture2D _placeholder2D;
+	private static TextureCube _placeholderCube;
+
 	private static Texture2D _error2D;
+	private static TextureCube _errorCube;
 
 	public Asset GetPlaceholderAsset(Type assetType)
 	{
 		switch (assetType)
 		{
+		case typeof(TextureCube):
+			if (_placeholderCube == null)
+			{
+				// TODO: immutable
+				Texture2DDesc desc = .(1, 1, .R8G8B8A8_UNorm, 1, 1, .Default, .None);
+
+				_placeholderCube = new TextureCube(desc);
+				_placeholderCube.SamplerState = SamplerStateManager.PointWrap;
+				Color color = Color.Cyan;
+				_placeholderCube.SetData<Color>(&color, .PositiveX);
+				_placeholderCube.SetData<Color>(&color, .NegativeX);
+				_placeholderCube.SetData<Color>(&color, .PositiveY);
+				_placeholderCube.SetData<Color>(&color, .NegativeY);
+				_placeholderCube.SetData<Color>(&color, .PositiveZ);
+				_placeholderCube.SetData<Color>(&color, .NegativeZ);
+
+				Content.ManageAsset(_placeholderCube);
+				_placeholderCube.ReleaseRef();
+
+				_placeholderCube.[Friend]Complete = false;
+			}
+
+			return _placeholderCube;
 		case typeof(Texture2D):
 			fallthrough;
 		default:
@@ -347,6 +484,31 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 	{
 		switch (assetType)
 		{
+		case typeof(TextureCube):
+			if (_placeholderCube == null)
+			{
+				// TODO: immutable
+				Texture2DDesc desc = .(2, 2, .R8G8B8A8_UNorm, 1, 1, .Default, .None);
+
+				_errorCube = new TextureCube(desc);
+				_errorCube.SamplerState = SamplerStateManager.PointWrap;
+				
+				Color[4] color = .(Color.HotPink, Color.Black, Color.Black, Color.HotPink);
+
+				_errorCube.SetData<Color>(&color, .PositiveX);
+				_errorCube.SetData<Color>(&color, .NegativeX);
+				_errorCube.SetData<Color>(&color, .PositiveY);
+				_errorCube.SetData<Color>(&color, .NegativeY);
+				_errorCube.SetData<Color>(&color, .PositiveZ);
+				_errorCube.SetData<Color>(&color, .NegativeZ);
+
+				Content.ManageAsset(_errorCube);
+				_errorCube.ReleaseRef();
+
+				_errorCube.[Friend]Complete = false;
+			}
+
+			return _placeholderCube;
 		case typeof(Texture2D):
 			fallthrough;
 		default:
@@ -356,7 +518,9 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 
 				_error2D = new Texture2D(desc);
 				_error2D.SamplerState = SamplerStateManager.PointWrap;
+				
 				Color[4] color = .(Color.HotPink, Color.Black, Color.Black, Color.HotPink);
+
 				_error2D.SetData<Color>(&color);
 
 				Content.ManageAsset(_error2D);
