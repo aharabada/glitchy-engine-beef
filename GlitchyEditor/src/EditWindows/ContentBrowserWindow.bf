@@ -48,13 +48,6 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
-			// Context menu when clicking on the background.
-			if (ImGui.BeginPopupContextWindow())
-			{
-			    ShowCurrentFolderContextMenu();
-			    ImGui.EndPopup();
-			}
-
 			ImGui.Columns(2);
 
 			ImGui.BeginChild("Sidebar");
@@ -64,10 +57,17 @@ namespace GlitchyEditor.EditWindows
 			ImGui.EndChild();
 
 			ImGui.NextColumn();
-			
+
 			ImGui.BeginChild("Files");
 
 			DrawCurrentDirectory();
+			
+			// Context menu when clicking on the background.
+			if (ImGui.BeginPopupContextWindow())
+			{
+			    ShowCurrentFolderContextMenu();
+			    ImGui.EndPopup();
+			}
 
 			ImGui.EndChild();
 
