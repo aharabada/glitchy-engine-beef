@@ -316,6 +316,11 @@ static
 #endregion
 	
 #region min / max
+	
+	public static float min(float x, float y)
+	{
+		return Math.Min(x, y);
+	}
 
 	public static float2 min(float2 x, float2 y)
 	{
@@ -330,6 +335,11 @@ static
 	public static float4 min(float4 x, float4 y)
 	{
 		return float4(Math.Min(x.X, y.X), Math.Min(x.Y, y.Y), Math.Min(x.Z, y.Z), Math.Min(x.W, y.W));
+	}
+	
+	public static float max(float x, float y)
+	{
+		return Math.Max(x, y);
 	}
 
 	public static float2 max(float2 x, float2 y)
