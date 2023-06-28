@@ -48,32 +48,68 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
-			ImGui.Columns(2);
+			ImGui.PushStyleVar(.CellPadding, .(0, 0));
 
-			ImGui.BeginChild("Sidebar");
+			bool alt_pressed = ImGui.GetIO().KeyAlt;
 
-			DrawDirectorySideBar();
-
-			ImGui.EndChild();
-
-			ImGui.NextColumn();
-
-			ImGui.BeginChild("Files");
-
-			DrawCurrentDirectory();
-			
-			// Context menu when clicking on the background.
-			if (ImGui.BeginPopupContextWindow())
+			if (ImGui.BeginTable("table", 2, .BordersInnerV | .Resizable | .Reorderable | .NoPadOuterX))
 			{
-			    ShowCurrentFolderContextMenu();
-			    ImGui.EndPopup();
+				if (alt_pressed)
+				{
+					// Header anzeigen, damit sie neu angeordnet werden können
+					ImGui.TableSetupColumn("Folder Hierarchy");
+					ImGui.TableSetupColumn("Files");
+					ImGui.TableHeadersRow();
+				}
+
+                ImGui.TableNextRow();
+                ImGui.TableSetColumnIndex(0);
+
+				if (ImGui.BeginChild("Sidebar"))
+				{
+					DrawDirectorySideBar();
+				
+					ImGui.EndChild();
+				}
+
+				ImGui.TableNextColumn();
+				
+				DrawSearchBar();
+
+				ImGui.Separator();
+
+				if (ImGui.BeginChild("Files"))
+				{
+					DrawCurrentDirectory();
+
+					// Context menu when clicking on the background.
+					if (ImGui.BeginPopupContextWindow())
+					{
+					    ShowCurrentFolderContextMenu();
+					    ImGui.EndPopup();
+					}
+
+					ImGui.EndChild();
+				}
+
+				ImGui.EndTable();
 			}
 
-			ImGui.EndChild();
-
-			ImGui.Columns(1);
+			ImGui.PopStyleVar(1);
 
 			ImGui.End();
+		}
+
+		char8[256] _filesFilter = .();
+		bool _searchEverywhere;
+
+		private void DrawSearchBar()
+		{
+			ImGui.TextUnformatted("Search:");
+			ImGui.SameLine();
+			ImGui.InputText("##search", &_filesFilter, _filesFilter.Count);
+			ImGui.SameLine();
+			ImGui.Checkbox("Search everywhere", &_searchEverywhere);
 		}
 
 		/// Renders the context menu that is shown when the user right clicks on the background of the file browser.
@@ -139,43 +175,67 @@ namespace GlitchyEditor.EditWindows
 		/// Renders the contents of _currentDirectory.
 		private void DrawCurrentDirectory()
 		{
-			if (_currentDirectory.IsEmpty)
-				return;
-
+			List<TreeNode<AssetNode>> files = null;
+			
 			ImGui.Style* style = ImGui.GetStyle();
 
 			float window_visible_x2 = ImGui.GetWindowPos().x + ImGui.GetWindowContentRegionMax().x;
 
-			// Get the node of the current directory.
-			var currentDirectoryNode = _manager.AssetHierarchy.GetNodeFromPath(_currentDirectory);
+			StringView searchFilter = StringView(&_filesFilter);
 
-			if (currentDirectoryNode case .Err)
+			if (_searchEverywhere && searchFilter.Length > 0)
 			{
-				Log.EngineLogger.Error($"No node exists for {_currentDirectory}.");
-				ImGui.TextUnformatted("Failed to display contents of directory.");
-				return;
+				files = scope:: List<TreeNode<AssetNode>>();
+				_manager.AssetHierarchy.[Friend]_assetHierarchy.ForEach(scope (node) =>
+				{
+					if (node->Name.Contains(searchFilter, true))
+					{
+						files.Add(node);
+					}
+				});
+			}
+			else
+			{
+				if (_currentDirectory.IsEmpty)
+					return;
+
+				// Get the node of the current directory.
+				var currentDirectoryNode = _manager.AssetHierarchy.GetNodeFromPath(_currentDirectory);
+	
+				if (currentDirectoryNode case .Err)
+				{
+					Log.EngineLogger.Error($"No node exists for {_currentDirectory}.");
+					ImGui.TextUnformatted("Failed to display contents of directory.");
+					return;
+				}
+
+				files = currentDirectoryNode->Children;
+
+				// show back button (".."-File)
+				if (currentDirectoryNode->Parent != null)
+				{
+					ImGui.PushID("Back");
+	
+					DrawBackButton(currentDirectoryNode->Parent);
+	
+					// X-Coordinate of the right side of the current entry.
+					float currentButtonRight = ImGui.GetItemRectMax().x;
+					// Expected right-Coordinate if next entry was on the same line.
+					float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
+	
+					// If the next button won't fit on the same line we start a new line.
+					if (expectedButtonRight < window_visible_x2)
+					    ImGui.SameLine();
+	
+					ImGui.PopID();
+				}
 			}
 
-			if (currentDirectoryNode->Parent != null)
+			for (var entry in files)
 			{
-				ImGui.PushID("Back");
+				if (!entry->Name.Contains(searchFilter, true))
+					continue;
 
-				DrawBackButton(currentDirectoryNode->Parent);
-
-				// X-Coordinate of the right side of the current entry.
-				float currentButtonRight = ImGui.GetItemRectMax().x;
-				// Expected right-Coordinate if next entry was on the same line.
-				float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
-
-				// If the next button won't fit on the same line we start a new line.
-				if (expectedButtonRight < window_visible_x2)
-				    ImGui.SameLine();
-
-				ImGui.PopID();
-			}
-
-			for (var entry in currentDirectoryNode->Children)
-			{
 			    ImGui.PushID(entry->Name);
 
 				DrawDirectoryItem(entry);
@@ -186,7 +246,7 @@ namespace GlitchyEditor.EditWindows
 				float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
 
 				// If we aren't the last entry and the next button won't fit on the same line we start a new line.
-				if (entry != currentDirectoryNode->Children.Back && expectedButtonRight < window_visible_x2)
+				if (entry != files.Back && expectedButtonRight < window_visible_x2)
 				    ImGui.SameLine();
 
 				ImGui.PopID();

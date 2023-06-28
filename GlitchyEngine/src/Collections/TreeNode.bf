@@ -56,6 +56,62 @@ namespace GlitchyEngine.Collections
 		{
 			return ref node.Value;
 		}
+
+		public delegate void ElementFunc(TreeNode<T> currentNode);
+
+		public enum IterationMode
+		{
+			BreadthFirst,
+			DepthFirst
+		}
+
+		public void ForEach(ElementFunc func, IterationMode iterationMode = .DepthFirst)
+		{
+			if (iterationMode == .BreadthFirst)
+			{
+				ForEach_BreadthFirst(func);
+			}
+			else if (iterationMode == .DepthFirst)
+			{
+				ForEach_DepthFirst(func);
+			}
+		}
+
+		public void ForEach_BreadthFirst(ElementFunc func)
+		{
+			Queue<TreeNode<T>> nodes = scope .();
+			nodes.Add(this);
+
+			while (!nodes.IsEmpty)
+			{
+				TreeNode<T> node = nodes.PopFront();
+
+				func(node);
+				
+				for (var child in node.Children)
+				{
+					nodes.Add(child);
+				}
+			}
+		}
+
+		public void ForEach_DepthFirst(ElementFunc func)
+		{
+			List<TreeNode<T>> nodes = scope .();
+			nodes.Add(this);
+
+			while (!nodes.IsEmpty)
+			{
+				TreeNode<T> node = nodes.PopBack();
+
+				func(node);
+				
+				for (var child in node.Children)
+				{
+					nodes.Add(child);
+				}
+			}
+		}
 	}
 
 	static
