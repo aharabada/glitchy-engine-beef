@@ -99,7 +99,8 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 	{
 		for (let (name, arguments) in effect.[Friend]_variableDescriptions)
 		{
-			let variable = effect.Variables[name];
+			if (!effect.Variables.TryGetVariable(name, let variable))
+				continue;
 			
 			bool hasPreviewName = TryGetValue(arguments, "Preview", var previewName);
 
@@ -107,35 +108,69 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 			
 			bool hasPreviewType = TryGetValue(arguments, "Type", var previewType);
 
-			if (hasPreviewType && previewType.Get<String>() == "Color")
+			if (hasPreviewType && (previewType.Get<String>() == "Color" || previewType.Get<String>() == "ColorHDR"))
 			{
-				Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
-
-				if (variable.Columns == 3)
+				if (previewType.Get<String>().Equals("Color", .InvariantCultureIgnoreCase))
 				{
-					material.GetVariable<float3>(variable.Name, var value);
+					Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
 
-					value = (float3)ColorRGB.LinearToSRGB((ColorRGB)value);
-
-					if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value))
+					if (variable.Columns == 3)
 					{
-						value = (float3)ColorRGB.SRgbToLinear((ColorRGB)value);
-						material.SetVariable(variable.Name, value);
+						material.GetVariable<float3>(variable.Name, var value);
+
+						value = (float3)ColorRGB.LinearToSRGB((ColorRGB)value);
+
+						if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value))
+						{
+							value = (float3)ColorRGB.SRgbToLinear((ColorRGB)value);
+							material.SetVariable(variable.Name, value);
+						}
+					}
+					else if (variable.Columns == 4)
+					{
+						material.GetVariable<float4>(variable.Name, var value);
+						
+						value = (float4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
+
+						if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value))
+						{
+							value = (float4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
+							material.SetVariable(variable.Name, value);
+						}
 					}
 				}
-				else if (variable.Columns == 4)
+				else if (previewType.Get<String>().Equals("ColorHDR", .InvariantCultureIgnoreCase))
 				{
-					material.GetVariable<float4>(variable.Name, var value);
-					
-					value = (float4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
+					Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
 
-					if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value))
+					if (variable.Columns == 3)
 					{
-						value = (float4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
-						material.SetVariable(variable.Name, value);
+						material.GetVariable<float3>(variable.Name, var value);
+
+						value = (float3)ColorRGB.LinearToSRGB((ColorRGB)value);
+
+						if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value, .HDR | .Float))
+						{
+							value = (float3)ColorRGB.SRgbToLinear((ColorRGB)value);
+							material.SetVariable(variable.Name, value);
+						}
+					}
+					else if (variable.Columns == 4)
+					{
+						material.GetVariable<float4>(variable.Name, var value);
+						
+						value = (float4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
+
+						if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value, .HDR | .Float))
+						{
+							value = (float4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
+							material.SetVariable(variable.Name, value);
+						}
 					}
 				}
 			}
+			//ImGui.ColorEdit3("", null, .HDR | .Float)
+
 			else if (variable.Type == .Float && variable.Rows == 1)
 			{
 				bool hasMin = TryGetValue(arguments, "Min", var min);

@@ -15,7 +15,8 @@ Texture2D GBuffer_Albedo : register(t0);
 Texture2D GBuffer_Normal : register(t1);
 Texture2D GBuffer_Tangent : register(t2);
 Texture2D GBuffer_Position : register(t3);
-Texture2D GBuffer_Material : register(t4);
+Texture2D GBuffer_Emissive : register(t4);
+Texture2D GBuffer_Material : register(t5);
 
 cbuffer Constants
 {
@@ -58,7 +59,8 @@ float4 PS(PS_IN input) : SV_TARGET
     float4 rawAlbedo = GBuffer_Albedo.Sample(Sampler, input.TexCoord);
 	float4 rawNormal = GBuffer_Normal.Sample(Sampler, input.TexCoord);
 	float4 rawTangent = GBuffer_Tangent.Sample(Sampler, input.TexCoord);
-	float4 rawPosition = GBuffer_Position.Sample(Sampler, input.TexCoord);
+    float4 rawPosition = GBuffer_Position.Sample(Sampler, input.TexCoord);
+    float4 rawEmissive = GBuffer_Emissive.Sample(Sampler, input.TexCoord);
 	float4 rawMaterial = GBuffer_Material.Sample(Sampler, input.TexCoord);
 
 	// Extract data from GBuffer
@@ -108,7 +110,7 @@ float4 PS(PS_IN input) : SV_TARGET
 
 	float3 luminanceColor = LightColor * Illuminance;
 
-	float3 final = (kd * diffuse + specular) * luminanceColor * n_dot_l;
+    float3 final = (kd * diffuse + specular) * luminanceColor * n_dot_l + rawEmissive;
 	
 #if OUTPUT == Inspect_NormalDistribution
 		final = max(final - 10000000, nrmDist.xxx);

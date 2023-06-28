@@ -93,7 +93,7 @@ namespace GlitchyEditor
 
 		public this(EditorContentManager contentManager) : base("Editor")
 		{
-			Application.Get().Window.IsVSync = false;
+			Application.Get().Window.IsVSync = true;
 
 			_contentManager = contentManager;
 

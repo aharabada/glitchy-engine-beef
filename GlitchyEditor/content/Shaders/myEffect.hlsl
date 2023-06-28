@@ -2,6 +2,8 @@
 
 #include "ShaderHelpers.hlsl"
 
+#include "GlitchyEngine.hlsl"
+
 Texture2D AlbedoTexture : register(t0);
 SamplerState AlbedoSampler : register(s0);
 
@@ -14,28 +16,11 @@ SamplerState MetallicSampler : register(s2);
 Texture2D<float> RoughnessTexture : register(t3);
 SamplerState RoughnessSampler : register(s3);
 
-// Texture2D<float> AmbientTexture : register(t4);
-// SamplerState AmbientSampler : register(s4);
+Texture2D<float3> EmissiveTexture : register(t4);
+SamplerState EmissiveSampler : register(s4);
 
-#pragma EngineBuffer[ Name = "SceneConstants"; Binding = "Scene" ]
-cbuffer SceneConstants : register(b0)
-{
-    float4x4 ViewProjection;
-}
-
-#pragma EngineBuffer[ Name = "ObjectConstants"; Binding = "Object" ]
-cbuffer ObjectConstants : register(b1)
-{
-    float4x4 Transform;
-    /**
-     * \brief Inverted and transposed transform matrix.
-     * \remarks This matrix is used in order to correctly transform normal vectors.
-     */
-    float4x3 Transform_InvT;
-#ifdef OutputEntityId
-    uint EntityId;
-#endif
-}
+// Texture2D<float> AmbientTexture : register(t5);
+// SamplerState AmbientSampler : register(s5);
 
 cbuffer MaterialConstants : register(b2)
 {
@@ -44,9 +29,12 @@ cbuffer MaterialConstants : register(b2)
     #pragma EditorVariable[ Name = "NormalScaling"; Preview = "Normal Scaling" ]
     float2 NormalScaling = float2(1.0, 1.0);
     #pragma EditorVariable[ Name = "MetallicFactor"; Preview = "Metallic Factor"; Min = 0.0f; Max = 1.0f ]
-    float MetallicFactor = 1.0;
+    float MetallicFactor = 0.0;
     #pragma EditorVariable[ Name = "RoughnessFactor"; Preview = "Rougness Factor"; Min = 0.0f; Max = 1.0f ]
-    float RoughnessFactor = 1.0;
+    float RoughnessFactor = 0.6;
+    #pragma EditorVariable[ Name = "EmissiveColor"; Preview = "Emissive Factor"; Type="ColorHDR" ]
+    float3 EmissiveColor = float3(0.0, 0.0, 0.0);
+    // # pra gma Editor Variable[ Name = "AmbientFactor"; Preview = "Ambient Factor" ]
     // float AmbientFactor = 1.0;
 }
 
@@ -59,7 +47,7 @@ struct VS_IN
 	float2 TexCoord     : TEXCOORD;
 };
 
-struct PS_IN
+typedef struct PS_IN
 {
     float4 Position      : SV_POSITION;
     float3 WorldPosition : WORLDPOSITION;
@@ -70,11 +58,11 @@ struct PS_IN
 #ifdef OutputEntityId
     nointerpolation uint EntityId : ENTITYID;
 #endif
-};
+} VS_OUT;
 
-PS_IN VS(VS_IN input)
+VS_OUT VS(VS_IN input)
 {
-    PS_IN output;
+    VS_OUT output;
 	
 	float4 worldPosition = mul(Transform, float4(input.Position, 1));
 	
@@ -92,22 +80,22 @@ PS_IN VS(VS_IN input)
     return output;
 }
 
-struct PS_OUT
-{
-    float4 Albedo   : SV_TARGET0;
-    // RG: TextureNormal.XY BA: GeoNrm.XY
-    float4 Normal   : SV_TARGET1;
-    // R: GeoNrm.Z GBA: GeoTan.XYZ
-    float4 Tangent   : SV_TARGET2;
-    float4 Position : SV_TARGET3;
-    // R: Metallicity G: Roughness B: Ambient
-    float4 Material : SV_TARGET4;
-#ifdef OutputEntityId
-    uint EntityId : SV_TARGET5;
-#endif
-};
+//struct PS_OUT
+//{
+//    float4 Albedo   : SV_TARGET0;
+//    // RG: TextureNormal.XY BA: GeoNrm.XY
+//    float4 Normal   : SV_TARGET1;
+//    // R: GeoNrm.Z GBA: GeoTan.XYZ
+//    float4 Tangent   : SV_TARGET2;
+//    float4 Position : SV_TARGET3;
+//    // R: Metallicity G: Roughness B: Ambient
+//    float4 Material : SV_TARGET4;
+//#ifdef OutputEntityId
+//    uint EntityId : SV_TARGET5;
+//#endif
+//};
 
-PS_OUT PS(PS_IN input)
+PS_OUT_Lit PS(PS_IN input)
 {
     // Build tangent space
     float3 normal = normalize(input.Normal);
@@ -124,6 +112,9 @@ PS_OUT PS(PS_IN input)
     float texMetallic = MetallicTexture.Sample(MetallicSampler, input.TexCoord);
     float texRoughness = RoughnessTexture.Sample(RoughnessSampler, input.TexCoord);
 
+    
+    float3 texEmissive = EmissiveTexture.Sample(EmissiveSampler, input.TexCoord);
+
     //float3 objectNormal = mul(tangentTransform, texNormal);
     //float3 worldNormal = mul(objectNormal, (float3x3)Transform);
 
@@ -131,6 +122,7 @@ PS_OUT PS(PS_IN input)
     float3 finalNormal = ScaleNormal(texNormal, NormalScaling);
     float finalMetallic = texMetallic * MetallicFactor;
     float finalRoughness = texRoughness * RoughnessFactor;
+    float3 finalEmissive = texEmissive * EmissiveColor;
 
 /////////////TODO: REMOVEME
 
@@ -141,12 +133,13 @@ PS_OUT PS(PS_IN input)
 
 /////////////TODO: END_REMOVEME
 
-    PS_OUT output;
+    PS_OUT_Lit output;
     output.Albedo = finalAlbedo;
     //output.Normal = float4(objectNormal, 1.0);
     output.Normal = float4(finalNormal.xy, normal.xy);
     output.Tangent = float4(normal.z, tangent.xyz);
-	output.Position = float4(input.WorldPosition, 1.0); 
+	output.Position = float4(input.WorldPosition, 1.0);
+    output.Emissive = float4(finalEmissive, 0.0);
     output.Material = float4(finalMetallic, finalRoughness, 1.0, 0);
 
 #ifdef OutputEntityId

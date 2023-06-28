@@ -45,6 +45,11 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
+		public bool TryGetVariable(String name, out BufferVariable variable)
+		{
+			return _nameToVariable.TryGetValue(name, out variable);
+		}
+
 		public BufferVariable this[String name] => _nameToVariable[name];
 
 		public List<BufferVariable>.Enumerator GetEnumerator()

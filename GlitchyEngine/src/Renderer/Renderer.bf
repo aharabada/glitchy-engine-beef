@@ -40,21 +40,29 @@ namespace GlitchyEngine.Renderer
 
 				if (_width == 0 || _height == 0)
 				{
-					SamplerStateDescription desc = .();
-					desc.MinFilter = .Point;
-					desc.MagFilter = .Point;
+					SamplerStateDescription samplerDesc = .();
+					samplerDesc.MinFilter = .Point;
+					samplerDesc.MagFilter = .Point;
 
 					RenderTargetGroupDescription targetDesc = .(width, height,
 						TargetDescription[](
-							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = desc},
-							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = desc},
-							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = desc},
-							.(RenderTargetFormat.R32G32B32A32_Float){SamplerDescription = desc},
-							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = desc},
-							.(RenderTargetFormat.R32_UInt){SamplerDescription = desc, ClearColor = .UInt(uint32.MaxValue)},
+							// RGB: Albedo A: Transparency
+							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = samplerDesc},
+							// RG: TextureNormal.XY | BA: GeoNrm.XY
+							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = samplerDesc},
+							// R: GeoNrm.Z | GBA: GeoTan.XYZ
+							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = samplerDesc},
+							// RGB: world position XYZ | A: 1.0
+							.(RenderTargetFormat.R32G32B32A32_Float){SamplerDescription = samplerDesc},
+							// RGB: emissive light and color | A: unused
+							.(RenderTargetFormat.R16G16B16A16_Float){SamplerDescription = samplerDesc},
+							// R: Metallicity | G: Roughness | B: Ambient | A: Unused
+							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = samplerDesc},
+							// EntityId : Needed for editor picking. Simply pass through the EntityId.
+							.(RenderTargetFormat.R32_UInt){SamplerDescription = samplerDesc, ClearColor = .UInt(uint32.MaxValue)},
 						),
 						TargetDescription(.D24_UNorm_S8_UInt){
-							SamplerDescription = desc,
+							SamplerDescription = samplerDesc,
 							ClearColor = .DepthStencil(1.0f, 0)
 						});
 					Target = new RenderTargetGroup(targetDesc);
@@ -348,7 +356,8 @@ namespace GlitchyEngine.Renderer
 					fsEffect.SetTexture("GBuffer_Normal", _gBuffer.Target, 1);
 					fsEffect.SetTexture("GBuffer_Tangent", _gBuffer.Target, 2);
 					fsEffect.SetTexture("GBuffer_Position", _gBuffer.Target, 3);
-					fsEffect.SetTexture("GBuffer_Material", _gBuffer.Target, 4);
+					fsEffect.SetTexture("GBuffer_Emissive", _gBuffer.Target, 4);
+					fsEffect.SetTexture("GBuffer_Material", _gBuffer.Target, 5);
 		
 					fsEffect.Variables["LightColor"].SetData(light.Light.Color);
 					fsEffect.Variables["Illuminance"].SetData(light.Light.Illuminance);
@@ -369,7 +378,7 @@ namespace GlitchyEngine.Renderer
 				_lights.Clear();
 
 				// Copy EntityIDs to compositionTarget
-				_gBuffer.Target.CopyTo(_sceneConstants.CompositionTarget, 1, Int2.Zero, Int2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height), Int2.Zero, 5);
+				_gBuffer.Target.CopyTo(_sceneConstants.CompositionTarget, 1, Int2.Zero, Int2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height), Int2.Zero, 6);
 
 				RenderCommand.SetBlendState(_gBufferBlend);
 

@@ -4,7 +4,8 @@
 		"AlbedoTexture": "Textures/TestMat/rustediron2_albedo.png",
 		"NormalTexture": "Textures/TestMat/rustediron2_normal.png",
 		"MetallicTexture": "Textures/TestMat/rustediron2_metallic.png",
-		"RoughnessTexture": "Textures/TestMat/rustediron2_roughness.png"
+		"RoughnessTexture": "Textures/TestMat/rustediron2_roughness.png",
+		"EmissiveTexture": "Textures/rocket.png"
 	],
 	Variables = [
 		"AlbedoColor": .ColorRGBA{
@@ -26,6 +27,13 @@
 		},
 		"RoughnessFactor": .Float{
 			Value = 1
+		},
+		"EmissiveColor": .ColorRGB{
+			Value = {
+				R = 1,
+				G = 0,
+				B = 0
+			}
 		}
 	]
 }
