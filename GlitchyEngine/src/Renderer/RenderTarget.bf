@@ -2,6 +2,7 @@ using GlitchyEngine.Core;
 using System;
 using System.Collections;
 using GlitchyEngine.Math;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine.Renderer
 {
@@ -107,6 +108,28 @@ namespace GlitchyEngine.Renderer
 		case Depth = D24_UNorm_S8_UInt;
 
 		public bool IsDepth => HasFlag(DepthMarker);
+
+		public bool IsInt()
+		{
+			switch(this)
+			{
+			case R8_SInt:
+				return true;
+			default:
+				return false;
+			}
+		}
+
+		public bool IsUInt()
+		{
+			switch(this)
+			{
+			case R32_UInt:
+				return true;
+			default:
+				return false;
+			}
+		}
 	}
 
 	public enum ClearColor
@@ -129,7 +152,7 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public struct TargetDescription
+	public struct TargetDescription : IDisposable
 	{
 		public RenderTargetFormat Format = .None;
 
@@ -140,21 +163,29 @@ namespace GlitchyEngine.Renderer
 		public ClearColor ClearColor = .Default;
 
 		public SamplerStateDescription SamplerDescription = .();
+		
+		public String DebugName = null;
 
 		public this() {  }
 
-		public this(RenderTargetFormat format, bool isSwapchainTarget = false, bool isShaderReadable = true, ClearColor clearColor = .Default, SamplerStateDescription samplerDescription = .())
+		public this(RenderTargetFormat format, bool isSwapchainTarget = false, bool isShaderReadable = true, ClearColor clearColor = .Default, SamplerStateDescription samplerDescription = .(), String ownDebugName = null)
 		{
 			Format = format;
 			IsSwapchainTarget = isSwapchainTarget;
 			IsShaderReadable = isShaderReadable;
 			SamplerDescription = samplerDescription;
 			ClearColor = clearColor;
+			DebugName = ownDebugName;
 		}
 
 		public static implicit operator Self(RenderTargetFormat format)
 		{
 			return Self(format);
+		}
+
+		public void Dispose()
+		{
+			delete DebugName;
 		}
 	}
 
@@ -181,15 +212,22 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
-	public class RenderTargetGroup : RefCounter
+	public class RenderTargetGroup : Asset
 	{
 		internal RenderTargetGroupDescription _description;
 
-		internal TargetDescription[] _colorTargetDescriptions ~ delete _;
+		internal TargetDescription[] _colorTargetDescriptions ~ {
+			for (var desc in _)
+			{
+				desc.Dispose();
+			}
+
+			delete _;
+		};
 		internal SamplerState[] _colorSamplerStates ~ DeleteContainerAndReleaseItems!(_);
 		internal SamplerState _depthSamplerState ~ _?.ReleaseRef();
 
-		internal TargetDescription _depthTargetDescription;
+		internal TargetDescription _depthTargetDescription ~ _.Dispose();
 
 		public uint32 Width => _description.Width;
 		public uint32 Height => _description.Height;
@@ -200,6 +238,8 @@ namespace GlitchyEngine.Renderer
 
 		public int TargetCount => _colorTargetDescriptions.Count + (_depthTargetDescription.Format.IsDepth ? 1 : 0);
 		public int ColorTargetCount => _colorTargetDescriptions.Count;
+
+		public bool HasDepth => _depthTargetDescription.Format.IsDepth;
 
 		[AllowAppend]
 		public this(RenderTargetGroupDescription description)
@@ -265,6 +305,18 @@ namespace GlitchyEngine.Renderer
 			return PlatformGetViewBinding(index);
 		}
 
+		public TargetDescription GetTargetDescription(int index)
+		{
+			if (index == -1 && HasDepth)
+			{
+				return _depthTargetDescription;
+			}
+			else
+			{
+				return _colorTargetDescriptions[index];
+			}
+		}
+
 		protected extern TextureViewBinding PlatformGetViewBinding(int index);
 
 		protected extern Result<void> PlatformGetData(void* destination, uint32 elementSize,
@@ -278,6 +330,6 @@ namespace GlitchyEngine.Renderer
 			return PlatformGetData(data, (.)sizeof(T), left, top, width, height, renderTarget, arraySlice, mipSlice);
 		}
 
-		public extern void CopyTo(RenderTargetGroup destination, int dstTarget, Int2 dstTopLeft, Int2 size, Int2 srcTopLeft, int srcTarget);
+		public extern void CopyTo(RenderTargetGroup destination, int dstTarget, int2 dstTopLeft, int2 size, int2 srcTopLeft, int srcTarget);
 	}
 }

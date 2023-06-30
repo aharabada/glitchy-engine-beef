@@ -23,7 +23,7 @@ enum ScriptFieldType
 
 	SByte,
 	Short,
-	Int,// Int2, Int3, Int4,
+	Int,// int2, int3, int4,
 	Long,
 	Byte,
 	UShort,

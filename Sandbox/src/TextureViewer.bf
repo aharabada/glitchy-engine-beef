@@ -157,7 +157,7 @@ namespace Sandbox
 
 			if(_moving)
 			{
-				Int2 movement = Input.GetMouseMovement();
+				int2 movement = Input.GetMouseMovement();
 
 				_position.X += movement.X;
 				_position.Y += movement.Y;

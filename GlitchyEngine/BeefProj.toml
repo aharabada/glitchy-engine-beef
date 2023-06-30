@@ -41,3 +41,8 @@ Name = "Vector3.bf"
 [[ProjectFolder.Items.Items]]
 Type = "IgnoreSource"
 Name = "Vector4.bf"
+
+[[ProjectFolder.Items.Items]]
+Type = "IgnoreFolder"
+Name = "Vectors"
+AutoInclude = true

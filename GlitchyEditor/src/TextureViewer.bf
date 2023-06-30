@@ -105,6 +105,7 @@ namespace GlitchyEditor
 			{
 				_target?.ReleaseRef();
 				_target = new RenderTarget2D(.(.R8G8B8A8_UNorm, (.)viewportSize.x, (.)viewportSize.y));
+				_target.SamplerState = SamplerStateManager.PointClamp;
 				_depth?.ReleaseRef();
 				_depth = new DepthStencilTarget((.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
 			}
@@ -158,7 +159,7 @@ namespace GlitchyEditor
 
 			if(_moving)
 			{
-				Int2 movement = Input.GetMouseMovement();
+				int2 movement = Input.GetMouseMovement();
 
 				_position.X += movement.X;
 				_position.Y += movement.Y;

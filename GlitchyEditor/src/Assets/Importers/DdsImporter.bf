@@ -430,9 +430,13 @@ static class DdsImporter
 
 		switch (textureInfo.PixelFormat)
 		{
-		case .BC1_UNorm, .BC1_UNorm_SRGB, .BC4_UNorm:
+		case .BC1_UNorm, .BC1_UNorm_SRGB, .BC1_Typeless,
+			 .BC4_UNorm, .BC4_SNorm, .BC4_Typeless:
 			blockSize = 8;
-		case .BC2_UNorm, .BC2_UNorm_SRGB, .BC3_UNorm, .BC3_UNorm_SRGB, .BC5_UNorm:
+		case .BC2_UNorm, .BC2_UNorm_SRGB, .BC2_Typeless,
+			 .BC3_UNorm, .BC3_UNorm_SRGB, .BC3_Typeless,
+			 .BC5_UNorm, .BC5_SNorm, .BC5_Typeless,
+			 .BC7_UNorm, .BC7_UNorm_SRGB, .BC7_Typeless:
 			blockSize = 16;
 		default:
 		}

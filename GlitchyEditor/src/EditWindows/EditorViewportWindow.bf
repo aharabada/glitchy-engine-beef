@@ -183,7 +183,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (any(newMousePos != mousePos))
 			{
-				Input.SetMousePosition((Int2)newMousePos);
+				Input.SetMousePosition((int2)newMousePos);
 				// After wrapping the cursor the the other side, the camera controller must not compare the positions,
 				// because the delta doesn't represent the correct movement of the cursor.
 				// TODO: can be solved by using direct mouse movement instead of comparing positions

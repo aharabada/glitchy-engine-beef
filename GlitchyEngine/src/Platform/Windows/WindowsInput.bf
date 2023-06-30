@@ -19,13 +19,13 @@ namespace GlitchyEngine
 		//[CLink, CallingConvention(.Stdcall)]
 		//static extern int16 GetKeyState(int32 keycode);
 		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool GetCursorPos(out Int2 p);
+		static extern IntBool GetCursorPos(out int2 p);
 		[CLink, CallingConvention(.Stdcall)]
 		static extern IntBool SetCursorPos(c_int x, c_int y);
 		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool ScreenToClient(HWnd hWnd, ref Int2 p);
+		static extern IntBool ScreenToClient(HWnd hWnd, ref int2 p);
 		[CLink, CallingConvention(.Stdcall)]
-		static extern IntBool ClientToScreen(HWnd hWnd, ref Int2 p);
+		static extern IntBool ClientToScreen(HWnd hWnd, ref int2 p);
 
 		[Import("user32.lib"), CLink]
 		public static extern IntBool RegisterRawInputDevices(RAWINPUTDEVICE* pRawInputDevices, uint32 uiNumDevices, uint32 cbSize);
@@ -50,9 +50,9 @@ namespace GlitchyEngine
 		struct WindowsInputState
 		{
 			public int8[256] KeyStates;
-			public Int2 CursorPosition;
-			public Int2 CursorPositionDifference;
-			public Int2 RawCursorMovement;
+			public int2 CursorPosition;
+			public int2 CursorPositionDifference;
+			public int2 RawCursorMovement;
 		}
 
 		static WindowsInputState[2] IputStates;
@@ -157,11 +157,11 @@ namespace GlitchyEngine
 		
 		public override static bool IsMouseButtonReleasing(MouseButton button) => IsMouseButtonReleased(button) && WasMouseButtonPressed(button);
 		
-		public override static Int2 GetMousePosition() => CurrentState.CursorPosition;
+		public override static int2 GetMousePosition() => CurrentState.CursorPosition;
 
-		public override static Int2 GetMouseMovement() => CurrentState.CursorPositionDifference;
+		public override static int2 GetMouseMovement() => CurrentState.CursorPositionDifference;
 		
-		public override static Int2 GetRawMouseMovement() => CurrentState.RawCursorMovement;
+		public override static int2 GetRawMouseMovement() => CurrentState.RawCursorMovement;
 
 		public override static int32 GetMouseX() => CurrentState.CursorPosition.X;
 
@@ -182,17 +182,17 @@ namespace GlitchyEngine
 			return state >= 0;
 		}
 
-		public override static Int2 GetLastMousePosition() => LastState.CursorPosition;
+		public override static int2 GetLastMousePosition() => LastState.CursorPosition;
 		
-		public override static Int2 GetLastMouseMovement() => LastState.CursorPositionDifference;
+		public override static int2 GetLastMouseMovement() => LastState.CursorPositionDifference;
 		
-		public override static Int2 GetLastRawMouseMovement() => LastState.RawCursorMovement;
+		public override static int2 GetLastRawMouseMovement() => LastState.RawCursorMovement;
 
 		public override static int32 GetLastMouseX() => LastState.CursorPosition.X;
 
 		public override static int32 GetLastMouseY() => LastState.CursorPosition.Y;
 
-		public override static void SetMousePosition(Int2 pos)
+		public override static void SetMousePosition(int2 pos)
 		{
 			HWnd windowHandle = (HWnd)(int)Application.Get().Window.NativeWindow;
 

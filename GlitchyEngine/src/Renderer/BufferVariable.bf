@@ -77,7 +77,31 @@ namespace GlitchyEngine.Renderer
 			{
 			case typeof(bool):
 				EnsureTypeMatch(1, 1, .Bool);
+			case typeof(bool2):
+				EnsureTypeMatch(1, 2, .Bool);
+			case typeof(bool3):
+				EnsureTypeMatch(1, 3, .Bool);
+			case typeof(bool4):
+				EnsureTypeMatch(1, 4, .Bool);
+				
+			case typeof(int32):
+				EnsureTypeMatch(1, 1, .Int);
+			case typeof(int2):
+				EnsureTypeMatch(1, 2, .Int);
+			case typeof(int3):
+				EnsureTypeMatch(1, 3, .Int);
+			case typeof(int4):
+				EnsureTypeMatch(1, 4, .Int);
 
+			case typeof(uint32):
+				EnsureTypeMatch(1, 1, .UInt);
+			case typeof(uint2):
+				EnsureTypeMatch(1, 2, .UInt);
+			case typeof(uint3):
+				EnsureTypeMatch(1, 3, .UInt);
+			case typeof(uint4):
+				EnsureTypeMatch(1, 4, .UInt);
+			
 			case typeof(float):
 				EnsureTypeMatch(1, 1, .Float);
 			case typeof(float2):
@@ -87,18 +111,6 @@ namespace GlitchyEngine.Renderer
 			case typeof(float4):
 				EnsureTypeMatch(1, 4, .Float);
 				
-			case typeof(int32):
-					EnsureTypeMatch(1, 1, .Int);
-			case typeof(Int2):
-					EnsureTypeMatch(1, 2, .Int);
-			case typeof(Int3):
-					EnsureTypeMatch(1, 3, .Int);
-			case typeof(Int4):
-					EnsureTypeMatch(1, 4, .Int);
-
-			case typeof(uint32):
-					EnsureTypeMatch(1, 1, .UInt);
-
 			case typeof(Matrix4x3):
 				EnsureTypeMatch(4, 3, .Float);
 			case typeof(Matrix3x3):
@@ -130,19 +142,25 @@ namespace GlitchyEngine.Renderer
 		}
 
 		public void SetData(bool value) => SetData<bool>(value);
+		public void SetData(bool2 value) => SetData<bool2>(value);
+		public void SetData(bool3 value) => SetData<bool3>(value);
+		public void SetData(bool4 value) => SetData<bool4>(value);
+		
+		public void SetData(int32 value) => SetData<int32>(value);
+		public void SetData(int2 value) => SetData<int2>(value);
+		public void SetData(int3 value) => SetData<int3>(value);
+		public void SetData(int4 value) => SetData<int4>(value);
+
+		public void SetData(uint32 value) => SetData<uint32>(value);
+		public void SetData(uint2 value) => SetData<uint2>(value);
+		public void SetData(uint3 value) => SetData<uint3>(value);
+		public void SetData(uint4 value) => SetData<uint4>(value);
 
 		public void SetData(float value) => SetData<float>(value);
 		public void SetData(float2 value) => SetData<float2>(value);
 		public void SetData(float3 value) => SetData<float3>(value);
 		public void SetData(float4 value) => SetData<float4>(value);
 
-		public void SetData(int32 value) => SetData<int32>(value);
-		public void SetData(Int2 value) => SetData<Int2>(value);
-		public void SetData(Int3 value) => SetData<Int3>(value);
-		public void SetData(Int4 value) => SetData<Int4>(value);
-
-		public void SetData(uint32 value) => SetData<uint32>(value);
-		
 		public void SetData(ColorRGB value) => SetData<ColorRGB>(value);
 		public void SetData(ColorRGBA value) => SetData<ColorRGBA>(value);
 		public void SetData(Color value) => SetData<ColorRGBA>((ColorRGBA)value);

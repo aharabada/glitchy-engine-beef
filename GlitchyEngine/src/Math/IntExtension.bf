@@ -13,12 +13,32 @@ namespace System
 		}
 
 		[Inline]
-		public Int2 XX => Int2((int32)this);
+		public int2 XX => (int32)this;
 
 		[Inline]
-		public Int3 XXX => Int3((int32)this);
+		public int3 XXX => (int32)this;
 
 		[Inline]
-		public Int4 XXXX => Int4((int32)this);
+		public int4 XXXX => (int32)this;
+	}
+
+	extension UInt32
+	{
+		public uint32 X
+		{
+			[Inline]
+			get => (uint32)this;
+			[Inline]
+			set mut => this = value;
+		}
+
+		[Inline]
+		public uint2 XX => (uint32)this;
+
+		[Inline]
+		public uint3 XXX => (uint32)this;
+
+		[Inline]
+		public uint4 XXXX => (uint32)this;
 	}
 }

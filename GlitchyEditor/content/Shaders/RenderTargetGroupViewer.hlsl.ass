@@ -1,0 +1,4 @@
+{
+	AssetLoader = "EffectAssetLoader",
+	Config = (GlitchyEditor.Assets.EffectAssetLoaderConfig){}/* No reflection data for GlitchyEditor.Assets.EffectAssetLoaderConfig. Add [BonTarget] or force it */
+}

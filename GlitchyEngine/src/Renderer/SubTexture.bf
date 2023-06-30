@@ -13,7 +13,7 @@ namespace GlitchyEngine.Renderer
 		
 		public this(Texture2D texture) : this(_texture, .(0, 0, 1, 1)) {  }
 
-		public this(Texture2D texture, Int2 topLeft, Int2 size) :
+		public this(Texture2D texture, int2 topLeft, int2 size) :
 			this(texture,
 			{
 				float2 texSize = float2(texture.Width, texture.Height);

@@ -29,7 +29,7 @@ namespace GlitchyEngine.Renderer
 			public uint32 Width => _width;
 			public uint32 Height => _height;
 
-			public Int2 Size => .(_width, _height);
+			public uint2 Size => .(_width, _height);
 
 			public RenderTargetGroup Target ~ _?.ReleaseRef();
 
@@ -47,25 +47,28 @@ namespace GlitchyEngine.Renderer
 					RenderTargetGroupDescription targetDesc = .(width, height,
 						TargetDescription[](
 							// RGB: Albedo A: Transparency
-							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = samplerDesc},
+							.(RenderTargetFormat.R8G8B8A8_UNorm, ownDebugName: new String("RGB: Albedo A: Alpha")){SamplerDescription = samplerDesc},
 							// RG: TextureNormal.XY | BA: GeoNrm.XY
-							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = samplerDesc},
+							.(RenderTargetFormat.R16G16B16A16_SNorm, ownDebugName: new String("RG: TextureNormal.XY | BA: GeoNrm.XY")){SamplerDescription = samplerDesc},
 							// R: GeoNrm.Z | GBA: GeoTan.XYZ
-							.(RenderTargetFormat.R16G16B16A16_SNorm){SamplerDescription = samplerDesc},
+							.(RenderTargetFormat.R16G16B16A16_SNorm, ownDebugName: new String("R: GeoNrm.Z | GBA: GeoTan.XYZ")){SamplerDescription = samplerDesc},
 							// RGB: world position XYZ | A: 1.0
-							.(RenderTargetFormat.R32G32B32A32_Float){SamplerDescription = samplerDesc},
+							.(RenderTargetFormat.R32G32B32A32_Float, ownDebugName: new String("RGB: world position XYZ | A: 1.0")){SamplerDescription = samplerDesc},
 							// RGB: emissive light and color | A: unused
-							.(RenderTargetFormat.R16G16B16A16_Float){SamplerDescription = samplerDesc},
+							.(RenderTargetFormat.R16G16B16A16_Float, ownDebugName: new String("RGB: emissive light and color | A: unused")){SamplerDescription = samplerDesc},
 							// R: Metallicity | G: Roughness | B: Ambient | A: Unused
-							.(RenderTargetFormat.R8G8B8A8_UNorm){SamplerDescription = samplerDesc},
+							.(RenderTargetFormat.R8G8B8A8_UNorm, ownDebugName: new String("R: Metallicity | G: Roughness | B: Ambient | A: Unused")){SamplerDescription = samplerDesc},
 							// EntityId : Needed for editor picking. Simply pass through the EntityId.
-							.(RenderTargetFormat.R32_UInt){SamplerDescription = samplerDesc, ClearColor = .UInt(uint32.MaxValue)},
+							.(RenderTargetFormat.R32_UInt, ownDebugName: new String("EntityId")){SamplerDescription = samplerDesc, ClearColor = .UInt(uint32.MaxValue)},
 						),
-						TargetDescription(.D24_UNorm_S8_UInt){
+						TargetDescription(.D24_UNorm_S8_UInt, ownDebugName: new String("DepthStencil")){
 							SamplerDescription = samplerDesc,
 							ClearColor = .DepthStencil(1.0f, 0)
 						});
 					Target = new RenderTargetGroup(targetDesc);
+					// TODO: there needs to be a proper way to do it
+					Target.[Friend]Identifier = "GBuffer";
+					Content.ManageAsset(Target, null);
 				}
 
 				_width = width;
@@ -120,6 +123,7 @@ namespace GlitchyEngine.Renderer
 			RenderCommand.Init();
 			Renderer2D.Init();
 			FullscreenQuad.Init();
+			Quad.Init();
 
 			InitLineRenderer();
 			InitDeferredRenderer();
@@ -135,6 +139,7 @@ namespace GlitchyEngine.Renderer
 			
 			FullscreenQuad.Deinit();
 			Renderer2D.Deinit();
+			Quad.Deinit();
 		}
 
 		static void InitLineRenderer()
@@ -301,7 +306,6 @@ namespace GlitchyEngine.Renderer
 
 				RenderCommand.SetBlendState(_gBufferBlend);
 
-
 				for (SubmittedMesh entry in _queue)
 				{
 					Debug.Profiler.ProfileRendererScope!("Draw Mesh");
@@ -378,7 +382,7 @@ namespace GlitchyEngine.Renderer
 				_lights.Clear();
 
 				// Copy EntityIDs to compositionTarget
-				_gBuffer.Target.CopyTo(_sceneConstants.CompositionTarget, 1, Int2.Zero, Int2(_sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height), Int2.Zero, 6);
+				_gBuffer.Target.CopyTo(_sceneConstants.CompositionTarget, 1, int2.Zero, int2((int32)_sceneConstants.CameraTarget.Width, (int32)_sceneConstants.CameraTarget.Height), int2.Zero, 6);
 
 				RenderCommand.SetBlendState(_gBufferBlend);
 

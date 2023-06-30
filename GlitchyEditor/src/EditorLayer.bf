@@ -327,7 +327,8 @@ namespace GlitchyEditor
 
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
-			Input.ImGuiDebugDraw();
+			// TODO: make window
+			//Input.ImGuiDebugDraw();
 
 			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Target);
 
@@ -705,6 +706,9 @@ namespace GlitchyEditor
 
 				if(ImGui.MenuItem(PropertiesWindow.s_WindowTitle))
 					_editor.PropertiesWindow.Open = true;
+
+				if(ImGui.MenuItem(AssetViewer.s_WindowTitle))
+					_editor.AssetViewer.Open = true;
 
 				ImGui.EndMenu();
 			}

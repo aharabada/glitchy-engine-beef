@@ -260,7 +260,7 @@ namespace GlitchyEngine.World
 
 			var mouseDelta = Input.GetMouseMovement();
 			
-			if (MouseCooldown == 0 && Input.IsMouseButtonPressed(.LeftButton) && mouseDelta != .())
+			if (MouseCooldown == 0 && Input.IsMouseButtonPressed(.LeftButton) && any(mouseDelta != .Zero))
 			{
 				float2 movement = .(
 					-mouseDelta.X,
@@ -275,7 +275,7 @@ namespace GlitchyEngine.World
 				transformChanged = true;
 			}
 
-			if (MouseCooldown == 0 && Input.IsMouseButtonPressed(.RightButton) && mouseDelta != .())
+			if (MouseCooldown == 0 && Input.IsMouseButtonPressed(.RightButton) && any(mouseDelta != .()))
 			{
 				float rotY = mouseDelta.X * _cameraRotationSpeedX;
 				float rotX = mouseDelta.Y * _cameraRotationSpeedY;

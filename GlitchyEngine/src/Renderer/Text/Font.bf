@@ -20,7 +20,7 @@ namespace GlitchyEngine.Renderer.Text
 			public FT_UInt GlyphIndex;
 
 			// TODO: Consider using floats
-			public Int3 MapCoord;
+			public int3 MapCoord;
 			public int32 Width, Height;
 
 			public double TranslationX, TranslationY;
@@ -49,10 +49,10 @@ namespace GlitchyEngine.Renderer.Text
 		private int32 _faceIndex;
 		private bool _hasColor;
 		
-		private Int3 _penPos;
+		private int3 _penPos;
 		private int32 _lastRowHeight;
 		internal Texture2D _atlas ~ _?.ReleaseRef();
-		private Int3 _atlasSize;
+		private int3 _atlasSize;
 
 		private Dictionary<char32, GlyphDescriptor> _glyphs = new .() ~ delete _;//DeleteDictionaryAndValues!(_);
 		private Dictionary<uint32, GlyphDescriptor> _glyphsById = new .() ~ DeleteDictionaryAndValues!(_);
@@ -335,14 +335,14 @@ namespace GlitchyEngine.Renderer.Text
 			UpdateAtlas();
 		}
 
-		Int3 PrepareAtlas()
+		int3 PrepareAtlas()
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
 			const uint32 maxRes = 16384; // D3D11_REQ_TEXTURE2D_U_OR_V_DIMENSION
 			const uint32 maxArray = 2048; // D3D11_REQ_TEXTURE2D_ARRAY_AXIS_DIMENSION
 			
-			ref Int3 pen = ref _penPos;
+			ref int3 pen = ref _penPos;
 			ref int32 rowHeight = ref _lastRowHeight;
 
 			int32 atlasWidth = _atlasSize.X;
@@ -422,10 +422,10 @@ namespace GlitchyEngine.Renderer.Text
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			Int3 oldAtlasSize = _atlasSize;
+			int3 oldAtlasSize = _atlasSize;
 			_atlasSize = PrepareAtlas();
 
-			if(_atlasSize != oldAtlasSize)
+			if(any(_atlasSize != oldAtlasSize))
 			{
 				Debug.Profiler.ProfileResourceScope!("Recreate Atlas");
 

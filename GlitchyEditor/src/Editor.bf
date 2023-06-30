@@ -21,6 +21,7 @@ namespace GlitchyEditor
 		private GameViewportWindow _gameViewportWindow ~ delete _;
 		private ContentBrowserWindow _contentBrowserWindow ~ delete _;
 		private PropertiesWindow _propertiesWindow ~ delete _;
+		private AssetViewer _assetViewer ~ delete _;
 
 		public Scene CurrentScene
 		{
@@ -43,6 +44,7 @@ namespace GlitchyEditor
 		public GameViewportWindow GameViewportWindow => _gameViewportWindow;
 		public ContentBrowserWindow ContentBrowserWindow => _contentBrowserWindow;
 		public PropertiesWindow PropertiesWindow => _propertiesWindow;
+		public AssetViewer AssetViewer => _assetViewer;
 
 		public EditorCamera* CurrentCamera { get; set; }
 
@@ -68,6 +70,7 @@ namespace GlitchyEditor
 			_componentEditWindow = new ComponentEditWindow(_entityHierarchyWindow);
 			_contentBrowserWindow = new ContentBrowserWindow((.)Application.Get().ContentManager);
 			_propertiesWindow = new PropertiesWindow(this);
+			_assetViewer = new AssetViewer((.)Application.Get().ContentManager);
 		}
 
 		public void Update()
@@ -78,6 +81,7 @@ namespace GlitchyEditor
 			_componentEditWindow.Show();
 			_contentBrowserWindow.Show();
 			_propertiesWindow.Show();
+			_assetViewer.Show();
 		}
 	}
 }

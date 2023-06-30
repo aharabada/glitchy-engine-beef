@@ -19,6 +19,8 @@ struct AssetHandle : IHashable
 	public bool IsValid => this != .Invalid;
 	public bool IsInvalid => this == .Invalid;
 
+	public UUID ID => _uuid;
+
 	/// Create a new random AssetHandle
 	public this()
 	{
@@ -72,6 +74,11 @@ struct AssetHandle : IHashable
 		value.Assign<AssetHandle>(handle);
 
 		return .Ok;
+	}
+
+	public override void ToString(String strBuffer)
+	{
+		_uuid.ToString(strBuffer);
 	}
 }
 

@@ -28,15 +28,15 @@ namespace GlitchyEngine
 		public static extern bool IsKeyReleasing(Key keycode);
 		
 		// TODO: Should Input be able to set mousepos?
-		public static extern void SetMousePosition(Int2 pos);
+		public static extern void SetMousePosition(int2 pos);
 
 		public static extern bool IsMouseButtonPressed(MouseButton button);
 		public static extern bool IsMouseButtonReleased(MouseButton button);
 		public static extern bool IsMouseButtonPressing(MouseButton button);
 		public static extern bool IsMouseButtonReleasing(MouseButton button);
-		public static extern Int2 GetMousePosition();
-		public static extern Int2 GetMouseMovement();
-		public static extern Int2 GetRawMouseMovement();
+		public static extern int2 GetMousePosition();
+		public static extern int2 GetMouseMovement();
+		public static extern int2 GetRawMouseMovement();
 		public static extern int32 GetMouseX();
 		public static extern int32 GetMouseY();
 		
@@ -44,9 +44,9 @@ namespace GlitchyEngine
 		// public static extern bool WasMouseButtonPressing(MouseButton button);
 		public static extern bool WasMouseButtonReleased(MouseButton button);
 		//public static extern bool WasMouseButtonReleasing(MouseButton button);
-		public static extern Int2 GetLastMousePosition();
-		public static extern Int2 GetLastMouseMovement();
-		public static extern Int2 GetLastRawMouseMovement();
+		public static extern int2 GetLastMousePosition();
+		public static extern int2 GetLastMouseMovement();
+		public static extern int2 GetLastRawMouseMovement();
 		public static extern int32 GetLastMouseX();
 		public static extern int32 GetLastMouseY();
 
@@ -121,14 +121,14 @@ namespace GlitchyEngine
 
 	public static class Mouse
 	{
-		private static append List<(Int2 Position, int Hash)> _lockPositions = .();
+		private static append List<(int2 Position, int Hash)> _lockPositions = .();
 		
 		public static void LockCurrentPosition(int hash)
 		{
 			LockPosition(Input.GetMousePosition(), hash);
 		}
 
-		public static void LockPosition(Int2 pos, int hash)
+		public static void LockPosition(int2 pos, int hash)
 		{
 			for (var entry in _lockPositions)
 			{
@@ -156,7 +156,7 @@ namespace GlitchyEngine
 			//Log.EngineLogger.AssertDebug(false, "No mouse lock position with hash found.");
 		}
 
-		public static Int2? LockedPosition;
+		public static int2? LockedPosition;
 
 		public static void NewFrame()
 		{

@@ -479,7 +479,7 @@ namespace GlitchyEngine.Renderer
 			return .Ok;
 		}
 
-		public override void CopyTo(RenderTargetGroup destination, int dstTarget, Int2 dstTopLeft, Int2 size, Int2 srcTopLeft, int srcTarget)
+		public override void CopyTo(RenderTargetGroup destination, int dstTarget, int2 dstTopLeft, int2 size, int2 srcTopLeft, int srcTarget)
 		{
 			ID3D11Texture2D* dstTexture = destination.GetNativeTexture(dstTarget);
 			ID3D11Texture2D* srcTexture = GetNativeTexture(srcTarget);

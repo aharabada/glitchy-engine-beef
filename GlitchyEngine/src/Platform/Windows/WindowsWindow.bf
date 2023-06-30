@@ -67,13 +67,13 @@ namespace GlitchyEngine
 		//
 		// Size
 		//
-		public override Int2 Size
+		public override int2 Size
 		{
-			get => *(Int2*)&_clientRect.Width;
+			get => *(int2*)&_clientRect.Width;
 
 			set
 			{
-				*(Int2*)&_clientRect.Width = value;
+				*(int2*)&_clientRect.Width = value;
 				ApplyRectangle();
 			}
 		}
@@ -103,13 +103,13 @@ namespace GlitchyEngine
 		//
 		// Position
 		//
-		public override Int2 Position
+		public override int2 Position
 		{
-			get => *(Int2*)&_clientRect;
+			get => *(int2*)&_clientRect;
 
 			set
 			{
-				*(Int2*)&_clientRect = value;
+				*(int2*)&_clientRect = value;
 				ApplyRectangle();
 			}
 		}
@@ -263,7 +263,7 @@ namespace GlitchyEngine
 			return .Ok;
 		}
 
-		internal Int2 _rawMouseMovementAccumulator;
+		internal int2 _rawMouseMovementAccumulator;
 
 		private static LRESULT MessageHandler(HWND hwnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
 		{
@@ -478,7 +478,7 @@ namespace GlitchyEngine
 								window._eventCallback(event);
 
 								// We accumulate the raw movements an collect them once each frame in WindowsInput.Impl_NewFrame()
-								window._rawMouseMovementAccumulator += Int2(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
+								window._rawMouseMovementAccumulator += int2(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
 							}
 						}
 					}

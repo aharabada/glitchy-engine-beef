@@ -36,6 +36,11 @@ namespace GlitchyEngine.Core
 			return (int)_uuid;
 		}
 
+		public override void ToString(String strBuffer)
+		{
+			_uuid.ToString(strBuffer);
+		}
+
 		static void Serialize(BonWriter writer, ValueView val, BonEnvironment env, SerializeValueState state)
 		{
 			UUID uuid = *(UUID*)val.dataPtr;

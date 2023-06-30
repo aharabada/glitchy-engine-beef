@@ -144,17 +144,30 @@ public class Material : Asset
 		}
 	}
 
+	public void SetVariable(String name, bool value) => SetVariable<bool>(name, value);
+	public void SetVariable(String name, bool2 value) => SetVariable<bool2>(name, value);
+	public void SetVariable(String name, bool3 value) => SetVariable<bool3>(name, value);
+	public void SetVariable(String name, bool4 value) => SetVariable<bool4>(name, value);
+	
+	public void SetVariable(String name, int32 value) => SetVariable<int32>(name, value);
+	public void SetVariable(String name, int2 value) => SetVariable<int2>(name, value);
+	public void SetVariable(String name, int3 value) => SetVariable<int3>(name, value);
+	public void SetVariable(String name, int4 value) => SetVariable<int4>(name, value);
+
+	public void SetVariable(String name, uint32 value) => SetVariable<uint32>(name, value);
+	public void SetVariable(String name, uint2 value) => SetVariable<uint2>(name, value);
+	public void SetVariable(String name, uint3 value) => SetVariable<uint3>(name, value);
+	public void SetVariable(String name, uint4 value) => SetVariable<uint4>(name, value);
+
 	public void SetVariable(String name, float value) => SetVariable<float>(name, value);
 	public void SetVariable(String name, float2 value) => SetVariable<float2>(name, value);
 	public void SetVariable(String name, float3 value) => SetVariable<float3>(name, value);
 	public void SetVariable(String name, float4 value) => SetVariable<float4>(name, value);
-	
-	public void SetVariable(String name, int32 value) => SetVariable<int32>(name, value);
-	public void SetVariable(String name, Int2 value) => SetVariable<Int2>(name, value);
-	public void SetVariable(String name, Int3 value) => SetVariable<Int3>(name, value);
-	public void SetVariable(String name, Int4 value) => SetVariable<Int4>(name, value);
 
-	public void SetVariable(String name, uint32 value) => SetVariable<uint32>(name, value);
+	/*public void SetVariable(String name, float value) => SetVariable<double>(name, value);
+	public void SetVariable(String name, float2 value) => SetVariable<float2>(name, value);
+	public void SetVariable(String name, float3 value) => SetVariable<float3>(name, value);
+	public void SetVariable(String name, float4 value) => SetVariable<float4>(name, value);*/
 
 	public void SetVariable(String name, Color value) => SetVariable<ColorRGBA>(name, (ColorRGBA)value);
 	public void SetVariable(String name, ColorRGB value) => SetVariable<ColorRGB>(name, value);
@@ -216,15 +229,14 @@ public class Material : Asset
 	}
 
 	// Supporeted types
-	// Float, Float2, Float3, Float4
+	// Bool, Bool2, Bool3, Bool4
+	// Int, int2, int3, int4
+	// UInt, UInt2, UInt3, UInt4
 	// Color, ColorRGB, ColorRGBA
-	// Int, Int2, Int3, Int4
-	// UInt
+	// Float, Float2, Float3, Float4
 	// Matrix3x3, Matrix4x3, Matrix
 
 	// TODO: Add missing variable types
-	// UInt2, UInt3, UInt4
-	// Bool, Bool2, Bool3, Bool4
 	// Half, Half2, Half3, Half4
 	// Byte, Byte2, Byte3, Byte4
 

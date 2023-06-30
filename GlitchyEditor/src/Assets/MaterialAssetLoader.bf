@@ -233,14 +233,22 @@ class MaterialAssetLoaderConfig : AssetLoaderConfig
 [BonTarget]
 public enum VariableValue
 {
+	case bool(bool Value);
+	case bool2(bool2 Value);
+	case bool3(bool3 Value);
+	case bool4(bool4 Value);
+	case int(int Value);
+	case int2(int2 Value);
+	case int3(int3 Value);
+	case int4(int4 Value);
+	case uint(uint Value);
+	case uint2(uint2 Value);
+	case uint3(uint3 Value);
+	case uint4(uint4 Value);
 	case Float(float Value);
 	case Float2(float2 Value);
 	case Float3(float3 Value);
 	case Float4(float4 Value);
-	case Int(int Value);
-	case Int2(Int2 Value);
-	case Int3(Int3 Value);
-	case Int4(Int4 Value);
 	case ColorRGB(ColorRGB Value);
 	case ColorRGBA(ColorRGBA Value);
 	case None;
