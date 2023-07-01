@@ -247,7 +247,7 @@ public class Effect : Asset
 	{
 		Debug.Profiler.ProfileRendererFunction!();
 
-		[Inline]InternalSetTexture(name, textureViewBinding..AddRef());
+		[Inline]InternalSetTexture(name, textureViewBinding);
 	}
 
 	private void InternalSetTexture(String name, TextureViewBinding textureViewBinding)
@@ -256,28 +256,16 @@ public class Effect : Asset
 
 		ref TextureEntry entry = ref _textures[name];
 
+		// TODO: Thats weird, we increment this reference somewhere... but WHERE?!
 		entry.BoundTexture.Release();
 		entry.BoundTexture = textureViewBinding;
 
-		entry.VsSlot?.BoundTexture..Release() = entry.BoundTexture..AddRef();
-		entry.PsSlot?.BoundTexture..Release() = entry.BoundTexture..AddRef();
+		if (entry.VsSlot != null)
+			SetReferenceVar!(entry.VsSlot.BoundTexture, entry.BoundTexture);
+
+		if (entry.PsSlot != null)
+			SetReferenceVar!(entry.PsSlot.BoundTexture, entry.BoundTexture);
 	}
-
-	/*private void ApplyTextures()
-	{
-		Debug.Profiler.ProfileRendererFunction!();
-
-		for(let (name, entry) in _textures)
-		{
-			entry.VsSlot?.BoundTexture.Release();
-			entry.VsSlot?.BoundTexture = entry.BoundTexture;
-			entry.VsSlot?.BoundTexture.AddRef();
-			
-			entry.PsSlot?.BoundTexture.Release();
-			entry.PsSlot?.BoundTexture = entry.BoundTexture;
-			entry.PsSlot?.BoundTexture.AddRef();
-		}
-	}*/
 
 	public void ApplyChanges()
 	{
