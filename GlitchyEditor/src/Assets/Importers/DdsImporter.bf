@@ -48,7 +48,10 @@ static class DdsImporter
 	{
 		Unknown,
 		WrongMagicWord,
-		StreamReadFailed
+		StreamReadFailed,
+		InvalidArraySize,
+		WrongDimensions,
+		IncompleteCubemap
 	}
 
 	private enum HeaderFlags : uint32
@@ -274,45 +277,91 @@ static class DdsImporter
 		DdsPixelFormat pixelFormat = header.PixelFormat;
 
 		// Currently supports only basic dxgi formats.
-		if (pixelFormat.SurfaceType.HasFlag(.RGBA))
-		{
-			switch (pixelFormat.RGBBitCount)
-			{
-			case 32:
-				if (IsBitMask(pixelFormat, 0xFF, 0xFF00, 0xFF0000, 0xFF000000))
-					return isSrgb ? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm;
-
-				if (IsBitMask(pixelFormat, 0xffff, 0xffff0000, 0x0, 0x0))
-					return .R16G16_UNorm;
-
-				if (IsBitMask(pixelFormat, 0x3ff, 0xffc00, 0x3ff00000, 0x0))
-					return .R10G10B10A2_UNorm;
-			case 16:
-				if (IsBitMask(pixelFormat, 0x7c00, 0x3e0, 0x1f, 0x8000))
-					return .B5G5R5A1_UNorm;
-			default:
-				return .Unknown;
-			}
-		}
-
+		//if (pixelFormat.SurfaceType.HasFlag(.RGBA))
 		if (pixelFormat.SurfaceType.HasFlag(.RGB))
 		{
 			switch (pixelFormat.RGBBitCount)
 			{
 			case 32:
-				if (IsBitMask(pixelFormat, 0xffff, 0xffff0000, 0x0, 0x0))
+				if (IsBitMask(pixelFormat, 0x000000FF, 0x0000FF00, 0x00FF0000, 0xFF000000))
+					return isSrgb ? .R8G8B8A8_UNorm_SRGB : .R8G8B8A8_UNorm;
+
+				if (IsBitMask(pixelFormat, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000))
+					return isSrgb ? .B8G8R8A8_UNorm_SRGB : .B8G8R8A8_UNorm;
+
+				if (IsBitMask(pixelFormat, 0x00FF0000, 0x0000FF00, 0x000000FF, 0))
+					return isSrgb ? .B8G8R8X8_UNorm_SRGB : .B8G8R8X8_UNorm;
+
+				if (IsBitMask(pixelFormat, 0x000003FF, 0x000FFc00, 0x3FF00000, 0))
+					return .R10G10B10A2_UNorm;
+
+				if (IsBitMask(pixelFormat, 0x3FF00000, 0x000FFc00, 0x000003FF, 0))
+					return .R10G10B10A2_UNorm;
+
+				if (IsBitMask(pixelFormat, 0x0000FFFF, 0xFFFF0000, 0, 0))
 					return .R16G16_UNorm;
-				break;
+
+				if (IsBitMask(pixelFormat, 0xFFFFFFFF, 0, 0, 0))
+					return .R32_Float;
+
+			case 24:
+				// NO 24 bit formats
+				return .Unknown;
+
 			case 16:
-				if (IsBitMask(pixelFormat, 0xf800, 0x7e0, 0x1f, 0x0))
+				if (IsBitMask(pixelFormat, 0x7C00, 0x03E0, 0x001F, 0x8000))
+					return .B5G5R5A1_UNorm;
+
+				if (IsBitMask(pixelFormat, 0xF800, 0x07E0, 0x001F, 0))
 					return .B5G6R5_UNorm;
-				break;
+
+				if (IsBitMask(pixelFormat, 0x0F00, 0x00F0, 0x000F, 0xF000))
+					return .B4G4R4A4_UNORM;
+
+                if (IsBitMask(pixelFormat, 0x00FF, 0, 0, 0xFF00))
+                    return .R8G8_UNorm;
+
+                if (IsBitMask(pixelFormat, 0xFFFF, 0, 0, 0))
+                    return .R16_UNorm;
+
+			case 8:
+				if (IsBitMask(pixelFormat, 0xFF, 0, 0, 0))
+					return .R8_UNorm;
+
 			default:
 				return .Unknown;
 			}
 		}
+		else if (pixelFormat.SurfaceType.HasFlag(.Luminance))
+		{
+			switch (pixelFormat.RGBBitCount)
+			{
+			case 16:
+				if (IsBitMask(pixelFormat, 0xFFFF, 0, 0, 0))
+					return .R16_UNorm;
 
-		if (pixelFormat.SurfaceType.HasFlag(.FourCC))
+				if (IsBitMask(pixelFormat, 0x00FF, 0, 0, 0xFF00))
+					return .R8G8_UNorm;
+
+			case 8:
+				if (IsBitMask(pixelFormat, 0xFF, 0, 0, 0))
+					return .R8_UNorm;
+				
+				if (IsBitMask(pixelFormat, 0x00FF, 0, 0, 0xFF00))
+					return .R8G8_UNorm; // Some DDS writers assume the bitcount should be 8 instead of 16
+
+			default:
+				return .Unknown;
+			}
+		}
+		else if (pixelFormat.SurfaceType.HasFlag(.Luminance))
+		{
+			if (pixelFormat.RGBBitCount == 8)
+			{
+				return .A8_UNorm;
+			}
+		}
+		else if (pixelFormat.SurfaceType.HasFlag(.FourCC))
 		{
 			switch (pixelFormat.FourCC)
 			{
@@ -322,15 +371,30 @@ static class DdsImporter
 				return isSrgb ? .BC2_UNorm_SRGB : .BC2_UNorm;
 			case MakeFourCC('D', 'X', 'T', '5'):
 				return isSrgb ? .BC3_UNorm_SRGB : .BC3_UNorm;
-			  // Legacy compression formats.
+				
+			// Legacy compression formats.
+			case MakeFourCC('D', 'X', 'T', '2'):
+					return isSrgb ? .BC2_UNorm_SRGB : .BC2_UNorm;
+			case MakeFourCC('D', 'X', 'T', '4'):
+					return isSrgb ? .BC3_UNorm_SRGB : .BC3_UNorm;
+
 			case MakeFourCC('B', 'C', '4', 'U'), MakeFourCC('A', 'T', 'I', '1'):
 				return .BC4_UNorm;
-			case MakeFourCC('A', 'T', 'I', '2'):
+			case MakeFourCC('B', 'C', '4', 'S'):
+				return .BC4_SNorm;
+			case MakeFourCC('B', 'C', '5', 'U'), MakeFourCC('A', 'T', 'I', '2'):
 				return .BC5_UNorm;
+			case MakeFourCC('B', 'C', '5', 'S'):
+				return .BC5_SNorm;
+
 			case MakeFourCC('R', 'G', 'B', 'G'):
 				return .R8G8_B8G8_UNorm;
 			case MakeFourCC('G', 'R', 'G', 'B'):
 				return .G8R8_G8B8_UNorm;
+
+			case MakeFourCC('Y', 'U', 'Y', '2'):
+				return .YUY2;
+
 			case 36:
 				return .R16G16B16A16_UNorm;
 			case 111:
@@ -353,8 +417,137 @@ static class DdsImporter
 		return .Unknown;
 	}
 
+	public static void GetPitch(uint32 width, uint32 height, DirectX.DXGI.Format format, out uint32 rowBytes, out uint32 numRows, out uint64 numBytes)
+	{
+		rowBytes = 0;
+		numRows = 0;
+		numBytes = 0;
+
+		bool bc = false;
+	    bool packed = false;
+	    bool planar = false;
+	    uint32 bpe = 0;
+
+	    switch (format)
+	    {
+	    case .BC1_Typeless, .BC1_UNorm, .BC1_UNorm_SRGB,
+			 .BC4_Typeless, .BC4_UNorm, .BC4_SNorm:
+	        bc = true;
+	        bpe = 8;
+	        break;
+			
+		case .BC2_Typeless, .BC2_UNorm, .BC2_UNorm_SRGB,
+			 .BC3_Typeless, .BC3_UNorm, .BC3_UNorm_SRGB,
+			 .BC5_Typeless, .BC5_UNorm, .BC5_SNorm,
+	    	 .BC6H_Typeless, .BC6H_UF16, .BC6H_SF16,
+			 .BC7_Typeless, .BC7_UNorm, .BC7_UNorm_SRGB:
+	        bc = true;
+	        bpe = 16;
+	        break;
+
+	    case .R8G8_B8G8_UNorm, .G8R8_G8B8_UNorm, .YUY2:
+	        packed = true;
+	        bpe = 4;
+	        break;
+
+	    case .Y210, .Y216:
+	        packed = true;
+	        bpe = 8;
+	        break;
+
+	    case .NV12, .P208, .OPAQUE_420:
+	        planar = true;
+	        bpe = 2;
+	        break;
+
+	    case .P010, .P016:
+	        planar = true;
+	        bpe = 4;
+	        break;
+
+			/*
+	    case .D16_UNORM_S8_UINT:
+	    case .R16_UNORM_X8_TYPELESS:
+	    case .X16_TYPELESS_G8_UINT:
+	        planar = true;
+	        bpe = 4;
+	        break;
+			*/
+	    default:
+	        break;
+	    }
+
+	    if (bc)
+	    {
+	        uint32 numBlocksWide = 0;
+	        if (width > 0)
+	        {
+	            numBlocksWide = Math.Max(1, (width + 3u) / 4u);
+	        }
+	        uint32 numBlocksHigh = 0;
+	        if (height > 0)
+	        {
+	            numBlocksHigh = Math.Max(1, (height + 3u) / 4u);
+	        }
+	        rowBytes = numBlocksWide * bpe;
+	        numRows = numBlocksHigh;
+	        numBytes = rowBytes * numBlocksHigh;
+	    }
+	    else if (packed)
+	    {
+	        rowBytes = (((uint32)width + 1u) >> 1) * bpe;
+	        numRows = height;
+	        numBytes = rowBytes * height;
+	    }
+	    else if (format == .NV11)
+	    {
+	        rowBytes = ((width + 3u) >> 2) * 4u;
+	        numRows = height * 2u; // Direct3D makes this simplifying assumption, although it is larger than the 4:1:1 data
+	        numBytes = rowBytes * numRows;
+	    }
+	    else if (planar)
+	    {
+	        rowBytes = ((width + 1u) >> 1) * bpe;
+	        numBytes = (rowBytes * height) + ((rowBytes * height + 1u) >> 1);
+	        numRows = height + ((height + 1u) >> 1);
+	    }
+	    else
+	    {
+	        uint32 bpp = format.BitsPerPixel();// BitsPerPixel(format);
+	        if (bpp == 0)
+	            return;
+
+	        rowBytes = (width * bpp + 7u) / 8u; // round up to nearest byte
+	        numRows = height;
+	        numBytes = rowBytes * height;
+	    }
+
+	//#if defined(_M_IX86) || defined(_M_ARM) || defined(_M_HYBRID_X86_ARM64)
+	    /*static_assert(sizeof(size_t) == 4, "Not a 32-bit platform!");
+	    if (numBytes > UINT32_MAX || rowBytes > UINT32_MAX || numRows > UINT32_MAX)
+	        return HRESULT_FROM_WIN32(ERROR_ARITHMETIC_OVERFLOW);*/
+	/*#else
+	    static_assert(sizeof(size_t) == 8, "Not a 64-bit platform!");
+	#endif*/
+
+	    /*if (outNumBytes)
+	    {
+	        *outNumBytes = static_cast<size_t>(numBytes);
+	    }
+	    if (outRowBytes)
+	    {
+	        *outRowBytes = static_cast<size_t>(rowBytes);
+	    }
+	    if (outNumRows)
+	    {
+	        *outNumRows = static_cast<size_t>(numRows);
+	    }*/
+	}
+
 	public static Result<void, LoadError> LoadDds(Stream data, bool isSrgb, List<LoadedSurface> surfaces, out LoadedTextureInfo textureInfo)
 	{
+		// TODO: Care about alpha mode
+
 		textureInfo = .();
 
 		var headerResult = DecodeHeader(data, let header, let extendedHeader);
@@ -384,6 +577,9 @@ static class DdsImporter
 		{
 			textureInfo.ArraySize = extendedHeader.Value.ArraySize;
 			surfaceCount *= textureInfo.ArraySize;
+
+			if (textureInfo.ArraySize == 0)
+				return .Err(.InvalidArraySize);
 		}
 		else
 		{
@@ -409,15 +605,28 @@ static class DdsImporter
 		{
 		case .Texture1D:
 			textureInfo.Dimension = .Texture1D;
+
+			if (header.Flags.HasFlag(.DDSD_HEIGHT) && header.Height != 1)
+				return .Err(.WrongDimensions);
+
+			textureInfo.Height = 1;
+			textureInfo.Depth = 1;
+
 		case .Texture2D:
 			textureInfo.Dimension = .Texture2D;
+
+			textureInfo.Depth = 1;
+
 		case .Texture3D:
 			textureInfo.Dimension = .Texture3D;
 		case null:
 			if (header.Flags.HasFlag(.DDSD_DEPTH))
 				textureInfo.Dimension = .Texture3D;
 			else
+			{
 				textureInfo.Dimension = .Texture2D;
+				textureInfo.Depth = 1;
+			}
 		}
 
 		// Make sure we have enough space in the list (avoid allocations later)
@@ -425,7 +634,7 @@ static class DdsImporter
 
 		uint32 scanLineSize = 0;
 		uint32 slicePitch = 0;
-		uint32 numBytes = 0;
+		uint64 numBytes = 0;
 		uint32 blockSize = 0; // Block size in bytes.
 
 		switch (textureInfo.PixelFormat)
@@ -459,7 +668,7 @@ static class DdsImporter
 
 				for (uint32 mipLevel = 0; mipLevel < textureInfo.MipMapCount; ++mipLevel)
 				{
-					// This will recalculate te pitch of the main image as well.
+					/*// This will recalculate te pitch of the main image as well.
 					if (header.Flags.HasFlag(.DDSD_LINEARSIZE))
 					{
 						// compressed textures
@@ -473,13 +682,22 @@ static class DdsImporter
 						scanLineSize = (width * header.PixelFormat.RGBBitCount + 7u) / 8u;
 						numBytes = scanLineSize * height;
 					}
+					else
+					{
+						scanLineSize = header.PitchOrLinearSize;
+						numBytes = scanLineSize * height;
+					}*/
+
+					GetPitch(width, height, textureInfo.PixelFormat, out scanLineSize, let numRows, out numBytes);
+
 
 					LoadedSurface surface = .();
 					// We don't know how large data-array is, so we don't have one yet.
 					// Only save the offset, we will adjust the pointer later.
-					surface.Data = Span<uint8>((uint8*)(void*)offset, numBytes);
+					surface.Data = Span<uint8>((uint8*)(void*)offset, (int)numBytes);
 					surface.Pitch = scanLineSize;
-					surface.SlicePitch = slicePitch;
+					//surface.SlicePitch = slicePitch;
+					surface.SlicePitch = scanLineSize * numRows;
 					
 					surface.ArrayIndex = arrayIndex;
 					surface.CubeFace = cubeFace;

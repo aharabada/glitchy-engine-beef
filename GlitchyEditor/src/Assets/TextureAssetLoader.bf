@@ -9,6 +9,7 @@ using GlitchyEngine.Math;
 using DirectXTK;
 using ImGui;
 using GlitchyEditor.Assets.Importers;
+using System.Diagnostics;
 
 namespace GlitchyEditor.Assets;
 
@@ -165,6 +166,9 @@ class EditorTextureAssetLoaderConfig : AssetLoaderConfig
 	}
 }
 
+using internal GlitchyEngine.Renderer;
+using internal GlitchyEngine.Platform.DX11;
+
 class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 {
 	private static readonly List<StringView> _fileExtensions = new .(){".png", ".dds"} ~ delete _; // ".jpg", ".bmp"
@@ -231,6 +235,35 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 		return .Unknown;
 	}
 
+	/** \brief Loads the texture from the specified path.
+	 * @param path The path of the texture to load.
+	 * @param texture The reference to the pointer that will hold the texture.
+	 * @returns true if the texture was loaded successfully; false otherwise.
+	 */
+	protected static bool LoadDdsResourcePlatform(Stream stream)
+	{
+		Debug.Profiler.ProfileResourceFunction!();
+
+		uint8[] ddsData = new:ScopedAlloc! uint8[stream.Length];
+
+		var result = stream.TryRead(ddsData);
+
+		if (result case .Err(let err))
+		{
+			Log.EngineLogger.Error($"Failed to read texture data from stream. Error: {err}");
+		}
+		
+		DirectX.D3D11.ID3D11Texture2D* texture = null;
+		DirectX.D3D11.ID3D11ShaderResourceView* view = null;
+
+		DirectX.Common.HResult loadResult = DDSTextureLoader.CreateDDSTextureFromMemory(GlitchyEngine.Platform.DX11.NativeDevice,
+			ddsData.Ptr, (uint)ddsData.Count, (.)&texture, &view);
+
+		view.Release();
+
+		return true;
+	}
+
 	private static Texture LoadTexture(Stream data, EditorTextureAssetLoaderConfig config)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
@@ -245,6 +278,13 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 		switch(GetTextureType(data))
 		{
 		case .DDS:
+
+			var v = data.Position;
+
+			//LoadDdsResourcePlatform(data);
+
+			data.Position = v;
+
 			Result<void> result = LoadDds(data, config, surfaces, out textureInfo);
 
 			if (result case .Err)
@@ -260,7 +300,13 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 			Log.EngineLogger.Error("Unknown texture format.");
 			return null;
 		}
-		
+
+		// Make the format SRGB or non-SRGB
+		if (config.IsSRGB)
+			textureInfo.PixelFormat = textureInfo.PixelFormat.GetSRGB();
+		else
+			textureInfo.PixelFormat = textureInfo.PixelFormat.GetNonSRGB();
+
 		Texture texture = CreateTexture(surfaces, textureInfo);
 
 		if (texture != null)
@@ -274,6 +320,15 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 
 	private static Texture CreateTexture(List<LoadedSurface> surfaces, LoadedTextureInfo textureInfo)
 	{
+		TextureSliceData[] slices = scope TextureSliceData[surfaces.Count];
+		
+		for (int i < slices.Count)
+		{
+			slices[i] = .(surfaces[i].Data.Ptr, surfaces[i].Pitch, surfaces[i].SlicePitch);
+		}
+
+		//slices[0].SlicePitch = (.)(surfaces[0].Pitch * textureInfo.Height);
+
 		switch (textureInfo.Dimension)
 		{
 		//case .Texture1D:
@@ -296,6 +351,8 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 
 				TextureCube cubeTexture = new TextureCube(staging);
 
+				//cubeTexture.SetData();
+
 				for (let surface in surfaces)
 				{
 					cubeTexture.SetData(surface.Data.Ptr, surface.Pitch / staging.Width, (TextureCubeFace)surface.CubeFace, (.)surface.ArrayIndex, (.)surface.MipLevel);
@@ -317,14 +374,16 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 
 				// TODO: allow enabling read/write
 				staging.CpuAccess = .None;
-				staging.Usage = .Default;
+				staging.Usage = .Immutable;
 
 				Texture2D stagingTexture = new Texture2D(staging);
 
-				for (let surface in surfaces)
+				stagingTexture.SetData(slices);
+				
+				/*for (let surface in surfaces)
 				{
 					stagingTexture.[Friend]PlatformSetData(surface.Data.Ptr, surface.Pitch / staging.Width, 0, 0, staging.Width, staging.Height, (.)surface.ArrayIndex, (.)surface.MipLevel, .Write);
-				}
+				}*/
 				
 				return stagingTexture;
 			}

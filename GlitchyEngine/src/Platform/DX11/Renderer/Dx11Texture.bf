@@ -56,30 +56,64 @@ namespace GlitchyEngine.Renderer
 		public override uint32 Height => nativeDesc.Height;
 		public override uint32 ArraySize => nativeDesc.ArraySize;
 		public override uint32 MipLevels => nativeDesc.MipLevels;
+		public override Format Format => nativeDesc.Format;
 
-		protected override void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch)
+
+		/*protected override void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
 			PrepareTexturePlatform(desc, isRenderTarget);
 			InternalCreateTexture(data, linePitch, 0);
-		}
+		}*/
 
-		private void InternalCreateTexture(void* data, uint32 linePitch, uint32 slicePitch)
+		/// Creates the native texture. Initializes it, if slices is not null and has enough Entries to fill all slices.
+		/// @returns true if the texture has been initialized; false otherwise.
+		private bool InternalCreateTexture(Span<TextureSliceData> slices)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			SubresourceData resData = .(data, linePitch, slicePitch);
+			SubresourceData[] data = null;
 
-			// If data is null, set subresourceData null
-			SubresourceData* resDataPtr = data == null ? null : &resData;
+			if (slices.Length == MipLevels * ArraySize)
+			{
+				data = scope:: SubresourceData[slices.Length];
 
-			var result = NativeDevice.CreateTexture2D(ref nativeDesc, resDataPtr, &nativeTexture);
+				for (int i < slices.Length)
+				{
+					TextureSliceData slice = slices[i];
+	
+					data[i] = .(slice.Data, slice.LinePitch, slice.SlicePitch);
+				}
+			}
+			
+			var result = NativeDevice.CreateTexture2D(ref nativeDesc, data?.Ptr, &nativeTexture);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture 2D. Error ({result.Underlying}): {result}");
 
 			result = NativeDevice.CreateShaderResourceView(nativeTexture, null, &_nativeResourceView);
 			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture view. Error ({result.Underlying}): {result}");
+
+			// If Data is non-null the texture got initialized with data.
+			return (data != null);
 		}
+
+		/*private void InternalCreateTexture(void* data, uint32 linePitch, uint32 slicePitch)
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			/*SubresourceData resData = .(data, linePitch, slicePitch);
+
+			// If data is null, set subresourceData null
+			SubresourceData* resDataPtr = data == null ? null : &resData;*/
+
+			SubresourceData[2] resData = .(.(data, linePitch, slicePitch), .(null, 0, 0));
+
+			var result = NativeDevice.CreateTexture2D(ref nativeDesc, &resData, &nativeTexture);
+			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture 2D. Error ({result.Underlying}): {result}");
+
+			result = NativeDevice.CreateShaderResourceView(nativeTexture, null, &_nativeResourceView);
+			Log.EngineLogger.Assert(result.Succeeded, scope $"Failed to create texture view. Error ({result.Underlying}): {result}");
+		}*/
 
 		protected override void PrepareTexturePlatform(Texture2DDesc desc, bool isRenderTarget)
 		{
@@ -96,6 +130,26 @@ namespace GlitchyEngine.Renderer
 				nativeDesc.BindFlags |= .RenderTarget;
 		}
 
+		protected override Result<void> PlatformSetData(Span<TextureSliceData> slices)
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			if(nativeTexture == null)
+			{
+				if (InternalCreateTexture(slices))
+					return .Ok;
+			}
+
+			Runtime.NotImplemented();
+
+			/*int index = firstArraySlice;
+
+			for (TextureSliceData slice in slices)
+			{
+
+			}*/
+		}
+
 		// TODO: Update Texture Arrays!
 		protected override Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
 			uint32 destY, uint32 destWidth, uint32 destHeight, uint32 arraySlice, uint32 mipLevel, GlitchyEngine.Renderer.MapType mapType)
@@ -104,6 +158,21 @@ namespace GlitchyEngine.Renderer
 
 			if(nativeTexture == null)
 			{
+				if(destX == 0 && destY == 0 && destWidth == nativeDesc.Width && destHeight == nativeDesc.Height &&
+					arraySlice == 0 && mipLevel == 0 && ArraySize == 1 && MipLevels == 1)
+				{
+					TextureSliceData[1] dataSlice = .(.(data, elementSize * destWidth, elementSize * destWidth * destHeight));
+
+					// Turns out we need to initialize all slices at once or none... so... tough shit, we cant early out here.
+					if (InternalCreateTexture(dataSlice))
+						return .Ok;
+				}
+				else
+				{
+					InternalCreateTexture(null);
+				}
+				
+				/* Old shit follows...
 				if(destX == 0 && destY == 0 && destWidth == nativeDesc.Width && destHeight == nativeDesc.Height)
 				{
 					// We can pass the data while creating the buffer, so we can return here.
@@ -116,6 +185,7 @@ namespace GlitchyEngine.Renderer
 					Log.EngineLogger.Assert(nativeDesc.Usage != .Immutable, "The entire immutable texture has to be initialized.");
 					InternalCreateTexture(null, 0, 0);
 				}
+				*/
 			}
 
 			//Log.EngineLogger.AssertDebug();
@@ -178,7 +248,7 @@ namespace GlitchyEngine.Renderer
 
 			// Make sure the destination was initialized
 			if(destination.nativeTexture == null)
-				destination.InternalCreateTexture(null, 0, 0);
+				destination.InternalCreateTexture(null);
 			
 			using (ContextMonitor.Enter())
 			{
@@ -200,7 +270,7 @@ namespace GlitchyEngine.Renderer
 			
 			// Make sure the destination was initialized
 			if(destination.nativeTexture == null)
-				destination.InternalCreateTexture(null, 0, 0);
+				destination.InternalCreateTexture(null);
 
 			uint32 arraySlices = Math.Min(ArraySize, destination.ArraySize);
 			uint32 mipSlices = Math.Min(MipLevels, destination.MipLevels);
@@ -234,6 +304,7 @@ namespace GlitchyEngine.Renderer
 		public override uint32 Height => nativeDesc.Height;
 		public override uint32 ArraySize => nativeDesc.ArraySize / 6;
 		public override uint32 MipLevels => nativeDesc.MipLevels;
+		public override Format Format => nativeDesc.Format;
 
 		protected override void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch)
 		{

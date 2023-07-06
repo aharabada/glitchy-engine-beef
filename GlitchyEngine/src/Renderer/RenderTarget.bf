@@ -48,6 +48,7 @@ namespace GlitchyEngine.Renderer
 		public override uint32 Depth => 1;
 		public override uint32 ArraySize => _description.ArraySize;
 		public override uint32 MipLevels => _description.MipLevels;
+		public override Format Format => _description.PixelFormat;
 		
 		protected internal DepthStencilTarget _depthStenilTarget ~ _?.ReleaseRef();
 		

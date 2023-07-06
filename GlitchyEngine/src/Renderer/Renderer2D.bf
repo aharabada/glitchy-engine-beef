@@ -368,7 +368,9 @@ namespace GlitchyEngine.Renderer
 			s_whiteTexture = new Texture2D(tex2Ddesc);
 
 			Color color = .White;
-			s_whiteTexture.SetData(&color);
+
+			TextureSliceData[1] data = .(.(&color, sizeof(Color), sizeof(Color)));
+			s_whiteTexture.SetData(data);
 
 			// Create the default sampler for the white texture
 			SamplerState sampler = SamplerStateManager.GetSampler(SamplerStateDescription());

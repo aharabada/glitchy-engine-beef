@@ -29,6 +29,8 @@ namespace GlitchyEngine.Renderer
 		public abstract uint32 ArraySize {get;}
 		public abstract uint32 MipLevels {get;}
 
+		public abstract Format Format {get;}
+
 		public abstract TextureViewBinding GetViewBinding();
 	}
 
@@ -56,6 +58,22 @@ namespace GlitchyEngine.Renderer
 		}
 	}
 
+	/// Represents the Data of one Texture Slice (a specific mip-level of a array-slice of the texture)
+	/// @remarks Basically works like described here: https://learn.microsoft.com/en-us/windows/win32/api/d3d11/ns-d3d11-d3d11_subresource_data
+	public struct TextureSliceData
+	{
+		public void* Data;
+		public uint32 LinePitch;
+		public uint32 SlicePitch;
+
+		public this(void* data, uint32 linePitch, uint32 slicePitch)
+		{
+			Data = data;
+			LinePitch = linePitch;
+			SlicePitch = slicePitch;
+		}
+	}
+
 	public class Texture2D : Texture
 	{
 		//public override extern uint32 Width {get;}
@@ -67,6 +85,17 @@ namespace GlitchyEngine.Renderer
 		public this(Texture2DDesc desc)
 		{
 			PrepareTexturePlatform(desc, false);
+		}
+
+		public Result<void> SetData(Span<TextureSliceData> slices)
+		{
+			if (slices.Length != ArraySize * MipLevels)
+			{
+				Log.EngineLogger.Error("Not enough slices provided to initialize texture.");
+				return .Err;
+			}
+
+			return PlatformSetData(slices);
 		}
 
 		public void SetData<T>(T* data, uint32 arraySlice = 0, uint32 mipSlice = 0)
@@ -84,8 +113,6 @@ namespace GlitchyEngine.Renderer
 		uint32 mipLevels = 1, uint32 arraySize = 1, Usage usage = .Default, CPUAccessFlags cpuAccess = .None
 		*/
 
-		protected extern void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch);
-
 		/**
 		 * Prepares the texture so that a call to SetData can successfully upload the data to the gpu.
 		 */
@@ -93,6 +120,8 @@ namespace GlitchyEngine.Renderer
 
 		protected extern Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,
 			uint32 destY, uint32 destWidth, uint32 destHeight, uint32 arraySlice, uint32 mipLevel, GlitchyEngine.Renderer.MapType mapType);
+		
+		protected extern Result<void> PlatformSetData(Span<TextureSliceData> slices);
 
 		/**
 		 * Copies the texel-data of this texture to the given destination texture.

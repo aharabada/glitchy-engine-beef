@@ -201,31 +201,6 @@ class TexturererViewerer
 	ColorChannelSwizzle _swizzleB = .B;
 	ColorChannelSwizzle _swizzleA = .A;
 	
-	public void ViewTexture(RenderTargetGroup texture)
-	{
-		ShowSettings(texture.Width, texture.Height, texture.MipLevels - 1, texture.ArraySize - 1, texture);
-		
-		UpdateInput();
-
-		var viewportSize = ImGui.GetContentRegionAvail();
-
-		viewportSize.x = Math.Max(viewportSize.x, 1);
-		viewportSize.y = Math.Max(viewportSize.y, 1);
-
-		if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
-		{
-			_target?.ReleaseRef();
-			_target = new RenderTarget2D(.(.R8G8B8A8_UNorm, (.)viewportSize.x, (.)viewportSize.y));
-			_target.SamplerState = SamplerStateManager.PointClamp;
-			_depth?.ReleaseRef();
-			_depth = new DepthStencilTarget((.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
-		}
-		
-		RenderTexture(texture);
-
-		ImGui.Image(_target, viewportSize);
-	}
-
 	public void ShowSettings(float width, float height, int maxMips, int arraySize, RenderTargetGroup rtGroup)
 	{
 		char8*[] items = scope .("White", "Black", "Pink", "Checkerboard", "Custom Color");
@@ -381,6 +356,38 @@ class TexturererViewerer
 			ImGui.EndCombo();
 		}
 	}
+	
+	public void ViewTexture(RenderTargetGroup texture)
+	{
+		ShowSettings(texture.Width, texture.Height, texture.MipLevels - 1, texture.ArraySize - 1, texture);
+		
+		if (ImGui.BeginChild("imageChild"))
+		{
+			UpdateInput();
+	
+			var viewportSize = ImGui.GetContentRegionAvail();
+	
+			viewportSize.x = Math.Max(viewportSize.x, 1);
+			viewportSize.y = Math.Max(viewportSize.y, 1);
+	
+			if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
+			{
+				_target?.ReleaseRef();
+				_target = new RenderTarget2D(.(.R8G8B8A8_UNorm_SRGB, (.)viewportSize.x, (.)viewportSize.y));
+				_target.SamplerState = SamplerStateManager.PointClamp;
+				_depth?.ReleaseRef();
+				_depth = new DepthStencilTarget((.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
+			}
+			
+			RenderBackground();
+
+			RenderTexture(texture);
+	
+			ImGui.Image(_target, viewportSize);
+
+			ImGui.EndChild();
+		}
+	}
 
 	public void ViewTexture(Texture texture)
 	{
@@ -398,11 +405,13 @@ class TexturererViewerer
 			if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
 			{
 				_target?.ReleaseRef();
-				_target = new RenderTarget2D(.(.R8G8B8A8_UNorm, (.)viewportSize.x, (.)viewportSize.y));
+				_target = new RenderTarget2D(.(.R8G8B8A8_UNorm_SRGB, (.)viewportSize.x, (.)viewportSize.y));
 				_target.SamplerState = SamplerStateManager.PointClamp;
 				_depth?.ReleaseRef();
 				_depth = new DepthStencilTarget((.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
 			}
+			
+			RenderBackground();
 
 			RenderTexture(texture);
 
@@ -461,7 +470,7 @@ class TexturererViewerer
 
 	OrthographicCamera _camera = new OrthographicCamera() ~ delete _;
 
-	private void RenderTexture(RenderTargetGroup viewedTexture)
+	private void RenderBackground()
 	{
 		Viewport vp = .(0, 0, _target.Width, _target.Height);
 		RenderCommand.SetViewport(vp);
@@ -475,9 +484,6 @@ class TexturererViewerer
 		RenderCommand.SetDepthStencilTarget(_depth);
 		RenderCommand.BindRenderTargets();
 
-		float2 textureSize = float2(viewedTexture.Width, viewedTexture.Height);
-		float2 zoomedTextureSize = textureSize * _zoom;
-		
 		float2 targetSize = float2(_target.Width, _target.Height);
 
 		_camera.Left = 0;
@@ -489,7 +495,7 @@ class TexturererViewerer
 		_camera.Update();
 
 		Renderer2D.BeginScene(_camera);
-		
+
 		switch(_backgroundMode)
 		{
 		case .Black:
@@ -516,6 +522,17 @@ class TexturererViewerer
 		}
 
 		Renderer2D.EndScene();
+	}
+
+	private void RenderTexture(TextureViewBinding viewedTexture, float2 textureSize, Format format)
+	{
+		float2 mippedTextureSize = float2((int)textureSize.X >> _mipLevel, (int)textureSize.X >> _mipLevel);
+
+		// Sicherstellen, dass die Auflösung nicht 0 wird
+		mippedTextureSize = max(mippedTextureSize, 1);
+
+		//float2 textureSize = float2(viewedTexture.Width, viewedTexture.Height);
+		float2 zoomedTextureSize = textureSize * _zoom;
 
 		// TODO: Sampler state for rt group
 		//var sampler = viewedTexture.SamplerState;
@@ -542,36 +559,37 @@ class TexturererViewerer
 		_renderTargetEffect.Variables["AlphaOffset"].SetData(_alphaOffset);
 		_renderTargetEffect.Variables["AlphaScale"].SetData(_alphaScale);
 
-		_renderTargetEffect.Variables["Texels"].SetData(float2(viewedTexture.Width, viewedTexture.Height));
+		_renderTargetEffect.Variables["Texels"].SetData(mippedTextureSize);
 
 		_renderTargetEffect.Variables["MipLevel"].SetData((float)_mipLevel);
-		
+
 		_renderTargetEffect.Variables["Swizzle"].SetData(int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
 
-		var desc = _groupIndex >= 0 ? viewedTexture.[Friend]_colorTargetDescriptions[_groupIndex] : viewedTexture.[Friend]_depthTargetDescription;
-
-		if (desc.Format.IsInt())
+		if (format.IsInt())
 		{
+			// Int Texture
 			_renderTargetEffect.Variables["Mode"].SetData(1);
-			_renderTargetEffect.SetTexture("IntTexture", viewedTexture.GetViewBinding(_groupIndex));
+			_renderTargetEffect.SetTexture("IntTexture", viewedTexture);
 			_renderTargetEffect.SetTexture("UIntTexture", null);
 			_renderTargetEffect.SetTexture("Texture", null);
 		}
-		else if (desc.Format.IsUInt())
+		else if (format.IsUInt())
 		{
+			// UInt Texture
 			_renderTargetEffect.Variables["Mode"].SetData(2);
 			_renderTargetEffect.SetTexture("IntTexture", null);
-			_renderTargetEffect.SetTexture("UIntTexture", viewedTexture.GetViewBinding(_groupIndex));
+			_renderTargetEffect.SetTexture("UIntTexture", viewedTexture);
 			_renderTargetEffect.SetTexture("Texture", null);
 		}
 		else
 		{
+			// Float Texture
 			_renderTargetEffect.Variables["Mode"].SetData(0);
 			_renderTargetEffect.SetTexture("IntTexture", null);
 			_renderTargetEffect.SetTexture("UIntTexture", null);
-			_renderTargetEffect.SetTexture("Texture", viewedTexture.GetViewBinding(_groupIndex));
+			_renderTargetEffect.SetTexture("Texture", viewedTexture);
 		}
-		
+
 		_renderTargetEffect.Variables["Swizzle"].SetData(int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
 
 		_renderTargetEffect.ApplyChanges();
@@ -580,84 +598,15 @@ class TexturererViewerer
 		Quad.Draw();
 	}
 
+	private void RenderTexture(RenderTargetGroup viewedTexture)
+	{
+		var desc = _groupIndex >= 0 ? viewedTexture.[Friend]_colorTargetDescriptions[_groupIndex] : viewedTexture.[Friend]_depthTargetDescription;
+
+		RenderTexture(viewedTexture.GetViewBinding(_groupIndex), float2(viewedTexture.Width, viewedTexture.Height), desc.Format.GetShaderViewFormat());
+	}
+
 	private void RenderTexture(Texture viewedTexture)
 	{
-		Viewport vp = .(0, 0, _target.Width, _target.Height);
-		RenderCommand.SetViewport(vp);
-
-		// TODO: don't clear pink!
-		RenderCommand.Clear(_target, .Pink);
-		RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
-
-		//_target.Bind();
-		RenderCommand.SetRenderTarget(_target);
-		RenderCommand.SetDepthStencilTarget(_depth);
-		RenderCommand.BindRenderTargets();
-
-		float2 textureSize = float2(viewedTexture.Width, viewedTexture.Height);
-		float2 zoomedTextureSize = textureSize * _zoom;
-		
-		float2 targetSize = float2(_target.Width, _target.Height);
-
-		_effect.Variables["ColorOffset"].SetData(_colorOffset);
-		_effect.Variables["ColorScale"].SetData(_colorScale);
-		_effect.Variables["AlphaOffset"].SetData(_alphaOffset);
-		_effect.Variables["AlphaScale"].SetData(_alphaScale);
-
-		_camera.Left = 0;
-		_camera.Top = 0;
-		_camera.Right = targetSize.X;
-		_camera.Bottom = -targetSize.Y;
-		_camera.NearPlane = -5;
-		_camera.FarPlane = 5;
-		_camera.Update();
-
-		Renderer2D.BeginScene(_camera);
-		
-		switch(_backgroundMode)
-		{
-		case .Black:
-			Renderer2D.DrawQuadPivotCorner(float3(0, 0, 1), targetSize, 0, .Black);
-		case .White:
-			Renderer2D.DrawQuadPivotCorner(float3(0, 0, 1), targetSize, 0, .White);
-		case .Pink:
-			Renderer2D.DrawQuadPivotCorner(float3(0, 0, 1), targetSize, 0, .HotPink);
-		case .CustomColor:
-				Renderer2D.DrawQuadPivotCorner(float3(0, 0, 1), targetSize, 0, _backgroundColor);
-		case .Checkerboard:
-			float quadSize = 50.0f;
-
-			float2 numQuads = (targetSize / 500f) * 10f;
-
-			for(float x = 0; x < numQuads.X; x++)
-			{
-				for(float y = 0; y < numQuads.Y; y++)
-				{
-					Renderer2D.DrawQuadPivotCorner(float3(x * quadSize, -y * quadSize, 1), quadSize.XX, 0, ((x + y) % 2 == 0) ? .White : .Gray);
-				}
-			}
-			break;
-		}
-
-		Renderer2D.EndScene();
-
-		var sampler = viewedTexture.SamplerState..AddRef();
-
-		switch(_sampleMode)
-		{
-		case .Point:
-			viewedTexture.SamplerState = SamplerStateManager.PointClamp;
-		case .Linear:
-			viewedTexture.SamplerState = SamplerStateManager.LinearClamp;
-		}
-
-		Renderer2D.BeginScene(_camera, .SortByTexture, _effect);
-
-		Renderer2D.DrawQuad(float3(_position * .(1, -1), 0), zoomedTextureSize, 0, viewedTexture);
-		
-		Renderer2D.EndScene();
-
-		viewedTexture.SamplerState = sampler;
-		sampler.ReleaseRef();
+		RenderTexture(viewedTexture.GetViewBinding(), float2(viewedTexture.Width, viewedTexture.Height), viewedTexture.Format);
 	}
 }

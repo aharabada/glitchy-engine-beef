@@ -70,7 +70,7 @@ public struct float4
 	public const float4 UnitZ	= .(0f, 0f, 1f, 0f);
 	public const float4 UnitW	= .(0f, 0f, 0f, 1f);
 	public const float4 One		= .(1f, 1f, 1f, 1f);
-	
+
 	public static implicit operator int4(float4 value)
 	{
 		return int4((int32)value.X, (int32)value.Y, (int32)value.Z, (int32)value.W);
