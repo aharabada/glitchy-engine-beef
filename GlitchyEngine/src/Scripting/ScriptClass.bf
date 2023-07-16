@@ -23,6 +23,32 @@ public struct ScriptField
 	}
 }
 
+public struct ScriptFieldInstance
+{
+	public ScriptField Field;
+	// TODO: I hate this, but we need to be able to store an entire matrix
+	internal uint8[sizeof(GlitchyEngine.Math.Matrix)] _data;
+
+	public this(ScriptField field)
+	{
+		Field = field;
+		_data = default;
+	}
+
+	public T GetData<T>()
+	{
+#unwarn
+		return *(T*)&_data;
+	}
+	
+	public void SetData<T>(T value) mut
+	{
+		*(T*)&_data = value;
+	}
+}
+
+public typealias ScriptFieldMap = Dictionary<StringView, ScriptFieldInstance>;
+
 abstract class SharpType : RefCounter
 {
 	protected String _namespace ~ delete _;

@@ -620,16 +620,26 @@ namespace GlitchyEditor
 
 			SceneFilePath = scope String(filename);
 
-			_editorScene.ReleaseRef();
-			_editorScene = new Scene();
-			_editor.CurrentScene = _editorScene;
-			var vpSize = _editor.SceneViewportWindow.ViewportSize;
-			_editorScene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
+			using (Scene newScene = new Scene())
+			{
+				var vpSize = _editor.SceneViewportWindow.ViewportSize;
+				newScene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
 
-			SceneSerializer serializer = scope .(_editorScene);
-			serializer.Deserialize(SceneFilePath);
+				SceneSerializer serializer = scope .(newScene);
+				let result = serializer.Deserialize(SceneFilePath);
 
-			SetReference!(_activeScene, _editorScene);
+				// Make sure we actually loaded something!
+				if (result case .Ok)
+				{
+					SetReference!(_editorScene, newScene);
+					_editor.CurrentScene = _editorScene;
+					SetReference!(_activeScene, _editorScene);
+				}
+				else
+				{
+					Log.EngineLogger.Error("Failed to load scene file.");
+				}
+			}
 		}
 
 		private void DrawOpenRecentProjectMenu()

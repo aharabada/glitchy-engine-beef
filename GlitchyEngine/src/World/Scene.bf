@@ -93,13 +93,11 @@ namespace GlitchyEngine.World
 				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
 				ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
 
-				targetComponent.Instance = new ScriptInstance(sourceComponent.Instance.ScriptClass);
+				targetComponent.Instance = new ScriptInstance(sourceComponent.ScriptClass);
 				targetComponent.Instance..ReleaseRef();
 
-				// We need an instance so we can copy the variables to it
+				// Initializes the created instance
 				ScriptEngine.InitializeInstance(targetEntity, targetComponent);
-
-				sourceComponent.Instance.CopyEditorFieldsTo(targetComponent.Instance);
 			}
 
 			// Copy transforms... needs special handling for the Parent<->Child relations

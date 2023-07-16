@@ -464,7 +464,7 @@ namespace GlitchyEditor.EditWindows
 
 				search = StringView(&buffer);
 
-				for (let (className, script) in ScriptEngine.EntityClasses)
+				for (let (className, scriptClass) in ScriptEngine.EntityClasses)
 				{
 					if (!search.IsWhiteSpace && !className.Contains(search, true))
 						continue;
@@ -472,9 +472,14 @@ namespace GlitchyEditor.EditWindows
 					if (ImGui.Selectable(className.ToScopeCStr!(),
 						className == scriptComponent.Instance?.ScriptClass.FullName))
 					{
-						scriptComponent.Instance = new ScriptInstance(script);
-						scriptComponent.Instance.ReleaseRef();
-						ScriptEngine.InitializeInstance(entity, scriptComponent);
+						//scriptComponent.Instance = new ScriptInstance(scriptClass);
+						// decrement refCount to 1 (scriptComponent.Instance increments its)
+						//scriptComponent.Instance.ReleaseRef();
+						//ScriptEngine.InitializeInstance(entity, scriptComponent);
+
+						scriptComponent.ScriptClass = scriptClass;
+						
+						ScriptEngine.CreateScriptFieldMap(entity);
 					}
 				}
 				ImGui.EndPopup();
@@ -505,9 +510,11 @@ namespace GlitchyEditor.EditWindows
 				scriptInstance.SetFieldValue<T>(scriptField, value);
 			}
 
-
-			void ShowClassFields(SharpClass sharpClass, ScriptInstance scriptInstance)
+			if (scriptComponent.Instance?.IsInitialized == true)
 			{
+				SharpClass sharpClass = scriptComponent.Instance.ScriptClass;
+				ScriptInstance scriptInstance = scriptComponent.Instance;
+
 				for (let (fieldName, scriptField) in sharpClass.Fields)
 				{
 					var monoField = scriptField.[Friend]_monoField;
@@ -579,67 +586,124 @@ namespace GlitchyEditor.EditWindows
 					case .Entity:
 						// TODO!
 						
-					case .Class:
-						// TODO!
 					case .Enum:
 						// TODO!
 					case .Struct:
 						// TODO!
-					/*case .Struct:
-						ShowStructFields();
-						{
-							
-							uint8[128] bla = ?;
-							GetFieldValue<uint8[128]>(scriptInstance, scriptField);
-
-							Mono.MonoObject* dings = (Mono.MonoObject*)&bla;
-
-							//ShowFields
-						}*/
 					default:
 						Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
 					}
 				}
 			}
-			/*void ShowStructFields(SharpClass sharpClass, ScriptInstance scriptInstance)
+			else if (scriptComponent.ScriptClass != null)
 			{
-				for (let (fieldName, scriptField) in sharpClass.Fields)
+				let scriptFields = ScriptEngine.GetScriptFieldMap(entity);
+
+				for (var (name, field) in ref scriptFields)
 				{
-					var monoField = scriptField.[Friend]_monoField;
-					
-					switch (scriptField.FieldType)
+					switch (field.Field.FieldType)
 					{
+					case .Bool:
+						var value = field.GetData<bool>();
+						if (ImGui.Checkbox(name.ToScopeCStr!(), &value))
+							field.SetData(value);
+
+					case .SByte:
+						var value = field.GetData<int8>();
+						if (ImGui.DragScalar(name.ToScopeCStr!(), .S8, &value))
+							field.SetData(value);
+						case .Short:
+							var value = field.GetData<int16>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .S16, &value))
+								field.SetData(value);
 					case .Int:
-						int32 value = GetFieldValue<int32>(scriptInstance, scriptField);
-						if (ImGui.DragInt(fieldName.ToScopeCStr!(), &value))
-							SetFieldValue(scriptInstance, scriptField, value);
+							var value = field.GetData<int32>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .S32, &value))
+								field.SetData(value);
+					case .Int2:
+							var value = field.GetData<int2>();
+							if (ImGui.DragScalarN(name.ToScopeCStr!(), .S32, &value, 2))
+								field.SetData(value);
+					case .Int3:
+							var value = field.GetData<int3>();
+							if (ImGui.DragScalarN(name.ToScopeCStr!(), .S32, &value, 3))
+								field.SetData(value);
+					case .Int4:
+							var value = field.GetData<int4>();
+							if (ImGui.DragScalarN(name.ToScopeCStr!(), .S32, &value, 4))
+								field.SetData(value);
+					case .Long:
+							var value = field.GetData<int64>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .S64, &value))
+								field.SetData(value);
+
+					case .Byte:
+							var value = field.GetData<uint8>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .U8, &value))
+								field.SetData(value);
+					case .UShort:
+							var value = field.GetData<uint16>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .U16, &value))
+								field.SetData(value);
+					case .UInt:
+							var value = field.GetData<uint32>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .U32, &value))
+								field.SetData(value);
+					case .ULong:
+							var value = field.GetData<uint64>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .U64, &value))
+								field.SetData(value);
+
 					case .Float:
-						float value = GetFieldValue<int32>(scriptInstance, scriptField);
-						if (ImGui.DragFloat(fieldName.ToScopeCStr!(), &value))
-							SetFieldValue(scriptInstance, scriptField, value);
+							var value = field.GetData<float>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .Float, &value))
+								field.SetData(value);
+					case .float2:
+							var value = field.GetData<float2>();
+							if (ImGui.Editfloat2(name, ref value))
+								field.SetData(value);
+					case .float3:
+							var value = field.GetData<float3>();
+							if (ImGui.Editfloat3(name, ref value))
+								field.SetData(value);
+					case .float4:
+							var value = field.GetData<float4>();
+							if (ImGui.Editfloat4(name, ref value))
+								field.SetData(value);
+
 					case .Double:
-						double value = GetFieldValue<double>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					/*case .Struct:
-						{
-							
-							uint8[128] bla = ?;
-							GetFieldValue<uint8[128]>(scriptInstance, scriptField);
+							var value = field.GetData<double>();
+							if (ImGui.DragScalar(name.ToScopeCStr!(), .Double, &value))
+								field.SetData(value);
+					case .Double2:
+							var value = field.GetData<double2>();
+							if (ImGui.DragScalarN(name.ToScopeCStr!(), .Double, &value, 2))
+								field.SetData(value);
+					case .Double3:
+							var value = field.GetData<double3>();
+							if (ImGui.DragScalarN(name.ToScopeCStr!(), .Double, &value, 3))
+								field.SetData(value);
+					case .Double4:
+							var value = field.GetData<double4>();
+							if (ImGui.DragScalarN(name.ToScopeCStr!(), .Double, &value, 4))
+								field.SetData(value);
 
-							Mono.MonoObject* dings = (Mono.MonoObject*)&bla;
+					case .Enum:
+						// TODO!
+						
+					//case .String:
+						// TODO!
 
-							//ShowFields
-						}*/
+					case .Entity:
+						// TODO!
+
+					case .Struct:
+						// TODO!
+
 					default:
-						Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
+						Log.EngineLogger.Error($"Unhandled field type {field.Field.FieldType}");
 					}
 				}
-			}*/
-
-			if (scriptComponent.Instance?.IsInitialized == true)
-			{
-				ShowClassFields(scriptComponent.Instance.ScriptClass, scriptComponent.Instance);
 			}
 		}
 

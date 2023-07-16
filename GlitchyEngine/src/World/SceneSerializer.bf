@@ -8,6 +8,7 @@ using GlitchyEngine.Core;
 using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Content;
+using GlitchyEngine.Scripting;
 
 namespace GlitchyEngine.World;
 
@@ -184,6 +185,28 @@ class SceneSerializer
 			SerializeComponent<MeshRendererComponent>(writer, entity, "MeshRendererComponent", scope (component) =>
 			{
 				Serialize.Value(writer, "Material", component.Material);
+			});
+
+			SerializeComponent<ScriptComponent>(writer, entity, "ScriptComponent", scope (component) =>
+			{
+				Serialize.Value(writer, "ScriptClass", component.ScriptClass?.FullName);
+
+				if (component.HasScript)
+				{
+					let fields = ScriptEngine.GetScriptFieldMap(entity);
+
+					for (var (fieldName, fieldInstance) in fields)
+					{
+						switch (fieldInstance.Field.FieldType)
+						{
+						case .Entity, .Enum, .Class, .Struct:
+							// TODO: implement
+						default:
+							writer.Identifier(fieldName);
+							Serialize.Value(writer, ValueView(fieldInstance.Field.FieldType.GetBeefType(), &fieldInstance.[Friend]_data), gBonEnv);
+						}
+					}
+				}
 			});
 		}
 
@@ -512,6 +535,73 @@ class SceneSerializer
 
 					return .Ok;
 				}));
+			case "ScriptComponent":
+				Try!(DeserializeComponent<ScriptComponent>(reader, entity, scope (component) =>
+				{
+					String scriptClassName = null;
+
+					Try!(Deserialize.Value(reader, "ScriptClass", out scriptClassName));
+
+					if (scriptClassName != null)
+					{
+						if (ScriptEngine.EntityClasses.TryGetValue(scriptClassName, let scriptClass))
+						{
+							component.ScriptClass = scriptClass;
+						}
+
+						delete scriptClassName;
+					}
+
+					if (component.HasScript)
+					{
+						// This whole operation is technically a bit junk, because we are not guaranteed to successfully deserialize the scene,
+						// however we are editing the ScriptEngine because it doesn't care about which scene is active right now.
+						// The UUID should be unique enough, however if they do overlap (e.g. loading the current scene or simply because we are unlucky)
+						// we will replace the fields of the active scene, even if deserialization fails...
+						// But that is a bug for me to rediscover in the distant future, so in case this bug occurred and it took ages for you to
+						// figure out what happened: You are welcome :)
+
+						ScriptEngine.CreateScriptFieldMap(entity);
+
+						var fields = ScriptEngine.GetScriptFieldMap(entity);
+						
+						Try!(reader.EntryEnd());
+
+						bool first = true;
+
+						while (reader.ObjectHasMore())
+						{
+							if (first)
+								first = false;
+							else
+								Try!(reader.EntryEnd());
+
+							// TODO: We could think about doing the Try! a little smarter...
+							// However we always might just fail to deserialize, so it doesn't really matter.
+
+							StringView fieldName = Try!(reader.Identifier());
+
+							if (fields.ContainsKey(fieldName))
+							{
+								var field = ref fields[fieldName];
+
+								void* data = &field.[Friend]_data;
+
+								Try!(Deserialize.Value(reader, ValueView(field.Field.FieldType.GetBeefType(), data), gBonEnv));
+							}
+						}
+					}
+
+					return .Ok;
+				}));
+				 /*
+				 
+
+				SerializeComponent<ScriptComponent>(writer, entity, "ScriptComponent", scope (component) =>
+				{
+					Serialize.Value(writer, "ScriptClass", component.ScriptClass?.FullName);
+				});
+				 */
 			default:
 				Log.EngineLogger.AssertDebug(false, "Unknown component type");
 				//return .Err;

@@ -23,7 +23,7 @@ enum ScriptFieldType
 
 	SByte,
 	Short,
-	Int,// int2, int3, int4,
+	Int, Int2, Int3, Int4,
 	Long,
 	Byte,
 	UShort,
@@ -31,9 +31,67 @@ enum ScriptFieldType
 	ULong,
 	// Half, Half2, Half3, Half4,
 	Float, float2, float3, float4,
-	Double, // Double2, Double3, Double4,
+	Double, Double2, Double3, Double4,
 
 	Entity
+}
+
+extension ScriptFieldType
+{
+	public Type GetBeefType()
+	{
+		switch(this)
+		{
+		case .Bool:
+			return typeof(bool);
+
+		case .SByte:
+			return typeof(int8);
+		case .Short:
+			return typeof(int16);
+		case .Int:
+			return typeof(int32);
+		case .Int2:
+			return typeof(int2);
+		case .Int3:
+			return typeof(int3);
+		case .Int4:
+			return typeof(int4);
+		case .Long:
+			return typeof(int64);
+			
+
+		case .Byte:
+				return typeof(uint8);
+		case .UShort:
+				return typeof(uint16);
+		case .UInt:
+				return typeof(uint32);
+		case .ULong:
+				return typeof(uint64);
+			
+		case .Float:
+				return typeof(float);
+		case .float2:
+				return typeof(float2);
+		case .float3:
+				return typeof(float3);
+		case .float4:
+				return typeof(float4);
+			
+		case .Double:
+				return typeof(double);
+		case .Double2:
+				return typeof(double2);
+		case .Double3:
+				return typeof(double3);
+		case .Double4:
+				return typeof(double4);
+
+		default:
+			return null;
+		}
+	}
 }
 
 static sealed class ScriptEngineHelper
@@ -53,9 +111,10 @@ static sealed class ScriptEngineHelper
 		("System.UInt64", .ULong),
 
 		("System.Single", .Float),
-		("GlitchyEngine.Math.float2", .float2),
-		("GlitchyEngine.Math.float3", .float3),
-		("GlitchyEngine.Math.float4", .float4),
+		// TODO: We probably want to switch the C#-Library to use the superior floatN-Names
+		("GlitchyEngine.Math.Vector2", .float2),
+		("GlitchyEngine.Math.Vector3", .float3),
+		("GlitchyEngine.Math.Vector4", .float4),
 
 		("System.Double", .Double),
 
@@ -101,6 +160,8 @@ static class ScriptEngine
 	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
 
 	public static Scene Context => s_Context;
+
+	private static Dictionary<UUID, ScriptFieldMap> _entityFields = new .() ~ DeleteDictionaryAndValues!(_);
 
 	internal static class Attributes
 	{
@@ -148,6 +209,22 @@ static class ScriptEngine
 		//_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
 
 		script.Instance.Instantiate(entity.UUID);
+
+		CopyEditorFieldsToInstance(entity, script);
+	}
+
+	private static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
+	{
+		// Technically the map is for a different entity (namely the editor-entity),
+		// however the UUID is the same, so we get the correct field map
+		let fiels = GetScriptFieldMap(entity);
+
+		for (var (fieldName, field) in fiels)
+		{
+			// TODO: a litte assertion maybe?
+
+			script.Instance.SetFieldValue(field.Field, field._data);
+		}
 	}
 
 	private static MonoAssembly* LoadCSharpAssembly(StringView assemblyPath)
@@ -290,7 +367,39 @@ static class ScriptEngine
 		}
 	}
 
+	public static void CreateScriptFieldMap(Entity entity)
+	{
+		Log.EngineLogger.AssertDebug(entity.IsValid);
 
+		if (_entityFields.TryGetValue(entity.UUID, var entityFields))
+		{
+			entityFields.Clear();
+		}
+		else
+		{
+			entityFields = new Dictionary<StringView, ScriptFieldInstance>();
+			_entityFields.Add(entity.UUID, entityFields);
+		}
+
+		let scriptComponent = entity.GetComponent<ScriptComponent>();
+
+		for (let (fieldName, field) in scriptComponent.ScriptClass.Fields)
+		{
+			entityFields.Add(fieldName, ScriptFieldInstance(field));
+		}
+	}
+
+	public static ScriptFieldMap GetScriptFieldMap(Entity entity)
+	{
+		Log.EngineLogger.AssertDebug(entity.IsValid);
+
+		let uuid = entity.UUID;
+
+		// TODO: Entites bekommen noch kein Eintrag hier!!
+		Log.EngineLogger.AssertDebug(_entityFields.ContainsKey(uuid));
+
+		return _entityFields[uuid];
+	}
 
 
 

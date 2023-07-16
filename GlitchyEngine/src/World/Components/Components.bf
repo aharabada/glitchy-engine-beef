@@ -507,7 +507,15 @@ namespace GlitchyEngine.World
 
 	struct ScriptComponent : IDisposableComponent
 	{
+		private ScriptClass _scriptClass = null;
+
 		private ScriptInstance _instance = null;
+
+		public ScriptClass ScriptClass
+		{
+			get => _scriptClass;
+			set mut => SetReference!(_scriptClass, value);
+		}
 
 		public ScriptInstance Instance
 		{
@@ -517,12 +525,16 @@ namespace GlitchyEngine.World
 			set mut => SetReference!(_instance, value);
 		}
 
+		/// Gets whether or not this script component has a script assigned (that means ScriptClass isn't null).
+		public bool HasScript => _scriptClass != null;
+
 		public bool IsInitialized => _instance?.IsInitialized ?? false;
 
 		public bool IsCreated => _instance?.IsCreated ?? false;
 
 		public void Dispose() mut
 		{
+			ReleaseRefAndNullify!(_scriptClass);
 			ReleaseRefAndNullify!(_instance);
 		}
 	}
