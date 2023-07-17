@@ -194,16 +194,30 @@ class SceneSerializer
 				if (component.HasScript)
 				{
 					let fields = ScriptEngine.GetScriptFieldMap(entity);
+					
+					writer.Identifier("Fields");
 
-					for (var (fieldName, fieldInstance) in fields)
+					using (writer.ArrayBlock())
 					{
-						switch (fieldInstance.Field.FieldType)
+						for (var (fieldName, fieldInstance) in fields)
 						{
-						case .Entity, .Enum, .Class, .Struct:
-							// TODO: implement
-						default:
-							writer.Identifier(fieldName);
-							Serialize.Value(writer, ValueView(fieldInstance.Field.FieldType.GetBeefType(), &fieldInstance.[Friend]_data), gBonEnv);
+							if (fieldInstance.Field.FieldType == .None)
+								continue;
+
+							
+							switch (fieldInstance.Field.FieldType)
+							{
+							case .Enum, .Class, .Struct:
+								// TODO: implement
+							default:
+								writer.Identifier(fieldName);
+
+								String str = scope .();
+								fieldInstance.Field.FieldType.ToString(str);
+								writer.Type(str);
+
+								Serialize.Value(writer, ValueView(fieldInstance.Field.FieldType.GetBeefType(), &fieldInstance.[Friend]_data), gBonEnv);
+							}
 						}
 					}
 				}
@@ -566,29 +580,73 @@ class SceneSerializer
 						var fields = ScriptEngine.GetScriptFieldMap(entity);
 						
 						Try!(reader.EntryEnd());
-
-						bool first = true;
-
-						while (reader.ObjectHasMore())
+						
+						if (Try!(reader.Identifier()) == "Fields")
 						{
-							if (first)
-								first = false;
-							else
-								Try!(reader.EntryEnd());
+							Try!(reader.ArrayBlock());
+	
+							bool dontRemoveComma = true;
 
-							// TODO: We could think about doing the Try! a little smarter...
-							// However we always might just fail to deserialize, so it doesn't really matter.
-
-							StringView fieldName = Try!(reader.Identifier());
-
-							if (fields.ContainsKey(fieldName))
+							// Remove whitespace before the check
+							while (reader..ConsumeEmpty().ArrayHasMore())
 							{
-								var field = ref fields[fieldName];
+								if (dontRemoveComma)
+									dontRemoveComma = false;
+								else
+								{
+									if (reader.[Friend]Check(',', false))
+										reader.EntryEnd();
+									else
+										reader..FileEntrySkip(1).ConsumeEmpty();
+								}
+	
+								// TODO: We could think about doing the Try! a little smarter...
+								// However we always might just fail to deserialize, so it doesn't really matter.
+								// It does matter... in case of an error we should try to skip to the next entry.
+	
+								StringView fieldName = Try!(reader.Identifier());
 
-								void* data = &field.[Friend]_data;
+								if (fields.ContainsKey(fieldName))
+								{
+									var field = ref fields[fieldName];
 
-								Try!(Deserialize.Value(reader, ValueView(field.Field.FieldType.GetBeefType(), data), gBonEnv));
+									Result<StringView> fieldTypeName = reader.Type();
+
+									if (fieldTypeName case .Err)
+									{
+										Log.EngineLogger.Error($"Failed to read field type for field \"{fieldName}\" in script \"{component.ScriptClass.FullName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+										reader.FileEntrySkip(1);
+										dontRemoveComma = true;
+										continue;
+									}
+	
+									Result<ScriptFieldType> fieldType = Enum.Parse<ScriptFieldType>(fieldTypeName, true);
+
+									if ((fieldType case .Err) || (fieldType != field.Field.FieldType))
+									{
+										Log.EngineLogger.Error($"Unexpected field type (\"{fieldTypeName}\" instead of \"{field.Field.FieldType}\" for field: \"{fieldName}\" in script \"{component.ScriptClass.FullName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+										reader.FileEntrySkip(1);
+										dontRemoveComma = true;
+										continue;
+									}
+
+									void* data = &field.[Friend]_data;
+	
+									if (Deserialize.Value(reader, ValueView(field.Field.FieldType.GetBeefType(), data), gBonEnv) case .Err)
+									{
+										Log.EngineLogger.Error($"Failed to deserialize data for field: \"{fieldName}\" in script \"{component.ScriptClass.FullName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+										reader.FileEntrySkip(1);
+										dontRemoveComma = true;
+										continue;
+									}
+								}
+								else
+								{
+									Log.EngineLogger.Error($"Script \"{component.ScriptClass.FullName}\" doesn't have a field with name \"{fieldName}\". (Entity {entity.UUID} (\"{entity.Name}\"))");
+								}
 							}
+	
+							Try!(reader.ArrayBlockEnd());
 						}
 					}
 

@@ -60,33 +60,35 @@ extension ScriptFieldType
 		case .Long:
 			return typeof(int64);
 			
-
 		case .Byte:
-				return typeof(uint8);
+			return typeof(uint8);
 		case .UShort:
-				return typeof(uint16);
+			return typeof(uint16);
 		case .UInt:
-				return typeof(uint32);
+			return typeof(uint32);
 		case .ULong:
-				return typeof(uint64);
+			return typeof(uint64);
 			
 		case .Float:
-				return typeof(float);
+			return typeof(float);
 		case .float2:
-				return typeof(float2);
+			return typeof(float2);
 		case .float3:
-				return typeof(float3);
+			return typeof(float3);
 		case .float4:
-				return typeof(float4);
+			return typeof(float4);
 			
 		case .Double:
-				return typeof(double);
+			return typeof(double);
 		case .Double2:
-				return typeof(double2);
+			return typeof(double2);
 		case .Double3:
-				return typeof(double3);
+			return typeof(double3);
 		case .Double4:
-				return typeof(double4);
+			return typeof(double4);
+
+		case .Entity:
+			return typeof(UUID);
 
 		default:
 			return null;
