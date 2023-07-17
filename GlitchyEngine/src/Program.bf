@@ -8,7 +8,7 @@ namespace GlitchyEngine
 	class Program
 	{
 		[LinkName("CreateApplication")]
-		static extern Application CreateApplication();
+		static extern Application CreateApplication(String[] args);
 
 		public static int Main(String[] args)
 		{
@@ -23,7 +23,7 @@ namespace GlitchyEngine
 
 				Stopwatch initWatch = scope Stopwatch();
 
-				app = CreateApplication();
+				app = CreateApplication(args);
 
 				initWatch.Stop();
 

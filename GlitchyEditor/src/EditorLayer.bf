@@ -91,7 +91,7 @@ namespace GlitchyEditor
 			}
 		}
 
-		public this(EditorContentManager contentManager) : base("Editor")
+		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
 			Application.Get().Window.IsVSync = true;
 
@@ -99,18 +99,18 @@ namespace GlitchyEditor
 
 			InitGraphics();
 
-			_editorScene = new Scene();
-			SetReference!(_activeScene, _editorScene);
-
 			_gameSceneRenderer = new SceneRenderer();
 			_editorSceneRenderer = new SceneRenderer();
 
-			_camera = EditorCamera(float3(3.5f, 1.25f, 2.75f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
+			_camera = EditorCamera(float3(-3f, 3f, -3f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
 			_camera.RenderTarget = _cameraTarget;
 			
 			InitEditor();
 
-			NewScene();
+			if (args.Count >= 1)
+				LoadSceneFile(args[0]);
+			else
+				NewScene();
 		}
 
 		private void InitGraphics()
@@ -505,7 +505,7 @@ namespace GlitchyEditor
 		{
 			if (_sceneState == .Play)
 				_activeScene.OnRuntimeStop();
-			else
+			else if (_sceneState == .Simulate)
 				_activeScene.OnSimulationStop();
 
 			SetReference!(_activeScene, _editorScene);
@@ -517,12 +517,15 @@ namespace GlitchyEditor
 			
 			_isPaused = false;
 
-			/*
-			 * Update the viewport size because if the game windows size changed in
-			 * "Game"-mode the updated aspect-rations will reset once we go back
-			 * into "Editor"-mode (because Game-Mode works on a copy of the scene).
-			 */
-			GameViewportSizeChanged(null, _editor.GameViewportWindow.ViewportSize);
+			if (_activeScene != null)
+			{
+				/*
+				 * Update the viewport size because if the game windows size changed in
+				 * "Game"-mode the updated aspect-rations will reset once we go back
+				 * into "Editor"-mode (because Game-Mode works on a copy of the scene).
+				 */
+				GameViewportSizeChanged(null, _editor.GameViewportWindow.ViewportSize);
+			}
 		}
 
 		/// Creates a new scene.
@@ -532,44 +535,41 @@ namespace GlitchyEditor
 
 			SceneFilePath = null;
 
-			Scene newScene = new Scene();
-
-			_camera.Position = .(-1.5f, 1.5f, -2.5f);
-			_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
-
-			// Create a default camera
+			using (Scene newScene = new Scene())
 			{
-				let cameraEntity = newScene.CreateEntity("Camera");
-				let transform = cameraEntity.Transform;
-				transform.Position = float3(0, 2, -5);
-				transform.RotationEuler = float3(0, MathHelper.ToRadians(25), 0);
-				
-				let camera = cameraEntity.AddComponent<CameraComponent>();
-				camera.Primary = true;
-				camera.Camera.ProjectionType = .InfinitePerspective;
-				camera.Camera.PerspectiveFovY = MathHelper.ToRadians(75);
-				camera.Camera.PerspectiveNearPlane = 0.1f;
+				_camera.Position = .(-1.5f, 1.5f, -2.5f);
+				_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
+	
+				// Create a default camera
+				{
+					let cameraEntity = newScene.CreateEntity("Camera");
+					let transform = cameraEntity.Transform;
+					transform.Position = float3(0, 2, -5);
+					transform.RotationEuler = float3(0, MathHelper.ToRadians(25), 0);
+					
+					let camera = cameraEntity.AddComponent<CameraComponent>();
+					camera.Primary = true;
+					camera.Camera.ProjectionType = .InfinitePerspective;
+					camera.Camera.PerspectiveFovY = MathHelper.ToRadians(75);
+					camera.Camera.PerspectiveNearPlane = 0.1f;
+				}
+	
+				// Create a default light source
+				{
+					let lightEntity = newScene.CreateEntity("Light");
+					let transform = lightEntity.Transform;
+					transform.Position = .(-3, 4, -1.5f);
+					transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(75), MathHelper.ToRadians(20));
+	
+					let light = lightEntity.AddComponent<LightComponent>();
+					light.SceneLight.Illuminance = 10.0f;
+					light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
+				}
+	
+				SetReference!(_editorScene, newScene);
+				_editor.CurrentScene = _editorScene;
+				SetReference!(_activeScene, _editorScene);
 			}
-
-			// Create a default light source
-			{
-				let lightEntity = newScene.CreateEntity("Light");
-				let transform = lightEntity.Transform;
-				transform.Position = .(-3, 4, -1.5f);
-				transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(75), MathHelper.ToRadians(20));
-
-				let light = lightEntity.AddComponent<LightComponent>();
-				light.SceneLight.Illuminance = 10.0f;
-				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}
-
-			_editorScene.ReleaseRef();
-			_editorScene = newScene;
-			_editor.CurrentScene = _editorScene;
-			var vpSize = _editor.SceneViewportWindow.ViewportSize;
-			_editorScene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
-
-			SetReference!(_activeScene, _editorScene);
 		}
 		
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
@@ -622,9 +622,6 @@ namespace GlitchyEditor
 
 			using (Scene newScene = new Scene())
 			{
-				var vpSize = _editor.SceneViewportWindow.ViewportSize;
-				newScene.OnViewportResize((.)vpSize.X, (.)vpSize.Y);
-
 				SceneSerializer serializer = scope .(newScene);
 				let result = serializer.Deserialize(SceneFilePath);
 

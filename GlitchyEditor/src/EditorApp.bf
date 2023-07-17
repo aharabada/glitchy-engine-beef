@@ -9,9 +9,9 @@ namespace GlitchyEditor
 	{
 		EditorContentManager _contentManager;
 
-		public this()
+		public this(String[] args)
 		{
-			PushLayer(new EditorLayer(_contentManager));
+			PushLayer(new EditorLayer(args, _contentManager));
 		}
 
 		protected override IContentManager InitContentManager()
@@ -39,9 +39,9 @@ namespace GlitchyEditor
 		}
 
 		[Export, LinkName("CreateApplication")]
-		public static Application CreateApplication()
+		public static Application CreateApplication(String[] args)
 		{
-			return new EditorApp();
+			return new EditorApp(args);
 		}
 	}
 }
