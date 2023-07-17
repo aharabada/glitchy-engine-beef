@@ -1,5 +1,7 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Xml.Linq;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
@@ -11,22 +13,22 @@ internal struct EntityHandle
     public uint Index;
 }
 
-public abstract class Entity : EngineObject
+public class Entity : EngineObject
 {
     //private UUID _uuid;
 
     //public UUID UUID => _uuid;
 
-    ///// <summary>
-    ///// Empty constructor not used. Do NOT USE!
-    ///// </summary>
-    //protected Entity()
-    //{}
+    /// <summary>
+    /// Empty constructor not used. Do NOT USE!
+    /// </summary>
+    protected Entity()
+    { }
 
-    //internal Entity(UUID uuid)
-    //{
-    //    _uuid = uuid;
-    //}
+    private Entity(UUID uuid)
+    {
+        _uuid = uuid;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent<T>() => HasComponent(typeof(T));
@@ -41,8 +43,6 @@ public abstract class Entity : EngineObject
     /// <returns>The component or null, if the entity doesn't have a component of the specified type.</returns>
     public T GetComponent<T>() where T : Component, new()
     {
-        Log.Info("Trying to get component");
-
         if (HasComponent<T>())
         {
             return new T
@@ -129,10 +129,39 @@ public abstract class Entity : EngineObject
 
     public Transform Transform => GetComponent<Transform>();
 
-    public Vector3 Translation
+    //public Vector3 Translation
+    //{
+    //    get => Transform.Translation;
+    //    set => Transform.Translation = value;
+    //}
+
+    /// <summary>
+    /// Returns the first entity with the given name.
+    /// </summary>
+    /// <param name="name">The name of the entity.</param>
+    /// <returns>The first entity with the given name, or null.</returns>
+    public static Entity FindEntityWithName(string name)
     {
-        get => Transform.Translation;
-        set => Transform.Translation = value;
+        ScriptGlue.Entity_FindEntityWithName(name, out UUID entityId);
+
+        Log.Error($"Found EntityID {entityId}");
+
+        if (entityId == UUID.Zero)
+            return null;
+
+        return new Entity(entityId);
+    }
+
+    /// <summary>
+    /// Returns the script of the given type, or null, if the entity has no script of the given type.
+    /// </summary>
+    /// <typeparam name="T">The type of the script.</typeparam>
+    /// <returns>The script instance or null.</returns>
+    public T As<T>() where T : Entity
+    {
+        object scriptInstance = ScriptGlue.Entity_GetScriptInstance(_uuid);
+
+        return scriptInstance as T;
     }
 
     // Will be executed once after the entity as be created.

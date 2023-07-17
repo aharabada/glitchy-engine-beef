@@ -23,7 +23,7 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = 0,
+					X = -0.72789681,
 					Y = 2,
 					Z = 0
 				},
@@ -71,8 +71,8 @@
 			SpriteRendererComponent = {
 				Color = {
 					R = 1,
-					G = 0.941886365,
-					B = 0.401484847,
+					G = 0.941886961,
+					B = 0.401484549,
 					A = 1
 				},
 				Sprite = "",
@@ -162,14 +162,20 @@
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 3.22169805,
+				AspectRatio = 0.884925187,
 				FixedAspectRatio = false
-			}
+			},
+			ScriptComponent = {
+				ScriptClass = "Sandbox.Camera",
+				Fields = [
+					DistanceFromPlayer = (Float)-7,
+					DontFollowRadius = (Float)3
+				]			}
 		},
 		{
 			Id = 15710354273720487680,
 			NameComponent = {
-				Name = "Circle"
+				Name = "Player"
 			},
 			CircleRendererComponent = {
 				Color = {
@@ -189,8 +195,8 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = -0.12120308,
-					Y = 0.660160363,
+					X = -0.121203184,
+					Y = 0.660160959,
 					Z = 0
 				},
 				Rotation = {
@@ -224,7 +230,42 @@
 				Friction = 0.5,
 				Restitution = 0,
 				RestitutionThreshold = 0.5
-			}
+			},
+			ScriptComponent = {
+				ScriptClass = "Sandbox.MyTestEntity",
+				Fields = [
+					Bo = (Bool)false,
+					By = (Byte)0,
+					Us = (UShort)57,
+					Ui = (UInt)54,
+					Ul = (ULong)53,
+					Sb = (SByte)-128,
+					Sh = (Short)95,
+					In = (Int)-149,
+					Lo = (Long)82,
+					Fl = (Float)-98.122963,
+					Do = (Double)118,
+					V2 = (float2){
+						X = 11,
+						Y = 12
+					},
+					V3 = (float3){
+						X = 13,
+						Y = 14,
+						Z = 15
+					},
+					V4 = (float4){
+						X = 14,
+						Y = 17,
+						Z = 18,
+						W = 19
+					},
+					TheEntity = (Entity)0,
+					JumpForce = (Float)200,
+					MoveForce = (Float)148,
+					MyNumber = (Int)22,
+					MyDouble = (Double)23
+				]			}
 		},
 		{
 			Id = 935640822766280888,
@@ -249,9 +290,9 @@
 					Z = 1
 				},
 				EditorEulerRotation = {
-					X = 1.0908947,
+					X = 1.09089541,
 					Y = -0.340793997,
-					Z = 0.160857916
+					Z = 0.160857871
 				}
 			},
 			LightComponent = {
@@ -260,7 +301,7 @@
 				Color = {
 					R = 0.985467017,
 					G = 1,
-					B = 0.569978654
+					B = 0.569978058
 				}
 			}
 		},
@@ -273,7 +314,7 @@
 				Position = {
 					X = 0,
 					Y = 0,
-					Z = -1.47202551
+					Z = 2.56930423
 				},
 				Rotation = {
 					X = 0,
@@ -297,6 +338,192 @@
 			},
 			MeshRendererComponent = {
 				Material = "Textures/TestMaterial.mat"
+			}
+		},
+		{
+			Id = 2241063100006479259,
+			NameComponent = {
+				Name = "Floor 2"
+			},
+			SpriteRendererComponent = {
+				Color = {
+					R = 0.425658971,
+					G = 0.855207562,
+					B = 0.0558161102,
+					A = 1
+				},
+				Sprite = "",
+				UvTransform = {
+					X = 0,
+					Y = 0,
+					Z = 1,
+					W = 1
+				}
+			},
+			TransformComponent = {
+				Position = {
+					X = 6.74610233,
+					Y = -2.03225899,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = -0.331792623,
+					W = 0.943352342
+				},
+				Scale = {
+					X = 5.29557419,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = -0.676406503
+				}
+			},
+			Rigidbody2D = {
+				BodyType = .Static,
+				FixedRotation = false
+			},
+			BoxCollider2D = {
+				Offset = {
+					X = 0,
+					Y = 0
+				},
+				Size = {
+					X = 0.5,
+					Y = 0.5
+				},
+				Density = 1,
+				Friction = 0.5,
+				Restitution = 0,
+				RestitutionThreshold = 0.5
+			}
+		},
+		{
+			Id = 5126705881069187728,
+			NameComponent = {
+				Name = "Floor 3"
+			},
+			SpriteRendererComponent = {
+				Color = {
+					R = 0.666116953,
+					G = 0.0600316115,
+					B = 1,
+					A = 1
+				},
+				Sprite = "",
+				UvTransform = {
+					X = 0,
+					Y = 0,
+					Z = 1,
+					W = 1
+				}
+			},
+			TransformComponent = {
+				Position = {
+					X = 15.2321301,
+					Y = -1.98709249,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0.134986058,
+					W = 0.990847468
+				},
+				Scale = {
+					X = 13.9764566,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0.270798802
+				}
+			},
+			Rigidbody2D = {
+				BodyType = .Static,
+				FixedRotation = false
+			},
+			BoxCollider2D = {
+				Offset = {
+					X = 0,
+					Y = 0
+				},
+				Size = {
+					X = 0.5,
+					Y = 0.5
+				},
+				Density = 1,
+				Friction = 0.5,
+				Restitution = 0.800000012,
+				RestitutionThreshold = 0.5
+			}
+		},
+		{
+			Id = 6861260438693901700,
+			NameComponent = {
+				Name = "Floor 4"
+			},
+			SpriteRendererComponent = {
+				Color = {
+					R = 0.176544324,
+					G = 0.666713238,
+					B = 0.687030852,
+					A = 1
+				},
+				Sprite = "",
+				UvTransform = {
+					X = 0,
+					Y = 0,
+					Z = 1,
+					W = 1
+				}
+			},
+			TransformComponent = {
+				Position = {
+					X = -6.27842855,
+					Y = 2.62550211,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0.187087834,
+					W = 0.982343197
+				},
+				Scale = {
+					X = 0.999999523,
+					Y = 6.49634314,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0.376393586
+				}
+			},
+			Rigidbody2D = {
+				BodyType = .Static,
+				FixedRotation = false
+			},
+			BoxCollider2D = {
+				Offset = {
+					X = 0,
+					Y = 0
+				},
+				Size = {
+					X = 0.5,
+					Y = 0.5
+				},
+				Density = 1,
+				Friction = 0.5,
+				Restitution = 0.899999976,
+				RestitutionThreshold = 0.5
 			}
 		}
 	]

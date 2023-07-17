@@ -151,13 +151,13 @@ static class ScriptEngine
 	
 	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
 	
-	/*private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
+	private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
 		for (var entry in _)
 		{
 			entry.value?.ReleaseRef();
 		}
 		delete _;
-	};*/
+	}
 	
 	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
 
@@ -197,18 +197,18 @@ static class ScriptEngine
 
 	public static void OnRuntimeStop()
 	{
-		/*for (var entry in _entityScriptInstances)
+		for (var entry in _entityScriptInstances)
 		{
 			entry.value.ReleaseRef();
 		}
-		_entityScriptInstances.Clear();*/
+		_entityScriptInstances.Clear();
 
 		SetContext(null);
 	}
 
 	public static void InitializeInstance(Entity entity, ScriptComponent* script)
 	{
-		//_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
+		_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
 
 		script.Instance.Instantiate(entity.UUID);
 
@@ -403,7 +403,13 @@ static class ScriptEngine
 		return _entityFields[uuid];
 	}
 
-
+	public static MonoObject* GetManagedInstance(UUID entityId)
+	{
+		if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
+			return scriptInstance.MonoInstance;
+		
+		return null;
+	}
 
 
 

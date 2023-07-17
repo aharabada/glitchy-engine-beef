@@ -92,7 +92,8 @@ namespace GlitchyEngine.World
 
 				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
 				ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
-
+				
+				targetComponent.ScriptClass = sourceComponent.ScriptClass;
 				targetComponent.Instance = new ScriptInstance(sourceComponent.ScriptClass);
 				targetComponent.Instance..ReleaseRef();
 
@@ -116,7 +117,7 @@ namespace GlitchyEngine.World
 				}
 			}
 			
-			target.OnViewportResize(_viewportWidth, _viewportHeight);
+			//target.SetViewportSize(_viewportWidth, _viewportHeight);
 		}
 
 		private static void CopyComponents<TComponent>(Scene source, Scene target) where TComponent : struct, new
@@ -376,9 +377,23 @@ namespace GlitchyEngine.World
 			return .Err;
 		}
 
-		/// Sets the size of the viewport into which the scene will be rendered.
-		public void OnViewportResize(uint32 width, uint32 height)
+		public Result<Entity> GetEntityByName(StringView name)
 		{
+			for (let (ecsEntity, nameComponent) in GetEntities<NameComponent>())
+			{
+				if (nameComponent.Name == name)
+					return .Ok(Entity(ecsEntity, this));
+			}
+
+			return .Err;
+		}
+
+		/// Sets the size of the viewport into which the scene will be rendered.
+		public void SetViewportSize(uint32 width, uint32 height)
+		{
+			if (_viewportWidth == width && _viewportHeight == height)
+				return;
+
 			_viewportWidth = width;
 			_viewportHeight = height;
 

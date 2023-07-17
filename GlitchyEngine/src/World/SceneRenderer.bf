@@ -45,8 +45,11 @@ class SceneRenderer
 	}
 
 	/// Sets the size of the viewport into which the scene will be rendered.
-	public void OnViewportResize(uint32 width, uint32 height)
+	public void SetViewportSize(uint32 width, uint32 height)
 	{
+		if (_viewportWidth == width && _viewportHeight == height)
+			return;
+
 		_viewportWidth = width;
 		_viewportHeight = height;
 

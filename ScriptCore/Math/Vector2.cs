@@ -99,7 +99,12 @@ public struct Vector2
     {
         return !(a == b);
     }
-    
+
+    public float Length()
+    {
+        return (float)System.Math.Sqrt(X * X + Y * Y);
+    }
+
     public override int GetHashCode()
     {
         unchecked

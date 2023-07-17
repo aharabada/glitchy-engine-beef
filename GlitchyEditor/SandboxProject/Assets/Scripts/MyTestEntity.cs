@@ -54,6 +54,8 @@ class MyTestEntity : Entity
     
     public MyStruct AStruct;
 
+    public Camera Camera;
+
     /// <summary>
     /// Called after the script component was created. (The entity might not be fully created yet)
     /// </summary>
@@ -61,7 +63,16 @@ class MyTestEntity : Entity
     {
         Log.Info($"Create! {UUID}");
         
+        Log.Info($"Jump Force: {JumpForce}");
+
         _rigidBody ??= GetComponent<RigidBody2D>() ?? AddComponent<RigidBody2D>();
+
+        Camera = FindEntityWithName("Camera").As<Camera>();
+
+        if (Camera == null)
+        {
+            Log.Error("Camera not found.");
+        }
     }
     
     /// <summary>
@@ -81,6 +92,12 @@ class MyTestEntity : Entity
         {
             force.X += MoveForce * deltaTime;
         }
+
+        if (Input.IsKeyPressed(Key.Q))
+            Camera.DistanceFromPlayer -= deltaTime;
+
+        if (Input.IsKeyPressed(Key.E))
+            Camera.DistanceFromPlayer += deltaTime;
 
         if (Input.IsKeyPressing(Key.Space))
         {

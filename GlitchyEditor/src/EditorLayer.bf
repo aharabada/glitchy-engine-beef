@@ -208,6 +208,20 @@ namespace GlitchyEditor
 			
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
+
+			if (_editor.GameViewportWindow.Visible)
+			{
+				_gameSceneRenderer.Scene = _activeScene;
+
+				_activeScene.SetViewportSize((uint32)_editor.GameViewportWindow.ViewportSize.X, (uint32)_editor.GameViewportWindow.ViewportSize.Y);
+				_gameSceneRenderer.SetViewportSize((uint32)_editor.GameViewportWindow.ViewportSize.X, (uint32)_editor.GameViewportWindow.ViewportSize.Y);
+
+				RenderCommand.Clear(_gameViewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
+				_gameSceneRenderer.RenderRuntime(gameTime, _gameViewportTarget);
+			}
+
+			RenderCommand.SetBlendState(_alphaBlendState);
+			RenderCommand.SetDepthStencilState(_depthStencilState);
 			
 			if (_editor.SceneViewportWindow.Visible)
 			{
@@ -215,19 +229,14 @@ namespace GlitchyEditor
 
 				_editorSceneRenderer.Scene = _activeScene;
 
+				// Only use aspect ratio of editor-window, if game is not being rendered
+				if (!_editor.GameViewportWindow.Visible)
+					_activeScene.SetViewportSize((uint32)_editor.SceneViewportWindow.ViewportSize.X, (uint32)_editor.SceneViewportWindow.ViewportSize.Y);
+				
+				_editorSceneRenderer.SetViewportSize((uint32)_editor.SceneViewportWindow.ViewportSize.X, (uint32)_editor.SceneViewportWindow.ViewportSize.Y);
+
 				RenderCommand.Clear(_editorViewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 				_editorSceneRenderer.RenderEditor(gameTime, _camera, _editorViewportTarget, scope => DebugDraw3D, scope => DebugDraw2D);
-			}
-
-			RenderCommand.SetBlendState(_alphaBlendState);
-			RenderCommand.SetDepthStencilState(_depthStencilState);
-
-			if (_editor.GameViewportWindow.Visible)
-			{
-				_gameSceneRenderer.Scene = _activeScene;
-
-				RenderCommand.Clear(_gameViewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
-				_gameSceneRenderer.RenderRuntime(gameTime, _gameViewportTarget);
 			}
 
 			RenderCommand.UnbindRenderTargets();
@@ -742,7 +751,7 @@ namespace GlitchyEditor
 
 			_camera.OnViewportResize(sizeX, sizeY);
 
-			_editorSceneRenderer.OnViewportResize(sizeX, sizeY);
+			_activeScene.SetViewportSize(sizeX, sizeY);
 		}
 		
 		private void GameViewportSizeChanged(Object sender, float2 viewportSize)
@@ -755,9 +764,7 @@ namespace GlitchyEditor
 
 			_gameViewportTarget.Resize(sizeX, sizeY);
 
-			_activeScene.OnViewportResize(sizeX, sizeY);
-
-			_gameSceneRenderer.OnViewportResize(sizeX, sizeY);
+			_activeScene.SetViewportSize(sizeX, sizeY);
 		}
 
 		private bool OnKeyPressed(KeyPressedEvent e)

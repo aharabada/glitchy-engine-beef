@@ -37,6 +37,8 @@ class ScriptInstance : RefCounter
 		_scriptClass?.ReleaseRef();
 	}
 
+	internal MonoObject* MonoInstance => _instance;
+
 	public void Instantiate(UUID uuid)
 	{
 		_instance = _scriptClass.CreateInstance(uuid);

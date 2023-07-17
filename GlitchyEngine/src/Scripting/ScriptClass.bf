@@ -90,6 +90,11 @@ class SharpClass : SharpType
 		ExtractFields();
 	}
 
+	internal bool IsType(MonoType* type)
+	{
+		return Mono.mono_class_get_type(_monoClass) == type;
+	}
+
 	private void ExtractFields()
 	{
 		//_monoFields = new List<MonoClassField*>();´

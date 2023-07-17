@@ -11,6 +11,8 @@ using Box2D;
 
 namespace GlitchyEngine.Scripting;
 
+using internal GlitchyEngine.Scripting;
+
 static class ScriptGlue
 {
 	private static Dictionary<MonoType*, function void(Entity entityId)> s_AddComponentMethods = new .() ~ delete _;
@@ -176,11 +178,29 @@ static class ScriptGlue
 		else
 			Log.EngineLogger.AssertDebug(false, "No managed component with the given type registered.");
 	}
-	/*[RegisterCall("Input::IsMouseButtonReleasing")]
-	static void Destroy()
+	
+	[RegisterCall("ScriptGlue::Entity_FindEntityWithName")]
+	static void Entity_FindEntityWithName(MonoString* monoName, UUID* outUuid)
 	{
-		// TODO:
-	}*/
+		*outUuid = UUID(0);
+
+		char8* entityName = Mono.mono_string_to_utf8(monoName);
+
+		StringView nameString = StringView(entityName);
+
+		Result<Entity> entityResult = ScriptEngine.Context.GetEntityByName(nameString);
+
+		Mono.mono_free(entityName);
+
+		if (entityResult case .Ok(let entity))
+			*outUuid = entity.UUID;
+	}
+
+	[RegisterCall("ScriptGlue::Entity_GetScriptInstance")]
+	static MonoObject* Entity_GetScriptInstance(UUID entityId)
+	{
+		return ScriptEngine.GetManagedInstance(entityId);
+	}
 
 #endregion
 

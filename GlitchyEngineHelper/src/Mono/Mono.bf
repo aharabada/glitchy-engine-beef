@@ -79,9 +79,15 @@ static class Mono
 	[LinkName(.C)]
 	public static extern MonoClass* mono_class_from_name(MonoImage* image, char8* name_space,
 		char8* name);
-	
+
+	[LinkName(.C)]
+	public static extern MonoClass* mono_class_from_mono_type(MonoType* type);
+
 	[LinkName(.C)]
 	public static extern char8* mono_class_get_name(MonoClass* monoClass);
+	
+	[LinkName(.C)]
+	public static extern MonoType* mono_class_get_type(MonoClass* monoClass);
 
 	[LinkName(.C)]
 	public static extern char8* mono_class_get_namespace(MonoClass* monoClass);
@@ -130,6 +136,9 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern char8* mono_string_to_utf8(MonoString *s);
+	
+	[LinkName(.C)]
+	public static extern char8* mono_string_to_utf8_checked(MonoString *s, MonoError* error);
 	
 	[LinkName(.C)]
 	public static extern void mono_free(void* ptr);
@@ -188,6 +197,17 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern MonoClass* mono_type_get_class(MonoType* type);
+
+	/// MonoError
+
+	[LinkName(.C)]
+	public static extern void mono_error_cleanup(MonoError* error);
+
+	[LinkName(.C)]
+	public static extern mono_bool mono_error_ok(MonoError* error);
+	
+	[LinkName(.C)]
+	public static extern char8* mono_error_get_message(MonoError* error);
 }
 
 struct MonoDomain;
@@ -211,6 +231,12 @@ struct MonoException;
 struct MonoClassField;
 
 struct MonoType;
+
+struct MonoError
+{
+	private uint32 bla;
+	private void*[12] bla2;
+}
 
 struct MonoReflectionType;
 
