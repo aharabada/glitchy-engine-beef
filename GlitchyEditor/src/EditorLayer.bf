@@ -109,7 +109,9 @@ namespace GlitchyEditor
 
 			if (args.Count >= 1)
 				LoadSceneFile(args[0]);
-			else
+
+			// Create a new scene, if LoadSceneFile failed
+			if (_activeScene == null)
 				NewScene();
 		}
 
@@ -198,7 +200,6 @@ namespace GlitchyEditor
 
 			if (_sceneState != .Edit && _isPaused)
 				updateMode = .None;
-
 
 			_activeScene.Update(gameTime, updateMode);
 
