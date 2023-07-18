@@ -13,6 +13,7 @@ using GlitchyEngine.Renderer.Animation;
 using System.IO;
 using GlitchyEngine.Core;
 using GlitchyEditor.Assets;
+using GlitchyEngine.Scripting;
 
 namespace GlitchyEditor
 {
@@ -729,6 +730,15 @@ namespace GlitchyEditor
 
 				ImGui.EndMenu();
 			}
+			
+			if(ImGui.BeginMenu("Tools", true))
+			{
+				if(ImGui.MenuItem("Reload Scripts"))
+					ScriptEngine.ReloadAssemblies();
+
+				ImGui.EndMenu();
+			}
+
 
 			ImGui.EndMainMenuBar();
 		}

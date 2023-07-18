@@ -189,9 +189,11 @@ class SceneSerializer
 
 			SerializeComponent<ScriptComponent>(writer, entity, "ScriptComponent", scope (component) =>
 			{
-				Serialize.Value(writer, "ScriptClass", component.ScriptClass?.FullName);
+				Serialize.Value(writer, "ScriptClass", component.ScriptClassName);
 
-				if (component.HasScript)
+				//if (component.HasScript)
+				// TODO: Thats not a good check, I think. At least we know the script class is valid
+				if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
 				{
 					let fields = ScriptEngine.GetScriptFieldMap(entity);
 					
@@ -201,11 +203,10 @@ class SceneSerializer
 					{
 						for (var (fieldName, fieldInstance) in fields)
 						{
-							if (fieldInstance.Field.FieldType == .None)
+							if (fieldInstance.Type == .None)
 								continue;
 
-							
-							switch (fieldInstance.Field.FieldType)
+							switch (fieldInstance.Type)
 							{
 							case .Enum, .Class, .Struct:
 								// TODO: implement
@@ -213,10 +214,10 @@ class SceneSerializer
 								writer.Identifier(fieldName);
 
 								String str = scope .();
-								fieldInstance.Field.FieldType.ToString(str);
+								fieldInstance.Type.ToString(str);
 								writer.Type(str);
 
-								Serialize.Value(writer, ValueView(fieldInstance.Field.FieldType.GetBeefType(), &fieldInstance.[Friend]_data), gBonEnv);
+								Serialize.Value(writer, ValueView(fieldInstance.Type.GetBeefType(), &fieldInstance.[Friend]_data), gBonEnv);
 							}
 						}
 					}
@@ -558,15 +559,18 @@ class SceneSerializer
 
 					if (scriptClassName != null)
 					{
-						if (ScriptEngine.EntityClasses.TryGetValue(scriptClassName, let scriptClass))
-						{
+						//if (ScriptEngine.EntityClasses.TryGetValue(scriptClassName, let scriptClass))
+						/*{
 							component.ScriptClass = scriptClass;
-						}
+						}*/
+						
+						component.ScriptClassName = scriptClassName;
 
 						delete scriptClassName;
 					}
 
-					if (component.HasScript)
+					//if (component.HasScript)
+					if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
 					{
 						// This whole operation is technically a bit junk, because we are not guaranteed to successfully deserialize the scene,
 						// however we are editing the ScriptEngine because it doesn't care about which scene is active right now.
@@ -606,15 +610,18 @@ class SceneSerializer
 	
 								StringView fieldName = Try!(reader.Identifier());
 
-								if (fields.ContainsKey(fieldName))
+								// Allocate a string on the stack, because the dictionary uses a string as key
+								String fieldNameString = scope .(fieldName);
+
+								if (fields.ContainsKey(fieldNameString))
 								{
-									var field = ref fields[fieldName];
+									var field = ref fields[fieldNameString];
 
 									Result<StringView> fieldTypeName = reader.Type();
 
 									if (fieldTypeName case .Err)
 									{
-										Log.EngineLogger.Error($"Failed to read field type for field \"{fieldName}\" in script \"{component.ScriptClass.FullName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+										Log.EngineLogger.Error($"Failed to read field type for field \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
 										reader.FileEntrySkip(1);
 										dontRemoveComma = true;
 										continue;
@@ -622,9 +629,9 @@ class SceneSerializer
 	
 									Result<ScriptFieldType> fieldType = Enum.Parse<ScriptFieldType>(fieldTypeName, true);
 
-									if ((fieldType case .Err) || (fieldType != field.Field.FieldType))
+									if ((fieldType case .Err) || (fieldType != field.Type))
 									{
-										Log.EngineLogger.Error($"Unexpected field type (\"{fieldTypeName}\" instead of \"{field.Field.FieldType}\" for field: \"{fieldName}\" in script \"{component.ScriptClass.FullName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+										Log.EngineLogger.Error($"Unexpected field type (\"{fieldTypeName}\" instead of \"{field.Type}\" for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
 										reader.FileEntrySkip(1);
 										dontRemoveComma = true;
 										continue;
@@ -632,9 +639,9 @@ class SceneSerializer
 
 									void* data = &field.[Friend]_data;
 	
-									if (Deserialize.Value(reader, ValueView(field.Field.FieldType.GetBeefType(), data), gBonEnv) case .Err)
+									if (Deserialize.Value(reader, ValueView(field.Type.GetBeefType(), data), gBonEnv) case .Err)
 									{
-										Log.EngineLogger.Error($"Failed to deserialize data for field: \"{fieldName}\" in script \"{component.ScriptClass.FullName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+										Log.EngineLogger.Error($"Failed to deserialize data for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
 										reader.FileEntrySkip(1);
 										dontRemoveComma = true;
 										continue;
@@ -642,7 +649,7 @@ class SceneSerializer
 								}
 								else
 								{
-									Log.EngineLogger.Error($"Script \"{component.ScriptClass.FullName}\" doesn't have a field with name \"{fieldName}\". (Entity {entity.UUID} (\"{entity.Name}\"))");
+									Log.EngineLogger.Error($"Script \"{component.ScriptClassName}\" doesn't have a field with name \"{fieldName}\". (Entity {entity.UUID} (\"{entity.Name}\"))");
 								}
 							}
 	

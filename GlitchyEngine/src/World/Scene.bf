@@ -93,11 +93,10 @@ namespace GlitchyEngine.World
 				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
 				ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
 				
-				targetComponent.ScriptClass = sourceComponent.ScriptClass;
-				targetComponent.Instance = new ScriptInstance(sourceComponent.ScriptClass);
-				targetComponent.Instance..ReleaseRef();
+				targetComponent.ScriptClassName = sourceComponent.ScriptClassName;
 
 				// Initializes the created instance
+				// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
 				ScriptEngine.InitializeInstance(targetEntity, targetComponent);
 			}
 

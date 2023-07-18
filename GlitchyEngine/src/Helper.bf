@@ -60,5 +60,15 @@ namespace GlitchyEngine
 				delete container;
 			}
 		}
+
+		public static mixin ClearDictionaryAndDeleteKeys(var dictionary)
+		{
+			if (dictionary != null)
+			{
+				for (var value in dictionary)
+					delete value.key;
+				delete dictionary;
+			}
+		}
 	}
 }

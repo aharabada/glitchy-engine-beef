@@ -2,99 +2,13 @@ using Mono;
 using System;
 using System.IO;
 using System.Collections;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 using GlitchyEngine.World;
-using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Scripting;
 
 using internal GlitchyEngine.Scripting;
-
-enum ScriptFieldType
-{
-	None,
-
-	Class,
-	Enum,
-	Struct,
-
-	// TODO!
-	Bool,
-
-	SByte,
-	Short,
-	Int, Int2, Int3, Int4,
-	Long,
-	Byte,
-	UShort,
-	UInt, // UInt2, UInt3, UInt4,
-	ULong,
-	// Half, Half2, Half3, Half4,
-	Float, float2, float3, float4,
-	Double, Double2, Double3, Double4,
-
-	Entity
-}
-
-extension ScriptFieldType
-{
-	public Type GetBeefType()
-	{
-		switch(this)
-		{
-		case .Bool:
-			return typeof(bool);
-
-		case .SByte:
-			return typeof(int8);
-		case .Short:
-			return typeof(int16);
-		case .Int:
-			return typeof(int32);
-		case .Int2:
-			return typeof(int2);
-		case .Int3:
-			return typeof(int3);
-		case .Int4:
-			return typeof(int4);
-		case .Long:
-			return typeof(int64);
-			
-		case .Byte:
-			return typeof(uint8);
-		case .UShort:
-			return typeof(uint16);
-		case .UInt:
-			return typeof(uint32);
-		case .ULong:
-			return typeof(uint64);
-			
-		case .Float:
-			return typeof(float);
-		case .float2:
-			return typeof(float2);
-		case .float3:
-			return typeof(float3);
-		case .float4:
-			return typeof(float4);
-			
-		case .Double:
-			return typeof(double);
-		case .Double2:
-			return typeof(double2);
-		case .Double3:
-			return typeof(double3);
-		case .Double4:
-			return typeof(double4);
-
-		case .Entity:
-			return typeof(UUID);
-
-		default:
-			return null;
-		}
-	}
-}
 
 static sealed class ScriptEngineHelper
 {
@@ -163,13 +77,21 @@ static class ScriptEngine
 
 	public static Scene Context => s_Context;
 
-	private static Dictionary<UUID, ScriptFieldMap> _entityFields = new .() ~ DeleteDictionaryAndValues!(_);
+	private static Dictionary<UUID, ScriptFieldMap> _entityFields = new .() ~
+		{
+			for (var value in _entityFields.Values)
+			{
+				DeleteDictionaryAndKeys!(value);
+			}
+
+			delete _;
+		};
 
 	internal static class Attributes
 	{
 		internal static MonoClass* s_ShowInEditorAttribute;
 	}
-
+	
 	public static void Init()
 	{
 		Mono.mono_set_assemblies_path("mono/lib");
@@ -179,15 +101,18 @@ static class ScriptEngine
 		
 		ScriptGlue.Init();
 
+		LoadScriptAssemblies();
+	}
+
+	static void LoadScriptAssemblies()
+	{
 		CreateAppDomain("GlitchyEngineScriptRuntime");
 		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll");
 		(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly("SandboxProject/Assets/Scripts/bin/Sandbox.dll");
-		
+
 		GetEntitiesFromAssemblies();
 
 		ScriptGlue.RegisterManagedComponents();
-
-		//Samples();
 	}
 
 	public static void SetContext(Scene scene)
@@ -206,26 +131,38 @@ static class ScriptEngine
 		SetContext(null);
 	}
 
-	public static void InitializeInstance(Entity entity, ScriptComponent* script)
+	public static bool InitializeInstance(Entity entity, ScriptComponent* script)
 	{
+		ScriptClass scriptClass = GetScriptClass(script.ScriptClassName);
+
+		if (scriptClass == null)
+			return false;
+
+		script.Instance = new ScriptInstance(scriptClass);
+		script.Instance..ReleaseRef();
+
 		_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
 
 		script.Instance.Instantiate(entity.UUID);
 
 		CopyEditorFieldsToInstance(entity, script);
+
+		return true;
 	}
 
 	private static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
 	{
 		// Technically the map is for a different entity (namely the editor-entity),
 		// however the UUID is the same, so we get the correct field map
-		let fiels = GetScriptFieldMap(entity);
+		let fields = GetScriptFieldMap(entity);
 
-		for (var (fieldName, field) in fiels)
+		for (var (fieldName, field) in fields)
 		{
 			// TODO: a litte assertion maybe?
 
-			script.Instance.SetFieldValue(field.Field, field._data);
+			ScriptField scriptField = script.Instance.ScriptClass.Fields[fieldName];
+
+			script.Instance.SetFieldValue(scriptField, field._data);
 		}
 	}
 
@@ -277,14 +214,23 @@ static class ScriptEngine
 			entry.value.ReleaseRef();
 		}
 		_entityScripts.Clear();
-		
-		if (s_EngineObject == null)
-		{
-			s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage);
-			s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage);
 
-			Log.EngineLogger.Assert(s_EntityRoot != null);
+		for (var sharpClass in _sharpClasses)
+		{
+			sharpClass.value.ReleaseRef();
 		}
+		_sharpClasses.Clear();
+		
+		if (s_EngineObject != null)
+		{
+			s_EngineObject.ReleaseRef();
+			s_EntityRoot.ReleaseRef();
+		}
+
+		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage);
+		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage);
+
+		Log.EngineLogger.Assert(s_EntityRoot != null);
 
 		Attributes.s_ShowInEditorAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "ShowInEditorAttribute");
 
@@ -311,13 +257,28 @@ static class ScriptEngine
 	    }
 	}
 
+	public static void ReloadAssemblies()
+	{
+		Mono.mono_domain_set(s_RootDomain, false);
+
+		Mono.mono_domain_unload(s_AppDomain);
+
+		LoadScriptAssemblies();
+
+		// TODO: ScriptFields might get added
+		// TODO: ScriptField Types may change after reload!
+		// TODO: Scripts may be renamed (probably not detectable (trivially))
+
+		// TODO: Reload in play mode
+		// Only scripts that were changed should actually be reinstatiated
+	}
+
 	public static void Shutdown()
 	{
-		/*Mono.mono_assembly_close(s_CoreAssembly);
-		s_CoreAssembly = null;
-		
+		Mono.mono_domain_set(s_RootDomain, false);
+
 		Mono.mono_domain_unload(s_AppDomain);
-		s_AppDomain = null;*/
+		s_AppDomain = null;
 
 		Mono.mono_jit_cleanup(s_RootDomain);
 		s_RootDomain = null;
@@ -375,19 +336,23 @@ static class ScriptEngine
 
 		if (_entityFields.TryGetValue(entity.UUID, var entityFields))
 		{
-			entityFields.Clear();
+			ClearDictionaryAndDeleteKeys!(entityFields);
 		}
 		else
 		{
-			entityFields = new Dictionary<StringView, ScriptFieldInstance>();
+			entityFields = new ScriptFieldMap();
 			_entityFields.Add(entity.UUID, entityFields);
 		}
 
 		let scriptComponent = entity.GetComponent<ScriptComponent>();
 
-		for (let (fieldName, field) in scriptComponent.ScriptClass.Fields)
+		ScriptClass scriptClass = GetScriptClass(scriptComponent.ScriptClassName);
+		
+		Log.EngineLogger.AssertDebug(scriptClass != null);
+
+		for (let (fieldName, field) in scriptClass.Fields)
 		{
-			entityFields.Add(fieldName, ScriptFieldInstance(field));
+			entityFields.Add(new String(fieldName), ScriptFieldInstance(field.FieldType));
 		}
 	}
 
@@ -411,6 +376,12 @@ static class ScriptEngine
 		return null;
 	}
 
+	public static ScriptClass GetScriptClass(StringView name)
+	{
+		EntityClasses.TryGetValue(name, let scriptClass);
+
+		return scriptClass;
+	}
 
 
 

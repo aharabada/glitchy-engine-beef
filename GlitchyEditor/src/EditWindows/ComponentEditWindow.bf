@@ -470,20 +470,22 @@ namespace GlitchyEditor.EditWindows
 						continue;
 
 					if (ImGui.Selectable(className.ToScopeCStr!(),
-						className == scriptComponent.Instance?.ScriptClass.FullName))
+						className == scriptComponent.ScriptClassName))
 					{
 						//scriptComponent.Instance = new ScriptInstance(scriptClass);
 						// decrement refCount to 1 (scriptComponent.Instance increments its)
 						//scriptComponent.Instance.ReleaseRef();
 						//ScriptEngine.InitializeInstance(entity, scriptComponent);
 
-						scriptComponent.ScriptClass = scriptClass;
+						scriptComponent.ScriptClassName = scriptClass.FullName;
 						
 						ScriptEngine.CreateScriptFieldMap(entity);
 					}
 				}
 				ImGui.EndPopup();
 			}
+
+			ScriptClass scriptClass = ScriptEngine.GetScriptClass(scriptComponent.ScriptClassName);
 
 			/*T GetFieldValue<T>()
 			{
@@ -595,68 +597,68 @@ namespace GlitchyEditor.EditWindows
 					}
 				}
 			}
-			else if (scriptComponent.ScriptClass != null)
+			else if (scriptClass != null)
 			{
 				let scriptFields = ScriptEngine.GetScriptFieldMap(entity);
 
 				for (var (name, field) in ref scriptFields)
 				{
-					switch (field.Field.FieldType)
+					switch (field.Type)
 					{
 					case .Bool:
 						var value = field.GetData<bool>();
-						if (ImGui.Checkbox(name.ToScopeCStr!(), &value))
+						if (ImGui.Checkbox(name.CStr(), &value))
 							field.SetData(value);
 
 					case .SByte:
 						var value = field.GetData<int8>();
-						if (ImGui.DragScalar(name.ToScopeCStr!(), .S8, &value))
+						if (ImGui.DragScalar(name.CStr(), .S8, &value))
 							field.SetData(value);
 						case .Short:
 							var value = field.GetData<int16>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .S16, &value))
+							if (ImGui.DragScalar(name.CStr(), .S16, &value))
 								field.SetData(value);
 					case .Int:
 							var value = field.GetData<int32>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .S32, &value))
+							if (ImGui.DragScalar(name.CStr(), .S32, &value))
 								field.SetData(value);
 					case .Int2:
 							var value = field.GetData<int2>();
-							if (ImGui.DragScalarN(name.ToScopeCStr!(), .S32, &value, 2))
+							if (ImGui.DragScalarN(name.CStr(), .S32, &value, 2))
 								field.SetData(value);
 					case .Int3:
 							var value = field.GetData<int3>();
-							if (ImGui.DragScalarN(name.ToScopeCStr!(), .S32, &value, 3))
+							if (ImGui.DragScalarN(name.CStr(), .S32, &value, 3))
 								field.SetData(value);
 					case .Int4:
 							var value = field.GetData<int4>();
-							if (ImGui.DragScalarN(name.ToScopeCStr!(), .S32, &value, 4))
+							if (ImGui.DragScalarN(name.CStr(), .S32, &value, 4))
 								field.SetData(value);
 					case .Long:
 							var value = field.GetData<int64>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .S64, &value))
+							if (ImGui.DragScalar(name.CStr(), .S64, &value))
 								field.SetData(value);
 
 					case .Byte:
 							var value = field.GetData<uint8>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .U8, &value))
+							if (ImGui.DragScalar(name.CStr(), .U8, &value))
 								field.SetData(value);
 					case .UShort:
 							var value = field.GetData<uint16>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .U16, &value))
+							if (ImGui.DragScalar(name.CStr(), .U16, &value))
 								field.SetData(value);
 					case .UInt:
 							var value = field.GetData<uint32>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .U32, &value))
+							if (ImGui.DragScalar(name.CStr(), .U32, &value))
 								field.SetData(value);
 					case .ULong:
 							var value = field.GetData<uint64>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .U64, &value))
+							if (ImGui.DragScalar(name.CStr(), .U64, &value))
 								field.SetData(value);
 
 					case .Float:
 							var value = field.GetData<float>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .Float, &value))
+							if (ImGui.DragScalar(name.CStr(), .Float, &value))
 								field.SetData(value);
 					case .float2:
 							var value = field.GetData<float2>();
@@ -673,19 +675,19 @@ namespace GlitchyEditor.EditWindows
 
 					case .Double:
 							var value = field.GetData<double>();
-							if (ImGui.DragScalar(name.ToScopeCStr!(), .Double, &value))
+							if (ImGui.DragScalar(name.CStr(), .Double, &value))
 								field.SetData(value);
 					case .Double2:
 							var value = field.GetData<double2>();
-							if (ImGui.DragScalarN(name.ToScopeCStr!(), .Double, &value, 2))
+							if (ImGui.DragScalarN(name.CStr(), .Double, &value, 2))
 								field.SetData(value);
 					case .Double3:
 							var value = field.GetData<double3>();
-							if (ImGui.DragScalarN(name.ToScopeCStr!(), .Double, &value, 3))
+							if (ImGui.DragScalarN(name.CStr(), .Double, &value, 3))
 								field.SetData(value);
 					case .Double4:
 							var value = field.GetData<double4>();
-							if (ImGui.DragScalarN(name.ToScopeCStr!(), .Double, &value, 4))
+							if (ImGui.DragScalarN(name.CStr(), .Double, &value, 4))
 								field.SetData(value);
 
 					case .Enum:
@@ -701,7 +703,7 @@ namespace GlitchyEditor.EditWindows
 						// TODO!
 
 					default:
-						Log.EngineLogger.Error($"Unhandled field type {field.Field.FieldType}");
+						Log.EngineLogger.Error($"Unhandled field type {field.Type}");
 					}
 				}
 			}
