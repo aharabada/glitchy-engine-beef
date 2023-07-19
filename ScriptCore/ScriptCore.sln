@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.4.33205.214
+VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptCore", "ScriptCore.csproj", "{6222C226-FC78-498C-80BA-5CF10AC9123C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptCore", "ScriptCore.csproj", "{454CBEB0-2425-47B4-B75B-BE11EAF56E34}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,15 +11,15 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{6222C226-FC78-498C-80BA-5CF10AC9123C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6222C226-FC78-498C-80BA-5CF10AC9123C}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6222C226-FC78-498C-80BA-5CF10AC9123C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6222C226-FC78-498C-80BA-5CF10AC9123C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{454CBEB0-2425-47B4-B75B-BE11EAF56E34}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{454CBEB0-2425-47B4-B75B-BE11EAF56E34}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{454CBEB0-2425-47B4-B75B-BE11EAF56E34}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{454CBEB0-2425-47B4-B75B-BE11EAF56E34}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
-		SolutionGuid = {105B152D-6843-4A9F-AFA8-5F8A3920D95C}
+		SolutionGuid = {310525CD-2F52-4BBA-B36B-B53C8062BD7F}
 	EndGlobalSection
 EndGlobal
