@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Debug Code Generator": {
+      "commandName": "DebugRoslynComponent",
+      "targetProject": "..\\ScriptCore\\ScriptCore.csproj"
+    }
+  }
+}

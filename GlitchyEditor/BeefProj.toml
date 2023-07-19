@@ -7,5 +7,4 @@ TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
 
 [Configs.Debug.Win64]
-PreBuildCmds = ["dotnet build \"$(ProjectDir)/SandboxProject/Assets/Scripts/Sandbox.csproj\" -c Debug"]
 DebugCommandArguments = "\"content\\Scenes\\physics2D.scene\""

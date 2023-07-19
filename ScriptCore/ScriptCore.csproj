@@ -4,10 +4,15 @@
     <TargetFramework>netstandard2.0</TargetFramework>
 	  <LangVersion>latest</LangVersion>
 	  <BaseOutputPath></BaseOutputPath>
+	  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="PowerShell ./postbuild.ps1 -sourceDir $(OutDir) -destinationDir &quot;..\GlitchyEditor\resources\scripts&quot;" />
   </Target>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScriptCoreGenerator\ScriptCoreGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  </ItemGroup>
 
 </Project>
