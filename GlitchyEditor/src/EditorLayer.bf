@@ -70,6 +70,9 @@ namespace GlitchyEditor
 
 		SceneState _sceneState = .Edit;
 		bool _isPaused = false;
+		bool _singleStep = false;
+
+		private float _fixedTimestep = 1.0f / 60.0f;
 		
 		append List<(String Name, String Path)> _recentProjectPaths = .() ~ {
 				for (var item in _)
@@ -78,6 +81,8 @@ namespace GlitchyEditor
 					delete item.Path;
 				}
 			};
+		
+		private GameTime _simulationGameTime = new .() ~ delete _;
 		
 		/// Gets or sets the path of the current scene.
 		public StringView SceneFilePath
@@ -92,6 +97,7 @@ namespace GlitchyEditor
 			}
 		}
 
+		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
 			Application.Get().Window.IsVSync = true;
@@ -199,10 +205,37 @@ namespace GlitchyEditor
 				updateMode = .Physics;
 			}
 
-			if (_sceneState != .Edit && _isPaused)
+			if (_sceneState != .Edit && _isPaused && !_singleStep)
 				updateMode = .None;
 
-			_activeScene.Update(gameTime, updateMode);
+			/*
+			 * If we are in edit mode we use the "official" gametime.
+			 * However in play or simulation mode we use a simulation game time
+			 * which is decoupled from the actual time. This allows us to manipulate
+			 * the simulation speed without potentially messing with the rest of the editor.
+			*/
+			GameTime gt = null;
+
+			if (updateMode == .Editor)
+			{
+				gt = gameTime;
+			}
+			else
+			{
+				gt = _simulationGameTime;
+				
+				if (_singleStep)
+				{
+					_singleStep = false;
+					_simulationGameTime.ManualStepFrame(_fixedTimestep);
+				}
+				else
+				{
+					_simulationGameTime.ManualStepFrame(gameTime.DeltaTime);
+				}
+			}
+
+			_activeScene.Update(gt, updateMode);
 
 			// Clear the swapchain-buffer
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
@@ -385,7 +418,6 @@ namespace GlitchyEditor
 
 			float centerX = ImGui.GetContentRegionMax().x / 2;
 
-
 			if (_sceneState == .Edit)
 			EditorButtons:
 			{
@@ -434,10 +466,17 @@ namespace GlitchyEditor
 			}
 			else
 			{
+				float totalWidth = size * 2 + padding * 2;
+
+				if (_isPaused)
+				{
+					totalWidth = size * 3 + padding * 4;
+				}
+
 				// Display the buttons for play/simulation state
 
 				ImGui.SameLine();
-				ImGui.SetCursorPosX(centerX - size - padding);
+				ImGui.SetCursorPosX(centerX - totalWidth / 2.0f);
 
 				SubTexture2D pauseButtonIcon = _isPaused ? _editorIcons.Play : _editorIcons.Pause;
 
@@ -450,7 +489,43 @@ namespace GlitchyEditor
 				}
 
 				ImGui.AttachTooltip(_isPaused ? "Resume" : "Pause");
-				
+
+				if (_isPaused)
+				{
+					ImGui.PushID(2);
+
+					ImGui.SameLine();
+	
+					SubTexture2D singleStepButtonIcon = _editorIcons.SingleStep;
+	
+					if (ImGui.ImageButton(singleStepButtonIcon, .(size, size), .Zero, .Ones, 0))
+					{
+						DoSingleStep();
+					}
+
+					if (ImGui.BeginPopupContextItem())
+					{
+						ImGui.TextUnformatted("Time step:");
+						ImGui.SameLine();
+						ImGui.DragFloat("##timestep", &_fixedTimestep, 0.001f, 0.001f, 1000.0f, "%.4fs");
+
+						float fps = 1.0f / _fixedTimestep;
+						
+						ImGui.TextUnformatted("Frame rate:");
+						ImGui.SameLine();
+						if (ImGui.DragFloat("##fps", &fps, 1.0f, 0.001f, 1000.0f, "%.3f FPS"))
+						{
+							_fixedTimestep = 1.0f / fps;
+						}
+
+						ImGui.EndPopup();
+					}
+	
+					ImGui.AttachTooltip("Step one Frame (Right-click to change time step)");
+
+					ImGui.PopID();
+				}
+
 				ImGui.SameLine();
 				ImGui.PushID(1);
 
@@ -510,6 +585,11 @@ namespace GlitchyEditor
 		private void OnSceneResume()
 		{
 			_isPaused = false;
+		}
+
+		private void DoSingleStep()
+		{
+			_singleStep = true;
 		}
 
 		private void OnSceneStop()

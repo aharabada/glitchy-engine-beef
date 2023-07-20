@@ -48,7 +48,7 @@ namespace GlitchyEngine
 			let sw = append Stopwatch(startNow);
 			_stopwatch = sw;
 		}
-		
+
 		/**
 		 * Starts or continues the internal timer.
 		 */
@@ -95,6 +95,17 @@ namespace GlitchyEngine
 			TimeSpan old = _totalTime;
 			_totalTime = _stopwatch.Elapsed;
 			_frameTime = _totalTime - old;
+
+			_frameCount++;
+		}
+
+		/**
+		 * Tells the timer that a frame has passed and updates the counters according to the given time step.
+		 */
+		public void ManualStepFrame(float deltaTimeSeconds)
+		{
+			_frameTime = TimeSpan.FromSeconds(deltaTimeSeconds);
+			_totalTime += _frameTime;
 
 			_frameCount++;
 		}
