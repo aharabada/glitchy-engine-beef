@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using GlitchyEngine;
 using GlitchyEngine.Math;
 
+using static GlitchyEngine.Math.Math;
+
 namespace Sandbox;
 public class Camera : Entity
 {
@@ -19,24 +21,22 @@ public class Camera : Entity
 
         if (player != null)
         {
-            Vector2 playerPosition = new Vector2(player.Transform.Translation.X, player.Transform.Translation.Y);
+            float2 playerPosition = player.Transform.Translation.XY;
 
-            Vector2 cameraPosition = new Vector2(Transform.Translation.X, Transform.Translation.Y);
+            float2 cameraPosition = Transform.Translation.XY;
 
-            Vector2 distanceVector = playerPosition - cameraPosition;
+            float2 distanceVector = playerPosition - cameraPosition;
 
-            float distance = distanceVector.Length();
+            float distance = length(distanceVector);
 
-            Vector2 neededMovement = Vector2.Zero;
+            float2 neededMovement = float2.Zero;
 
             if (distance > DontFollowRadius)
             {
                 neededMovement = distanceVector - (distanceVector / distance) * DontFollowRadius;
             }
 
-            Transform.Translation = new Vector3(cameraPosition + neededMovement, DistanceFromPlayer);
-
-            //Transform.Translation = new Vector3(player.Transform.Translation.X, player.Transform.Translation.Y, DistanceFromPlayer);
+            Transform.Translation = new float3(cameraPosition + neededMovement, DistanceFromPlayer);
         }
         else
         {

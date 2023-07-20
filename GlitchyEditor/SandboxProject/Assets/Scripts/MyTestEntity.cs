@@ -19,7 +19,7 @@ namespace Sandbox
     public struct MyStruct
     {
         public float TheFloat;
-        public Vector2 TheVector;
+        public float2 TheVector;
         public MyEnum TheEnum;
     }
 
@@ -42,9 +42,9 @@ namespace Sandbox
 
         public float Fl;
         public double Do;
-        public Vector2 V2;
-        public Vector3 V3;
-        public Vector4 V4;
+        public float2 V2;
+        public float3 V3;
+        public float4 V4;
 
         public Entity TheEntity;
 
@@ -82,7 +82,7 @@ namespace Sandbox
         /// <param name="deltaTime"></param>
         void OnUpdate(float deltaTime)
         {
-            Vector2 force = Vector2.Zero;
+            float2 force = float2.Zero;
 
             if (Input.IsKeyPressed(Key.A))
             {
@@ -110,7 +110,7 @@ namespace Sandbox
             if (Input.IsMouseButtonReleasing(MouseButton.MiddleButton))
             {
                 Log.Info($"Ouha! {MyNumber}");
-                Physics2D.Gravity *= new Vector2(1, -1);
+                Physics2D.Gravity *= new float2(1, -1);
             }
 
             Test.Test.P();
@@ -122,17 +122,17 @@ namespace Sandbox
             Log.Info($"Haleluja! {f2.X}");
 
             float4 floaty = new float4(f2, f2);
-
-            float2 bbb = f2.XY * floaty.XY;
-
+            
             float4 megaFloat = floaty.WXYZ;
             
-            if (all(abs(normalize(megaFloat) - normalize(floaty)) < 0.01f))
+            if (all(abs(normalize(megaFloat).YZWX - normalize(floaty)) < 0.01f))
             {
                 Log.Info($"Haleluja3!");
             }
 
-            Log.Info($"Haleluja2! {bbb.X} {bbb.Y}");
+            float frac = modf(5.6f, out var intPart);
+
+            Log.Info($"Haleluja2! {frac} {intPart}");
         }
 
         /// <summary>
