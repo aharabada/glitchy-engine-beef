@@ -5,6 +5,8 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Debug;
 using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
+using System.Collections;
+using System.Threading;
 
 namespace GlitchyEngine
 {
@@ -28,6 +30,9 @@ namespace GlitchyEngine
 		
 		private IContentManager _contentManager;
 
+		private append List<delegate void()> _jobQueue = .() ~ ClearAndDeleteItems!(_);
+		private append Monitor _jobQueueMutex = .();
+
 		public bool IsRunning => _running;
 		public Window Window => _window;
 
@@ -37,8 +42,10 @@ namespace GlitchyEngine
 
 		public GameTime GameTime => _gameTime;
 
-		[Inline]
+		[Inline, Obsolete("Use Application.Instance instead.", false)]
 		public static Application Get() => s_Instance;
+
+		public static Application Instance => s_Instance;
 
 		public Settings Settings {get; private set;} = new .() ~ delete _;
 
@@ -157,6 +164,8 @@ namespace GlitchyEngine
 				}
 #endif
 
+				RunJobs();
+
 				if(allowFrame && !_isMinimized)
 				{
 					Debug.Profiler.ProfileScope!("Update Layers");
@@ -217,6 +226,30 @@ namespace GlitchyEngine
 			_isMinimized = false;
 
 			return false;
+		}
+
+		/// Executes the given Job on the main thread. Takes ownership of the delegate.
+		public void InvokeOnMainThread(delegate void() ownJob)
+		{
+			using (_jobQueueMutex.Enter())
+			{
+				_jobQueue.Add(ownJob);
+			}
+		}
+
+		private void RunJobs()
+		{
+			Debug.Profiler.ProfileFunction!();
+
+			using (_jobQueueMutex.Enter())
+			{
+				for (let job in _jobQueue)
+				{
+					job();
+				}
+
+				ClearAndDeleteItems!(_jobQueue);
+			}
 		}
 	}
 }

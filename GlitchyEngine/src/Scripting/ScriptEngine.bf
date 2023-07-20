@@ -72,7 +72,7 @@ static class ScriptEngine
 		}
 		delete _;
 	}
-	
+
 	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
 
 	public static Scene Context => s_Context;
@@ -86,6 +86,8 @@ static class ScriptEngine
 
 			delete _;
 		};
+	
+	private static FileSystemWatcher _userAssemblyWatcher ~ delete _;
 
 	internal static class Attributes
 	{
@@ -102,6 +104,40 @@ static class ScriptEngine
 		ScriptGlue.Init();
 
 		LoadScriptAssemblies();
+
+		InitAssemblyWatcher();
+	}
+
+	static void InitAssemblyWatcher()
+	{
+		if (_userAssemblyWatcher == null)
+		{
+			// TODO: Obviously don't hardcode path
+			_userAssemblyWatcher = new FileSystemWatcher("SandboxProject/Assets/Scripts/bin/", "*/Sandbox.dll");
+			_userAssemblyWatcher.OnChanged.Add(new (fileName) =>
+			{
+				// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
+				if (_entityScriptInstances.Count > 0)
+				{
+					Log.EngineLogger.Warning("There are script instances. Skipping assembly reload.");
+					return;
+				}
+
+				Log.EngineLogger.Info("Script reload requested.");
+				_userAssemblyWatcher.StopRaisingEvents();
+
+				Application.Instance.InvokeOnMainThread(new () =>
+				{
+					Log.EngineLogger.Info("Reloading scripts...");
+					ReloadAssemblies();
+					Log.EngineLogger.Info("Scripts reloaded!");
+
+					_userAssemblyWatcher.StartRaisingEvents();
+				});
+
+			});
+		}
+		_userAssemblyWatcher.StartRaisingEvents();
 	}
 
 	static void LoadScriptAssemblies()
@@ -259,6 +295,8 @@ static class ScriptEngine
 
 	public static void ReloadAssemblies()
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		Mono.mono_domain_set(s_RootDomain, false);
 
 		Mono.mono_domain_unload(s_AppDomain);
@@ -382,80 +420,4 @@ static class ScriptEngine
 
 		return scriptClass;
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-	/*static void Samples()
-	{
-		PrintAssemblyTypes(s_CoreAssembly);
-
-		function MonoString*() v = => Sample;
-
-		Mono.mono_add_internal_call("GlitchyEngine.CSharpTesting::Sample", v);
-
-		function void(in float3, in float3, out float3) v2 = => Add;
-
-		Mono.mono_add_internal_call("GlitchyEngine.float3::Add_Internal", v2);
-
-		// Create object
-		ScriptClass myClass = scope .("GlitchyEngine", "CSharpTesting");
-		MonoObject* instance = myClass.CreateInstance();
-
-		MonoMethod* simpleMethod = myClass.GetMethod("PrintFloatVar");
-		myClass.Invoke(simpleMethod, instance);
-
-		MonoMethod* methodWithArg = myClass.GetMethod("IncrementFloatVar", 1);
-
-		float increment = 2.0f;
-		float returnedValue = myClass.Invoke<float>(methodWithArg, instance, &increment);
-
-		Log.EngineLogger.Info($"C# returned: {returnedValue}");
-
-		Mono.mono_runtime_invoke(simpleMethod, instance, null, null);
-	}
-
-	[LinkName(.C), AlwaysInclude, Export]
-	public static void DoSomething()
-	{
-		Console.WriteLine("P/Invoke: Hallo von der Engine!");
-	}
-
-	[LinkName(.C), AlwaysInclude, Export]
-	public static void Add(in float3 a, in float3 b, out float3 c)
-	{
-		c = a + b;
-	}
-	
-	[LinkName(.C), AlwaysInclude]
-	public static MonoString* Sample()
-	{
-	  return Mono.mono_string_new(Mono.mono_domain_get(), "Hello!");
-	}
-
-	private static void PrintAssemblyTypes(MonoAssembly* assembly)
-	{
-	    MonoImage* image = Mono.mono_assembly_get_image(assembly);
-	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(image, .MONO_TABLE_TYPEDEF);
-	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
-
-	    for (int32 i = 0; i < numTypes; i++)
-	    {
-	        int32[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE] cols = .();
-	        Mono.mono_metadata_decode_row(typeDefinitionsTable, i, (.)&cols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
-
-	        char8* nameSpace = Mono.mono_metadata_string_heap(image, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAMESPACE]);
-	        char8* name = Mono.mono_metadata_string_heap(image, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
-
-			Log.EngineLogger.Info($"{StringView(nameSpace)}.{StringView(name)}");
-	    }
-	}*/
 }

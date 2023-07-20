@@ -112,27 +112,6 @@ namespace Sandbox
                 Log.Info($"Ouha! {MyNumber}");
                 Physics2D.Gravity *= new float2(1, -1);
             }
-
-            Test.Test.P();
-
-            float2 f2 = new();
-
-            f2.X = 5;
-
-            Log.Info($"Haleluja! {f2.X}");
-
-            float4 floaty = new float4(f2, f2);
-            
-            float4 megaFloat = floaty.WXYZ;
-            
-            if (all(abs(normalize(megaFloat).YZWX - normalize(floaty)) < 0.01f))
-            {
-                Log.Info($"Haleluja3!");
-            }
-
-            float frac = modf(5.6f, out var intPart);
-
-            Log.Info($"Haleluja2! {frac} {intPart}");
         }
 
         /// <summary>
