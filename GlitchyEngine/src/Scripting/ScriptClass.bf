@@ -199,9 +199,18 @@ class ScriptClass : SharpClass
 
 	public void OnUpdate(MonoObject* instance, float deltaTime)
 	{
-		MonoException* exception;
+		MonoException* exception = null;
 		if (_onUpdate != null)
 			_onUpdate(instance, deltaTime, &exception);
+
+		if (exception != null)
+		{
+			char8* str = Mono.mono_string_to_utf8(exception.Message);
+
+			Log.EngineLogger.Error($"Exception in \"{_fullName}.OnUpdate\". Message:\"{StringView(str)}\"");
+
+			Mono.mono_free(str);
+		}
 	}
 
 	public void OnDestroy(MonoObject* instance)

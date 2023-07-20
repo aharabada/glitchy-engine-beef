@@ -226,7 +226,13 @@ struct MonoObject;
 
 struct MonoMethod;
 
-struct MonoException;
+struct MonoException
+{
+	void* _bla;
+	void* _bla2;
+	void* _bla3;
+	public MonoString* Message;
+}
 
 struct MonoClassField;
 
