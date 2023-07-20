@@ -12,7 +12,7 @@ public class RigidBody2D : Component
     /// <param name="force">The world force vector, usually in Newtons (N).</param>
     /// <param name="point">The world position of the point of application.</param>
     /// <param name="wakeUp">Wake up the body</param>
-    public void ApplyForce(Vector2 force, Vector2 point, bool wakeUp = true)
+    public void ApplyForce(float2 force, float2 point, bool wakeUp = true)
     {
         ScriptGlue.RigidBody2D_ApplyForce(Entity._uuid, force, point, wakeUp);
     }
@@ -23,7 +23,7 @@ public class RigidBody2D : Component
     /// </summary>
     /// <param name="force">The world force vector, usually in Newtons (N).</param>
     /// <param name="wakeUp">Wake up the body</param>
-    public void ApplyForceToCenter(Vector2 force, bool wakeUp = true)
+    public void ApplyForceToCenter(float2 force, bool wakeUp = true)
     {
         ScriptGlue.RigidBody2D_ApplyForceToCenter(Entity._uuid, force, wakeUp);
     }

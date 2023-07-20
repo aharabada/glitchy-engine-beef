@@ -5,11 +5,11 @@ namespace GlitchyEngine;
 
 public class Transform : Component
 {
-    public Vector3 Translation
+    public float3 Translation
     {
         get
         {
-            ScriptGlue.Transform_GetTranslation(Entity.UUID, out Vector3 translation);
+            ScriptGlue.Transform_GetTranslation(Entity.UUID, out float3 translation);
             return translation;
         }
         set

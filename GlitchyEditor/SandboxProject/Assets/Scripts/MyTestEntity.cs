@@ -1,9 +1,10 @@
 using System;
+using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using GlitchyEngine;
 using GlitchyEngine.Editor;
 using GlitchyEngine.Math;
 
-//using GlitchyEngine.Math;
+using static GlitchyEngine.Math.Math;
 
 namespace Sandbox
 {
@@ -122,7 +123,16 @@ namespace Sandbox
 
             float4 floaty = new float4(f2, f2);
 
-            Log.Info($"Haleluja2! {floaty}");
+            float2 bbb = f2.XY * floaty.XY;
+
+            float4 megaFloat = floaty.WXYZ;
+            
+            if (all(abs(normalize(megaFloat) - normalize(floaty)) < 0.01f))
+            {
+                Log.Info($"Haleluja3!");
+            }
+
+            Log.Info($"Haleluja2! {bbb.X} {bbb.Y}");
         }
 
         /// <summary>

@@ -53,6 +53,8 @@ static class ScriptGlue
 	public static void Init()
 	{
 		RegisterCalls();
+
+		RegisterMathFunctions();
 	}
 
 	public static void RegisterManagedComponents()
@@ -283,6 +285,18 @@ static class ScriptGlue
 	}
 
 #endregion Physics2D
+
+#region Math
+
+	private static void RegisterMathFunctions()
+	{
+		RegisterCall<function float(float, out float)>("ScriptGlue::modf_float", => GlitchyEngine.Math.modf);
+		RegisterCall<function float2(float2, out float2)>("ScriptGlue::modf_float2", => GlitchyEngine.Math.modf);
+		RegisterCall<function float3(float3, out float3)>("ScriptGlue::modf_float3", => GlitchyEngine.Math.modf);
+		RegisterCall<function float4(float4, out float4)>("ScriptGlue::modf_float4", => GlitchyEngine.Math.modf);
+	}
+
+#endregion
 
 	private static void RegisterCall<T>(String name, T method) where T : var
 	{

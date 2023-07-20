@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace ScriptCore.Math.Attributes;
+namespace GlitchyEngine.Math.Attributes;
 
+[AttributeUsage(AttributeTargets.Struct)]
 public class VectorAttribute : Attribute
 {
     public Type Type { get; set; }
@@ -19,9 +20,23 @@ public class VectorAttribute : Attribute
     }
 }
 
-public class SwizzleVectorAttribute : Attribute
+[AttributeUsage(AttributeTargets.Struct)]
+public class ComparableVectorAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Struct)]
+public class VectorMathAttribute : Attribute { }
+[AttributeUsage(AttributeTargets.Struct)]
+public class VectorLogicAttribute : Attribute { }
+
+[AttributeUsage(AttributeTargets.Struct, AllowMultiple = true)]
+public class VectorCastAttribute : Attribute
 {
-    public SwizzleVectorAttribute()
+    public Type TargetType { get; set; }
+
+    public bool IsExplicit { get; set; }
+
+    public VectorCastAttribute(Type targetType, bool isExplicit)
     {
+        TargetType = targetType;
+        IsExplicit = isExplicit;
     }
 }

@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Mail;
+using System.Numerics;
 using System.Text;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using static ScriptCoreGenerator.VectorSyntaxReceiver;
 
@@ -16,13 +18,45 @@ public class VectorGenerator : ISourceGenerator
 
     public static readonly string[] LowerComponentNames = {"x", "y", "z", "w"};
 
+    private GeneratorExecutionContext _context;
+
     public void Execute(GeneratorExecutionContext context)
     {
+        _context = context;
+
         var receiver = (VectorSyntaxReceiver)context.SyntaxReceiver;
 
         if (receiver == null) return;
 
         StringBuilder builder = new();
+        
+        //foreach(var vector in receiver.Vectors)
+        //{
+        //    var symbol = context.Compilation.GetSymbolsWithName(vector.VectorName);
+
+        //    var firstSym = symbol.FirstOrDefault();
+
+        //    context.ReportDiagnostic(Diagnostic.Create(
+        //        new DiagnosticDescriptor(
+        //            "SG0001",
+        //            "Non-void method return type",
+        //            "Type {0} iscool!.",
+        //            "yeet",
+        //            DiagnosticSeverity.Error,
+        //            true), firstSym?.Locations.FirstOrDefault(), firstSym?.Name));
+
+        //    //if(symbol.ReturnType.SpecialType != SpecialType.System_Void)
+        //    //{
+        //    //    context.ReportDiagnostic(Diagnostic.Create(
+        //    //        new DiagnosticDescriptor(
+        //    //            "SG0001",
+        //    //            "Non-void method return type",
+        //    //            "Method {0} returns {1}. All methods must return void.",
+        //    //            "yeet",
+        //    //            DiagnosticSeverity.Error,
+        //    //            true), symbol.Locations.FirstOrDefault(), symbol.Name, symbol.ReturnType.Name));
+        //    //}
+        //}
 
         foreach (var vector in receiver.Vectors)
         {
@@ -40,17 +74,78 @@ public class VectorGenerator : ISourceGenerator
                     """);
             
             GenerateFields(vector, builder);
+            GenerateCasts(vector, builder);
             GenerateConstructors(vector, builder);
 
-            //var swizzle = receiver.VectorSwizzle.Swizzles.FirstOrDefault(s => s.VectorName == vector.VectorName);
+            GenerateArrayAccess(vector, builder);
 
-            //if (swizzle != null)
+            GenerateEqualityOperators(vector, builder);
+
+            if (receiver.ComparableReceiver.ComparableVectors.Contains(vector.VectorName))
+            {
+                GenerateComparisonOperators(vector, builder);
+            }
+
+            if (receiver.MathReceiver.MathVectors.Contains(vector.VectorName))
+            {
+                GenerateMathOperators(vector, builder);
+            }
+
+            if (receiver.LogicReceiver.LogicVectors.Contains(vector.VectorName))
+            {
+                GenerateLogicOperators(vector, builder);
+            }
+
+            foreach (var cast in receiver.CastReceiver.VectorCasts.Where(c => c.FromType == vector.VectorName))
+            {
+                VectorDefinition toVectorDefinition = receiver.Vectors.First(v => v.VectorName == cast.ToType);
+
+                GenerateCastOperator(cast, vector, toVectorDefinition, builder);
+            }
+            
             GenerateSwizzle(vector, builder);
             
             builder.Append('}');
         
             context.AddSource($"{vector.VectorName}.g.cs", builder.ToString());
         }
+    }
+
+    private void GenerateCastOperator(VectorCastSyntaxReceiver.VectorCast cast, VectorDefinition fromVector, VectorDefinition toVector, StringBuilder builder)
+    {
+        if (fromVector.ComponentCount != toVector.ComponentCount)
+        {
+            _context.ReportDiagnostic(Diagnostic.Create(
+                new DiagnosticDescriptor(
+                    "SG0001",
+                    "Vector-Dimensions don't match for cast.",
+                    $"Cannot cast from \"{fromVector.VectorName}\" to \"{toVector.VectorName}\" because the dimensions don't match.",
+                    "Vector Generator",
+                    DiagnosticSeverity.Error,
+                    true), fromVector.Struct.GetLocation()));
+
+            return;
+        }
+
+        StringBuilder castBuilder = new();
+
+        for (int i = 0; i < fromVector.ComponentCount; i++)
+        {
+            if (i != 0)
+                castBuilder.Append(", ");
+
+            castBuilder.Append($"({toVector.ElementTypeName})value.{ComponentNames[i]}");
+        }
+
+
+        builder.Append($$"""
+                public static {{(cast.IsExplicit ? "explicit" : "implicit")}} operator {{cast.ToType}}({{cast.FromType}} value)
+                {
+                    return new {{cast.ToType}}({{castBuilder}});
+                }
+
+
+            """);
     }
 
     private void GenerateFields(VectorDefinition vector, StringBuilder builder)
@@ -66,6 +161,53 @@ public class VectorGenerator : ISourceGenerator
         }
 
         builder.Append(";\n\n");
+    }
+
+    private void GenerateCasts(VectorDefinition vector, StringBuilder builder)
+    {
+        StringBuilder castBuilder = new();
+
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            if (i != 0)
+                castBuilder.Append(", ");
+        
+            castBuilder.Append("value");
+        }
+
+        builder.Append($$"""
+                public static implicit operator {{vector.VectorName}}({{vector.ElementTypeName}} value)
+                {
+                    return new {{vector.VectorName}}({{castBuilder}});
+                }
+
+
+            """);
+
+        // ???
+        //     StringBuilder constructorBody = new();
+
+        //     for (int i = 0; i < vector.ComponentCount; i++)
+        //     {
+        //         if (i != 0)
+        //             constructorBody.Append(", ");
+
+        //         constructorBody.Append("value");
+        //     }
+
+        //     builder.Append($$"""
+        //         public static implicit operator {{}}
+        //         """);
+
+        //     String castSingleToVector = scope $"""
+
+        //public static implicit operator Self({typeof(T)} value)
+        //{{
+        //     return Self({constructorBody});
+        //     }}
+
+
+        //""";
     }
 
     private void GenerateConstructors(VectorDefinition vector, StringBuilder builder)
@@ -208,6 +350,193 @@ public class VectorGenerator : ISourceGenerator
 
         """);
     }
+    
+    private static void GenerateArrayAccess(VectorDefinition vector, StringBuilder builder)
+    {
+        StringBuilder getterSwitch = new();
+        StringBuilder setterSwitch = new();
+
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            getterSwitch.Append($$"""
+
+                            case {{i}}:
+                                return {{ComponentNames[i]}};
+                """);
+
+            setterSwitch.Append($$"""
+
+                            case {{i}}:
+                                {{ComponentNames[i]}} = value;
+                                break;
+                """);
+        }
+
+
+        builder.Append($$"""
+                public {{vector.ElementTypeName}} this[int index]
+                {
+                    get
+                    {
+                        switch (index)
+                        {{{getterSwitch}}
+                        default:
+                            throw new IndexOutOfRangeException();
+                        }
+                    }
+
+                    set
+                    {
+                        switch (index)
+                        {{{setterSwitch}}
+                        default:
+                            throw new IndexOutOfRangeException();
+                        }
+                    }
+                }
+
+
+            """);
+    }
+
+    private void GenerateEqualityOperators(VectorDefinition vector, StringBuilder builder)
+    {
+        GenerateComparison("==", vector, builder);
+        GenerateComparison("!=", vector, builder);
+    }
+
+    public static void GenerateComparison(string op, VectorDefinition vector, StringBuilder builder)
+    {
+        StringBuilder arguments = new();
+        
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            if (i != 0)
+                arguments.Append(", ");
+
+            arguments.Append($"left.{ComponentNames[i]} {op} right.{ComponentNames[i]}");
+        }
+
+        builder.Append($$"""
+                public static bool{{vector.ComponentCount}} operator {{op}}({{vector.VectorName}} left, {{vector.VectorName}} right)
+                {
+                    return new bool{{vector.ComponentCount}}({{arguments}});
+                }
+
+
+            """);
+    }
+    
+    private void GenerateComparisonOperators(VectorDefinition vector, StringBuilder builder)
+    {
+        GenerateComparison(">", vector, builder);
+        GenerateComparison(">=", vector, builder);
+        GenerateComparison("<", vector, builder);
+        GenerateComparison("<=", vector, builder);
+    }
+
+    public static void GenerateMathOperators(VectorDefinition vector, StringBuilder builder)
+    {
+        GenerateUnaryOperatorOverload("+", vector, builder);
+        GenerateUnaryOperatorOverload("-", vector, builder);
+
+        GenerateOperatorOverloads("+", vector, builder);
+        GenerateOperatorOverloads("-", vector, builder);
+        GenerateOperatorOverloads("*", vector, builder);
+        GenerateOperatorOverloads("/", vector, builder);
+        GenerateOperatorOverloads("%", vector, builder);
+    }
+    
+    public static void GenerateUnaryOperatorOverload(string op, VectorDefinition vector, StringBuilder builder)
+    {
+        StringBuilder negativeArguments = new();
+        
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            if (i != 0)
+                negativeArguments.Append(", ");
+
+            negativeArguments.Append($"{op}value.{ComponentNames[i]}");
+        }
+
+        builder.Append($$"""
+                public static {{vector.VectorName}} operator {{op}}({{vector.VectorName}} value)
+                {
+                    return new {{vector.VectorName}}({{negativeArguments}});
+                }
+
+
+            """);
+    }
+
+    public static void GenerateOperatorOverloads(string op, VectorDefinition vector, StringBuilder builder)
+    {
+        StringBuilder arguments = new();
+        
+        // Vector <op> Vector
+
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            if (i != 0)
+                arguments.Append(", ");
+
+            arguments.Append($"left.{ComponentNames[i]} {op} right.{ComponentNames[i]}");
+        }
+        
+        builder.Append($$"""
+                public static {{vector.VectorName}} operator {{op}}({{vector.VectorName}} left, {{vector.VectorName}} right)
+                {
+                    return new {{vector.VectorName}}({{arguments}});
+                }
+
+
+            """);
+
+        // Vector <op> Scalar
+        arguments.Clear();
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            if (i != 0)
+                arguments.Append(", ");
+
+            arguments.Append($"left.{ComponentNames[i]} {op} right");
+        }
+        
+        builder.Append($$"""
+                public static {{vector.VectorName}} operator {{op}}({{vector.VectorName}} left, {{vector.ElementTypeName}} right)
+                {
+                    return new {{vector.VectorName}}({{arguments}});
+                }
+
+
+            """);
+
+        // Scalar <op> Vector
+        arguments.Clear();
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            if (i != 0)
+                arguments.Append(", ");
+
+            arguments.Append($"left {op} right.{ComponentNames[i]}");
+        }
+        
+        builder.Append($$"""
+                public static {{vector.VectorName}} operator {{op}}({{vector.ElementTypeName}} left, {{vector.VectorName}} right)
+                {
+                    return new {{vector.VectorName}}({{arguments}});
+                }
+
+
+            """);
+    }
+    
+    public static void GenerateLogicOperators(VectorDefinition vector, StringBuilder builder)
+    {
+        GenerateOperatorOverloads("&", vector, builder);
+        GenerateOperatorOverloads("|", vector, builder);
+        GenerateOperatorOverloads("^", vector, builder);
+    }
 
     /**
 	 * Returns true if the swizzle operator is invalid (same component assigned twice).
@@ -304,23 +633,26 @@ public class VectorGenerator : ISourceGenerator
 
 public class VectorSyntaxReceiver : ISyntaxReceiver
 {
-    public List<VectorDefinition> Vectors { get; } = new();
+    public ComparableVectorSyntaxReceiver ComparableReceiver = new();
+    public VectorMathSyntaxReceiver MathReceiver = new();
+    public VectorLogicSyntaxReceiver LogicReceiver = new();
+    public VectorCastSyntaxReceiver CastReceiver = new();
 
-    public VectorSwizzleReceiver VectorSwizzle { get; } = new();
+    public List<VectorDefinition> Vectors { get; } = new();
     
     public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
     {
-        VectorSwizzle.OnVisitSyntaxNode(syntaxNode);
+        ComparableReceiver.OnVisitSyntaxNode(syntaxNode);
+        MathReceiver.OnVisitSyntaxNode(syntaxNode);
+        LogicReceiver.OnVisitSyntaxNode(syntaxNode);
+        CastReceiver.OnVisitSyntaxNode(syntaxNode);
 
         if (syntaxNode is not AttributeSyntax { Name: IdentifierNameSyntax { Identifier.Text: "Vector" } } attr)
-        {
             return;
-        }
-        
+
         var @struct = attr.GetParent<StructDeclarationSyntax>();
         var name = @struct.Identifier.Text;
-
-        // ToFullString should like probably always work
+        
         var elementTypeName = (attr.ArgumentList.Arguments[0].Expression as TypeOfExpressionSyntax).Type.ToFullString();
 
         var componentCount = (attr.ArgumentList.Arguments[1].Expression as LiteralExpressionSyntax).Token.Value as int?;
@@ -355,35 +687,80 @@ public class VectorSyntaxReceiver : ISyntaxReceiver
     }
 }
 
-public class VectorSwizzleReceiver : ISyntaxReceiver
+public class ComparableVectorSyntaxReceiver : ISyntaxReceiver
 {
-    public List<VectorSwizzle> Swizzles { get; } = new();
-
+    public List<string> ComparableVectors { get; } = new();
+    
     public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
     {
-        if (syntaxNode is not AttributeSyntax { Name: IdentifierNameSyntax { Identifier.Text: "SwizzleVector" } } attr)
-        {
+        if (syntaxNode is not AttributeSyntax { Name: IdentifierNameSyntax { Identifier.Text: "ComparableVector" } } attr)
             return;
-        }
-        
+
         var @struct = attr.GetParent<StructDeclarationSyntax>();
         var name = @struct.Identifier.Text;
-
-       // var baseName = (attr.ArgumentList.Arguments[0].Expression as LiteralExpressionSyntax).Token.ValueText;
         
-        Swizzles.Add(new VectorSwizzle(name));//, baseName));
+        ComparableVectors.Add(name);
     }
+}
+
+public class VectorMathSyntaxReceiver : ISyntaxReceiver
+{
+    public List<string> MathVectors { get; } = new();
     
-    public class VectorSwizzle
+    public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
     {
-        public string VectorName { get; }
+        if (syntaxNode is not AttributeSyntax { Name: IdentifierNameSyntax { Identifier.Text: "VectorMath" } } attr)
+            return;
 
-        //public string BaseName { get; }
+        var @struct = attr.GetParent<StructDeclarationSyntax>();
+        var name = @struct.Identifier.Text;
+        
+        MathVectors.Add(name);
+    }
+}
 
-        public VectorSwizzle(string vectorName)//, string baseName)
-        {
-            VectorName = vectorName;
-            //BaseName = baseName;
-        }
+public class VectorLogicSyntaxReceiver : ISyntaxReceiver
+{
+    public List<string> LogicVectors { get; } = new();
+    
+    public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+    {
+        if (syntaxNode is not AttributeSyntax { Name: IdentifierNameSyntax { Identifier.Text: "VectorLogic" } } attr)
+            return;
+
+        var @struct = attr.GetParent<StructDeclarationSyntax>();
+        var name = @struct.Identifier.Text;
+        
+        LogicVectors.Add(name);
+    }
+}
+
+public class VectorCastSyntaxReceiver : ISyntaxReceiver
+{
+    public List<VectorCast> VectorCasts { get; } = new();
+    
+    public void OnVisitSyntaxNode(SyntaxNode syntaxNode)
+    {
+        if (syntaxNode is not AttributeSyntax { Name: IdentifierNameSyntax { Identifier.Text: "VectorCast" } } attr)
+            return;
+
+        var @struct = attr.GetParent<StructDeclarationSyntax>();
+        var fromType = @struct.Identifier.Text;
+
+        var toType = (attr.ArgumentList.Arguments[0].Expression as TypeOfExpressionSyntax).Type.ToFullString();
+        
+        var isExplicit = (attr.ArgumentList.Arguments[1].Expression as LiteralExpressionSyntax).Token.Value as bool?;
+        
+        if (isExplicit == null)
+            return;
+
+        VectorCasts.Add(new VectorCast(fromType, toType, isExplicit.Value));
+    }
+
+    public record VectorCast (string FromType, string ToType, bool IsExplicit)
+    {
+        public string FromType { get; } = FromType;
+        public string ToType { get; } = ToType;
+        public bool IsExplicit { get; } = IsExplicit;
     }
 }

@@ -143,9 +143,7 @@ public class Entity : EngineObject
     public static Entity FindEntityWithName(string name)
     {
         ScriptGlue.Entity_FindEntityWithName(name, out UUID entityId);
-
-        Log.Error($"Found EntityID {entityId}");
-
+        
         if (entityId == UUID.Zero)
             return null;
 

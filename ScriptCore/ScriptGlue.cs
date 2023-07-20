@@ -32,31 +32,47 @@ internal static class ScriptGlue
 #region TransformComponent
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Transform_GetTranslation(UUID entityId, out Vector3 translation);
+    internal static extern void Transform_GetTranslation(UUID entityId, out float3 translation);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Transform_SetTranslation(UUID entityId, in Vector3 translation);
+    internal static extern void Transform_SetTranslation(UUID entityId, in float3 translation);
 
 #endregion TransformComponent
 
 #region RigidBody2D
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void RigidBody2D_ApplyForce(UUID entityId, in Vector2 force, Vector2 point, bool wakeUp);
+    internal static extern void RigidBody2D_ApplyForce(UUID entityId, in float2 force, float2 point, bool wakeUp);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void RigidBody2D_ApplyForceToCenter(UUID entityId, in Vector2 force, bool wakeUp);
+    internal static extern void RigidBody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp);
 
 #endregion RigidBody2D
 
 #region Physics2D
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Physics2D_GetGravity(out Vector2 gravity);
+    internal static extern void Physics2D_GetGravity(out float2 gravity);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Physics2D_SetGravity(in Vector2 gravity);
+    internal static extern void Physics2D_SetGravity(in float2 gravity);
 
 #endregion Physics2D
+
+#region Math
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern float modf_float(float x, out float integerPart);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern float2 modf_float2(float2 x, out float2 integerPart);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern float3 modf_float3(float3 x, out float3 integerPart);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern float4 modf_float4(float4 x, out float4 integerPart);
+
+#endregion
 
 }
