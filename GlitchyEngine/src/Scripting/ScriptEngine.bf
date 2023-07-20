@@ -28,9 +28,9 @@ static sealed class ScriptEngineHelper
 
 		("System.Single", .Float),
 		// TODO: We probably want to switch the C#-Library to use the superior floatN-Names
-		("GlitchyEngine.Math.Vector2", .float2),
-		("GlitchyEngine.Math.Vector3", .float3),
-		("GlitchyEngine.Math.Vector4", .float4),
+		("GlitchyEngine.Math.float2", .float2),
+		("GlitchyEngine.Math.float3", .float3),
+		("GlitchyEngine.Math.float4", .float4),
 
 		("System.Double", .Double),
 
