@@ -11,7 +11,10 @@ static class Mono
 
 	[LinkName(.C)]
 	public static extern MonoDomain* mono_jit_init(char8* file);
-	
+
+	[LinkName(.C)]
+	public static extern void mono_jit_parse_options(int32 argc, char8** argv);
+
 	[LinkName(.C)]
 	public static extern void mono_jit_cleanup(MonoDomain* domain);
 
@@ -208,6 +211,24 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern char8* mono_error_get_message(MonoError* error);
+
+	[LinkName(.C)]
+	public static extern void mono_debug_init(DebugFormat debugFormat);
+	
+	[LinkName(.C)]
+	public static extern void mono_debug_domain_create(MonoDomain* domain);
+	
+	[LinkName(.C)]
+	public static extern void mono_debug_domain_unload(MonoDomain* domain);
+
+	[LinkName(.C)]
+	public static extern void mono_debug_open_image_from_memory(MonoImage *image, uint8* raw_contents, int32 size);
+
+	[LinkName(.C)]
+	public static extern void mono_thread_set_main(MonoThread* thread);
+	
+	[LinkName(.C)]
+	public static extern MonoThread* mono_thread_current();
 }
 
 struct MonoDomain;
@@ -225,6 +246,8 @@ struct MonoClass;
 struct MonoObject;
 
 struct MonoMethod;
+
+struct MonoThread;
 
 struct MonoException
 {
@@ -337,6 +360,14 @@ enum MonoMetaTableEnum : int32
 //#define MONO_TABLE_LAST MONO_TABLE_CUSTOMDEBUGINFORMATION
 //#define MONO_TABLE_NUM (MONO_TABLE_LAST + 1)
 
+}
+
+enum DebugFormat : uint32
+{
+	None,
+	Mono,
+	/** Deprecated, the mdb debugger is not longer supported. */
+	Debugger
 }
 
 enum FieldAttribute

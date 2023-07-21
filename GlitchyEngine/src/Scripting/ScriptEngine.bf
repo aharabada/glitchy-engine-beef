@@ -89,6 +89,9 @@ static class ScriptEngine
 	
 	private static FileSystemWatcher _userAssemblyWatcher ~ delete _;
 
+	// TODO: This should be a global setting somewhere
+	private static bool _debuggingEnabled = true;
+
 	internal static class Attributes
 	{
 		internal static MonoClass* s_ShowInEditorAttribute;
@@ -96,16 +99,38 @@ static class ScriptEngine
 	
 	public static void Init()
 	{
-		Mono.mono_set_assemblies_path("mono/lib");
-
-		s_RootDomain = Mono.mono_jit_init("GlitchyEngineJITRuntime");
-		Log.EngineLogger.Assert(s_RootDomain != null, "Failed to initialize mono root domain");
-		
+		InitMono();
 		ScriptGlue.Init();
 
 		LoadScriptAssemblies();
 
 		InitAssemblyWatcher();
+	}
+
+	static void InitMono()
+	{
+		Mono.mono_set_assemblies_path("mono/lib");
+
+		if (_debuggingEnabled)
+		{
+			char8*[2] options = .(
+				  "--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
+				  "--soft-breakpoints"
+				);
+
+			Mono.mono_jit_parse_options(options.Count, &options);
+			Mono.mono_debug_init(.Mono);
+		}
+
+		s_RootDomain = Mono.mono_jit_init("GlitchyEngineJITRuntime");
+		Log.EngineLogger.Assert(s_RootDomain != null, "Failed to initialize mono root domain");
+
+		if (_debuggingEnabled)
+		{
+			Mono.mono_debug_domain_create(s_RootDomain);
+		}
+
+		Mono.mono_thread_set_main(Mono.mono_thread_current());
 	}
 
 	static void InitAssemblyWatcher()
@@ -143,8 +168,8 @@ static class ScriptEngine
 	static void LoadScriptAssemblies()
 	{
 		CreateAppDomain("GlitchyEngineScriptRuntime");
-		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll");
-		(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly("SandboxProject/Assets/Scripts/bin/Sandbox.dll");
+		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
+		(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly("SandboxProject/Assets/Scripts/bin/Sandbox.dll", _debuggingEnabled);
 
 		GetEntitiesFromAssemblies();
 
@@ -202,7 +227,7 @@ static class ScriptEngine
 		}
 	}
 
-	private static MonoAssembly* LoadCSharpAssembly(StringView assemblyPath)
+	private static MonoAssembly* LoadCSharpAssembly(StringView assemblyPath, bool loadPDB = false)
 	{
 		List<uint8> data = new List<uint8>(1024);
 
@@ -222,8 +247,37 @@ static class ScriptEngine
 
 	        return null;
 	    }
+
+		if (loadPDB)
+		{
+			String pdbPath = scope .();
+			Path.ChangeExtension(assemblyPath, ".pdb", pdbPath);
+
+			if (File.Exists(pdbPath))
+			{
+				Log.EngineLogger.Trace($"Loading PDB \"{pdbPath}\"...");
+
+				List<uint8> pdbData = new List<uint8>(1024);
+
+				let result = File.ReadAll(pdbPath, pdbData);
+
+				if (result case .Err(let error))
+				{
+					Log.EngineLogger.Error("Failed to load PDB file ({error}).");
+				}
+
+				Mono.mono_debug_open_image_from_memory(image, pdbData.Ptr, (int32)pdbData.Count);
+
+				delete pdbData;
+			}
+			else
+			{
+				Log.EngineLogger.Warning($"Debugging enabled but no PDB-File found \"{assemblyPath}\".");
+			}
+		}
 	
 	    MonoAssembly* assembly = Mono.mono_assembly_load_from_full(image, assemblyPath.ToScopeCStr!(), &status, 0);
+
 	    Mono.mono_image_close(image);
 
 	    return assembly;
@@ -235,9 +289,9 @@ static class ScriptEngine
 		Mono.mono_domain_set(s_AppDomain, true);
 	}
 
-	static (MonoAssembly* assembly, MonoImage* image) LoadAssembly(StringView filepath)
+	static (MonoAssembly* assembly, MonoImage* image) LoadAssembly(StringView filepath, bool loadPDB = false)
 	{
-		MonoAssembly* assembly = LoadCSharpAssembly(filepath);
+		MonoAssembly* assembly = LoadCSharpAssembly(filepath, loadPDB);
 		MonoImage* image = Mono.mono_assembly_get_image(assembly);
 
 		return (assembly, image);
