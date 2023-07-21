@@ -29,7 +29,7 @@ static class ScriptGlue
 		}
 	}
 
-	/* Adding this attribute to a method will log method entry and returned Result<T> errors */
+	/*/* Adding this attribute to a method will log method entry and returned Result<T> errors */
 	[AttributeUsage(.Method)]
 	struct RegisterMethodAttribute : Attribute, IOnMethodInit
 	{
@@ -48,13 +48,13 @@ static class ScriptGlue
 				}
 			}
 	    }
-	}
+	}*/
 
 	public static void Init()
 	{
-		RegisterCalls();
+		//RegisterCalls();
 
-		RegisterMathFunctions();
+		//RegisterMathFunctions();
 	}
 
 	public static void RegisterManagedComponents()
@@ -67,11 +67,11 @@ static class ScriptGlue
 		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.RigidBody2D");
 	}
 
-	[RegisterMethod]
+	/*[RegisterMethod]
 	private static void RegisterCalls()
 	{
 		// Generated at CompTime
-	}
+	}*/
 
 	private static void RegisterComponent<T>(StringView cSharpClassName = "") where T : struct, new
 	{
@@ -104,13 +104,10 @@ static class ScriptGlue
 	}
 
 	[RegisterCall("Log::LogMessage_Impl")]
-	static void Log(int32 logLevel, MonoString* message)
+	[Export, LinkName("Log::LogMessage_Impl"), CallingConvention(.Cdecl)]
+	static void Log(int32 logLevel, char8* message)
 	{
-		char8* utfMessage = Mono.mono_string_to_utf8(message);
-
-		Log.ClientLogger.Log((LogLevel)logLevel, StringView(utfMessage));
-
-		Mono.mono_free(utfMessage);
+		Log.ClientLogger.Log((LogLevel)logLevel, StringView(message));
 	}
 
 #region Input

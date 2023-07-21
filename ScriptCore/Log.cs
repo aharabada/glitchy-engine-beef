@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace GlitchyEngine;
 
@@ -44,7 +45,8 @@ public class Log
     {
         LogMessage_Impl(LogLevel.Critical, message);
     }
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern string LogMessage_Impl(LogLevel logLevel, string message);
+
+    //[MethodImpl(MethodImplOptions.InternalCall)]
+    [DllImport("GlitchyEditor.exe", CallingConvention = CallingConvention.Cdecl, EntryPoint = "Log::LogMessage_Impl")]
+    public static extern void LogMessage_Impl(LogLevel logLevel, string message);
 }

@@ -1,5 +1,11 @@
 using System;
+using System.Diagnostics;
+using System.IO;
+using System.Net.Security;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Loader;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
@@ -74,5 +80,49 @@ internal static class ScriptGlue
     internal static extern float4 modf_float4(float4 x, out float4 integerPart);
 
 #endregion
+    
+    private static AssemblyLoadContext? _scriptAssemblyContext;
 
+    private static Assembly? _appAssembly;
+
+    [UnmanagedCallersOnly]
+    public static unsafe void LoadScriptAssembly(byte* assemblyData, long assemblyLength, byte* pdbData, long pdbLength)
+    {
+        using UnmanagedMemoryStream assemblyStream = new(assemblyData, assemblyLength);
+
+        using UnmanagedMemoryStream? pdbStream = (pdbData != null) ? new UnmanagedMemoryStream(pdbData, pdbLength) : null;
+
+        LoadAssembly(assemblyStream, pdbStream);
+    }
+
+    private static void LoadAssembly(Stream assemblyStream, Stream? pdbStream)//(string path)
+    {
+        try
+        {
+            _scriptAssemblyContext ??= new AssemblyLoadContext("ScriptContext", true);
+            
+            _appAssembly = _scriptAssemblyContext.LoadFromStream(assemblyStream, pdbStream);
+            
+            Debug.Assert(_appAssembly != null);
+            
+            // Test the loaded assembly
+            _appAssembly.GetType("Sandbox.TestClass")?.GetMethod("InternalTest")?.Invoke(null, null);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine($"Fehler: {e}");
+        }
+    }
+    
+    [UnmanagedCallersOnly]
+    public static void UnloadAssemblies()
+    {
+        UnloadContext();
+    }
+
+    private static void UnloadContext()
+    {
+        _scriptAssemblyContext?.Unload();
+        _scriptAssemblyContext = null;
+    }
 }

@@ -5,6 +5,8 @@ using System.Collections;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 using GlitchyEngine.World;
+using NetHostBeef;
+using System.Interop;
 
 namespace GlitchyEngine.Scripting;
 
@@ -96,49 +98,32 @@ static class ScriptEngine
 	{
 		internal static MonoClass* s_ShowInEditorAttribute;
 	}
+
+	private static String _coreAssemblyPath = "resources/scripts/ScriptCore.dll";
+	private static String _appAssemblyPath = "SandboxProject/Assets/Scripts/bin/Sandbox.dll";
 	
 	public static void Init()
 	{
-		InitMono();
-		ScriptGlue.Init();
+		CoreClrHelper.Init(_coreAssemblyPath);
+		
+		//ScriptGlue.Init();
 
-		LoadScriptAssemblies();
+		LoadScriptAssembly();
 
 		InitAssemblyWatcher();
-	}
-
-	static void InitMono()
-	{
-		Mono.mono_set_assemblies_path("mono/lib");
-
-		if (_debuggingEnabled)
-		{
-			char8*[2] options = .(
-				  "--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
-				  "--soft-breakpoints"
-				);
-
-			Mono.mono_jit_parse_options(options.Count, &options);
-			Mono.mono_debug_init(.Mono);
-		}
-
-		s_RootDomain = Mono.mono_jit_init("GlitchyEngineJITRuntime");
-		Log.EngineLogger.Assert(s_RootDomain != null, "Failed to initialize mono root domain");
-
-		if (_debuggingEnabled)
-		{
-			Mono.mono_debug_domain_create(s_RootDomain);
-		}
-
-		Mono.mono_thread_set_main(Mono.mono_thread_current());
 	}
 
 	static void InitAssemblyWatcher()
 	{
 		if (_userAssemblyWatcher == null)
 		{
+			String directoryPath = scope String();
+			Path.GetDirectoryPath(_appAssemblyPath, directoryPath);
+			String fileName = scope String();
+			Path.GetFileName(_appAssemblyPath, fileName);
+
 			// TODO: Obviously don't hardcode path
-			_userAssemblyWatcher = new FileSystemWatcher("SandboxProject/Assets/Scripts/bin/", "*/Sandbox.dll");
+			_userAssemblyWatcher = new FileSystemWatcher(directoryPath, fileName);
 			_userAssemblyWatcher.OnChanged.Add(new (fileName) =>
 			{
 				// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
@@ -165,7 +150,7 @@ static class ScriptEngine
 		_userAssemblyWatcher.StartRaisingEvents();
 	}
 
-	static void LoadScriptAssemblies()
+	/*static void LoadScriptAssemblies()
 	{
 		CreateAppDomain("GlitchyEngineScriptRuntime");
 		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
@@ -174,6 +159,28 @@ static class ScriptEngine
 		GetEntitiesFromAssemblies();
 
 		ScriptGlue.RegisterManagedComponents();
+	}*/
+
+	static void LoadScriptAssembly()
+	{
+		List<uint8> data = new List<uint8>(1024);
+		File.ReadAll(_appAssemblyPath, data);
+		
+		List<uint8> pdbData = new List<uint8>(1024);
+
+		String pdbPath = scope .();
+		Path.ChangeExtension(_appAssemblyPath, ".pdb", pdbPath);
+
+		File.ReadAll(pdbPath, pdbData);
+
+		CoreClrHelper.LoadAppAssembly(data, pdbData);
+
+		delete data;
+		delete pdbData;
+
+		//GetEntitiesFromAssemblies();
+
+		//ScriptGlue.RegisterManagedComponents();
 	}
 
 	public static void SetContext(Scene scene)
@@ -351,11 +358,14 @@ static class ScriptEngine
 	{
 		Debug.Profiler.ProfileFunction!();
 
-		Mono.mono_domain_set(s_RootDomain, false);
+		CoreClrHelper.UnloadAssemblies();
+		LoadScriptAssembly();
 
-		Mono.mono_domain_unload(s_AppDomain);
+		//Mono.mono_domain_set(s_RootDomain, false);
 
-		LoadScriptAssemblies();
+		//Mono.mono_domain_unload(s_AppDomain);
+
+		//LoadScriptAssemblies();
 
 		// TODO: ScriptFields might get added
 		// TODO: ScriptField Types may change after reload!
@@ -367,13 +377,13 @@ static class ScriptEngine
 
 	public static void Shutdown()
 	{
-		Mono.mono_domain_set(s_RootDomain, false);
+		/*Mono.mono_domain_set(s_RootDomain, false);
 
 		Mono.mono_domain_unload(s_AppDomain);
 		s_AppDomain = null;
 
 		Mono.mono_jit_cleanup(s_RootDomain);
-		s_RootDomain = null;
+		s_RootDomain = null;*/
 	}
 
 	internal static void RegisterSharpType(SharpType sharpType)

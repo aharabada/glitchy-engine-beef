@@ -1,19 +1,22 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+	  <TargetFramework>net7.0</TargetFramework>
 	  <LangVersion>latest</LangVersion>
 	  <BaseOutputPath></BaseOutputPath>
 	  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  
+		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+		<EnableDynamicLoading>true</EnableDynamicLoading>
+		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+		<Nullable>enable</Nullable>
+		<!--<DebugType>embedded</DebugType>-->
+		<!--<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>-->
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="PowerShell ./postbuild.ps1 -sourceDir $(OutDir) -destinationDir &quot;..\GlitchyEditor\resources\scripts&quot;" />
   </Target>
-
-  <ItemGroup>
-    <PackageReference Include="Half" Version="1.0.0" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\ScriptCoreGenerator\ScriptCoreGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />

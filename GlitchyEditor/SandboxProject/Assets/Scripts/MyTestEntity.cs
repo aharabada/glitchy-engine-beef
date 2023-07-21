@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using GlitchyEngine;
 using GlitchyEngine.Editor;
 using GlitchyEngine.Math;
@@ -66,14 +65,14 @@ namespace Sandbox
 
             Log.Info($"Jump Force: {JumpForce}");
 
-            _rigidBody ??= GetComponent<RigidBody2D>() ?? AddComponent<RigidBody2D>();
+            //_rigidBody ??= GetComponent<RigidBody2D>() ?? AddComponent<RigidBody2D>();
 
-            Camera = FindEntityWithName("Camera").As<Camera>();
+            //Camera = FindEntityWithName("Camera").As<Camera>();
 
-            if (Camera == null)
-            {
-                Log.Error("Camera not found.");
-            }
+            //if (Camera == null)
+            //{
+            //    Log.Error("Camera not found.");
+            //}
         }
 
         /// <summary>
@@ -82,36 +81,38 @@ namespace Sandbox
         /// <param name="deltaTime"></param>
         void OnUpdate(float deltaTime)
         {
-            float2 force = float2.Zero;
+            Log.Info($"On update: {deltaTime}");
 
-            if (Input.IsKeyPressed(Key.A))
-            {
-                force.X -= MoveForce * deltaTime;
-            }
+            //float2 force = float2.Zero;
 
-            if (Input.IsKeyPressed(Key.D))
-            {
-                force.X += MoveForce * deltaTime;
-            }
+            //if (Input.IsKeyPressed(Key.A))
+            //{
+            //    force.X -= MoveForce * deltaTime;
+            //}
 
-            if (Input.IsKeyPressed(Key.Q))
-                Camera.DistanceFromPlayer -= deltaTime;
+            //if (Input.IsKeyPressed(Key.D))
+            //{
+            //    force.X += MoveForce * deltaTime;
+            //}
 
-            if (Input.IsKeyPressed(Key.E))
-                Camera.DistanceFromPlayer += deltaTime;
+            //if (Input.IsKeyPressed(Key.Q))
+            //    Camera.DistanceFromPlayer -= deltaTime;
 
-            if (Input.IsKeyPressing(Key.Space))
-            {
-                force.Y += JumpForce;
-            }
+            //if (Input.IsKeyPressed(Key.E))
+            //    Camera.DistanceFromPlayer += deltaTime;
 
-            _rigidBody.ApplyForceToCenter(force);
+            //if (Input.IsKeyPressing(Key.Space))
+            //{
+            //    force.Y += JumpForce;
+            //}
 
-            if (Input.IsMouseButtonReleasing(MouseButton.MiddleButton))
-            {
-                Log.Info($"Ouha! {MyNumber}");
-                Physics2D.Gravity *= new float2(1, -1);
-            }
+            //_rigidBody.ApplyForceToCenter(force);
+
+            //if (Input.IsMouseButtonReleasing(MouseButton.MiddleButton))
+            //{
+            //    Log.Info($"Ouha! {MyNumber}");
+            //    Physics2D.Gravity *= new float2(1, -1);
+            //}
         }
 
         /// <summary>

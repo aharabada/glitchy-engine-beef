@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Start Editor": {
+      "commandName": "Executable",
+      "executablePath": "D:\\Development\\Projects\\Beef\\GlitchyEngine\\build\\Debug_Win64\\GlitchyEditor\\GlitchyEditor.exe",
+      "workingDirectory": "D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor",
+      "nativeDebugging": true
+    }
+  }
+}
