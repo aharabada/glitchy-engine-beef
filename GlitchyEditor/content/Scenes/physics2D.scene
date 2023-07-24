@@ -71,8 +71,8 @@
 			SpriteRendererComponent = {
 				Color = {
 					R = 1,
-					G = 0.941886961,
-					B = 0.401484549,
+					G = 0.941887021,
+					B = 0.401484519,
 					A = 1
 				},
 				Sprite = "",
@@ -162,7 +162,7 @@
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 0.884925187,
+				AspectRatio = 1.17151165,
 				FixedAspectRatio = false
 			},
 			ScriptComponent = {
@@ -195,8 +195,8 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = -0.121203184,
-					Y = 0.660160959,
+					X = -0.121203199,
+					Y = 0.660161018,
 					Z = 0
 				},
 				Rotation = {
@@ -234,37 +234,12 @@
 			ScriptComponent = {
 				ScriptClass = "Sandbox.MyTestEntity",
 				Fields = [
-					Bo = (Bool)false,
-					By = (Byte)0,
-					Us = (UShort)57,
-					Ui = (UInt)54,
-					Ul = (ULong)53,
-					Sb = (SByte)-128,
-					Sh = (Short)95,
-					In = (Int)-149,
-					Lo = (Long)82,
-					Fl = (Float)-98.122963,
-					Do = (Double)118,
-					V2 = (float2){
-						X = 11,
-						Y = 12
-					},
-					V3 = (float3){
-						X = 13,
-						Y = 14,
-						Z = 15
-					},
-					V4 = (float4){
-						X = 14,
-						Y = 17,
-						Z = 18,
-						W = 19
-					},
+					_rigidBody = (Component)0,
 					TheEntity = (Entity)0,
 					JumpForce = (Float)200,
 					MoveForce = (Float)148,
 					MyNumber = (Int)22,
-					MyDouble = (Double)23
+					Camera = (Entity)1491484622542812645
 				]			}
 		},
 		{
@@ -301,7 +276,7 @@
 				Color = {
 					R = 0.985467017,
 					G = 1,
-					B = 0.569978058
+					B = 0.569977999
 				}
 			}
 		},
@@ -348,8 +323,8 @@
 			SpriteRendererComponent = {
 				Color = {
 					R = 0.425658971,
-					G = 0.855207562,
-					B = 0.0558161102,
+					G = 0.855207503,
+					B = 0.0558161139,
 					A = 1
 				},
 				Sprite = "",
@@ -363,14 +338,14 @@
 			TransformComponent = {
 				Position = {
 					X = 6.74610233,
-					Y = -2.03225899,
+					Y = -2.03225923,
 					Z = 0
 				},
 				Rotation = {
 					X = 0,
 					Y = 0,
 					Z = -0.331792623,
-					W = 0.943352342
+					W = 0.943352461
 				},
 				Scale = {
 					X = 5.29557419,
@@ -409,7 +384,7 @@
 			},
 			SpriteRendererComponent = {
 				Color = {
-					R = 0.666116953,
+					R = 0.666117013,
 					G = 0.0600316115,
 					B = 1,
 					A = 1
@@ -424,8 +399,8 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = 15.2321301,
-					Y = -1.98709249,
+					X = 15.2321291,
+					Y = -1.98709261,
 					Z = 0
 				},
 				Rotation = {
@@ -435,7 +410,7 @@
 					W = 0.990847468
 				},
 				Scale = {
-					X = 13.9764566,
+					X = 13.9764547,
 					Y = 1,
 					Z = 1
 				},
@@ -471,7 +446,7 @@
 			},
 			SpriteRendererComponent = {
 				Color = {
-					R = 0.176544324,
+					R = 0.176544309,
 					G = 0.666713238,
 					B = 0.687030852,
 					A = 1
@@ -487,24 +462,24 @@
 			TransformComponent = {
 				Position = {
 					X = -6.27842855,
-					Y = 2.62550211,
+					Y = 2.62550187,
 					Z = 0
 				},
 				Rotation = {
 					X = 0,
 					Y = 0,
-					Z = 0.187087834,
+					Z = 0.187087849,
 					W = 0.982343197
 				},
 				Scale = {
-					X = 0.999999523,
+					X = 0.999999464,
 					Y = 6.49634314,
 					Z = 1
 				},
 				EditorEulerRotation = {
 					X = 0,
 					Y = 0,
-					Z = 0.376393586
+					Z = 0.376393616
 				}
 			},
 			Rigidbody2D = {
@@ -522,7 +497,7 @@
 				},
 				Density = 1,
 				Friction = 0.5,
-				Restitution = 0.899999976,
+				Restitution = 0.899999917,
 				RestitutionThreshold = 0.5
 			}
 		}

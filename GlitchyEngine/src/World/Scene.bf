@@ -100,6 +100,15 @@ namespace GlitchyEngine.World
 				ScriptEngine.InitializeInstance(targetEntity, targetComponent);
 			}
 
+			// Copy values to entities.
+			// We do this in a separate loop because we might reference other entities.
+			// If we did it in a single loop these entities might not exist yet.
+			for (let (handle, script) in target._ecsWorld.Enumerate<ScriptComponent>())
+			{
+				Entity entity = .(handle, this);
+				ScriptEngine.CopyEditorFieldsToInstance(entity, script);
+			}
+
 			// Copy transforms... needs special handling for the Parent<->Child relations
 			for (let (sourceHandle, sourceTransform) in _ecsWorld.Enumerate<TransformComponent>())
 			{

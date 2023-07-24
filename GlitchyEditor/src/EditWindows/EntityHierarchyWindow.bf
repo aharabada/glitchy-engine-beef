@@ -341,9 +341,13 @@ namespace GlitchyEditor.EditWindows
 			if (deleted)
 				return;
 
+			bool isDragged = false;
+
 			if(ImGui.BeginDragDropSource())
 			{
-				ImGui.SetDragDropPayload("DND_Entity", &tree.Value, sizeof(Entity));
+				isDragged = true;
+
+				ImGui.SetDragDropPayload(.Entity, &tree.Value, sizeof(Entity));
 
 				ImGui.Text(name);
 
@@ -352,7 +356,7 @@ namespace GlitchyEditor.EditWindows
 
 			if(ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("DND_Entity");
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.Entity);
 
 				if(payload != null)
 				{
@@ -395,7 +399,7 @@ namespace GlitchyEditor.EditWindows
 
 			bool clicked = ImGui.IsItemClicked(.Left);
 			bool clickedRight = ImGui.IsItemClicked(.Right);
-
+			
 			if(isOpen)
 			{
 				for(var child in tree.Children)
@@ -408,6 +412,12 @@ namespace GlitchyEditor.EditWindows
 
 			if (clicked || clickedRight)
 			{
+				lastClickedEntity = tree.Value;
+			}
+
+			//if (!isDragged && (clicked || clickedRight))
+			if (!isDragged && (!ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right) && ImGui.IsItemHovered()) && tree.Value == lastClickedEntity)
+			{
 				if (inSelectedList && !clickedRight)
 				{
 					DeselectEntity(tree.Value);
@@ -418,8 +428,12 @@ namespace GlitchyEditor.EditWindows
 					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl && !clickedRight);
 					inSelectedList = true;
 				}
+
+				lastClickedEntity = .();
 			}
 		}
+
+		private static Entity lastClickedEntity;
 
 		private void ShowEntityHierarchy()
 		{
@@ -464,7 +478,7 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.BeginDragDropTarget())
 					{
-						ImGui.Payload* payload = ImGui.AcceptDragDropPayload("DND_Entity");
+						ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.Entity);
 
 						if(payload != null)
 						{
@@ -527,6 +541,10 @@ namespace GlitchyEditor.EditWindows
 					ImGuiPrintEntityTree(scope .(entity));
 				}
 			}
+
+			// If the mouse was released and no entity took the chance to become selected we probably hovered the background while releasing -> select no entity
+			if (!ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right))
+				lastClickedEntity = .();
 		}
 	}
 }

@@ -33,7 +33,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 		if (ImGui.BeginDragDropTarget())
 		{
-			ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+			ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
 			
 			if (payload != null)
 			{
@@ -78,7 +78,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 			if (ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
 
 				if (payload != null)
 				{

@@ -25,36 +25,36 @@ namespace Sandbox
 
     class MyTestEntity : Entity
     {
-        //[ShowInEditor]
+        [ShowInEditor]
         RigidBody2D _rigidBody;
 
-        public bool Bo;
+        //public bool Bo;
 
-        public byte By;
-        public ushort Us;
-        public uint Ui;
-        public ulong Ul;
+        //public byte By;
+        //public ushort Us;
+        //public uint Ui;
+        //public ulong Ul;
 
-        public sbyte Sb;
-        public short Sh;
-        public int In;
-        public long Lo;
+        //public sbyte Sb;
+        //public short Sh;
+        //public int In;
+        //public long Lo;
 
-        public float Fl;
-        public double Do;
-        public float2 V2;
-        public float3 V3;
-        public float4 V4;
+        //public float Fl;
+        //public double Do;
+        //public float2 V2;
+        //public float3 V3;
+        //public float4 V4;
 
         public Entity TheEntity;
 
         public float JumpForce = 2000;
         [ShowInEditor] float MoveForce = 1000;
         [ShowInEditor] private int MyNumber = 1337;
-        [ShowInEditor] public double MyDouble = 1000.0f;
+        //[ShowInEditor] public double MyDouble = 1000.0f;
 
-        public MyStruct AStruct;
-
+        //public MyStruct AStruct;
+        
         public Camera Camera;
 
         /// <summary>
@@ -67,12 +67,16 @@ namespace Sandbox
             Log.Info($"Jump Force: {JumpForce}");
 
             _rigidBody ??= GetComponent<RigidBody2D>() ?? AddComponent<RigidBody2D>();
-
-            Camera = FindEntityWithName("Camera").As<Camera>();
-
+            
             if (Camera == null)
             {
-                Log.Error("Camera not found.");
+                Log.Warning("Camera wasn't set in editor. Searching...");
+                Camera = FindEntityWithName("Camera").As<Camera>();
+                
+                if (Camera == null)
+                {
+                    Log.Error("Camera not found.");
+                }
             }
         }
 
@@ -99,7 +103,7 @@ namespace Sandbox
 
             if (Input.IsKeyPressed(Key.E))
                 Camera.DistanceFromPlayer += deltaTime;
-
+            
             if (Input.IsKeyPressing(Key.Space))
             {
                 force.Y += JumpForce;

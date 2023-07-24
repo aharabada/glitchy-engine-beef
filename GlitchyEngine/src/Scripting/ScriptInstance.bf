@@ -21,6 +21,8 @@ class ScriptInstance : RefCounter
 	
 	private bool _isCreated = false;
 
+	internal MonoObject* MonoInstance => _instance;
+
 	public this(ScriptClass scriptClass)
 	{
 		Log.EngineLogger.AssertDebug(scriptClass != null);
@@ -36,8 +38,6 @@ class ScriptInstance : RefCounter
 		}
 		_scriptClass?.ReleaseRef();
 	}
-
-	internal MonoObject* MonoInstance => _instance;
 
 	public void Instantiate(UUID uuid)
 	{

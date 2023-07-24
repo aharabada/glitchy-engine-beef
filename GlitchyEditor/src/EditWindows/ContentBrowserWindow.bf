@@ -324,7 +324,7 @@ namespace GlitchyEditor.EditWindows
 
 				Path.Fixup(fullpath);
 
-				ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", fullpath.CStr(), (.)fullpath.Length, .Once);
+				ImGui.SetDragDropPayload(.ContentBrowserItem, fullpath.CStr(), (.)fullpath.Length, .Once);
 
 				ImGui.EndDragDropSource();
 			}
@@ -370,7 +370,7 @@ namespace GlitchyEditor.EditWindows
 						String fullpath = scope String(entry->Path);
 						fullpath.AppendF($"#{subAsset.Name}");
 
-						ImGui.SetDragDropPayload("CONTENT_BROWSER_ITEM", fullpath.CStr(), (.)fullpath.Length, .Once);
+						ImGui.SetDragDropPayload(.ContentBrowserItem, fullpath.CStr(), (.)fullpath.Length, .Once);
 		
 						ImGui.EndDragDropSource();
 					}

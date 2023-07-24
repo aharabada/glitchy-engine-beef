@@ -91,7 +91,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			if (ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
 
 				if (payload != null)
 				{

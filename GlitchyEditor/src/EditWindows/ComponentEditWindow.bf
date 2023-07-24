@@ -7,6 +7,8 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine;
 using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
+using GlitchyEngine.Core;
+using Mono;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -278,7 +280,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
 
 				if (payload != null)
 				{
@@ -306,7 +308,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
 
 				if (payload != null)
 				{
@@ -338,7 +340,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
 
 				if (payload != null)
 				{
@@ -601,94 +603,94 @@ namespace GlitchyEditor.EditWindows
 			{
 				let scriptFields = ScriptEngine.GetScriptFieldMap(entity);
 
-				for (var (name, field) in ref scriptFields)
+				for (var (fieldName, field) in ref scriptFields)
 				{
 					switch (field.Type)
 					{
 					case .Bool:
 						var value = field.GetData<bool>();
-						if (ImGui.Checkbox(name.CStr(), &value))
+						if (ImGui.Checkbox(fieldName.CStr(), &value))
 							field.SetData(value);
 
 					case .SByte:
 						var value = field.GetData<int8>();
-						if (ImGui.DragScalar(name.CStr(), .S8, &value))
+						if (ImGui.DragScalar(fieldName.CStr(), .S8, &value))
 							field.SetData(value);
-						case .Short:
-							var value = field.GetData<int16>();
-							if (ImGui.DragScalar(name.CStr(), .S16, &value))
-								field.SetData(value);
+					case .Short:
+						var value = field.GetData<int16>();
+						if (ImGui.DragScalar(fieldName.CStr(), .S16, &value))
+							field.SetData(value);
 					case .Int:
-							var value = field.GetData<int32>();
-							if (ImGui.DragScalar(name.CStr(), .S32, &value))
-								field.SetData(value);
+						var value = field.GetData<int32>();
+						if (ImGui.DragScalar(fieldName.CStr(), .S32, &value))
+							field.SetData(value);
 					case .Int2:
-							var value = field.GetData<int2>();
-							if (ImGui.DragScalarN(name.CStr(), .S32, &value, 2))
-								field.SetData(value);
+						var value = field.GetData<int2>();
+						if (ImGui.DragScalarN(fieldName.CStr(), .S32, &value, 2))
+							field.SetData(value);
 					case .Int3:
-							var value = field.GetData<int3>();
-							if (ImGui.DragScalarN(name.CStr(), .S32, &value, 3))
-								field.SetData(value);
+						var value = field.GetData<int3>();
+						if (ImGui.DragScalarN(fieldName.CStr(), .S32, &value, 3))
+							field.SetData(value);
 					case .Int4:
-							var value = field.GetData<int4>();
-							if (ImGui.DragScalarN(name.CStr(), .S32, &value, 4))
-								field.SetData(value);
+						var value = field.GetData<int4>();
+						if (ImGui.DragScalarN(fieldName.CStr(), .S32, &value, 4))
+							field.SetData(value);
 					case .Long:
-							var value = field.GetData<int64>();
-							if (ImGui.DragScalar(name.CStr(), .S64, &value))
-								field.SetData(value);
+						var value = field.GetData<int64>();
+						if (ImGui.DragScalar(fieldName.CStr(), .S64, &value))
+							field.SetData(value);
 
 					case .Byte:
-							var value = field.GetData<uint8>();
-							if (ImGui.DragScalar(name.CStr(), .U8, &value))
-								field.SetData(value);
+						var value = field.GetData<uint8>();
+						if (ImGui.DragScalar(fieldName.CStr(), .U8, &value))
+							field.SetData(value);
 					case .UShort:
-							var value = field.GetData<uint16>();
-							if (ImGui.DragScalar(name.CStr(), .U16, &value))
-								field.SetData(value);
+						var value = field.GetData<uint16>();
+						if (ImGui.DragScalar(fieldName.CStr(), .U16, &value))
+							field.SetData(value);
 					case .UInt:
-							var value = field.GetData<uint32>();
-							if (ImGui.DragScalar(name.CStr(), .U32, &value))
-								field.SetData(value);
+						var value = field.GetData<uint32>();
+						if (ImGui.DragScalar(fieldName.CStr(), .U32, &value))
+							field.SetData(value);
 					case .ULong:
-							var value = field.GetData<uint64>();
-							if (ImGui.DragScalar(name.CStr(), .U64, &value))
-								field.SetData(value);
+						var value = field.GetData<uint64>();
+						if (ImGui.DragScalar(fieldName.CStr(), .U64, &value))
+							field.SetData(value);
 
 					case .Float:
-							var value = field.GetData<float>();
-							if (ImGui.DragScalar(name.CStr(), .Float, &value))
-								field.SetData(value);
+						var value = field.GetData<float>();
+						if (ImGui.DragScalar(fieldName.CStr(), .Float, &value))
+							field.SetData(value);
 					case .float2:
-							var value = field.GetData<float2>();
-							if (ImGui.Editfloat2(name, ref value))
-								field.SetData(value);
+						var value = field.GetData<float2>();
+						if (ImGui.Editfloat2(fieldName, ref value))
+							field.SetData(value);
 					case .float3:
-							var value = field.GetData<float3>();
-							if (ImGui.Editfloat3(name, ref value))
-								field.SetData(value);
+						var value = field.GetData<float3>();
+						if (ImGui.Editfloat3(fieldName, ref value))
+							field.SetData(value);
 					case .float4:
-							var value = field.GetData<float4>();
-							if (ImGui.Editfloat4(name, ref value))
-								field.SetData(value);
+						var value = field.GetData<float4>();
+						if (ImGui.Editfloat4(fieldName, ref value))
+							field.SetData(value);
 
 					case .Double:
-							var value = field.GetData<double>();
-							if (ImGui.DragScalar(name.CStr(), .Double, &value))
-								field.SetData(value);
+						var value = field.GetData<double>();
+						if (ImGui.DragScalar(fieldName.CStr(), .Double, &value))
+							field.SetData(value);
 					case .Double2:
-							var value = field.GetData<double2>();
-							if (ImGui.DragScalarN(name.CStr(), .Double, &value, 2))
-								field.SetData(value);
+						var value = field.GetData<double2>();
+						if (ImGui.DragScalarN(fieldName.CStr(), .Double, &value, 2))
+							field.SetData(value);
 					case .Double3:
-							var value = field.GetData<double3>();
-							if (ImGui.DragScalarN(name.CStr(), .Double, &value, 3))
-								field.SetData(value);
+						var value = field.GetData<double3>();
+						if (ImGui.DragScalarN(fieldName.CStr(), .Double, &value, 3))
+							field.SetData(value);
 					case .Double4:
-							var value = field.GetData<double4>();
-							if (ImGui.DragScalarN(name.CStr(), .Double, &value, 4))
-								field.SetData(value);
+						var value = field.GetData<double4>();
+						if (ImGui.DragScalarN(fieldName.CStr(), .Double, &value, 4))
+							field.SetData(value);
 
 					case .Enum:
 						// TODO!
@@ -697,15 +699,147 @@ namespace GlitchyEditor.EditWindows
 						// TODO!
 
 					case .Entity:
-						// TODO!
+						ShowEntityReceiver(field, fieldName, scriptClass);
+					case .Component:
+						ShowComponentReceiver(field, fieldName, scriptClass);
 
 					case .Struct:
 						// TODO!
+
+					case .Class:
+						// We don't support editing classes
 
 					default:
 						Log.EngineLogger.Error($"Unhandled field type {field.Type}");
 					}
 				}
+			}
+		}
+
+		private static void ShowEntityReceiver(ScriptFieldInstance* field, StringView fieldName, ScriptClass scriptClass)
+		{
+			var entityId = field.GetData<UUID>();
+
+			Result<Entity> fieldEntity = Editor.Instance.CurrentScene.GetEntityByID(entityId);
+
+			String entityName = scope .(32);
+
+			if (fieldEntity case .Ok(Entity e))
+				entityName.Set(e.Name);
+			else
+				entityName..Clear().AppendF($"Missing entity ({entityId})");
+
+			ImGui.Text($"{fieldName}: ");
+			ImGui.SameLine();
+
+			if (ImGui.Button(entityName))
+			{
+				// TODO: Show a selector or something
+			}
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.Entity, .AcceptPeekOnly);
+
+				bool allowDrop = false;
+
+				if (peekPayload != null)
+				{
+					Entity draggedEntity = *(Entity*)peekPayload.Data;
+
+					ScriptClass draggedScriptClass = ScriptEngine.[Friend]s_EntityRoot;
+
+					if (draggedEntity.TryGetComponent<ScriptComponent>(let draggedScript))
+					{
+						var draggedClassName = draggedScript.ScriptClassName;
+						draggedScriptClass = ScriptEngine.GetScriptClass(draggedClassName);
+
+					}
+
+					// TODO: I don't like the fact, that we are using mono directly
+
+					ScriptField scriptField = scriptClass.Fields[fieldName];
+					var fieldMonoClass = Mono.mono_type_get_class(scriptField.GetMonoType());
+
+					allowDrop = draggedScriptClass.[Friend]IsSubclass(fieldMonoClass);
+				}
+
+				if (allowDrop)
+				{
+					ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.Entity);
+
+					if (payload != null)
+					{
+						Log.EngineLogger.AssertDebug(payload.DataSize == sizeof(Entity));
+
+						Entity droppedEntity = *(Entity*)payload.Data;
+
+						if (droppedEntity.IsValid)
+							field.SetData<UUID>(droppedEntity.UUID);
+					}
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+		}
+
+		private static void ShowComponentReceiver(ScriptFieldInstance* field, StringView fieldName, ScriptClass scriptClass)
+		{
+			var entityId = field.GetData<UUID>();
+
+			Result<Entity> fieldEntity = Editor.Instance.CurrentScene.GetEntityByID(entityId);
+
+			String entityName = scope .(32);
+
+			if (fieldEntity case .Ok(Entity e))
+				entityName.Set(e.Name);
+			else
+				entityName..Clear().AppendF($"Missing reference ({entityId})");
+
+			ImGui.Text($"{fieldName}: ");
+			ImGui.SameLine();
+
+			if (ImGui.Button(entityName))
+			{
+				// TODO: Show a selector or something
+			}
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.Entity, .AcceptPeekOnly);
+
+				bool allowDrop = false;
+
+				if (peekPayload != null)
+				{
+					Entity draggedEntity = *(Entity*)peekPayload.Data;
+
+					// TODO: I don't like the fact, that we are using mono directly
+
+					ScriptField scriptField = scriptClass.Fields[fieldName];
+					MonoReflectionType* reflectionType = Mono.mono_type_get_object(ScriptEngine.[Friend]s_AppDomain, scriptField.GetMonoType());
+
+					// TODO: We shouldn't abuse the script glue like that...
+					// ScriptGlue should only be called by C#, not by Beef...
+					allowDrop = ScriptGlue.[Friend]Entity_HasComponent(draggedEntity.UUID, reflectionType);
+				}
+
+				if (allowDrop)
+				{
+					ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.Entity);
+
+					if (payload != null)
+					{
+						Log.EngineLogger.AssertDebug(payload.DataSize == sizeof(Entity));
+
+						Entity droppedEntity = *(Entity*)payload.Data;
+
+						if (droppedEntity.IsValid)
+							field.SetData<UUID>(droppedEntity.UUID);
+					}
+				}
+
+				ImGui.EndDragDropTarget();
 			}
 		}
 
@@ -773,7 +907,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload("CONTENT_BROWSER_ITEM");
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
 
 				if (payload != null)
 				{

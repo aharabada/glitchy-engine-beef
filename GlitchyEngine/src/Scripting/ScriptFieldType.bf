@@ -27,6 +27,7 @@ enum ScriptFieldType
 	case Double, Double2, Double3, Double4;
 	
 	case Entity;
+	case Component;
 
 	public Type GetBeefType()
 	{
@@ -78,6 +79,8 @@ enum ScriptFieldType
 			return typeof(double4);
 
 		case .Entity:
+			return typeof(UUID);
+		case .Component:
 			return typeof(UUID);
 
 		default:

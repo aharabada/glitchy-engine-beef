@@ -53,9 +53,16 @@ namespace GlitchyEditor
 		public SceneRenderer GameSceneRenderer {get; set;}
 		public SceneRenderer EditorSceneRenderer {get; set;}
 
+		private static Editor s_Instance;
+
+		public static Editor Instance => s_Instance;
+
 		/// Creates a new editor for the given world
 		public this(Scene scene, EditorContentManager contentManager)
 		{
+			Log.EngineLogger.AssertDebug(s_Instance == null, "Cannot create a second instance of a singleton.");
+			s_Instance = this;
+
 			_scene = scene;
 			_contentManager = contentManager;
 

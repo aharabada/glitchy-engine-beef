@@ -159,6 +159,9 @@ static class Mono
 	public static extern MonoType* mono_reflection_type_get_type(MonoReflectionType* reflectionType);
 
 	[LinkName(.C)]
+	public static extern MonoReflectionType* mono_type_get_object(MonoDomain *domain, MonoType *type);
+
+	[LinkName(.C)]
 	public static extern MonoClassField* mono_class_get_fields(MonoClass* klass, gpointer* iter);
 	
 	[LinkName(.C)]

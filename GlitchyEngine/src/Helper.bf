@@ -70,5 +70,25 @@ namespace GlitchyEngine
 				delete dictionary;
 			}
 		}
+
+		public static mixin ClearDictionaryAndReleaseKeys(var dictionary)
+		{
+			if (dictionary != null)
+			{
+				for (var value in dictionary)
+					value.key?.ReleaseRef();
+				dictionary.Clear();
+			}
+		}
+
+		public static mixin ClearDictionaryAndReleaseValues(var dictionary)
+		{
+			if (dictionary != null)
+			{
+				for (var value in dictionary)
+					value.value?.ReleaseRef();
+				dictionary.Clear();
+			}
+		}
 	}
 }

@@ -21,6 +21,33 @@ public struct ScriptField
 		IsStatic = isStatic;
 		FieldType = fieldType;
 	}
+
+	public bool IsType(SharpClass otherClass, bool checkIfSubtype)
+	{
+		return IsType(otherClass.GetMonoType(), checkIfSubtype);
+	}
+
+	public bool IsType(MonoType* otherType, bool checkIfSubtype)
+	{
+		MonoType* myType = GetMonoType();
+
+		if (checkIfSubtype)
+		{
+			MonoClass* myClass = Mono.mono_type_get_class(myType);
+			MonoClass* otherClass = Mono.mono_type_get_class(otherType);
+
+			return Mono.mono_class_is_subclass_of(myClass, otherClass, false);
+		}
+		else
+		{
+			return myType == otherType;
+		}
+	}
+
+	public MonoType* GetMonoType()
+	{
+		return Mono.mono_field_get_type(_monoField);
+	}
 }
 
 public struct ScriptFieldInstance
@@ -90,9 +117,19 @@ class SharpClass : SharpType
 		ExtractFields();
 	}
 
+	internal MonoType* GetMonoType()
+	{
+		return Mono.mono_class_get_type(_monoClass);
+	}
+
 	internal bool IsType(MonoType* type)
 	{
-		return Mono.mono_class_get_type(_monoClass) == type;
+		return GetMonoType() == type;
+	}
+
+	internal bool IsSubclass(MonoClass* @class)
+	{
+		return Mono.mono_class_is_subclass_of(_monoClass, @class, false);
 	}
 
 	private void ExtractFields()
@@ -180,8 +217,8 @@ class ScriptClass : SharpClass
 	public Dictionary<StringView, ScriptField> Fields => _monoFields;*/
 
 	[AllowAppend]
-	public this(StringView classNamespace, StringView className, MonoImage* image) :
-		base(classNamespace, className, image)
+	public this(StringView classNamespace, StringView className, MonoImage* image, ScriptFieldType scriptFieldType = .Class) :
+		base(classNamespace, className, image, scriptFieldType)
 	{
 		//_constructor = (ConstructorMethod)GetMethodThunk(".ctor", 1); // GetMethod(".ctor", 1);//
 		_constructor = GetMethod(".ctor", 1);
@@ -288,6 +325,19 @@ class ScriptClass : SharpClass
 
 	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value)
 	{
-		Mono.Mono.mono_field_set_value(instance, field, &value);
+		/*if (typeof(T) == typeof(MonoObject*))
+		{
+			// TODO: MonoObject* is a pointer already, so we don't take the pointer
+			Mono.Mono.mono_field_set_value(instance, field, (void*)value);
+		}
+		else
+		{*/
+			Mono.Mono.mono_field_set_value(instance, field, &value);
+		//}
+	}
+
+	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value) where T : struct*
+	{
+		Mono.Mono.mono_field_set_value(instance, field, value);
 	}
 }

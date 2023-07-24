@@ -58,12 +58,14 @@ static class ScriptEngine
 
 	private static Scene s_Context ~ _?.ReleaseRef();
 
+	private static ScriptClass s_ComponentRoot ~ _?.ReleaseRef();
 	private static ScriptClass s_EntityRoot ~ _?.ReleaseRef();
 	private static ScriptClass s_EngineObject ~ _?.ReleaseRef();
 
 	private static Dictionary<StringView, SharpType> _sharpClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
 	
 	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
+	private static Dictionary<StringView, ScriptClass> _componentClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
 	
 	private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
 		for (var entry in _)
@@ -74,6 +76,7 @@ static class ScriptEngine
 	}
 
 	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
+	public static Dictionary<StringView, ScriptClass> ComponentClasses => _componentClasses;
 
 	public static Scene Context => s_Context;
 
@@ -170,7 +173,12 @@ static class ScriptEngine
 		CreateAppDomain("GlitchyEngineScriptRuntime");
 		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
 		(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly("SandboxProject/Assets/Scripts/bin/Sandbox.dll", _debuggingEnabled);
-
+		
+		ClearDictionaryAndReleaseValues!(_sharpClasses);
+		
+		GetCoreAttributes();
+		GetCoreClasses();
+		
 		GetEntitiesFromAssemblies();
 
 		ScriptGlue.RegisterManagedComponents();
@@ -206,12 +214,12 @@ static class ScriptEngine
 
 		script.Instance.Instantiate(entity.UUID);
 
-		CopyEditorFieldsToInstance(entity, script);
+		//CopyEditorFieldsToInstance(entity, script);
 
 		return true;
 	}
 
-	private static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
+	public static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
 	{
 		// Technically the map is for a different entity (namely the editor-entity),
 		// however the UUID is the same, so we get the correct field map
@@ -220,10 +228,24 @@ static class ScriptEngine
 		for (var (fieldName, field) in fields)
 		{
 			// TODO: a litte assertion maybe?
-
+			
 			ScriptField scriptField = script.Instance.ScriptClass.Fields[fieldName];
 
-			script.Instance.SetFieldValue(scriptField, field._data);
+			switch (scriptField.FieldType)
+			{
+			case .Entity:
+				// On the C# side we actually differentiate between an Entity and the Script
+				// in the sense that getting an entity and a script yields two different results (one creates a new Entity-Class instance, the other returns the actual instance).
+				// But here its just easier to always use the script instance.
+				// Obviously breaks once we support multiple scripts per entity.
+				UUID referencedId = field.GetData<UUID>();
+				MonoObject* referencedEntity = GetManagedInstance(referencedId);
+				script.Instance.SetFieldValue(scriptField, referencedEntity);
+			case .Component:
+
+			default:
+				script.Instance.SetFieldValue(scriptField, field._data);
+			}
 		}
 	}
 
@@ -297,32 +319,27 @@ static class ScriptEngine
 		return (assembly, image);
 	}
 
+	/// Retrieves the base classes from which every Component or Entity inherits
+	static void GetCoreClasses()
+	{
+		s_EngineObject?.ReleaseRef();
+		s_EntityRoot?.ReleaseRef();
+		s_ComponentRoot?.ReleaseRef();
+
+		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage, .Class);
+		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage, .Entity);
+		s_ComponentRoot = new ScriptClass("GlitchyEngine", "Component", s_CoreAssemblyImage, .Component);
+	}
+	
+	/// Retrieves the classes for Attributes that are defined in the Core library
+	static void GetCoreAttributes()
+	{
+		Attributes.s_ShowInEditorAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "ShowInEditorAttribute");
+	}
+
 	private static void GetEntitiesFromAssemblies()
 	{
-		for (var entry in _entityScripts)
-		{
-			entry.value.ReleaseRef();
-		}
-		_entityScripts.Clear();
-
-		for (var sharpClass in _sharpClasses)
-		{
-			sharpClass.value.ReleaseRef();
-		}
-		_sharpClasses.Clear();
-		
-		if (s_EngineObject != null)
-		{
-			s_EngineObject.ReleaseRef();
-			s_EntityRoot.ReleaseRef();
-		}
-
-		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage);
-		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage);
-
-		Log.EngineLogger.Assert(s_EntityRoot != null);
-
-		Attributes.s_ShowInEditorAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "ShowInEditorAttribute");
+		ClearDictionaryAndReleaseValues!(_entityScripts);
 
 	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_AppAssemblyImage, .MONO_TABLE_TYPEDEF);
 	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
@@ -336,10 +353,19 @@ static class ScriptEngine
 			char8* name = Mono.mono_metadata_string_heap(s_AppAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
 			
 			MonoClass* monoClass = Mono.mono_class_from_name(s_AppAssemblyImage, nameSpace, name);
-
+			
+			// Check if it is an entity
 			if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot.[Friend]_monoClass, false))
 			{
-				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage);
+				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage, .Entity);
+				_entityScripts.Add(entityScript.FullName, entityScript);
+
+				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
+			}
+			// Check if it is a component
+			else if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot.[Friend]_monoClass, false))
+			{
+				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage, .Entity);
 				_entityScripts.Add(entityScript.FullName, entityScript);
 
 				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
@@ -399,8 +425,8 @@ static class ScriptEngine
 		StringView classNamespace = StringView(Mono.mono_class_get_namespace(monoClass));
 
 		// TODO: at the moment only allow user-structs
-		if (classNamespace.StartsWith("GlitchyEngine"))
-			return null;
+		//if (classNamespace.StartsWith("GlitchyEngine"))
+		//	return null;
 
 		switch (fieldType)
 		{
@@ -408,7 +434,20 @@ static class ScriptEngine
 			ScriptFieldType scriptType = .None;
 
 			if (fieldType == .Class)
-				scriptType = .Class;
+			{
+				if (Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot._monoClass, false))
+				{
+					scriptType = .Entity;
+				}
+				else if (Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot._monoClass, false))
+				{
+					scriptType = .Component;
+				}
+				else
+				{
+					scriptType = .Class;
+				}
+			}
 			else if (fieldType == .Enum)
 				scriptType = .Enum;
 			else if (fieldType == .Valuetype)
