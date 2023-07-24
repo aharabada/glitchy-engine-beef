@@ -613,39 +613,48 @@ class SceneSerializer
 								// Allocate a string on the stack, because the dictionary uses a string as key
 								String fieldNameString = scope .(fieldName);
 
+								Result<StringView> fieldTypeName = reader.Type();
+
+								if (fieldTypeName case .Err)
+								{
+									Log.EngineLogger.Error($"Failed to read field type for field \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+									reader.FileEntrySkip(1);
+									dontRemoveComma = true;
+									continue;
+								}
+
+								Result<ScriptFieldType> fieldType = Enum.Parse<ScriptFieldType>(fieldTypeName, true);
+
+								if ((fieldType case .Err))
+								{
+									Log.EngineLogger.Error($"Error deserializing field type (Raw string: \"{fieldTypeName}\" of field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+									reader.FileEntrySkip(1);
+									dontRemoveComma = true;
+									continue;
+								}
+
+								uint8[sizeof(Matrix)] data = .();
+
+								if (Deserialize.Value(reader, ValueView(fieldType.Value.GetBeefType(), &data), gBonEnv) case .Err)
+								{
+									Log.EngineLogger.Error($"Failed to deserialize data for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
+									reader.FileEntrySkip(1);
+									dontRemoveComma = true;
+									continue;
+								}
+
 								if (fields.ContainsKey(fieldNameString))
 								{
 									var field = ref fields[fieldNameString];
 
-									Result<StringView> fieldTypeName = reader.Type();
-
-									if (fieldTypeName case .Err)
-									{
-										Log.EngineLogger.Error($"Failed to read field type for field \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
-										reader.FileEntrySkip(1);
-										dontRemoveComma = true;
-										continue;
-									}
-	
-									Result<ScriptFieldType> fieldType = Enum.Parse<ScriptFieldType>(fieldTypeName, true);
-
-									if ((fieldType case .Err) || (fieldType != field.Type))
+									// Make sure the type we deserialized actually is correct.
+									if (fieldType != field.Type)
 									{
 										Log.EngineLogger.Error($"Unexpected field type (\"{fieldTypeName}\" instead of \"{field.Type}\" for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
-										reader.FileEntrySkip(1);
-										dontRemoveComma = true;
 										continue;
 									}
 
-									void* data = &field.[Friend]_data;
-	
-									if (Deserialize.Value(reader, ValueView(field.Type.GetBeefType(), data), gBonEnv) case .Err)
-									{
-										Log.EngineLogger.Error($"Failed to deserialize data for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
-										reader.FileEntrySkip(1);
-										dontRemoveComma = true;
-										continue;
-									}
+									field.SetData(data);
 								}
 								else
 								{
