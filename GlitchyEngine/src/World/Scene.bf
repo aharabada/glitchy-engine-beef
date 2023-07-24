@@ -260,7 +260,7 @@ namespace GlitchyEngine.World
 						script.Instance._entity = Entity(entity, this);
 						script.Instance.[Friend]OnCreate();
 					}
-	
+
 					script.Instance.[Friend]OnUpdate(gameTime);
 				}
 			/*}
@@ -272,15 +272,15 @@ namespace GlitchyEngine.World
 				{
 					if (!script.IsCreated)
 					{
-						if (!script.IsInitialized)
-							ScriptEngine.InitializeInstance(Entity(entity, this), script);
+						ScriptEngine.InitializeInstance(Entity(entity, this), script);
 
-						if (mode.HasFlag(.Runtime))
-							script.Instance.InvokeOnCreate();
+						//if (mode.HasFlag(.Runtime))
+						//script.Instance.InvokeOnCreate();
 					}
 					
-					if (mode.HasFlag(.Runtime))
-						script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
+					if (mode.HasFlag(.Runtime) && script.Instance.ScriptClass.Methods.HasFlag(.OnUpdate))
+						ScriptEngine.InvokeOnUpdate(Entity(entity, this).UUID, gameTime.DeltaTime);
+						//script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
 				}
 			}
 

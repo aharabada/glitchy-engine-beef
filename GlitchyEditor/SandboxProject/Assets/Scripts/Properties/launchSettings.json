@@ -3,6 +3,7 @@
     "Start Editor": {
       "commandName": "Executable",
       "executablePath": "D:\\Development\\Projects\\Beef\\GlitchyEngine\\build\\Debug_Win64\\GlitchyEditor\\GlitchyEditor.exe",
+      "commandLineArgs": "\"content\\Scenes\\physics2D.scene\"",
       "workingDirectory": "D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor",
       "nativeDebugging": true
     }

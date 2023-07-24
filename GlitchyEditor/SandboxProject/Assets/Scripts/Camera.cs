@@ -15,32 +15,39 @@ public class Camera : Entity
 
     public float DontFollowRadius = 3.0f;
 
-    void OnUpdate(float deltaTime)
+    void OnCreate()
     {
-        Entity player = FindEntityWithName("Player");
+        Log.Info("Camera Create");
+    }
 
-        if (player != null)
-        {
-            float2 playerPosition = player.Transform.Translation.XY;
+    public void OnUpdate(float deltaTime)
+    {
+        Log.Info($"Camera Update {deltaTime}");
 
-            float2 cameraPosition = Transform.Translation.XY;
+        //Entity player = FindEntityWithName("Player");
 
-            float2 distanceVector = playerPosition - cameraPosition;
+        //if (player != null)
+        //{
+        //    float2 playerPosition = player.Transform.Translation.XY;
 
-            float distance = length(distanceVector);
+        //    float2 cameraPosition = Transform.Translation.XY;
 
-            float2 neededMovement = float2.Zero;
+        //    float2 distanceVector = playerPosition - cameraPosition;
 
-            if (distance > DontFollowRadius)
-            {
-                neededMovement = distanceVector - (distanceVector / distance) * DontFollowRadius;
-            }
+        //    float distance = length(distanceVector);
 
-            Transform.Translation = new float3(cameraPosition + neededMovement, DistanceFromPlayer);
-        }
-        else
-        {
-            Log.Error("Player not found!");
-        }
+        //    float2 neededMovement = float2.Zero;
+
+        //    if (distance > DontFollowRadius)
+        //    {
+        //        neededMovement = distanceVector - (distanceVector / distance) * DontFollowRadius;
+        //    }
+
+        //    Transform.Translation = new float3(cameraPosition + neededMovement, DistanceFromPlayer);
+        //}
+        //else
+        //{
+        //    Log.Error("Player not found!");
+        //}
     }
 }

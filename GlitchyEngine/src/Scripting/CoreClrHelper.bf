@@ -1,6 +1,7 @@
 using NetHostBeef;
 using System;
 using System.Interop;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Scripting;
 
@@ -18,6 +19,15 @@ static class CoreClrHelper
 	//static function void(char8* path) LoadScriptAssembly;
 	static LoadScriptAssemblyFunc _loadScriptAssembly;
 	static function void() _unloadAssemblies;
+
+	// public static unsafe void GetScriptClasses(void** outBuffer, long* length)
+	private function void GetScriptClassesFunc(void** outBuffer, int64* length);
+	static GetScriptClassesFunc _getScriptClasses;
+	static function void() _freeScriptClassNames;
+	
+	//public static unsafe ScriptFunctions CreateScriptInstance(UUID entityId, byte* scriptClassName)
+	private function ScriptFunctionPointers CreateScriptInstanceFunc(UUID entityId, char8* scriptClassName);
+	static CreateScriptInstanceFunc _createScriptInstance;
 
 	public static void Init(StringView coreAssemblyPath)
 	{
@@ -77,11 +87,15 @@ static class CoreClrHelper
 
 	static void PrepareFunction()
 	{
-		GetFunctionPointerUnmanagedCallersOnly<LoadScriptAssemblyFunc>("GlitchyEngine.ScriptGlue, ScriptCore", "LoadScriptAssembly",
-			out _loadScriptAssembly);
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "LoadScriptAssembly", out _loadScriptAssembly);
+
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "UnloadAssemblies", out _unloadAssemblies);
 		
-		GetFunctionPointerUnmanagedCallersOnly<function void()>("GlitchyEngine.ScriptGlue, ScriptCore", "UnloadAssemblies",
-			out _unloadAssemblies);
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "GetScriptClasses", out _getScriptClasses);
+
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "FreeScriptClassNames", out _freeScriptClassNames);
+
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "CreateScriptInstance", out _createScriptInstance);
 	}
 
 	public static void LoadAppAssembly(Span<uint8> appAssemblyData, Span<uint8> pdbData)
@@ -92,6 +106,25 @@ static class CoreClrHelper
 	public static void UnloadAssemblies()
 	{
 		_unloadAssemblies();
+	}	
+
+	/// Gets an array of script class infos. Use FreeScriptClassNames to release the buffer.
+	public static void GetScriptClasses(out void* outBuffer, out int64 entryCount)
+	{
+		outBuffer = null;
+		entryCount = 0;
+		_getScriptClasses(&outBuffer, &entryCount);
+	}	
+
+	/// Releases the buffer created by GetScriptClasses
+	public static void FreeScriptClassNames()
+	{
+		_freeScriptClassNames();
+	}
+
+	public static ScriptFunctionPointers CreateScriptInstance(UUID entityId, StringView scriptName)
+	{
+		return _createScriptInstance(entityId, scriptName.Ptr);
 	}
 
 	public static int GetFunctionPointer<T>(StringView typeName, StringView methodName, StringView delegateName, out T outDelegate) where T: operator explicit void*

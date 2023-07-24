@@ -453,7 +453,8 @@ namespace GlitchyEditor.EditWindows
 
 			StringView search = StringView();
 
-			char8* scriptLabel = scriptComponent.Instance?.ScriptClass.FullName.ToScopeCStr!() ?? "Select Script...";
+			//char8* scriptLabel = scriptComponent.Instance?.ScriptClass.FullName.ToScopeCStr!() ?? "Select Script...";
+			char8* scriptLabel = scriptComponent.Instance?.ScriptClass.FullName.CStr() ?? "Select Script...";
 
 			if (ImGui.Button(scriptLabel))
 				ImGui.OpenPopup("SelectScript");
@@ -478,12 +479,14 @@ namespace GlitchyEditor.EditWindows
 						//ScriptEngine.InitializeInstance(entity, scriptComponent);
 
 						scriptComponent.ScriptClassName = scriptClass.FullName;
-						
-						ScriptEngine.CreateScriptFieldMap(entity);
+
+						//ScriptEngine.CreateScriptFieldMap(entity);
 					}
 				}
 				ImGui.EndPopup();
 			}
+
+			/*
 
 			ScriptClass scriptClass = ScriptEngine.GetScriptClass(scriptComponent.ScriptClassName);
 
@@ -707,6 +710,8 @@ namespace GlitchyEditor.EditWindows
 					}
 				}
 			}
+
+			*/
 		}
 
 		private static void LabelColumn(StringView label)

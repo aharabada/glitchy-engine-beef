@@ -509,7 +509,7 @@ namespace GlitchyEngine.World
 	{
 		private String _scriptClassName = null;
 
-		private ScriptInstance _instance = null;
+		private SexyScriptInstance _instance = null;
 
 		public StringView ScriptClassName
 		{
@@ -523,22 +523,24 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public ScriptInstance Instance
+		public SexyScriptInstance Instance
 		{
 			[Inline]
 			get => _instance;
 			[Inline]
-			set mut => SetReference!(_instance, value);
+			set mut => _instance = value;//SetReference!(_instance, value);
 		}
 
-		public bool IsInitialized => _instance?.IsInitialized ?? false;
+		// public bool IsInitialized => _instance?.IsInitialized ?? false;
 
-		public bool IsCreated => _instance?.IsCreated ?? false;
+		// public bool IsCreated => _instance?.IsCreated ?? false;
+
+		public bool IsCreated => _instance != null;
 
 		public void Dispose() mut
 		{
 			delete _scriptClassName;
-			ReleaseRefAndNullify!(_instance);
+			//ReleaseRefAndNullify!(_instance);
 		}
 	}
 }

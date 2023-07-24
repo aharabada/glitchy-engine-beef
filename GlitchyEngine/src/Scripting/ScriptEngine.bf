@@ -47,6 +47,73 @@ static sealed class ScriptEngineHelper
 	}
 }
 
+public enum ScriptMethods : uint32
+{
+    None = 0,
+    OnCreate = 0x1,
+    OnUpdate = 0x2,
+    OnDestroy = 0x4,
+}
+
+class SexyScriptClass
+{
+	public String FullName ~ delete _;
+	public StringView Name;
+	public Guid Guid;
+	public ScriptMethods Methods;
+
+	public this(StringView fullName, Guid guid, ScriptMethods methods)
+	{
+		FullName = new String(fullName);
+		Guid = guid;
+
+		int lastDotIndex = FullName.LastIndexOf('.');
+
+		if (lastDotIndex == -1)
+			Name = FullName;
+		else
+			Name = FullName.Substring(lastDotIndex + 1);
+
+		Methods = methods;
+	}
+}
+
+class SexyScriptInstance
+{
+	public SexyScriptClass ScriptClass;
+
+	public ScriptFunctionPointers Functions;
+
+	public this(SexyScriptClass scriptClass, ScriptFunctionPointers functions)
+	{
+		ScriptClass = scriptClass;
+		Functions = functions;
+	}
+
+	public void InvokeOnCreate()
+	{
+		Functions.OnCreateMethod();
+	}
+
+	/*public void InvokeOnUpdate(float deltaTime)
+	{
+		CoreClrHelper.InvokeOnUpdate(float deltaTime);
+		//Functions.OnUpdateMethod(deltaTime);
+	}*/
+
+	public void InvokeOnDestroy()
+	{
+		Functions.OnDestroyMethod();
+	}
+}
+	
+public struct ScriptFunctionPointers
+{
+    public function void() OnCreateMethod;
+    public function void(float) OnUpdateMethod;
+    public function void() OnDestroyMethod;
+}
+
 static class ScriptEngine
 {
 	private static MonoDomain* s_RootDomain;
@@ -65,17 +132,11 @@ static class ScriptEngine
 
 	private static Dictionary<StringView, SharpType> _sharpClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
 	
-	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
+	private static Dictionary<StringView, SexyScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndValues!(_);
 	
-	private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
-		for (var entry in _)
-		{
-			entry.value?.ReleaseRef();
-		}
-		delete _;
-	}
+	private static Dictionary<UUID, SexyScriptInstance> _entityScriptInstances = new .() ~ DeleteDictionaryAndValues!(_);
 
-	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
+	public static Dictionary<StringView, SexyScriptClass> EntityClasses => _entityScripts;
 
 	public static Scene Context => s_Context;
 
@@ -101,11 +162,14 @@ static class ScriptEngine
 
 	private static String _coreAssemblyPath = "resources/scripts/ScriptCore.dll";
 	private static String _appAssemblyPath = "SandboxProject/Assets/Scripts/bin/Sandbox.dll";
-	
+
+
 	public static void Init()
 	{
 		CoreClrHelper.Init(_coreAssemblyPath);
-		
+
+		GetFunctions();
+
 		//ScriptGlue.Init();
 
 		LoadScriptAssembly();
@@ -150,17 +214,6 @@ static class ScriptEngine
 		_userAssemblyWatcher.StartRaisingEvents();
 	}
 
-	/*static void LoadScriptAssemblies()
-	{
-		CreateAppDomain("GlitchyEngineScriptRuntime");
-		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
-		(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly("SandboxProject/Assets/Scripts/bin/Sandbox.dll", _debuggingEnabled);
-
-		GetEntitiesFromAssemblies();
-
-		ScriptGlue.RegisterManagedComponents();
-	}*/
-
 	static void LoadScriptAssembly()
 	{
 		List<uint8> data = new List<uint8>(1024);
@@ -178,10 +231,26 @@ static class ScriptEngine
 		delete data;
 		delete pdbData;
 
-		//GetEntitiesFromAssemblies();
+		GetEntitiesFromAssemblies();
 
 		//ScriptGlue.RegisterManagedComponents();
 	}
+
+	public static void ReloadAssemblies()
+	{
+		Debug.Profiler.ProfileFunction!();
+
+		CoreClrHelper.UnloadAssemblies();
+		LoadScriptAssembly();
+
+		// TODO: ScriptFields might get added
+		// TODO: ScriptField Types may change after reload!
+		// TODO: Scripts may be renamed (probably not detectable (trivially))
+
+		// TODO: Reload in play mode
+		// Only scripts that were changed should actually be reinstatiated
+	}
+
 
 	public static void SetContext(Scene scene)
 	{
@@ -190,37 +259,54 @@ static class ScriptEngine
 
 	public static void OnRuntimeStop()
 	{
-		for (var entry in _entityScriptInstances)
+		ThrowUnimplemented();
+
+		// TODO: Also check, if something has to happen on the C# side!
+
+		ClearDictionaryAndDeleteValues!(_entityScriptInstances);
+
+		/*for (var entry in _entityScriptInstances)
 		{
 			entry.value.ReleaseRef();
 		}
 		_entityScriptInstances.Clear();
-
+		*/
 		SetContext(null);
+	}
+
+	private function void InvokeOnUpdateFunc(UUID entityId, float deltaTime);
+
+	private static InvokeOnUpdateFunc _InvokeOnUpdate;
+
+	private static void GetFunctions()
+	{
+		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "InvokeOnUpdate", out _InvokeOnUpdate);
 	}
 
 	public static bool InitializeInstance(Entity entity, ScriptComponent* script)
 	{
-		ScriptClass scriptClass = GetScriptClass(script.ScriptClassName);
-
+		SexyScriptClass scriptClass = GetScriptClass(script.ScriptClassName);
+		
 		if (scriptClass == null)
 			return false;
+		
+		ScriptFunctionPointers functions = CoreClrHelper.CreateScriptInstance(entity.UUID, scriptClass.FullName);
 
-		script.Instance = new ScriptInstance(scriptClass);
-		script.Instance..ReleaseRef();
+		script.Instance = new SexyScriptInstance(scriptClass, functions);//new ScriptInstance(scriptClass);
+		// script.Instance..ReleaseRef();
+		
+		_entityScriptInstances[entity.UUID] = script.Instance;
 
-		_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
-
-		script.Instance.Instantiate(entity.UUID);
-
-		CopyEditorFieldsToInstance(entity, script);
+		// CopyEditorFieldsToInstance(entity, script);
 
 		return true;
 	}
 
 	private static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
 	{
-		// Technically the map is for a different entity (namely the editor-entity),
+		ThrowUnimplemented();
+
+		/*// Technically the map is for a different entity (namely the editor-entity),
 		// however the UUID is the same, so we get the correct field map
 		let fields = GetScriptFieldMap(entity);
 
@@ -231,82 +317,71 @@ static class ScriptEngine
 			ScriptField scriptField = script.Instance.ScriptClass.Fields[fieldName];
 
 			script.Instance.SetFieldValue(scriptField, field._data);
-		}
+		}*/
 	}
 
-	private static MonoAssembly* LoadCSharpAssembly(StringView assemblyPath, bool loadPDB = false)
+	struct ScriptClassInfo
 	{
-		List<uint8> data = new List<uint8>(1024);
-
-		File.ReadAll(assemblyPath, data);
-	
-	    // NOTE: We can't use this image for anything other than loading the assembly because this image doesn't have a reference to the assembly
-	    MonoImageOpenStatus status = .ImageInvalid;
-	    MonoImage* image = Mono.mono_image_open_from_data_full(data.Ptr, (.)data.Count, true, &status, false);
-
-		delete data;
-
-	    if (status != .Ok)
-	    {
-	        char8* errorMessage = Mono.mono_image_strerror(status);
-
-			Log.EngineLogger.Error($"Failed to load C# Assembly: \"{StringView(errorMessage)}\"");
-
-	        return null;
-	    }
-
-		if (loadPDB)
-		{
-			String pdbPath = scope .();
-			Path.ChangeExtension(assemblyPath, ".pdb", pdbPath);
-
-			if (File.Exists(pdbPath))
-			{
-				Log.EngineLogger.Trace($"Loading PDB \"{pdbPath}\"...");
-
-				List<uint8> pdbData = new List<uint8>(1024);
-
-				let result = File.ReadAll(pdbPath, pdbData);
-
-				if (result case .Err(let error))
-				{
-					Log.EngineLogger.Error("Failed to load PDB file ({error}).");
-				}
-
-				Mono.mono_debug_open_image_from_memory(image, pdbData.Ptr, (int32)pdbData.Count);
-
-				delete pdbData;
-			}
-			else
-			{
-				Log.EngineLogger.Warning($"Debugging enabled but no PDB-File found \"{assemblyPath}\".");
-			}
-		}
-	
-	    MonoAssembly* assembly = Mono.mono_assembly_load_from_full(image, assemblyPath.ToScopeCStr!(), &status, 0);
-
-	    Mono.mono_image_close(image);
-
-	    return assembly;
-	}
-
-	static void CreateAppDomain(StringView name)
-	{
-		s_AppDomain = Mono.mono_domain_create_appdomain(name.ToScopeCStr!(), null);
-		Mono.mono_domain_set(s_AppDomain, true);
-	}
-
-	static (MonoAssembly* assembly, MonoImage* image) LoadAssembly(StringView filepath, bool loadPDB = false)
-	{
-		MonoAssembly* assembly = LoadCSharpAssembly(filepath, loadPDB);
-		MonoImage* image = Mono.mono_assembly_get_image(assembly);
-
-		return (assembly, image);
+		public char8* Name;
+		public Guid Guid;
+		public ScriptMethods Methods;
 	}
 
 	private static void GetEntitiesFromAssemblies()
 	{
+		CoreClrHelper.GetScriptClasses(let data, let entryCount);
+
+		Span<ScriptClassInfo> scriptClasses = .((.)data, entryCount);
+
+		List<SexyScriptClass> newClasses = scope .();
+
 		for (var entry in _entityScripts)
+		{
+			bool remove = true;
+
+			// We can only rely on guids.
+			for (var newEntry in scriptClasses)
+			{
+				if (entry.value.Guid == newEntry.Guid)
+				{
+					remove = false;
+
+					if (!String.Equals(entry.value.FullName.CStr(), newEntry.Name))
+					{
+						@entry.Remove();
+
+						entry.value.FullName.Set(StringView(newEntry.Name));
+					}
+
+					newClasses.Add(entry.value);
+				}
+			}
+
+			if (remove)
+			{
+				@entry.Remove();
+
+				delete entry.value;
+			}
+		}
+
+		for (var entry in scriptClasses)
+		{
+			SexyScriptClass scriptClass = new .(StringView(entry.Name), entry.Guid, entry.Methods);
+
+			newClasses.Add(scriptClass);
+		}
+
+		for (var scriptClass in newClasses)
+		{
+			_entityScripts.Add(scriptClass.FullName, scriptClass);
+		}
+
+		CoreClrHelper.FreeScriptClassNames();
+
+		// TODO: Cleanup
+
+		/*for (var entry in _entityScripts)
 		{
 			entry.value.ReleaseRef();
 		}
@@ -351,28 +426,7 @@ static class ScriptEngine
 
 				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
 			}
-	    }
-	}
-
-	public static void ReloadAssemblies()
-	{
-		Debug.Profiler.ProfileFunction!();
-
-		CoreClrHelper.UnloadAssemblies();
-		LoadScriptAssembly();
-
-		//Mono.mono_domain_set(s_RootDomain, false);
-
-		//Mono.mono_domain_unload(s_AppDomain);
-
-		//LoadScriptAssemblies();
-
-		// TODO: ScriptFields might get added
-		// TODO: ScriptField Types may change after reload!
-		// TODO: Scripts may be renamed (probably not detectable (trivially))
-
-		// TODO: Reload in play mode
-		// Only scripts that were changed should actually be reinstatiated
+	    }*/
 	}
 
 	public static void Shutdown()
@@ -434,6 +488,9 @@ static class ScriptEngine
 
 	public static void CreateScriptFieldMap(Entity entity)
 	{
+		Log.EngineLogger.Error("Not implemented");
+
+		/*
 		Log.EngineLogger.AssertDebug(entity.IsValid);
 
 		if (_entityFields.TryGetValue(entity.UUID, var entityFields))
@@ -455,11 +512,13 @@ static class ScriptEngine
 		for (let (fieldName, field) in scriptClass.Fields)
 		{
 			entityFields.Add(new String(fieldName), ScriptFieldInstance(field.FieldType));
-		}
+		}*/
 	}
 
 	public static ScriptFieldMap GetScriptFieldMap(Entity entity)
 	{
+		ThrowUnimplemented();
+
 		Log.EngineLogger.AssertDebug(entity.IsValid);
 
 		let uuid = entity.UUID;
@@ -472,16 +531,23 @@ static class ScriptEngine
 
 	public static MonoObject* GetManagedInstance(UUID entityId)
 	{
-		if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
-			return scriptInstance.MonoInstance;
+		ThrowUnimplemented();
+
+		/*if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
+			return scriptInstance.MonoInstance;*/
 		
 		return null;
 	}
 
-	public static ScriptClass GetScriptClass(StringView name)
+	public static SexyScriptClass GetScriptClass(StringView name)
 	{
 		EntityClasses.TryGetValue(name, let scriptClass);
 
 		return scriptClass;
+	}
+
+	public static void InvokeOnUpdate(UUID entityId, float deltaTime)
+	{
+		_InvokeOnUpdate(entityId, deltaTime);
 	}
 }

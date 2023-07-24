@@ -191,7 +191,9 @@ class SceneSerializer
 			{
 				Serialize.Value(writer, "ScriptClass", component.ScriptClassName);
 
-				//if (component.HasScript)
+				ThrowUnimplemented();
+
+				/*//if (component.HasScript)
 				// TODO: Thats not a good check, I think. At least we know the script class is valid
 				if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
 				{
@@ -221,7 +223,7 @@ class SceneSerializer
 							}
 						}
 					}
-				}
+				}*/
 			});
 		}
 
@@ -579,9 +581,9 @@ class SceneSerializer
 						// But that is a bug for me to rediscover in the distant future, so in case this bug occurred and it took ages for you to
 						// figure out what happened: You are welcome :)
 
-						ScriptEngine.CreateScriptFieldMap(entity);
+						//ScriptEngine.CreateScriptFieldMap(entity);
 
-						var fields = ScriptEngine.GetScriptFieldMap(entity);
+						//var fields = ScriptEngine.GetScriptFieldMap(entity);
 						
 						Try!(reader.EntryEnd());
 						
@@ -613,44 +615,47 @@ class SceneSerializer
 								// Allocate a string on the stack, because the dictionary uses a string as key
 								String fieldNameString = scope .(fieldName);
 
-								if (fields.ContainsKey(fieldNameString))
-								{
-									var field = ref fields[fieldNameString];
+								//if (fields.ContainsKey(fieldNameString))
+								//{
+									//var field = ref fields[fieldNameString];
 
 									Result<StringView> fieldTypeName = reader.Type();
 
-									if (fieldTypeName case .Err)
+									/*if (fieldTypeName case .Err)
 									{
 										Log.EngineLogger.Error($"Failed to read field type for field \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
 										reader.FileEntrySkip(1);
 										dontRemoveComma = true;
 										continue;
-									}
+									}*/
 	
 									Result<ScriptFieldType> fieldType = Enum.Parse<ScriptFieldType>(fieldTypeName, true);
 
-									if ((fieldType case .Err) || (fieldType != field.Type))
+									/*if ((fieldType case .Err) || (fieldType != field.Type))
 									{
 										Log.EngineLogger.Error($"Unexpected field type (\"{fieldTypeName}\" instead of \"{field.Type}\" for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
 										reader.FileEntrySkip(1);
 										dontRemoveComma = true;
 										continue;
-									}
+									}*/
 
-									void* data = &field.[Friend]_data;
+									//void* data = &field.[Friend]_data;
+
+									uint8[128] data;
 	
-									if (Deserialize.Value(reader, ValueView(field.Type.GetBeefType(), data), gBonEnv) case .Err)
+									//if (Deserialize.Value(reader, ValueView(field.Type.GetBeefType(), data), gBonEnv) case .Err)
+									if (Deserialize.Value(reader, ValueView(fieldType.Value.GetBeefType(), &data), gBonEnv) case .Err)
 									{
 										Log.EngineLogger.Error($"Failed to deserialize data for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
 										reader.FileEntrySkip(1);
 										dontRemoveComma = true;
 										continue;
 									}
-								}
+								/*}
 								else
 								{
 									Log.EngineLogger.Error($"Script \"{component.ScriptClassName}\" doesn't have a field with name \"{fieldName}\". (Entity {entity.UUID} (\"{entity.Name}\"))");
-								}
+								}*/
 							}
 	
 							Try!(reader.ArrayBlockEnd());
