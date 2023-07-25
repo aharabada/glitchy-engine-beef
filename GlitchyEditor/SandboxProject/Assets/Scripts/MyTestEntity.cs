@@ -66,8 +66,13 @@ namespace Sandbox
 
             Log.Info($"Jump Force: {JumpForce}");
 
-            _rigidBody ??= GetComponent<RigidBody2D>() ?? AddComponent<RigidBody2D>();
-            
+            //_rigidBody ??= GetComponent<RigidBody2D>() ?? AddComponent<RigidBody2D>();
+
+            if (_rigidBody == null)
+            {
+                Log.Error("_rigidBody was not set in editor.");
+            }
+
             if (Camera == null)
             {
                 Log.Warning("Camera wasn't set in editor. Searching...");

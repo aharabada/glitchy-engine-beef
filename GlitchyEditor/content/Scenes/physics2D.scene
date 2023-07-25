@@ -72,7 +72,7 @@
 				Color = {
 					R = 1,
 					G = 0.941887021,
-					B = 0.401484519,
+					B = 0.401484489,
 					A = 1
 				},
 				Sprite = "",
@@ -162,7 +162,7 @@
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 1.17151165,
+				AspectRatio = 2.05582929,
 				FixedAspectRatio = false
 			},
 			ScriptComponent = {
@@ -195,8 +195,8 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = -0.121203199,
-					Y = 0.660161018,
+					X = -0.121203206,
+					Y = 0.660161078,
 					Z = 0
 				},
 				Rotation = {
@@ -234,7 +234,7 @@
 			ScriptComponent = {
 				ScriptClass = "Sandbox.MyTestEntity",
 				Fields = [
-					_rigidBody = (Component)0,
+					_rigidBody = (Component)15710354273720487680,
 					TheEntity = (Entity)0,
 					JumpForce = (Float)200,
 					MoveForce = (Float)148,
@@ -276,7 +276,7 @@
 				Color = {
 					R = 0.985467017,
 					G = 1,
-					B = 0.569977999
+					B = 0.569977939
 				}
 			}
 		},
@@ -323,8 +323,8 @@
 			SpriteRendererComponent = {
 				Color = {
 					R = 0.425658971,
-					G = 0.855207503,
-					B = 0.0558161139,
+					G = 0.855207443,
+					B = 0.0558161177,
 					A = 1
 				},
 				Sprite = "",
@@ -338,14 +338,14 @@
 			TransformComponent = {
 				Position = {
 					X = 6.74610233,
-					Y = -2.03225923,
+					Y = -2.03225946,
 					Z = 0
 				},
 				Rotation = {
 					X = 0,
 					Y = 0,
 					Z = -0.331792623,
-					W = 0.943352461
+					W = 0.94335258
 				},
 				Scale = {
 					X = 5.29557419,
@@ -399,8 +399,8 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = 15.2321291,
-					Y = -1.98709261,
+					X = 15.2321281,
+					Y = -1.98709273,
 					Z = 0
 				},
 				Rotation = {
@@ -410,7 +410,7 @@
 					W = 0.990847468
 				},
 				Scale = {
-					X = 13.9764547,
+					X = 13.9764528,
 					Y = 1,
 					Z = 1
 				},
@@ -462,13 +462,13 @@
 			TransformComponent = {
 				Position = {
 					X = -6.27842855,
-					Y = 2.62550187,
+					Y = 2.62550163,
 					Z = 0
 				},
 				Rotation = {
 					X = 0,
 					Y = 0,
-					Z = 0.187087849,
+					Z = 0.187087879,
 					W = 0.982343197
 				},
 				Scale = {
@@ -497,7 +497,7 @@
 				},
 				Density = 1,
 				Friction = 0.5,
-				Restitution = 0.899999917,
+				Restitution = 0.899999857,
 				RestitutionThreshold = 0.5
 			}
 		}

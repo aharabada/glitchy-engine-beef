@@ -284,6 +284,16 @@ class ScriptClass : SharpClass
 		return instance;
 	}
 
+	public MonoObject* CreateInstance()
+	{
+		MonoObject* instance = Mono.mono_object_new(ScriptEngine.[Friend]s_AppDomain, _monoClass);
+
+		// Invoke empty constructor to fill fields
+		Mono.mono_runtime_object_init(instance);
+
+		return instance;
+	}
+
 	public MonoMethod* GetMethod(StringView name, int argCount = 0)
 	{
 		return Mono.mono_class_get_method_from_name(_monoClass, name.ToScopeCStr!(), argCount);

@@ -232,6 +232,12 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern MonoThread* mono_thread_current();
+	
+	[LinkName(.C)]
+	public static extern MonoProperty* mono_class_get_property_from_name(MonoClass *klass, char8* name);
+	
+	[LinkName(.C)]
+	public static extern void mono_property_set_value(MonoProperty *prop, void *obj, void **@params, MonoObject **exc);
 }
 
 struct MonoDomain;
@@ -249,6 +255,8 @@ struct MonoClass;
 struct MonoObject;
 
 struct MonoMethod;
+
+struct MonoProperty;
 
 struct MonoThread;
 

@@ -179,6 +179,8 @@ static class ScriptEngine
 		GetCoreAttributes();
 		GetCoreClasses();
 		
+		GetComponentsFromAssemblies();
+
 		GetEntitiesFromAssemblies();
 
 		ScriptGlue.RegisterManagedComponents();
@@ -214,13 +216,13 @@ static class ScriptEngine
 
 		script.Instance.Instantiate(entity.UUID);
 
-		//CopyEditorFieldsToInstance(entity, script);
-
 		return true;
 	}
 
 	public static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
 	{
+		Log.EngineLogger.AssertDebug(script.Instance != null);
+
 		// Technically the map is for a different entity (namely the editor-entity),
 		// however the UUID is the same, so we get the correct field map
 		let fields = GetScriptFieldMap(entity);
@@ -242,7 +244,17 @@ static class ScriptEngine
 				MonoObject* referencedEntity = GetManagedInstance(referencedId);
 				script.Instance.SetFieldValue(scriptField, referencedEntity);
 			case .Component:
+				// We create a new instance of a component class
+				MonoType* type = scriptField.GetMonoType();
+				
+				SharpType sharpType = ScriptEngine.GetSharpType(type);
 
+				var componentClass = ComponentClasses[sharpType.FullName];
+
+				MonoObject* componentInstance = script.Instance.CreateComponentInstance(componentClass);
+				script.Instance.SetFieldValue(scriptField, componentInstance);
+
+				sharpType.ReleaseRef();
 			default:
 				script.Instance.SetFieldValue(scriptField, field._data);
 			}
@@ -362,13 +374,32 @@ static class ScriptEngine
 
 				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
 			}
-			// Check if it is a component
-			else if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot.[Friend]_monoClass, false))
-			{
-				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage, .Entity);
-				_entityScripts.Add(entityScript.FullName, entityScript);
+	    }
+	}
+	private static void GetComponentsFromAssemblies()
+	{
+		ClearDictionaryAndReleaseValues!(_componentClasses);
 
-				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
+	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_CoreAssemblyImage, .MONO_TABLE_TYPEDEF);
+	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
+
+	    for (int32 i = 0; i < numTypes; i++)
+	    {
+	        int32[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE] cols = .();
+	        Mono.mono_metadata_decode_row(typeDefinitionsTable, i, (.)&cols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
+
+	        char8* nameSpace = Mono.mono_metadata_string_heap(s_CoreAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAMESPACE]);
+			char8* name = Mono.mono_metadata_string_heap(s_CoreAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
+			
+			MonoClass* monoClass = Mono.mono_class_from_name(s_CoreAssemblyImage, nameSpace, name);
+			
+			// Check if it is a component but not the root Component class
+			if (monoClass != null && monoClass != s_ComponentRoot.[Friend]_monoClass && Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot.[Friend]_monoClass, false))
+			{
+				ScriptClass componentClass = new ScriptClass(StringView(nameSpace), StringView(name), s_CoreAssemblyImage, .Component);
+				_componentClasses.Add(componentClass.FullName, componentClass);
+
+				Log.EngineLogger.Info($"Added component \"{componentClass.FullName}\"");
 			}
 	    }
 	}

@@ -817,11 +817,22 @@ namespace GlitchyEditor.EditWindows
 					// TODO: I don't like the fact, that we are using mono directly
 
 					ScriptField scriptField = scriptClass.Fields[fieldName];
-					MonoReflectionType* reflectionType = Mono.mono_type_get_object(ScriptEngine.[Friend]s_AppDomain, scriptField.GetMonoType());
 
-					// TODO: We shouldn't abuse the script glue like that...
-					// ScriptGlue should only be called by C#, not by Beef...
-					allowDrop = ScriptGlue.[Friend]Entity_HasComponent(draggedEntity.UUID, reflectionType);
+					// For some reason we have to retrieve the MonoType like this. Using scriptField.GetMonoType() directly returns the wrong type...
+					MonoReflectionType* reflectionType = Mono.mono_type_get_object(ScriptEngine.[Friend]s_AppDomain, scriptField.GetMonoType());
+					MonoType* actualMonoType = Mono.mono_reflection_type_get_type(reflectionType);
+
+					// TODO: We shouldn't abuse the script glue like that.
+					// ScriptGlue should only be called by C#, not by Beef.
+					if (ScriptGlue.[Friend]s_HasComponentMethods.TryGetValue(actualMonoType, let has_component))
+					{
+						allowDrop = has_component(draggedEntity);
+					}
+					else
+					{
+						Log.EngineLogger.Warning($"No HasComponent-Function found for field {scriptField.Name}");
+						allowDrop = false;
+					}
 				}
 
 				if (allowDrop)

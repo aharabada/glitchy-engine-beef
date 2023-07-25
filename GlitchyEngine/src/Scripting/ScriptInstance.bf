@@ -70,4 +70,19 @@ class ScriptInstance : RefCounter
 	{
 		_scriptClass.SetFieldValue<T>(_instance, field.[Friend]_monoField, value);
 	}
+
+	/// Creates a new instance of the given component class and initializes it for the current entity.
+	public MonoObject* CreateComponentInstance(ScriptClass componentClassType)
+	{
+		MonoObject* componentInstance = componentClassType.CreateInstance();
+
+		// TODO: We could cache the property, but this might be fine
+		MonoProperty* entityProperty = Mono.mono_class_get_property_from_name(componentClassType.[Friend]_monoClass, "Entity");
+
+		MonoObject* exception = null;
+
+		Mono.mono_property_set_value(entityProperty, componentInstance, (void**)&_instance, &exception);
+
+		return componentInstance;
+	}
 }
