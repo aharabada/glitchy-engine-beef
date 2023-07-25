@@ -21,7 +21,25 @@ namespace GlitchyEditor.EditWindows
 
 		private List<Entity> _selectedEntities = new .() ~ delete _;
 
+		private Entity _entityToHighlight;
+
 		public List<Entity> SelectedEntities => _selectedEntities;
+
+		private List<Entity> _entitiesToUnfold = new .() ~ delete _;
+
+		public void HighlightEntity(Entity e)
+		{
+			_entityToHighlight = e;
+
+			Entity walker = _entityToHighlight;
+
+			while (walker.Parent != null)
+			{
+				walker = walker.Parent.Value;
+
+				_entitiesToUnfold.Add(walker);
+			}
+		}
 
 		public this(Editor editor, Scene scene)
 		{
@@ -322,7 +340,20 @@ namespace GlitchyEditor.EditWindows
 			if(inSelectedList)
 				flags |= .Selected;
 
+			if (_entitiesToUnfold.Contains(tree.Value))
+			{
+				_entitiesToUnfold.Remove(tree.Value);
+
+				ImGui.SetNextItemOpen(true, .None);
+			}
+
 			bool isOpen = ImGui.TreeNodeEx((void*)(uint)tree.Value.Handle.[Friend]Index, flags, $"{name}");
+
+			if (_entityToHighlight == tree.Value)
+			{
+				ImGui.SetScrollHereY(0);
+				_entityToHighlight = .();
+			}
 
 			ImGui.PushID((void*)(uint)tree.Value.Handle.[Friend]Index);
 

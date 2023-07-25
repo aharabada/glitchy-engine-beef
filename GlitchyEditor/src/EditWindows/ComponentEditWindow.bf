@@ -716,6 +716,28 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
+		private static Entity? ShowEntitySelector()
+		{
+			static char8[128] entitySearch = .();
+
+			Entity? result = null;
+
+			if (ImGui.BeginPopup("ENTITY_SELECTOR"))
+			{
+				ImGui.TextUnformatted("Search:");
+				ImGui.SameLine();
+
+				if (ImGui.InputText("##entitySearcher", &entitySearch, (uint64)entitySearch.Count))
+				{
+
+				}
+
+				ImGui.EndPopup();
+			}
+
+			return result;
+		}
+
 		private static void ShowEntityReceiver(ScriptFieldInstance* field, StringView fieldName, ScriptClass scriptClass)
 		{
 			var entityId = field.GetData<UUID>();
@@ -723,8 +745,10 @@ namespace GlitchyEditor.EditWindows
 			Result<Entity> fieldEntity = Editor.Instance.CurrentScene.GetEntityByID(entityId);
 
 			String entityName = scope .(32);
-
-			if (fieldEntity case .Ok(Entity e))
+			
+			if (entityId == UUID(0))
+				entityName.Set("None");
+			else if (fieldEntity case .Ok(Entity e))
 				entityName.Set(e.Name);
 			else
 				entityName..Clear().AppendF($"Missing entity ({entityId})");
@@ -734,7 +758,8 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.Button(entityName))
 			{
-				// TODO: Show a selector or something
+				if (fieldEntity case .Ok)
+					Editor.Instance.EntityHierarchyWindow.HighlightEntity(fieldEntity);
 			}
 
 			if (ImGui.BeginDragDropTarget())
@@ -783,6 +808,8 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
+		//private static Entity?  
+
 		private static void ShowComponentReceiver(ScriptFieldInstance* field, StringView fieldName, ScriptClass scriptClass)
 		{
 			var entityId = field.GetData<UUID>();
@@ -791,7 +818,9 @@ namespace GlitchyEditor.EditWindows
 
 			String entityName = scope .(32);
 
-			if (fieldEntity case .Ok(Entity e))
+			if (entityId == UUID(0))
+				entityName.Set("None");
+			else if (fieldEntity case .Ok(Entity e))
 				entityName.Set(e.Name);
 			else
 				entityName..Clear().AppendF($"Missing reference ({entityId})");
@@ -801,7 +830,8 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.Button(entityName))
 			{
-				// TODO: Show a selector or something
+				if (fieldEntity case .Ok)
+					Editor.Instance.EntityHierarchyWindow.HighlightEntity(fieldEntity);
 			}
 
 			if (ImGui.BeginDragDropTarget())
