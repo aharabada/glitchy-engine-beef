@@ -8,10 +8,33 @@ namespace GlitchyEngine
 		static Logger _engineLogger ~ delete _;
 		static Logger _clientLogger ~ delete _;
 
-		[Inline]
-		public static Logger EngineLogger => _engineLogger;
-		[Inline]
-		public static Logger ClientLogger => _clientLogger;
+		public static Logger EngineLogger
+		{
+			[Inline]
+			get => _engineLogger;
+			set
+			{
+				if (_engineLogger == value)
+					return;
+
+				delete _engineLogger;
+				_engineLogger = value;
+			}
+		}
+		
+		public static Logger ClientLogger
+		{
+			[Inline]
+			get => _clientLogger;
+			set
+			{
+				if (_clientLogger == value)
+					return;
+
+				delete _clientLogger;
+				_clientLogger = value;
+			}
+		}
 
 		static this()
 		{
