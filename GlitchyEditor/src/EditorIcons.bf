@@ -19,6 +19,10 @@ namespace GlitchyEditor
 		public SubTexture2D Simulate ~ _.ReleaseRef();
 		public SubTexture2D Pause ~ _.ReleaseRef();
 		public SubTexture2D SingleStep ~ _.ReleaseRef();
+		public SubTexture2D Error ~ _.ReleaseRef();
+		public SubTexture2D Warning ~ _.ReleaseRef();
+		public SubTexture2D Info ~ _.ReleaseRef();
+		public SubTexture2D Trace ~ _.ReleaseRef();
 
 		public SamplerState SamplerState
 		{
@@ -41,6 +45,10 @@ namespace GlitchyEditor
 			Simulate = GetNextGridTexture(ref pen, iconSize);
 			Pause = GetNextGridTexture(ref pen, iconSize);
 			SingleStep = GetNextGridTexture(ref pen, iconSize);
+			Error = GetNextGridTexture(ref pen, iconSize);
+			Warning = GetNextGridTexture(ref pen, iconSize);
+			Info = GetNextGridTexture(ref pen, iconSize);
+			Trace = GetNextGridTexture(ref pen, iconSize);
 		}
 
 		private SubTexture2D GetNextGridTexture(ref float2 pen, float2 iconSize)

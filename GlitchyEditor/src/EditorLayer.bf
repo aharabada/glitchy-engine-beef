@@ -171,6 +171,11 @@ namespace GlitchyEditor
 
 			ContentBrowserWindow.s_FolderTexture = _editorIcons.Folder;
 			ContentBrowserWindow.s_FileTexture = _editorIcons.File;
+
+			LogWindow.s_ErrorIcon = _editorIcons.Error;
+			LogWindow.s_WarningIcon = _editorIcons.Warning;
+			LogWindow.s_InfoIcon = _editorIcons.Info;
+			LogWindow.s_TraceIcon = _editorIcons.Trace;
 		}
 
 		private void InitEditor()
@@ -807,6 +812,9 @@ namespace GlitchyEditor
 
 				if(ImGui.MenuItem(AssetViewer.s_WindowTitle))
 					_editor.AssetViewer.Open = true;
+				
+				if(ImGui.MenuItem(LogWindow.s_WindowTitle))
+					_editor.LogWindow.Open = true;
 
 				ImGui.EndMenu();
 			}

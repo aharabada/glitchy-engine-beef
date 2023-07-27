@@ -12,6 +12,9 @@ namespace GlitchyEditor
 		public this(String[] args)
 		{
 			PushLayer(new EditorLayer(args, _contentManager));
+
+			Log.ClientLogger = new EditorLogger();
+			Log.EngineLogger = new EditorLogger() { IsEngineLogger = true };
 		}
 
 		protected override IContentManager InitContentManager()

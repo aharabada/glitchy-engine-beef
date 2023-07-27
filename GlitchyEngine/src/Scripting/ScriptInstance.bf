@@ -4,12 +4,16 @@ using System;
 
 namespace GlitchyEngine.Scripting;
 
+using internal GlitchyEngine.Scripting;
+
 class ScriptInstance : RefCounter
 {
 	private ScriptClass _scriptClass;
 
 	private MonoObject* _instance;
 	private uint32 _gcHandle;
+
+	private UUID _entityId;
 
 	public ScriptClass ScriptClass => _scriptClass;
 	
@@ -23,9 +27,13 @@ class ScriptInstance : RefCounter
 
 	internal MonoObject* MonoInstance => _instance;
 
-	public this(ScriptClass scriptClass)
+	public UUID EntityId => _entityId;
+
+	public this(UUID entityId, ScriptClass scriptClass)
 	{
 		Log.EngineLogger.AssertDebug(scriptClass != null);
+
+		_entityId = entityId;
 		_scriptClass = scriptClass..AddRef();
 	}
 
@@ -33,7 +41,7 @@ class ScriptInstance : RefCounter
 	{
 		if (_instance != null)
 		{
-			_scriptClass.OnDestroy(_instance);
+			InvokeOnDestroy();
 			Mono.mono_gchandle_free(_gcHandle);
 		}
 		_scriptClass?.ReleaseRef();
@@ -41,24 +49,36 @@ class ScriptInstance : RefCounter
 
 	public void Instantiate(UUID uuid)
 	{
-		_instance = _scriptClass.CreateInstance(uuid);
+		_instance = _scriptClass.CreateInstance(uuid, let exception);
 		_gcHandle = Mono.mono_gchandle_new(_instance, true);
+
+		if (exception != null)
+			ScriptEngine.HandleMonoException(exception, this);
 	}
 
 	public void InvokeOnCreate()
 	{
-		_scriptClass.OnCreate(_instance);
+		_scriptClass.OnCreate(_instance, let exception);
 		_isCreated = true;
+		
+		if (exception != null)
+			ScriptEngine.HandleMonoException(exception, this);
 	}
 
 	public void InvokeOnUpdate(float deltaTime)
 	{
-		_scriptClass.OnUpdate(_instance, deltaTime);
+		_scriptClass.OnUpdate(_instance, deltaTime, let exception);
+		
+		if (exception != null)
+			ScriptEngine.HandleMonoException(exception, this);
 	}
 
 	public void InvokeOnDestroy()
 	{
-		_scriptClass.OnDestroy(_instance);
+		_scriptClass.OnDestroy(_instance, let exception);
+		
+		if (exception != null)
+			ScriptEngine.HandleMonoException(exception, this);
 	}
 
 	public T GetFieldValue<T>(ScriptField field)
@@ -82,6 +102,9 @@ class ScriptInstance : RefCounter
 		MonoObject* exception = null;
 
 		Mono.mono_property_set_value(entityProperty, componentInstance, (void**)&_instance, &exception);
+
+		if (exception != null)
+			ScriptEngine.HandleMonoException((MonoException*)exception, this);
 
 		return componentInstance;
 	}

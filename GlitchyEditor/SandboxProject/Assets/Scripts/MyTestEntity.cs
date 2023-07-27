@@ -83,6 +83,22 @@ namespace Sandbox
                     Log.Error("Camera not found.");
                 }
             }
+            Log.Warning("Achtung.");
+
+            try
+            {
+                SubVoid();
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw e;
+            }
+        }
+
+        void SubVoid()
+        {
+            throw new Exception("Ouha!", new IndexOutOfRangeException("Bist du jecke2?!", new AccessViolationException("Haleluja")));
         }
 
         /// <summary>
@@ -113,6 +129,9 @@ namespace Sandbox
             {
                 force.Y += JumpForce;
             }
+            
+            if (Input.IsKeyPressing(Key.N))
+                SubVoid();
 
             _rigidBody.ApplyForceToCenter(force);
 

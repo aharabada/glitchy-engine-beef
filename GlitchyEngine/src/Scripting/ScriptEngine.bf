@@ -209,12 +209,14 @@ static class ScriptEngine
 		if (scriptClass == null)
 			return false;
 
-		script.Instance = new ScriptInstance(scriptClass);
+		UUID entityId = entity.UUID;
+
+		script.Instance = new ScriptInstance(entityId, scriptClass);
 		script.Instance..ReleaseRef();
 
-		_entityScriptInstances[entity.UUID] = script.Instance..AddRef();
+		_entityScriptInstances[entityId] = script.Instance..AddRef();
 
-		script.Instance.Instantiate(entity.UUID);
+		script.Instance.Instantiate(entityId);
 
 		return true;
 	}
@@ -543,5 +545,28 @@ static class ScriptEngine
 		EntityClasses.TryGetValue(name, let scriptClass);
 
 		return scriptClass;
+	}
+
+	internal static void HandleMonoException(MonoException* exception, ScriptInstance sourceInstance = null)
+	{
+		MonoExceptionHelper wrappedException = new MonoExceptionHelper(exception);
+
+		String entityInfo = scope .();
+
+		if (sourceInstance != null)
+		{
+			wrappedException.Instance = sourceInstance.EntityId;
+
+			Result<Entity> sourceEntity = Context.GetEntityByID(sourceInstance.EntityId);
+
+			if (sourceEntity case .Ok(let e))
+			{
+				entityInfo.AppendF($" ({e.Name} | {sourceInstance.EntityId})");
+			}
+		}
+
+		Log.ClientLogger.Error($"Mono Exception \"{wrappedException.FullName}\": \"{wrappedException.Message}\"{entityInfo}\nStackTrace:\n{wrappedException.StackTrace}", wrappedException);
+
+		wrappedException.ReleaseRef();
 	}
 }

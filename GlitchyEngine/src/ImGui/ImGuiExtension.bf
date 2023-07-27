@@ -96,9 +96,21 @@ namespace ImGui
 	
 			return ImageButton(subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, frame_padding, bg_col, tint_col);
 		}
-	
+
 		public static extern bool ImageButton(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, int32 frame_padding = -1, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones);
-	
+
+		public static bool ImageButtonEx(uint32 id, SubTexture2D subTexture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec2 frame_padding = .Zero, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
+		{
+			if (uv0 != .Zero || uv1 != .Ones)
+				Runtime.NotImplemented();
+
+			float2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
+
+			return ImageButtonEx(id, subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, frame_padding, bg_col, tint_col);
+		}
+		
+		public static extern bool ImageButtonEx(uint32 id, TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec2 frame_padding = .Zero, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones);
+
 		public static void TextUnformatted(StringView text) => TextUnformattedImpl(text.Ptr, text.Ptr + text.Length);
 		
 		public static void PushID(StringView id) => PushID(id.Ptr, id.Ptr + id.Length);

@@ -227,59 +227,40 @@ class ScriptClass : SharpClass
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
 	}
 
-	public void OnCreate(MonoObject* instance)
+	public void OnCreate(MonoObject* instance, out MonoException* exception)
 	{
-		MonoException* exception = null;
+		exception = null;
+
 		if (_onCreate != null)
 			_onCreate(instance, &exception);
 	}
 
-	public void OnUpdate(MonoObject* instance, float deltaTime)
+	public void OnUpdate(MonoObject* instance, float deltaTime, out MonoException* exception)
 	{
-		MonoException* exception = null;
+		exception = null;
+
 		if (_onUpdate != null)
 			_onUpdate(instance, deltaTime, &exception);
-
-		if (exception != null)
-		{
-			char8* str = Mono.mono_string_to_utf8(exception.Message);
-
-			Log.EngineLogger.Error($"Exception in \"{_fullName}.OnUpdate\". Message:\"{StringView(str)}\"");
-
-			Mono.mono_free(str);
-		}
 	}
 
-	public void OnDestroy(MonoObject* instance)
+	public void OnDestroy(MonoObject* instance, out MonoException* exception)
 	{
-		MonoException* exception;
+		exception = null;
+
 		if (_onDestroy != null)
 			_onDestroy(instance, &exception);
 	}
 
-	public MonoObject* CreateInstance(UUID uuid)
+	public MonoObject* CreateInstance(UUID uuid, out MonoException* exception)
 	{
 		MonoObject* instance = Mono.mono_object_new(ScriptEngine.[Friend]s_AppDomain, _monoClass);
 
-		// TODO: I think this is a bit dirty
 		// Invoke empty constructor to fill fields
 		Mono.mono_runtime_object_init(instance);
 
 		// Invoke constructor with UUID
 #unwarn
-		ScriptEngine.[Friend]s_EngineObject.Invoke(ScriptEngine.[Friend]s_EngineObject._constructor, instance, &uuid);
-
-		//MonoException* exception = null;
-//#unwarn
-		//ScriptEngine.[Friend]s_EntityRoot._constructor(instance, uuid, &exception);
-		//ScriptEngine.[Friend]s_EntityRoot.Invoke(_constructor, instance, &uuid);
-
-		/*MonoObject* exception = null;
-#unwarn*/
-		//Mono.mono_runtime_invoke(_constructor, instance, (.)&uuid, &exception);
-		//Mono.mono_runtime_object_init(instance);
-		//MonoException* exception;
-		//_constructor(instance, uuid, &exception);
+		ScriptEngine.[Friend]s_EngineObject.Invoke(ScriptEngine.[Friend]s_EngineObject._constructor, instance, out exception, &uuid);
 
 		return instance;
 	}
@@ -312,12 +293,22 @@ class ScriptClass : SharpClass
 	public MonoObject* Invoke(MonoMethod* method, MonoObject* instance, void** args = null)
  	{
 		 MonoObject* exception = null;
-		 return Mono.mono_runtime_invoke(method, instance, args, &exception);
+
+		 MonoObject* result = Mono.mono_runtime_invoke(method, instance, args, &exception);
+
+		 if (exception != null)
+			 ScriptEngine.HandleMonoException((MonoException*)exception);
+
+		 return result;
 	}
 
-	public MonoObject* Invoke(MonoMethod* method, MonoObject* instance, params void*[] args)
+	public MonoObject* Invoke(MonoMethod* method, MonoObject* instance, out MonoException* exception, params void*[] args)
  	{
-		 return Mono.mono_runtime_invoke(method, instance, args.Ptr, null);
+		exception = null;
+
+		MonoObject* result = Mono.mono_runtime_invoke(method, instance, args.Ptr, (.)&exception);
+
+		return result;
 	}
 
 	public T Invoke<T>(MonoMethod* method, MonoObject* instance, params void*[] args)
@@ -329,25 +320,17 @@ class ScriptClass : SharpClass
 	public T GetFieldValue<T>(MonoObject* instance, MonoClassField* field)
 	{
 		T value = default;
-		Mono.Mono.mono_field_get_value(instance, field, &value);
+		Mono.mono_field_get_value(instance, field, &value);
 		return value;
 	}
 
 	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value)
 	{
-		/*if (typeof(T) == typeof(MonoObject*))
-		{
-			// TODO: MonoObject* is a pointer already, so we don't take the pointer
-			Mono.Mono.mono_field_set_value(instance, field, (void*)value);
-		}
-		else
-		{*/
-			Mono.Mono.mono_field_set_value(instance, field, &value);
-		//}
+		Mono.mono_field_set_value(instance, field, &value);
 	}
 
 	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value) where T : struct*
 	{
-		Mono.Mono.mono_field_set_value(instance, field, value);
+		Mono.mono_field_set_value(instance, field, value);
 	}
 }
