@@ -13,13 +13,15 @@ public struct ScriptField
 	internal MonoClassField* _monoField;
 	public bool IsStatic;
 	public ScriptFieldType FieldType;
+	public SharpType SharpType;
 
-	internal this(StringView name, MonoClassField* monoField, bool isStatic, ScriptFieldType fieldType)
+	internal this(StringView name, MonoClassField* monoField, bool isStatic, ScriptFieldType fieldType, SharpType sharpType)
 	{
 		Name = name;
 		_monoField = monoField;
 		IsStatic = isStatic;
 		FieldType = fieldType;
+		SharpType = sharpType;
 	}
 
 	public bool IsType(SharpClass otherClass, bool checkIfSubtype)
@@ -147,10 +149,12 @@ class SharpClass : SharpType
 
 			ScriptFieldType fieldType = ScriptEngineHelper.GetScriptFieldType(type);
 
+			SharpType sharpType = null;
+
 			// If field type is none the field might be a struct, class or enum
 			if (fieldType == .None)
 			{
-				SharpType sharpType = ScriptEngine.GetSharpType(type);
+				sharpType = ScriptEngine.GetSharpType(type);
 				fieldType = sharpType?.ScriptType ?? .None;
 				
 				if (sharpType == null)
@@ -169,7 +173,66 @@ class SharpClass : SharpType
 				(attributes != null &&
 				Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Attributes.s_ShowInEditorAttribute)))
 			{
-				_monoFields[name] = .(name, currentField, flags.HasFlag(.Static), fieldType);
+				_monoFields[name] = .(name, currentField, flags.HasFlag(.Static), fieldType, sharpType);
+			}
+		}
+	}
+}
+
+struct EnumValue
+{
+	public StringView Name;
+
+	public uint64 Value;
+
+	public this(StringView name, uint64 value)
+	{
+		Name = name;
+		Value = value;
+	}
+}
+
+class SharpEnum : SharpClass
+{
+	private append Dictionary<uint64, EnumValue> _values = .();
+
+	public Dictionary<uint64, EnumValue> Values => _values;
+
+	private int _underlyingSize = 0;
+
+	public this(StringView classNamespace, StringView className, MonoImage* image)
+		: base(classNamespace, className, image, .Enum)
+	{
+		ExtractEnumValues();
+	}
+
+	private void ExtractEnumValues()
+	{
+		_underlyingSize = Mono.mono_class_instance_size(_monoClass);
+		Log.EngineLogger.Assert(_underlyingSize != 0);
+
+		var vtable = Mono.mono_class_vtable(ScriptEngine.[Friend]s_AppDomain, _monoClass);
+
+		void* iterator = null;
+		MonoClassField* currentField = null;
+		while ((currentField = Mono.mono_class_get_fields(_monoClass, &iterator)) != null)
+		{
+			MonoType* fieldType = Mono.mono_field_get_type(currentField);
+			MonoClass* fieldClass = Mono.mono_type_get_class(fieldType);
+
+			FieldAttribute fieldFlags = (.)Mono.mono_field_get_flags(currentField);
+
+			if (fieldFlags.HasFlag(.Public) && fieldFlags.HasFlag(.Static) &&
+				fieldClass != null && Mono.mono_class_is_subclass_of(fieldClass, _monoClass, false))
+			{
+				StringView fieldName = StringView(Mono.mono_field_get_name(currentField));
+
+				uint64 value = 0;
+				Mono.mono_field_static_get_value(vtable, currentField, &value);
+
+				EnumValue enumValue = .(fieldName, value);
+	
+				_values.Add(value, enumValue);
 			}
 		}
 	}

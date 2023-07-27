@@ -460,38 +460,38 @@ static class ScriptEngine
 		// TODO: at the moment only allow user-structs
 		//if (classNamespace.StartsWith("GlitchyEngine"))
 		//	return null;
+		
+		ScriptFieldType scriptType = .None;
 
-		switch (fieldType)
+		if (Mono.mono_class_is_enum(monoClass))
 		{
-		case .Class, .Valuetype, .Enum:
-			ScriptFieldType scriptType = .None;
+			scriptType = .Enum;
 
-			if (fieldType == .Class)
-			{
-				if (Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot._monoClass, false))
-				{
-					scriptType = .Entity;
-				}
-				else if (Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot._monoClass, false))
-				{
-					scriptType = .Component;
-				}
-				else
-				{
-					scriptType = .Class;
-				}
-			}
-			else if (fieldType == .Enum)
-				scriptType = .Enum;
-			else if (fieldType == .Valuetype)
-				scriptType = .Struct;
-
-			Log.EngineLogger.AssertDebug(scriptType != .None);
-
-			return new SharpClass(classNamespace, className, Mono.mono_class_get_image(monoClass), scriptType);
-		default:
-			return null;
+			return new SharpEnum(classNamespace, className, Mono.mono_class_get_image(monoClass));
 		}
+		else if (fieldType == .Class)
+		{
+			if (Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot._monoClass, false))
+			{
+				scriptType = .Entity;
+			}
+			else if (Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot._monoClass, false))
+			{
+				scriptType = .Component;
+			}
+			else
+			{
+				scriptType = .Class;
+			}
+		}
+		else if (fieldType == .Valuetype)
+		{
+			scriptType = .Struct;
+		}
+
+		Log.EngineLogger.AssertDebug(scriptType != .None);
+
+		return new SharpClass(classNamespace, className, Mono.mono_class_get_image(monoClass), scriptType);
 	}
 
 	public static void CreateScriptFieldMap(Entity entity)

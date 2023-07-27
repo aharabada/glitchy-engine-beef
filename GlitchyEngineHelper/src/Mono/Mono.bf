@@ -91,6 +91,9 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern MonoType* mono_class_get_type(MonoClass* monoClass);
+	
+	[LinkName(.C)]
+	public static extern int32 mono_class_instance_size(MonoClass* @class);
 
 	[LinkName(.C)]
 	public static extern char8* mono_class_get_namespace(MonoClass* monoClass);
@@ -181,6 +184,9 @@ static class Mono
 
 	[LinkName(.C)]
 	public static extern void mono_field_get_value(MonoObject* object, MonoClassField* field, void* value);
+	
+	[LinkName(.C)]
+	public static extern void mono_field_static_get_value(MonoVTable* vt, MonoClassField* field, void* value);
 
 	/// Gets the field as object, boxes the value if it is a valuetype.
 	[LinkName(.C)]
@@ -251,6 +257,14 @@ static class Mono
 
 	[LinkName(.C)]
 	public static extern MonoClass* mono_object_get_class(MonoObject* obj);
+
+	
+	[LinkName(.C)]
+	public static extern mono_bool mono_class_is_enum(MonoClass* @class);
+
+	
+	[LinkName(.C)]
+	public static extern MonoVTable* mono_class_vtable(MonoDomain* domain, MonoClass* @class);
 }
 
 struct MonoDomain;
@@ -272,6 +286,8 @@ struct MonoMethod;
 struct MonoProperty;
 
 struct MonoThread;
+
+struct MonoVTable;
 
 struct MonoException
 {

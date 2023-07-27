@@ -11,9 +11,9 @@ namespace Sandbox
 
     public enum MyEnum
     {
-        Yes,
+        Yes = 1,
         No,
-        Maybe
+        Maybe = 1337
     }
 
     public struct MyStruct
@@ -53,7 +53,9 @@ namespace Sandbox
         [ShowInEditor] private int MyNumber = 1337;
         //[ShowInEditor] public double MyDouble = 1000.0f;
 
-        //public MyStruct AStruct;
+        public MyStruct AStruct;
+
+        public MyEnum AEnum = MyEnum.Maybe;
         
         public Camera Camera;
 
