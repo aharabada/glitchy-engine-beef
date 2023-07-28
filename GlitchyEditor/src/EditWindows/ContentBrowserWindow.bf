@@ -270,7 +270,7 @@ namespace GlitchyEditor.EditWindows
 			
 			SubTexture2D image = s_FolderTexture;
 
-			ImGui.ImageButton(image, (.)(DirectoryItemSize - padding));
+			ImGui.ImageButton("", image, (.)(DirectoryItemSize - padding));
 
 			ImGui.PopStyleColor();
 
@@ -310,7 +310,7 @@ namespace GlitchyEditor.EditWindows
 			// TODO: preview images
 			SubTexture2D image = entry->IsDirectory ? s_FolderTexture : s_FileTexture;
 
-			ImGui.ImageButton(image, (.)(DirectoryItemSize - padding));
+			ImGui.ImageButton("FileImage", image, (.)(DirectoryItemSize - padding));
 
 			ImGui.PopStyleColor();
 

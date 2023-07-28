@@ -130,13 +130,14 @@ class LogWindow : EditorWindow
 			ImGui.Vec2 buttonSize = .(maxSpace, maxSpace);
 
 			var col = ImGui.GetStyleColorVec4(.Button);
+			ImGui.PushStyleVar(.FramePadding, ImGui.Vec2(2, 2));
 
 			if (_visibleMessageTypes.HasFlag(.Trace))
 				ImGui.PushStyleColor(.Button, *col);
 			else
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
-			if (ImGui.ImageButtonEx(1, s_TraceIcon, buttonSize, .Zero, .Ones, .(2, 2)))
+			if (ImGui.ImageButtonEx(1, s_TraceIcon, buttonSize, .Zero, .Ones))
 				_visibleMessageTypes ^= .Trace;
 
 			ImGui.PopStyleColor();
@@ -146,7 +147,7 @@ class LogWindow : EditorWindow
 			else
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
-			if (ImGui.ImageButtonEx(2, s_InfoIcon, buttonSize, .Zero, .Ones, .(2, 2)))
+			if (ImGui.ImageButtonEx(2, s_InfoIcon, buttonSize, .Zero, .Ones))
 				_visibleMessageTypes ^= .Info;
 
 			ImGui.PopStyleColor();
@@ -156,7 +157,7 @@ class LogWindow : EditorWindow
 			else
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
-			if (ImGui.ImageButtonEx(3, s_WarningIcon, buttonSize, .Zero, .Ones, .(2, 2)))
+			if (ImGui.ImageButtonEx(3, s_WarningIcon, buttonSize, .Zero, .Ones))
 				_visibleMessageTypes ^= .Warning;
 
 			ImGui.PopStyleColor();
@@ -167,10 +168,12 @@ class LogWindow : EditorWindow
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
 
-			if (ImGui.ImageButtonEx(4, s_ErrorIcon, buttonSize, .Zero, .Ones, .(2, 2)))
+			if (ImGui.ImageButtonEx(4, s_ErrorIcon, buttonSize, .Zero, .Ones))
 				_visibleMessageTypes ^= .Error;
 
 			ImGui.PopStyleColor();
+
+			ImGui.PopStyleVar();
 
 			ImGui.EndMenuBar();
 		}

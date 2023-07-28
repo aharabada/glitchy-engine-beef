@@ -120,7 +120,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 						value = (float3)ColorRGB.LinearToSRGB((ColorRGB)value);
 
-						if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value))
+						if (ImGui.ColorEdit3(displayName.Ptr, ref *(float[3]*)&value))
 						{
 							value = (float3)ColorRGB.SRgbToLinear((ColorRGB)value);
 							material.SetVariable(variable.Name, value);
@@ -132,7 +132,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 						
 						value = (float4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
 
-						if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value))
+						if (ImGui.ColorEdit4(displayName.Ptr, ref *(float[4]*)&value))
 						{
 							value = (float4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
 							material.SetVariable(variable.Name, value);
@@ -149,7 +149,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 						value = (float3)ColorRGB.LinearToSRGB((ColorRGB)value);
 
-						if (ImGui.ColorEdit3(displayName.Ptr, *(float[3]*)&value, .HDR | .Float))
+						if (ImGui.ColorEdit3(displayName.Ptr, ref *(float[3]*)&value, .HDR | .Float))
 						{
 							value = (float3)ColorRGB.SRgbToLinear((ColorRGB)value);
 							material.SetVariable(variable.Name, value);
@@ -161,7 +161,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 						
 						value = (float4)ColorRGBA.LinearToSRGB((ColorRGBA)value);
 
-						if (ImGui.ColorEdit4(displayName.Ptr, *(float[4]*)&value, .HDR | .Float))
+						if (ImGui.ColorEdit4(displayName.Ptr, ref *(float[4]*)&value, .HDR | .Float))
 						{
 							value = (float4)ColorRGBA.SRgbToLinear((ColorRGBA)value);
 							material.SetVariable(variable.Name, value);

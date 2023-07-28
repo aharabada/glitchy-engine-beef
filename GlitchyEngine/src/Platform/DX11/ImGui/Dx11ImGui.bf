@@ -22,24 +22,24 @@ namespace ImGui
 			textureViewBinding.Release();
 		}
 
-		public static override bool ImageButton(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, int32 frame_padding = -1, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
+		public static override bool ImageButton(char8* id, TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
 		{
 			var view = textureViewBinding._nativeShaderResourceView..AddRef();
 			_resourceViews.Add(view);
 
-			bool pressed = ImGui.ImageButton(view, size, uv0, uv1, frame_padding, bg_col, tint_col);
+			bool pressed = ImGui.ImageButton(id, view, size, uv0, uv1, bg_col, tint_col);
 
 			textureViewBinding.Release();
 
 			return pressed;
 		}
 
-		public static override bool ImageButtonEx(uint32 id, TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec2 frame_padding = .Zero, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
+		public static override bool ImageButtonEx(uint32 id, TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
 		{
 			var view = textureViewBinding._nativeShaderResourceView..AddRef();
 			_resourceViews.Add(view);
 
-			bool pressed = ImGui.ImageButtonEx(id, view, size, uv0, uv1, frame_padding, bg_col, tint_col);
+			bool pressed = ImGui.ImageButtonEx(id, view, size, uv0, uv1, bg_col, tint_col);
 
 			textureViewBinding.Release();
 

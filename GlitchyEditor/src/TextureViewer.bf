@@ -87,10 +87,10 @@ namespace GlitchyEditor
 
 			ImGui.Combo("Sampler", (.)&_sampleMode, items.Ptr, (.)items.Count);
 
-			ImGui.SliderFloat2("Color offset and scale", *(float[2]*)&_colorOffset, -1.0f, 1.0f);
-			ImGui.SliderFloat2("Alpha offset and scale", *(float[2]*)&_alphaOffset, -1.0f, 1.0f);
+			ImGui.SliderFloat2("Color offset and scale", ref *(float[2]*)&_colorOffset, -1.0f, 1.0f);
+			ImGui.SliderFloat2("Alpha offset and scale", ref *(float[2]*)&_alphaOffset, -1.0f, 1.0f);
 
-			ImGui.SliderFloat2("Position", *(float[2]*)&_position, 2 * -Math.Max(viewedTexture.Width, viewedTexture.Height) * _zoom, 2 * Math.Max(viewedTexture.Width, viewedTexture.Height) * _zoom);
+			ImGui.SliderFloat2("Position", ref *(float[2]*)&_position, 2 * -Math.Max(viewedTexture.Width, viewedTexture.Height) * _zoom, 2 * Math.Max(viewedTexture.Width, viewedTexture.Height) * _zoom);
 
 			ImGui.BeginChild("imageChild");
 

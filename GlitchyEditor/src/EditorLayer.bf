@@ -432,9 +432,13 @@ namespace GlitchyEditor
 
 				ImGui.SameLine();
 				ImGui.SetCursorPosX(centerX - totalWidth / 2);
+				
+				ImGui.PushID(0);
 
-				if (ImGui.ImageButton(_editorIcons.Play, .(size, size), .Zero, .Ones, 0))
+				if (ImGui.ImageButton("", _editorIcons.Play, .(size, size), .Zero, .Ones))
 					OnScenePlay();
+				
+				ImGui.PopID();
 
 				ImGui.AttachTooltip("Play the game.");
 				
@@ -442,7 +446,7 @@ namespace GlitchyEditor
 
 				ImGui.PushID(1);
 
-				if (ImGui.ImageButton(_editorIcons.Simulate, .(size, size), .Zero, .Ones, 0))
+				if (ImGui.ImageButton("", _editorIcons.Simulate, .(size, size), .Zero, .Ones))
 					OnSceneSimulate();
 				
 				ImGui.PopID();
@@ -461,7 +465,7 @@ namespace GlitchyEditor
 				//ImGui.SameLine(penX += size + 2 * padding);
 				ImGui.SameLine();
 
-				if (ImGui.ImageButton(_editorIcons.Pause, .(size, size), .Zero, .Ones, 0))
+				if (ImGui.ImageButton("", _editorIcons.Pause, .(size, size), .Zero, .Ones))
 					_isPaused = !_isPaused;
 				
 				ImGui.PopID();
@@ -485,7 +489,7 @@ namespace GlitchyEditor
 
 				SubTexture2D pauseButtonIcon = _isPaused ? _editorIcons.Play : _editorIcons.Pause;
 
-				if (ImGui.ImageButton(pauseButtonIcon, .(size, size), .Zero, .Ones, 0))
+				if (ImGui.ImageButton("PlayPause", pauseButtonIcon, .(size, size), .Zero, .Ones))
 				{
 					if (_isPaused)
 						OnSceneResume();
@@ -503,7 +507,7 @@ namespace GlitchyEditor
 	
 					SubTexture2D singleStepButtonIcon = _editorIcons.SingleStep;
 	
-					if (ImGui.ImageButton(singleStepButtonIcon, .(size, size), .Zero, .Ones, 0))
+					if (ImGui.ImageButton("Step", singleStepButtonIcon, .(size, size), .Zero, .Ones))
 					{
 						DoSingleStep();
 					}
@@ -534,7 +538,7 @@ namespace GlitchyEditor
 				ImGui.SameLine();
 				ImGui.PushID(1);
 
-				if (ImGui.ImageButton(_editorIcons.Stop, .(size, size), .Zero, .Ones, 0))
+				if (ImGui.ImageButton("Stop", _editorIcons.Stop, .(size, size), .Zero, .Ones))
 					OnSceneStop();
 
 				ImGui.PopID();

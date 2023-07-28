@@ -31,7 +31,58 @@ class AssetViewer : EditorWindow
 
 		ImGui.PushStyleVar(.CellPadding, .(0, 0));
 
-		bool alt_pressed = ImGui.GetIO().KeyAlt;
+		ImGui.Columns(2);
+
+		if (ImGui.BeginChild("Assets"))
+		{
+			DrawAssetList();
+
+			ImGui.EndChild();
+		}
+
+		ImGui.NextColumn();
+		
+		if (ImGui.BeginChild("Files"))
+		{
+			DrawAssetViewer();
+
+			ImGui.EndChild();
+		}
+
+		ImGui.Columns(1);
+
+		/*if (ImGui.BeginTable("AssetViewerTable", 2, .BordersInnerV | .Resizable | .Reorderable | .NoPadOuterX))
+		{
+			if (alt_pressed)
+			{
+				// Header anzeigen, damit sie neu angeordnet werden können
+				ImGui.TableSetupColumn("Assets");
+				ImGui.TableSetupColumn("Viewer");
+				ImGui.TableHeadersRow();
+			}
+		    ImGui.TableNextRow();
+		    ImGui.TableSetColumnIndex(0);
+			
+			if (ImGui.BeginChild("Assets"))
+			{
+				//DrawAssetList();
+
+				ImGui.EndChild();
+			}
+			
+			ImGui.TableNextColumn();
+			
+			if (ImGui.BeginChild("Files"))
+			{
+				//DrawAssetViewer();
+
+				ImGui.EndChild();
+			}
+
+			ImGui.EndTable();
+		}*/
+
+		/*bool alt_pressed = ImGui.GetIO().KeyAlt;
 
 		if (ImGui.BeginTable("AssetViewerTable", 2, .BordersInnerV | .Resizable | .Reorderable | .NoPadOuterX))
 		{
@@ -42,13 +93,12 @@ class AssetViewer : EditorWindow
 				ImGui.TableSetupColumn("Viewer");
 				ImGui.TableHeadersRow();
 			}
-			
 		    ImGui.TableNextRow();
 		    ImGui.TableSetColumnIndex(0);
-
+			
 			if (ImGui.BeginChild("Assets"))
 			{
-				DrawAssetList();
+				//DrawAssetList();
 
 				ImGui.EndChild();
 			}
@@ -57,13 +107,13 @@ class AssetViewer : EditorWindow
 			
 			if (ImGui.BeginChild("Files"))
 			{
-				DrawAssetViewer();
+				//DrawAssetViewer();
 
 				ImGui.EndChild();
 			}
 
 			ImGui.EndTable();
-		}
+		}*/
 
 		ImGui.PopStyleVar(1);
 
@@ -211,7 +261,7 @@ class TexturererViewerer
 			
 			float maxDimension = max(width, height);
 
-			ImGui.SliderFloat2("Position", *(float[2]*)&_position, 2 * -maxDimension * _zoom, 2 * maxDimension * _zoom);
+			ImGui.SliderFloat2("Position", ref *(float[2]*)&_position, 2 * -maxDimension * _zoom, 2 * maxDimension * _zoom);
 
 			ImGui.Separator();
 
