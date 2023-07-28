@@ -265,6 +265,10 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern MonoVTable* mono_class_vtable(MonoDomain* domain, MonoClass* @class);
+
+	
+	[LinkName(.C)]
+	public static extern MonoObject* mono_value_box(MonoDomain* domain, MonoClass* klass, gpointer value);
 }
 
 struct MonoDomain;

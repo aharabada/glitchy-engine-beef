@@ -514,10 +514,24 @@ static class ScriptEngine
 		
 		Log.EngineLogger.AssertDebug(scriptClass != null);
 
-		for (let (fieldName, field) in scriptClass.Fields)
+		void AddFieldsToMap(Dictionary<StringView, ScriptField> classFields, StringView baseName)
 		{
-			entityFields.Add(new String(fieldName), ScriptFieldInstance(field.FieldType));
+			for (let (fieldName, field) in classFields)
+			{
+				/*if (field.FieldType == .Struct && field.SharpType != null)
+				{
+					AddFieldsToMap(field.SharpType.Fields, scope $"{baseName}{fieldName}.");
+				}
+				else
+				{
+					entityFields.Add(new $"{baseName}{fieldName}", ScriptFieldInstance(field.FieldType));
+				}*/
+
+				entityFields.Add(new String(fieldName), ScriptFieldInstance(field.FieldType));
+			}
 		}
+
+		AddFieldsToMap(scriptClass.Fields, "");
 	}
 
 	public static ScriptFieldMap GetScriptFieldMap(Entity entity)

@@ -14,14 +14,16 @@ public struct ScriptField
 	public bool IsStatic;
 	public ScriptFieldType FieldType;
 	public SharpType SharpType;
+	public int SizeInBytes;
 
-	internal this(StringView name, MonoClassField* monoField, bool isStatic, ScriptFieldType fieldType, SharpType sharpType)
+	internal this(StringView name, MonoClassField* monoField, bool isStatic, ScriptFieldType fieldType, int sizeInBytes, SharpType sharpType)
 	{
 		Name = name;
 		_monoField = monoField;
 		IsStatic = isStatic;
 		FieldType = fieldType;
 		SharpType = sharpType;
+		SizeInBytes = sizeInBytes;
 	}
 
 	public bool IsType(SharpClass otherClass, bool checkIfSubtype)
@@ -173,7 +175,20 @@ class SharpClass : SharpType
 				(attributes != null &&
 				Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Attributes.s_ShowInEditorAttribute)))
 			{
-				_monoFields[name] = .(name, currentField, flags.HasFlag(.Static), fieldType, sharpType);
+				MonoClass* fieldClass = Mono.mono_type_get_class(type);
+
+				int sizeInBytes = 8;
+
+				if (fieldClass != null)
+				{
+					sizeInBytes = Mono.mono_class_instance_size(fieldClass);
+				}
+				else
+				{
+
+				}
+
+				_monoFields[name] = .(name, currentField, flags.HasFlag(.Static), fieldType, sizeInBytes, sharpType);
 			}
 		}
 	}

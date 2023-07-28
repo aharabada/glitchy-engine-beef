@@ -514,10 +514,88 @@ namespace GlitchyEditor.EditWindows
 				scriptInstance.SetFieldValue<T>(scriptField, value);
 			}
 
+			T GetData<T>(void* instance, ScriptField scriptField)
+			{
+				T data = default;
+				Mono.mono_field_get_value((.)instance, scriptField.[Friend]_monoField, &data);
+
+				return data;
+			}
+
+			void GetData<T>(void* instance, ScriptField scriptField, T* data)
+			{
+				Mono.mono_field_get_value((.)instance, scriptField.[Friend]_monoField, data);
+			}
+
+			void SetData<T>(void* instance, ScriptField scriptField, in T value)
+			{
+				Mono.mono_field_set_value((.)instance, scriptField.[Friend]_monoField, &value);
+			}
+
+			void SetData<T>(void* instance, ScriptField scriptField, T* data)
+			{
+				Mono.mono_field_set_value((.)instance, scriptField.[Friend]_monoField, data);
+			}
+
 			if (scriptComponent.Instance?.IsInitialized == true)
 			{
 				SharpClass sharpClass = scriptComponent.Instance.ScriptClass;
 				ScriptInstance scriptInstance = scriptComponent.Instance;
+
+				/*void DoFunnyStuff(void* instance, SharpType sharpType)
+				{
+					for (let (fieldName, scriptField) in sharpType.Fields)
+					{
+						var monoField = scriptField.[Friend]_monoField;
+						
+						switch (scriptField.FieldType)
+						{
+						case .Float:
+							var value = GetData<float>(instance, scriptField);
+							if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Float, &value))
+								SetData(instance, scriptField, value);
+							
+						case .Struct:
+							{
+								var v = Mono.mono_field_get_value_object(ScriptEngine.[Friend]s_AppDomain, scriptField.[Friend]_monoField, (.)instance);
+
+								void* dataPtr = Mono.mono_object_unbox(v);
+
+								Span<uint8> data = .((.)dataPtr, scriptField.SizeInBytes);
+
+								if (ImGui.CollapsingHeader(fieldName.Ptr))
+								{
+									DoFunnyStuff(dataPtr, scriptField.SharpType);
+								}
+
+								SetData<MonoObject>(instance, scriptField, v);
+
+								//Mono.mono_field_set_value_object(ScriptEngine.[Friend]s_AppDomain, scriptField.[Friend]_monoField, (.)instance);
+								//uint8* data = ;
+
+								/*uint8[] data = scope .[scriptField.SizeInBytes];
+								
+								GetData(instance, scriptField, data.Ptr);
+
+								if (ImGui.CollapsingHeader(fieldName.Ptr))
+								{
+									DoFunnyStuff(data.Ptr, scriptField.SharpType);
+								}
+
+								MonoObject* boxed = Mono.mono_value_box(ScriptEngine.[Friend]s_AppDomain, ((SharpClass)scriptField.SharpType).[Friend]_monoClass, data.Ptr);
+
+								SetData<MonoObject>(instance, scriptField, boxed);*/
+								
+								//Mono.mono_field_get_value(instance, scriptField.[Friend]_monoField, data.Ptr);
+
+							}
+						default:
+							//Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
+						}
+					}
+				}
+
+				DoFunnyStuff(scriptInstance.[Friend]_instance, sharpClass);*/
 
 				for (let (fieldName, scriptField) in sharpClass.Fields)
 				{
@@ -594,6 +672,22 @@ namespace GlitchyEditor.EditWindows
 						// TODO!
 					case .Struct:
 						// TODO!
+						/*{
+							uint8[] data = scope .[scriptField.SizeInBytes];
+
+							Mono.mono_field_get_value(scriptInstance.[Friend]_instance, scriptField.[Friend]_monoField, data.Ptr);
+
+							//scriptField.
+
+							//scriptInstance.GetFieldValue();
+
+							//scriptInstance.ScriptClass.Fields[]
+						 /*
+						var value = GetFieldValue<double>(scriptInstance, scriptField);
+						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
+							SetFieldValue(scriptInstance, scriptField, value);
+							*/
+						}*/
 					default:
 						Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
 					}
