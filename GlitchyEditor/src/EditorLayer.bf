@@ -370,17 +370,8 @@ namespace GlitchyEditor
 			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));
 		}
 
-		ImGui.ID _mainDockspaceId;
-		
-		TextureViewer viewer = new TextureViewer() ~ delete _;
-
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
-			// TODO: make window
-			//Input.ImGuiDebugDraw();
-
-			//viewer.ViewTexture(Renderer.[Friend]_gBuffer.Target);
-
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
 
