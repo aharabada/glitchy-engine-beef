@@ -86,29 +86,42 @@ namespace GlitchyEngine.ImGui
 			ImGuizmo.BeginFrame();
 		}
 
+		private void LoadFont()
+		{
+			var settings = Application.Instance.Settings.ImGuiSettings;
+			
+			ImGui.GetIO().Fonts.Clear();
+
+			Stream fontFile = Application.Instance.ContentManager.GetStream(settings.FontName);
+
+			if (fontFile != null)
+			{
+				// We need to use ImGuis memory allocator because ImGui takes ownership
+				uint8* fontData = (uint8*)ImGui.MemAlloc((uint64)fontFile.Length);
+				var result = fontFile.TryRead(Span<uint8>(fontData, fontFile.Length));
+
+				if (result case .Err)
+					Log.EngineLogger.Error($"Failed to load font \"{settings.FontName}\" from stream.");
+
+				ImGui.GetIO().Fonts.AddFontFromMemoryTTF(fontData, (int32)fontFile.Length, settings.FontSize);
+			}
+			else
+			{
+				ImGui.GetIO().Fonts.AddFontDefault();
+			}
+
+			ImGui.GetIO().Fonts.AddFontDefault();
+
+			delete fontFile;
+		}
+
 		public void ImGuiRender()
 		{
 			Debug.Profiler.ProfileFunction!();
 
 			if (SettingsInvalid)
 			{
-				var settings = Application.Get().Settings.ImGuiSettings;
-				
-				ImGui.GetIO().Fonts.Clear();
-
-				// TODO: Fix fonts
-				//String fullpath = scope String();
-				//Application.Get().ContentManager.GetFilePath(fullpath, settings.FontName);
-				/*Application.Get().ContentManager.GetStream(settings.FontName);
-				if (File.Exists(fullpath))
-				{
-					ImGui.GetIO().Fonts.AddFontFromMemoryTTF();
-					ImGui.GetIO().Fonts.AddFontFromFileTTF(fullpath, settings.FontSize);
-				}
-				else
-				{*/
-					ImGui.GetIO().Fonts.AddFontDefault();
-				//}
+				LoadFont();
 
 #if GE_GRAPHICS_DX11
 				ImGuiImplDX11.CreateDeviceObjects();

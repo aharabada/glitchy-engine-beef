@@ -125,6 +125,10 @@ class LogWindow : EditorWindow
 			ImGui.Checkbox("Collapse", &_collapseMessages);
 			ImGui.AttachTooltip("If checked, identical messages will be collapsed into one.");
 
+			var maxSpace = ImGui.GetFontSize();
+
+			ImGui.Vec2 buttonSize = .(maxSpace, maxSpace);
+
 			var col = ImGui.GetStyleColorVec4(.Button);
 
 			if (_visibleMessageTypes.HasFlag(.Trace))
@@ -132,7 +136,7 @@ class LogWindow : EditorWindow
 			else
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
-			if (ImGui.ImageButtonEx(1, s_TraceIcon, .(14, 14), .Zero, .Ones, .(2, 2)))
+			if (ImGui.ImageButtonEx(1, s_TraceIcon, buttonSize, .Zero, .Ones, .(2, 2)))
 				_visibleMessageTypes ^= .Trace;
 
 			ImGui.PopStyleColor();
@@ -142,7 +146,7 @@ class LogWindow : EditorWindow
 			else
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
-			if (ImGui.ImageButtonEx(2, s_InfoIcon, .(16, 16)))
+			if (ImGui.ImageButtonEx(2, s_InfoIcon, buttonSize, .Zero, .Ones, .(2, 2)))
 				_visibleMessageTypes ^= .Info;
 
 			ImGui.PopStyleColor();
@@ -152,7 +156,7 @@ class LogWindow : EditorWindow
 			else
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
-			if (ImGui.ImageButtonEx(3, s_WarningIcon, .(16, 16)))
+			if (ImGui.ImageButtonEx(3, s_WarningIcon, buttonSize, .Zero, .Ones, .(2, 2)))
 				_visibleMessageTypes ^= .Warning;
 
 			ImGui.PopStyleColor();
@@ -162,7 +166,8 @@ class LogWindow : EditorWindow
 			else
 				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
-			if (ImGui.ImageButtonEx(4, s_ErrorIcon, .(16, 16)))
+
+			if (ImGui.ImageButtonEx(4, s_ErrorIcon, buttonSize, .Zero, .Ones, .(2, 2)))
 				_visibleMessageTypes ^= .Error;
 
 			ImGui.PopStyleColor();
