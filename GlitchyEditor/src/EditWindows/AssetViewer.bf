@@ -31,58 +31,7 @@ class AssetViewer : EditorWindow
 
 		ImGui.PushStyleVar(.CellPadding, .(0, 0));
 
-		ImGui.Columns(2);
-
-		if (ImGui.BeginChild("Assets"))
-		{
-			DrawAssetList();
-
-			ImGui.EndChild();
-		}
-
-		ImGui.NextColumn();
-		
-		if (ImGui.BeginChild("Files"))
-		{
-			DrawAssetViewer();
-
-			ImGui.EndChild();
-		}
-
-		ImGui.Columns(1);
-
-		/*if (ImGui.BeginTable("AssetViewerTable", 2, .BordersInnerV | .Resizable | .Reorderable | .NoPadOuterX))
-		{
-			if (alt_pressed)
-			{
-				// Header anzeigen, damit sie neu angeordnet werden können
-				ImGui.TableSetupColumn("Assets");
-				ImGui.TableSetupColumn("Viewer");
-				ImGui.TableHeadersRow();
-			}
-		    ImGui.TableNextRow();
-		    ImGui.TableSetColumnIndex(0);
-			
-			if (ImGui.BeginChild("Assets"))
-			{
-				//DrawAssetList();
-
-				ImGui.EndChild();
-			}
-			
-			ImGui.TableNextColumn();
-			
-			if (ImGui.BeginChild("Files"))
-			{
-				//DrawAssetViewer();
-
-				ImGui.EndChild();
-			}
-
-			ImGui.EndTable();
-		}*/
-
-		/*bool alt_pressed = ImGui.GetIO().KeyAlt;
+		bool alt_pressed = ImGui.GetIO().KeyAlt;
 
 		if (ImGui.BeginTable("AssetViewerTable", 2, .BordersInnerV | .Resizable | .Reorderable | .NoPadOuterX))
 		{
@@ -93,27 +42,24 @@ class AssetViewer : EditorWindow
 				ImGui.TableSetupColumn("Viewer");
 				ImGui.TableHeadersRow();
 			}
+			
 		    ImGui.TableNextRow();
 		    ImGui.TableSetColumnIndex(0);
-			
-			if (ImGui.BeginChild("Assets"))
-			{
-				//DrawAssetList();
 
-				ImGui.EndChild();
-			}
+			if (ImGui.BeginChild("Assets"))
+				DrawAssetList();
+
+			ImGui.EndChild();
 			
 			ImGui.TableNextColumn();
 			
 			if (ImGui.BeginChild("Files"))
-			{
-				//DrawAssetViewer();
+				DrawAssetViewer();
 
-				ImGui.EndChild();
-			}
+			ImGui.EndChild();
 
 			ImGui.EndTable();
-		}*/
+		}
 
 		ImGui.PopStyleVar(1);
 
