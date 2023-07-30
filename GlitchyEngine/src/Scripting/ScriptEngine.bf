@@ -95,6 +95,8 @@ static class ScriptEngine
 	// TODO: This should be a global setting somewhere
 	private static bool _debuggingEnabled = true;
 
+	private static String _appAssemblyPath = new .() ~ delete _;
+
 	internal static class Attributes
 	{
 		internal static MonoClass* s_ShowInEditorAttribute;
@@ -106,8 +108,14 @@ static class ScriptEngine
 		ScriptGlue.Init();
 
 		LoadScriptAssemblies();
+	}
 
-		InitAssemblyWatcher();
+	/// Changes the path to the current app assembly.
+	public static void SetAppAssemblyPath(StringView appAssemblyPath)
+	{
+		_appAssemblyPath.Set(appAssemblyPath);
+
+		ReloadAssemblies();
 	}
 
 	static void InitMono()
@@ -138,33 +146,46 @@ static class ScriptEngine
 
 	static void InitAssemblyWatcher()
 	{
-		if (_userAssemblyWatcher == null)
+		// We don't need a file system watcher, if we have nothing to watch...
+		if (!File.Exists(_appAssemblyPath))
+			return;
+
+		String directory = scope .();
+		Path.GetDirectoryPath(_appAssemblyPath, directory);
+
+		if (_userAssemblyWatcher != null && _userAssemblyWatcher.Directory != directory)
 		{
-			// TODO: Obviously don't hardcode path
-			_userAssemblyWatcher = new FileSystemWatcher("SandboxProject/Assets/Scripts/bin/", "*/Sandbox.dll");
-			_userAssemblyWatcher.OnChanged.Add(new (fileName) =>
-			{
-				// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
-				if (_entityScriptInstances.Count > 0)
-				{
-					Log.EngineLogger.Warning("There are script instances. Skipping assembly reload.");
-					return;
-				}
-
-				Log.EngineLogger.Info("Script reload requested.");
-				_userAssemblyWatcher.StopRaisingEvents();
-
-				Application.Instance.InvokeOnMainThread(new () =>
-				{
-					Log.EngineLogger.Info("Reloading scripts...");
-					ReloadAssemblies();
-					Log.EngineLogger.Info("Scripts reloaded!");
-
-					_userAssemblyWatcher.StartRaisingEvents();
-				});
-
-			});
+			delete _userAssemblyWatcher;
 		}
+
+		String fileName = scope .("*/");
+		Path.GetFileName(_appAssemblyPath, fileName);
+
+		// TODO: Obviously don't hardcode path
+		_userAssemblyWatcher = new FileSystemWatcher(directory, fileName);
+		_userAssemblyWatcher.OnChanged.Add(new (fileName) =>
+		{
+			// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
+			if (_entityScriptInstances.Count > 0)
+			{
+				Log.EngineLogger.Warning("There are script instances. Skipping assembly reload.");
+				return;
+			}
+
+			Log.EngineLogger.Info("Script reload requested.");
+			_userAssemblyWatcher.StopRaisingEvents();
+
+			Application.Instance.InvokeOnMainThread(new () =>
+			{
+				Log.EngineLogger.Info("Reloading scripts...");
+				ReloadAssemblies();
+				Log.EngineLogger.Info("Scripts reloaded!");
+
+				_userAssemblyWatcher.StartRaisingEvents();
+			});
+
+		});
+
 		_userAssemblyWatcher.StartRaisingEvents();
 	}
 
@@ -172,7 +193,14 @@ static class ScriptEngine
 	{
 		CreateAppDomain("GlitchyEngineScriptRuntime");
 		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
-		(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly("SandboxProject/Assets/Scripts/bin/Sandbox.dll", _debuggingEnabled);
+
+		if (File.Exists(_appAssemblyPath))
+			(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly(_appAssemblyPath, _debuggingEnabled);
+		else
+		{
+			s_AppAssembly = null;
+			s_AppAssemblyImage = null;
+		}
 		
 		ClearDictionaryAndReleaseValues!(_sharpClasses);
 		
@@ -184,6 +212,8 @@ static class ScriptEngine
 		GetEntitiesFromAssemblies();
 
 		ScriptGlue.RegisterManagedComponents();
+
+		InitAssemblyWatcher();
 	}
 
 	public static void SetContext(Scene scene)
@@ -354,6 +384,9 @@ static class ScriptEngine
 	private static void GetEntitiesFromAssemblies()
 	{
 		ClearDictionaryAndReleaseValues!(_entityScripts);
+
+		if (s_AppAssemblyImage == null)
+			return;
 
 	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_AppAssemblyImage, .MONO_TABLE_TYPEDEF);
 	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);

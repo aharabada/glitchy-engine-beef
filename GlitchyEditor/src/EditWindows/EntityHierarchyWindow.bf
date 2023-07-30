@@ -470,6 +470,12 @@ namespace GlitchyEditor.EditWindows
 		{
 			StringView searchString = StringView(&_entitySearchChars);
 
+			if (_scene == null)
+			{
+				ImGui.TextUnformatted("<No scene open>");
+				return;
+			}
+
 			if(searchString.IsWhiteSpace)
 			{
 				// Show entity hierarchy as tree

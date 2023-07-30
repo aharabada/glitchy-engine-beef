@@ -361,8 +361,13 @@ class EditorContentManager : IContentManager
 		
 		IAssetLoader assetLoader = GetAssetLoader(file);
 
-		// TODO: what are we supposed to do if we don't find a loader? Sure not crash...
-		Log.EngineLogger.AssertDebug(assetLoader != null);
+		// TODO: what are we supposed to do if we don't find a loader? Surely not crash...
+		//Log.EngineLogger.AssertDebug(assetLoader != null);
+		if (assetLoader == null)
+		{
+			Log.EngineLogger.Error($"No asset loader registered for asset {identifier}.");
+			return .Invalid;
+		}
 
 		Asset loadedAsset;
 

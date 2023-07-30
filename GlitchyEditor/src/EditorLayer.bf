@@ -97,6 +97,12 @@ namespace GlitchyEditor
 			}
 		}
 
+		private Project _currentProject ~ delete _;
+
+		public Project CurrentProject => _currentProject;
+
+		public bool IsProjectLoaded => _currentProject != null;
+
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
@@ -115,9 +121,18 @@ namespace GlitchyEditor
 			InitEditor();
 
 			if (args.Count >= 1)
-				LoadSceneFile(args[0]);
+			{
+				Result<void> result = OpenProject(args[0]);
 
-			// Create a new scene, if LoadSceneFile failed
+				if (result == .Err)
+					Log.EngineLogger.Error($"Failed to open project \"{args[0]}\".");
+			}
+
+			/*if (args.Count >= 1)
+				LoadSceneFile(args[0]);
+			*/
+
+			// Create a new scene if no scene is loaded
 			if (_activeScene == null)
 				NewScene();
 		}
@@ -188,14 +203,25 @@ namespace GlitchyEditor
 			_editor.EditorSceneRenderer = _editorSceneRenderer;
 
 			_editor.RequestOpenScene.Add(new (s, fileName) => {
-			  LoadSceneFile(fileName);
+				String fullName = scope .();
+				Path.Combine(fullName, _currentProject.AssetsFolder, fileName);
+
+			  	LoadSceneFile(fullName);
 			});
 		}
-		
+
+		private bool _showCreateNewProject = false;
+
 		public override void Update(GameTime gameTime)
 		{
 			Debug.Profiler.ProfileFunction!();
 
+			if (IsProjectLoaded)
+				UpdateScene(gameTime);
+		}
+
+		private void UpdateScene(GameTime gameTime)
+		{
 			_editor.CurrentScene = _activeScene;
 
 			Scene.UpdateMode updateMode;
@@ -244,7 +270,7 @@ namespace GlitchyEditor
 
 			// Clear the swapchain-buffer
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
-			
+
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 
@@ -261,7 +287,7 @@ namespace GlitchyEditor
 
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
-			
+
 			if (_editor.SceneViewportWindow.Visible)
 			{
 				_camera.Update(gameTime);
@@ -383,6 +409,7 @@ namespace GlitchyEditor
 			_editor.Update();
 
 			_settingsWindow.Show();
+			ShowCreateNewProjectModal();
 
 			UI_Toolbar();
 
@@ -619,6 +646,154 @@ namespace GlitchyEditor
 			}
 		}
 
+		private Result<void> CreateNewProject(StringView directory, StringView projectName)
+		{
+			var createDirectoryResult = Directory.CreateDirectory(directory);
+
+			if (createDirectoryResult case .Err(let error))
+			{
+				Log.ClientLogger.Error($"Failed to create directory \"{directory}\".");
+				return .Err;
+			}
+
+			if (!Directory.IsEmpty(directory))
+			{
+				Log.ClientLogger.Error($"Cannot create project in non-empty directory.");
+				return .Err;
+			}
+
+			Project newProject = Project.CreateNew(directory, projectName);
+			
+			var createAssetDirResult = Directory.CreateDirectory(newProject.AssetsFolder);
+
+			if (createAssetDirResult case .Err(let error))
+			{
+				Log.ClientLogger.Error($"Failed to create asset directory \"{newProject.AssetsFolder}\".");
+				return .Err;
+			}
+
+			// Copy .gitignore
+			String gitignoreTarget = scope .();
+			newProject.PathInProject(gitignoreTarget, ".gitignore");
+			var copyGitignore = File.Copy("resources/gitignore.txt", gitignoreTarget);
+
+			if (copyGitignore case .Err(let error))
+			{
+				Log.ClientLogger.Error($"Failed to copy .gitignore (\"{error}\").");
+			}
+
+			// TODO: VS Project
+
+			return .Ok;
+		}
+
+		private bool _openCreateProjectModal;
+
+		private void ShowCreateNewProjectModal()
+		{
+			static char8[128] projectNameBuffer = .();
+			static char8[256] projectDirectoryBuffer = .();
+
+			if (_openCreateProjectModal)
+			{
+				ImGui.OpenPopup("Create new Project");
+				_openCreateProjectModal = false;
+
+				projectNameBuffer = .();
+			}
+
+			// Always center this window when appearing
+			var center = ImGui.GetMainViewport().GetCenter();
+			ImGui.SetNextWindowPos(center, .Appearing, .(0.5f, 0.5f));
+
+			if (ImGui.BeginPopupModal("Create new Project", null, .AlwaysAutoResize))
+			{
+				ImGui.TextUnformatted("Project Name:");
+				ImGui.InputText("##projectName", &projectNameBuffer, projectNameBuffer.Count - 1);
+
+				ImGui.NewLine();
+
+				ImGui.TextUnformatted("Directory:");
+				ImGui.InputText("##directory", &projectDirectoryBuffer, projectDirectoryBuffer.Count - 1);
+				ImGui.SameLine();
+
+				if (ImGui.Button("..."))
+				{
+					FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
+					Result<DialogResult> result = folderDialog.ShowDialog();
+
+					if (result case .Ok(let dialogResult) && dialogResult case .OK)
+					{
+						folderDialog.SelectedPath.CopyTo(projectDirectoryBuffer);
+					}
+				}
+
+				StringView projectName = StringView(&projectNameBuffer);
+				StringView directory = StringView(&projectDirectoryBuffer);
+
+				String target = scope String();
+				Path.Combine(target, directory, projectName);
+				
+				ImGui.NewLine();
+
+				ImGui.Text($"The Project will be in:\n{target}");
+
+				ImGui.NewLine();
+
+				ImGui.BeginDisabled(directory.IsWhiteSpace || projectName.IsWhiteSpace);
+
+				if (ImGui.Button("Create"))
+				{
+					Result<void> result = CreateNewProject(target, projectName);
+
+					if (result case .Ok)
+						ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.EndDisabled();
+
+				ImGui.SameLine();
+
+				if (ImGui.Button("Cancel"))
+				{
+					ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.EndPopup();
+			}
+		}
+
+		private void CloseCurrentProject()
+		{
+			OnSceneStop();
+
+			SetReference!(_editorScene, null);
+			SetReference!(_activeScene, null);
+			_editor.CurrentScene = null;
+
+			// TODO: Do actual work here!
+			delete _currentProject;
+			_currentProject = null;
+		}
+
+		private Result<void> OpenProject(StringView workspacePath)
+		{
+			CloseCurrentProject();
+
+			_currentProject = Project.Load(workspacePath);
+
+			String appAssemblyPath = scope String();
+			// TODO: obviously change dll name, configurable?
+			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, "Scripts/bin/Sandbox.dll");
+
+			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
+
+			// TODO: Load last opened scene
+			NewScene();
+
+			return .Ok;
+		}
+
 		/// Creates a new scene.
 		private void NewScene()
 		{
@@ -753,6 +928,9 @@ namespace GlitchyEditor
 
 			if(ImGui.BeginMenu("File", true))
 			{
+				if (ImGui.MenuItem("Create new Project...", "Ctrl+N"))
+					_openCreateProjectModal = true;
+
 				if (ImGui.MenuItem("New", "Ctrl+N"))
 					NewScene();
 
@@ -844,7 +1022,7 @@ namespace GlitchyEditor
 
 			_camera.OnViewportResize(sizeX, sizeY);
 
-			_activeScene.SetViewportSize(sizeX, sizeY);
+			_activeScene?.SetViewportSize(sizeX, sizeY);
 		}
 		
 		private void GameViewportSizeChanged(Object sender, float2 viewportSize)
@@ -857,7 +1035,7 @@ namespace GlitchyEditor
 
 			_gameViewportTarget.Resize(sizeX, sizeY);
 
-			_activeScene.SetViewportSize(sizeX, sizeY);
+			_activeScene?.SetViewportSize(sizeX, sizeY);
 		}
 
 		private bool OnKeyPressed(KeyPressedEvent e)
