@@ -111,7 +111,7 @@ public class EditorLogger : Logger
 		String message = scope String(4096);
 		message.AppendF(format, params args);
 
-		Debug.Write($"[{timestamp:HH:mm:ss.fff}] ({_name})|{level.UpperString}: {message}");
+		Debug.Write($"[{timestamp:HH:mm:ss.fff}] ({_name})|{level.UpperString}: {message}\n");
 
 		if (Editor.Instance == null)
 			return;
