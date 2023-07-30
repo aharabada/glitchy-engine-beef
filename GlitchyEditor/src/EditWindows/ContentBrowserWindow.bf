@@ -252,11 +252,24 @@ namespace GlitchyEditor.EditWindows
 				ImGui.PopID();
 			}
 		}
+		
+		float _zoom = 1.0f;
+		static readonly float2 IconBaseSize = .(100, 100);
+
+		float2 IconSize => IconBaseSize * _zoom;
 
 		/// Renders the button for the given directory item.
 		private void DrawBackButton(TreeNode<AssetNode> entry)
 		{
-			ImGui.BeginChild("item", (.)DirectoryItemSize);
+			ImGui.PushStyleVar(.WindowPadding, .(0, 0));
+			ImGui.PushStyleVar(.FramePadding, .(0, 0));
+			ImGui.PushStyleVar(.ItemSpacing, .(0, 0));
+
+			defer {ImGui.PopStyleVar(3); }
+
+			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
+
+			ImGui.BeginChild("item", (.)DirectoryItemSize, false, .NoScrollbar);
 
 			if (entry->Path == _selectedFile)
 			{
@@ -270,7 +283,7 @@ namespace GlitchyEditor.EditWindows
 			
 			SubTexture2D image = s_FolderTexture;
 
-			ImGui.ImageButton("", image, (.)(DirectoryItemSize - padding));
+			ImGui.ImageButton("BackFolder", image, (.)IconSize);
 
 			ImGui.PopStyleColor();
 
@@ -292,10 +305,21 @@ namespace GlitchyEditor.EditWindows
 			ImGui.EndChild();
 		}
 
+		//private float _zoom = 1.0f;
+		//private static float2 IconBaseSize = .(100, 100);
+
 		/// Renders the button for the given directory item.
 		private void DrawDirectoryItem(TreeNode<AssetNode> entry)
 		{
-			ImGui.BeginChild("item", (.)DirectoryItemSize);
+			ImGui.PushStyleVar(.WindowPadding, .(0, 0));
+			ImGui.PushStyleVar(.FramePadding, .(0, 0));
+			ImGui.PushStyleVar(.ItemSpacing, .(0, 0));
+
+			defer {ImGui.PopStyleVar(3); }
+
+			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
+
+			ImGui.BeginChild("item", (.)DirectoryItemSize, false, .NoScrollbar);
 
 			if (entry->Path == _selectedFile)
 			{
@@ -306,11 +330,11 @@ namespace GlitchyEditor.EditWindows
 			{
 				ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
 			}
-			
+
 			// TODO: preview images
 			SubTexture2D image = entry->IsDirectory ? s_FolderTexture : s_FileTexture;
 
-			ImGui.ImageButton("FileImage", image, (.)(DirectoryItemSize - padding));
+			ImGui.ImageButton("FileImage", image, (.)IconSize);
 
 			ImGui.PopStyleColor();
 
@@ -350,6 +374,7 @@ namespace GlitchyEditor.EditWindows
 			    ImGui.EndPopup();
 			}
 
+			// TODO: Sub assets are probably borked now... I don't know if they ever worked, didn't test them
 			if (entry->SubAssets?.Count > 0)
 			{
 				// Button for revealing sub assets (e.g. Meshes in 3D-Model)
@@ -371,7 +396,7 @@ namespace GlitchyEditor.EditWindows
 						fullpath.AppendF($"#{subAsset.Name}");
 
 						ImGui.SetDragDropPayload(.ContentBrowserItem, fullpath.CStr(), (.)fullpath.Length, .Once);
-		
+
 						ImGui.EndDragDropSource();
 					}
 				}
@@ -380,8 +405,10 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			DeleteItemPopup(entry);
-			
+
 			ImGui.EndChild();
+
+			ImGui.AttachTooltip(entry->Name);
 		}
 
 		private void DeleteItemPopup(TreeNode<AssetNode> fileOrFolder)
