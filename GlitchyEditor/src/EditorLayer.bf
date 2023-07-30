@@ -181,7 +181,7 @@ namespace GlitchyEditor
 						.(.R8G8B8A8_UNorm))
 				});
 
-			_editorIcons = new EditorIcons("Textures/EditorIcons.dds", .(64, 64));
+			_editorIcons = new EditorIcons("Resources/Textures/EditorIcons.dds", .(64, 64));
 			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;
 
 			ContentBrowserWindow.s_FolderTexture = _editorIcons.Folder;
@@ -783,6 +783,8 @@ namespace GlitchyEditor
 			_currentProject = Project.Load(workspacePath);
 
 			String appAssemblyPath = scope String();
+			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
+			
 			// TODO: obviously change dll name, configurable?
 			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, "Scripts/bin/Sandbox.dll");
 

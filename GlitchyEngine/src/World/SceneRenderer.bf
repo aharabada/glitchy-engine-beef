@@ -18,7 +18,7 @@ class SceneRenderer
 	private uint32 _viewportWidth;
 	private uint32 _viewportHeight;
 
-	private AssetHandle _gammaCorrectEffect;
+	private AssetHandle<Effect> _gammaCorrectEffect;
 
 	public RenderTargetGroup CompositeTarget => _compositeTarget;
 
@@ -41,7 +41,7 @@ class SceneRenderer
 				DepthTargetDescription = .(.D24_UNorm_S8_UInt)
 			});
 
-		_gammaCorrectEffect = Content.LoadAsset("Shaders/GammaCorrect.hlsl");//Application.Get().EffectLibrary.Load("content/Shaders/GammaCorrect.hlsl");
+		_gammaCorrectEffect = Content.LoadAsset("Resources/Shaders/GammaCorrect.hlsl");
 	}
 
 	/// Sets the size of the viewport into which the scene will be rendered.

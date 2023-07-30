@@ -3,6 +3,7 @@
 using GlitchyEngine.Math;
 using GlitchyEngine.Platform.DX11;
 using System;
+using GlitchyEngine.Content;
 
 using internal GlitchyEngine.Renderer;
 using internal GlitchyEngine.Platform.DX11;
@@ -15,7 +16,7 @@ namespace GlitchyEngine.Renderer
 	{
 		private GraphicsContext _context ~ _?.ReleaseRef();
 
-		private Effect _clearUintFx ~ _?.ReleaseRef();
+		private AssetHandle<Effect> _clearUintFx;
 		private BlendState _nonblendingState ~ _?.ReleaseRef();
 
 		public GraphicsContext Context
@@ -30,7 +31,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			_clearUintFx = new Effect("content/Shaders/ClearUInt.hlsl");
+			_clearUintFx = Content.LoadAsset("Resources/Shaders/ClearUInt.hlsl", null, true);
 			BlendStateDescription desc =.Default;
 			desc.RenderTarget[0].BlendEnable = false;
 			_nonblendingState = new BlendState(desc);

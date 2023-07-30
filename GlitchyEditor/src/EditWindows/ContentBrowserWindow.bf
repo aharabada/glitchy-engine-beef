@@ -1,6 +1,7 @@
 using ImGui;
 using System;
 using System.IO;
+using System.Linq;
 using GlitchyEngine.Collections;
 using System.Collections;
 using GlitchyEngine.Renderer;
@@ -39,7 +40,7 @@ namespace GlitchyEditor.EditWindows
 			// Make sure we are in an existing directory.
 			if (!_manager.AssetHierarchy.FileExists(_currentDirectory))
 			{
-				_currentDirectory.Set(_manager.ContentDirectory);
+				_currentDirectory.Set(_manager.AssetDirectory);
 			}
 
 			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
@@ -125,7 +126,7 @@ namespace GlitchyEditor.EditWindows
 		/// Renders a sidebar that shows a tree of all directories in the asset folder.
 		private void DrawDirectorySideBar()
 		{
-			for(var child in _manager.AssetHierarchy.[Friend]_assetHierarchy.Children)
+			for(var child in _manager.AssetHierarchy.RootNode.Children)
 			{
 				ImGuiPrintEntityTree(child);
 			}
@@ -142,17 +143,22 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.TreeNodeFlags flags = .OpenOnArrow | .SpanAvailWidth;
 
-			if(tree.Children.Count == 0)
+			if(tree.Children.Where(scope (node) => node->IsDirectory).Count() == 0)
 				flags |= .Leaf;
 
 			if (tree->Path == _currentDirectory)
-			{
 				flags |= .Selected;
-			}
+
+			// TODO: this kinda works, but the user should be able to close the directory
+			/*if (_manager.AssetHierarchy.GetNodeFromPath(_currentDirectory) case .Ok(let currentTreeNode))
+			{
+				if (currentTreeNode.IsInSubtree(tree))
+					ImGui.SetNextItemOpen(true);
+			}*/
 
 			bool isOpen = ImGui.TreeNodeEx(name, flags, $"{name}");
 
-			if (ImGui.IsItemClicked(.Left))
+			if (!ImGui.IsItemToggledOpen() && ImGui.IsItemClicked(.Left))
 			{
 				_currentDirectory.Set(tree->Path);
 			}
@@ -186,7 +192,7 @@ namespace GlitchyEditor.EditWindows
 			if (_searchEverywhere && searchFilter.Length > 0)
 			{
 				files = scope:: List<TreeNode<AssetNode>>();
-				_manager.AssetHierarchy.[Friend]_assetHierarchy.ForEach(scope (node) =>
+				_manager.AssetHierarchy.[Friend]_assetRootNode.ForEach(scope (node) =>
 				{
 					if (node->Name.Contains(searchFilter, true))
 					{
@@ -343,8 +349,8 @@ namespace GlitchyEditor.EditWindows
 				String fullpath = scope String(entry->Path);
 
 				// TODO: this is dirty
-				if (fullpath.StartsWith(_manager.ContentDirectory, .OrdinalIgnoreCase))
-					fullpath.Remove(0, _manager.ContentDirectory.Length);
+				if (fullpath.StartsWith(_manager.AssetDirectory, .OrdinalIgnoreCase))
+					fullpath.Remove(0, _manager.AssetDirectory.Length);
 
 				Path.Fixup(fullpath);
 

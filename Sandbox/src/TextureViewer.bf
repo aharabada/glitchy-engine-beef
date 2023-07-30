@@ -3,6 +3,7 @@ using GlitchyEngine;
 using ImGui;
 using GlitchyEngine.Math;
 using System;
+using GlitchyEngine.Content;
 namespace Sandbox
 {
 	class TextureViewer
@@ -22,7 +23,7 @@ namespace Sandbox
 
 		GraphicsContext _context ~ _.ReleaseRef();
 
-		Effect _effect ~ _.ReleaseRef();
+		AssetHandle<Effect> _effect;
 
 		float _zoom = 1.0f;
 		
@@ -48,7 +49,7 @@ namespace Sandbox
 
 		private void InitEffect()
 		{
-			_effect = new Effect("content\\Shaders\\textureViewerShader.hlsl");
+			_effect = Content.LoadAsset("Shaders\\textureViewerShader.hlsl");
 		}
 
 		private void InitState()

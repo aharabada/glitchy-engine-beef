@@ -13,7 +13,7 @@
 					B = 0.32878688,
 					A = 1
 				},
-				Sprite = "Textures/TestMat/rustediron2_albedo.png",
+				Sprite = "Assets/Textures/TestMat/rustediron2_albedo.png",
 				UvTransform = {
 					X = 0,
 					Y = 0,
@@ -309,10 +309,10 @@
 				}
 			},
 			MeshComponent = {
-				Mesh = "Models/sphere.glb"
+				Mesh = "Assets/Models/sphere.glb"
 			},
 			MeshRendererComponent = {
-				Material = "Textures/TestMaterial.mat"
+				Material = "Assets/Textures/TestMaterial.mat"
 			}
 		},
 		{

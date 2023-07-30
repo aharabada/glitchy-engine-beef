@@ -65,6 +65,34 @@ namespace GlitchyEngine.Collections
 			DepthFirst
 		}
 
+		public bool IsParentOf(TreeNode<T> wantedChild)
+		{
+			return wantedChild.IsChildOf(this);
+		}
+
+		public bool IsChildOf(TreeNode<T> wantedParent)
+		{
+			TreeNode<T> currentParent = Parent;
+
+			while (currentParent != null)
+			{
+				if (currentParent == wantedParent)
+					return true;
+
+				currentParent = currentParent.Parent;
+			}
+
+			return false;
+		}
+
+		public bool IsInSubtree(TreeNode<T> subtree)
+		{
+			if (this == subtree)
+				return true;
+
+			return IsChildOf(subtree);
+		}
+
 		public void ForEach(ElementFunc func, IterationMode iterationMode = .DepthFirst)
 		{
 			if (iterationMode == .BreadthFirst)
@@ -123,6 +151,9 @@ namespace GlitchyEngine.Collections
 
 		private static void InternalDeleteTreeAndChildren<T>(TreeNode<T> tree) where T : class, delete
 		{
+			if (tree == null)
+				return;
+
 			for (var child in tree.Children)
 			{
 				InternalDeleteTreeAndChildren(child);

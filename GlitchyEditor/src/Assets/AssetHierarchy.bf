@@ -12,6 +12,7 @@ public class AssetNode
 {
 	public String Name ~ delete _;
 	public String Path ~ delete _;
+	public String Identifier ~ delete _;
 
 	public bool IsDirectory;
 
@@ -38,14 +39,43 @@ public static class AssetIdentifier
 {
 	public const char8 DirectorySeparatorChar = '/';
 
+	// TODO: Asset identifiers and paths have little to do with each other and already caused a bit of pain, we should consider not using String for both.
+	/// Removes or unifies potential platform specific or file-path related stuff in the given asset identifier
 	public static void Fixup(String assetIdentifier)
 	{
-		const String DotSeperator = $".{DirectorySeparatorChar}";
-		const String SeperatorDot = $"{DirectorySeparatorChar}.";
+		int dotIndex = 0;
 
 		assetIdentifier.Replace('\\', DirectorySeparatorChar);
-		assetIdentifier.Replace(DotSeperator, "");
-		assetIdentifier.Replace(SeperatorDot, "");
+		
+		// Replace /./ stuff
+		while ((dotIndex = assetIdentifier.IndexOf('.', dotIndex)) != -1)
+		{
+			char8 lastChar = '\0';
+			char8 nextChar = '\0';
+
+			int nextIndex = dotIndex + 1;
+			if (nextIndex < assetIdentifier.Length)
+				nextChar = assetIdentifier[nextIndex];
+
+			int lastIndex = dotIndex - 1;
+			if (lastIndex < assetIdentifier.Length)
+				lastChar = assetIdentifier[nextIndex];
+
+			// We either need to have a slash on both sides, or we have to be at the start or end of the string
+			if ((lastChar == '\0' || lastChar == DirectorySeparatorChar) &&
+				(lastChar == '\0' || lastChar == DirectorySeparatorChar))
+			{
+				if (lastChar != '\0')
+					assetIdentifier.Remove(lastIndex, 2);
+				else
+					assetIdentifier.Remove(dotIndex, 2);
+			}
+			else
+			{
+				// Skip the dot
+				dotIndex++;
+			}
+		}
 
 		if (assetIdentifier.StartsWith(DirectorySeparatorChar))
 			assetIdentifier.Remove(0, 1);
@@ -61,32 +91,119 @@ class AssetHierarchy
 	
 	bool _fileSystemDirty = false;
 	
-	internal TreeNode<AssetNode> _assetHierarchy = null ~ DeleteTreeAndChildren!(_);
+	internal TreeNode<AssetNode> _assetRootNode = null ~ DeleteTreeAndChildren!(_);
+	internal TreeNode<AssetNode> _resourcesDirectoryNode = null;
+	internal TreeNode<AssetNode> _assetsDirectoryNode = null;
 	private append Dictionary<StringView, TreeNode<AssetNode>> _pathToAssetNode = .();
+	private append Dictionary<StringView, TreeNode<AssetNode>> _identifierToAssetNode = .();
 	
-	private append String _contentDirectory = .();
+	private append String _resourcesDirectory = .();
+	private append String _assetsDirectory = .();
 
 	private EditorContentManager _contentManager;
 
-	public StringView ContentDirectory
+	public TreeNode<AssetNode> RootNode => _assetRootNode;
+
+	public StringView ResourcesDirectory
 	{
-		get => _contentDirectory;
+		get => _resourcesDirectory;
 		private set
 		{
-			_contentDirectory.Clear();
-			_contentDirectory.Append(value);
-			Path.Fixup(_contentDirectory);
+			_resourcesDirectory.Set(value);
+			Path.Fixup(_resourcesDirectory);
+		}
+	}
+
+	public StringView AssetsDirectory
+	{
+		get => _assetsDirectory;
+		private set
+		{
+			_assetsDirectory.Set(value);
+			Path.Fixup(_assetsDirectory);
 		}
 	}
 
 	public this(EditorContentManager contentManager)
 	{
 		_contentManager = contentManager;
+
+		// Create a root node that will contain all Asset directory nodes.
+		_assetRootNode = new TreeNode<AssetNode>(new AssetNode());
+		_assetRootNode->Path = new String();
+		_assetRootNode->Name = new String();
+		_assetRootNode->IsDirectory = true;
+
+		Log.EngineLogger.Trace($"Created root node");
 	}
 
-	public void SetContentDirectory(StringView contentDirectory)
+	public void SetResourcesDirectory(StringView fileName)
 	{
-		ContentDirectory = contentDirectory;
+		ResourcesDirectory = fileName;
+
+		_resourcesDirectoryNode?.ForEach(scope (node) => {
+			_pathToAssetNode.Remove(node->Path);
+			_identifierToAssetNode.Remove(node->Identifier);
+		});
+		DeleteTreeAndChildren!(_resourcesDirectoryNode);
+
+		if (!Directory.Exists(ResourcesDirectory))
+		{
+			Log.EngineLogger.Error($"Resources directory \"{ResourcesDirectory}\" doesn't exist.");
+			return;
+		}
+		
+		AssetNode assetNode = new AssetNode();
+		assetNode.Path = new String(ResourcesDirectory);
+		assetNode.Name = new String();
+		assetNode.Identifier = new String("###resources");
+		assetNode.IsDirectory = true;
+		Path.GetFileName(assetNode.Path, assetNode.Name);
+
+		_resourcesDirectoryNode = _assetRootNode.AddChild(assetNode);
+		_pathToAssetNode.Add(assetNode.Path, _resourcesDirectoryNode);
+		_identifierToAssetNode.Add(assetNode.Identifier, _resourcesDirectoryNode);
+
+		Log.EngineLogger.Trace($"Created directory node for: \"{ResourcesDirectory}\"");
+
+		_fileSystemDirty = true;
+
+		// TODO: Watch resources folder?
+		//SetupResourcesFileSystemWatcher();
+
+		Update();
+	}
+
+	public void SetAssetsDirectory(StringView fileName)
+	{
+		AssetsDirectory = fileName;
+		
+		_assetsDirectoryNode?.ForEach(scope (node) => {
+			_pathToAssetNode.Remove(node->Path);
+			_identifierToAssetNode.Remove(node->Identifier);
+		});
+		DeleteTreeAndChildren!(_assetsDirectoryNode);
+		
+		if (!Directory.Exists(AssetsDirectory))
+		{
+			// TODO: This is not an error, if no project is loaded
+			Log.EngineLogger.Warning($"Assets directory \"{AssetsDirectory}\" doesn't exist.");
+			return;
+		}
+
+		AssetNode assetNode = new AssetNode();
+		assetNode.Path = new String(AssetsDirectory);
+		assetNode.Name = new String();
+		assetNode.Identifier = new String("###assets");
+		assetNode.IsDirectory = true;
+		Path.GetFileName(assetNode.Path, assetNode.Name);
+
+		_assetsDirectoryNode = _assetRootNode.AddChild(assetNode);
+		_pathToAssetNode.Add(assetNode.Path, _assetsDirectoryNode);
+		_identifierToAssetNode.Add(assetNode.Identifier, _assetsDirectoryNode);
+
+		Log.EngineLogger.Trace($"Created directory node for: \"{AssetsDirectory}\"");
+
 
 		_fileSystemDirty = true;
 
@@ -99,7 +216,7 @@ class AssetHierarchy
 	private void SetupFileSystemWatcher()
 	{
 		delete fsw;
-		fsw = new FileSystemWatcher(_contentDirectory);
+		fsw = new FileSystemWatcher(_assetsDirectory);
 		fsw.IncludeSubdirectories = true;
 
 		fsw.OnChanged.Add(new (filename) => {
@@ -153,6 +270,19 @@ class AssetHierarchy
 		return .Err;
 	}
 
+	/// Gets the tree node for the given filePath or .Err, if the file/directory doesn't exist.
+	/// @param filePath the path for which to return the tree node.
+	/// @remarks Do not hold a reference to the TreeNode because it can become invalid when the file hierarchy changes.
+	public Result<TreeNode<AssetNode>> GetNodeFromIdentifier(StringView identifier)
+	{
+		if (_identifierToAssetNode.TryGetValue(identifier, let treeNode))
+		{
+			return treeNode;
+		}
+
+		return .Err;
+	}
+
 	public bool FileExists(StringView filePath)
 	{
 		return _pathToAssetNode.ContainsKey(filePath);
@@ -173,27 +303,9 @@ class AssetHierarchy
 	{
 		Log.EngineLogger.Trace($"Updating asset hierarchy");
 
-		if (_assetHierarchy == null)
-		{
-			// TODO: move to init?
-
-			_assetHierarchy = new TreeNode<AssetNode>(new AssetNode());
-			_assetHierarchy->Path = new String(ContentDirectory);
-			_assetHierarchy->Name = new String("Content");
-			_assetHierarchy->IsDirectory = true;
-
-			Log.EngineLogger.Trace($"Created directory node for: \"{_assetHierarchy->Path}\"");
-
-			_pathToAssetNode.Add(ContentDirectory, _assetHierarchy);
-		}
-
 		void HandleFile(AssetNode node)
 		{
-			String identifier = scope .(node.Path.Length);
-			Path.GetRelativePath(node.Path, _contentDirectory, identifier);
-			AssetIdentifier.Fixup(identifier);
-
-			node.AssetFile = new AssetFile(_contentManager, identifier, node.Path, node.IsDirectory);
+			node.AssetFile = new AssetFile(_contentManager, node.Identifier, node.Path, node.IsDirectory);
 		}
 
 		/// Determines the files that belong to the given directory and adds them to the tree.
@@ -229,9 +341,12 @@ class AssetHierarchy
 
 					assetNode.Path = new String(filepathBuffer);
 					assetNode.IsDirectory = false;
+					
+					DetermineIdentifier(assetNode, directory);
 
 					treeNode = directory.AddChild(assetNode);
 					_pathToAssetNode.Add(assetNode.Path, treeNode);
+					_identifierToAssetNode.Add(assetNode.Identifier, treeNode);
 
 					//GrabSubAssets(node);
 					HandleFile(treeNode.Value);
@@ -243,17 +358,6 @@ class AssetHierarchy
 
 		void RemoveOrphanedEntries(TreeNode<AssetNode> node)
 		{
-			/// Removes the node and its children from _pathToAssetNode
-			void RemoveSubtree(TreeNode<AssetNode> tree)
-			{
-				_pathToAssetNode.Remove(tree->Path);
-
-				for (var child in tree.Children)
-				{
-					RemoveSubtree(child);
-				}
-			}
-
 			for (TreeNode<AssetNode> child in node.Children)
 			{
 				if (!Directory.Exists(child->Path) && !File.Exists(child->Path))
@@ -262,13 +366,37 @@ class AssetHierarchy
 
 					@child.Remove();
 
-					RemoveSubtree(child);
+					child.ForEach(scope (node) => {
+						_pathToAssetNode.Remove(node->Path);
+						_identifierToAssetNode.Remove(node->Identifier);
+					});
 
 					DeleteTreeAndChildren!(child);
 				}
 			}
 		}
-		
+
+		void DetermineIdentifier(AssetNode assetNode, TreeNode<AssetNode> parentNode)
+		{
+			if (assetNode.Identifier == null)
+				assetNode.Identifier = new String();
+
+			assetNode.Identifier.Clear();
+
+			// Get the Identifier which is simply the path relative to the asste root (either Resources- or Assets-Folder)
+			if (parentNode.IsInSubtree(_resourcesDirectoryNode))
+			{
+				Path.GetRelativePath(assetNode.Path, _resourcesDirectoryNode->Path, assetNode.Identifier);
+				assetNode.Identifier.Insert(0, "Resources/");
+			}
+			else if (parentNode.IsInSubtree(_assetsDirectoryNode))
+			{
+				Path.GetRelativePath(assetNode.Path, _assetsDirectoryNode->Path, assetNode.Identifier);
+				assetNode.Identifier.Insert(0, "Assets/");
+			}
+			AssetIdentifier.Fixup(assetNode.Identifier);
+		}
+
 		/// Adds the given directory to the specified tree.
 		/// Recursively adds all Files and Subdirectories.
 		void AddDirectoryToTree(String path, TreeNode<AssetNode> parentNode)
@@ -284,11 +412,29 @@ class AssetHierarchy
 				AssetNode assetNode = new AssetNode();
 				assetNode.Path = new String(path);
 				assetNode.Name = new String();
+				//assetNode.Identifier = new String();
 				assetNode.IsDirectory = true;
 				Path.GetFileName(assetNode.Path, assetNode.Name);
 
+				DetermineIdentifier(assetNode, parentNode);
+
+				/*// Get the Identifier which is simply the path relative to the asste root (either Resources- or Assets-Folder)
+				if (parentNode == _resourcesDirectoryNode || parentNode.IsChildOf(_resourcesDirectoryNode))
+				{
+					Path.GetRelativePath(assetNode.Path, _resourcesDirectoryNode->Path, assetNode.Identifier);
+					assetNode.Identifier.Insert(0, "Resources/");
+				}
+				else
+				{
+					Path.GetRelativePath(assetNode.Path, _assetsDirectoryNode->Path, assetNode.Identifier);
+					assetNode.Identifier.Insert(0, "Assets/");
+				}
+				AssetIdentifier.Fixup(assetNode.Identifier);*/
+
 				treeNode = parentNode.AddChild(assetNode);
 				_pathToAssetNode.Add(assetNode.Path, treeNode);
+				// No Identifiers for Directories, because we can't use directories as Assets anyways...
+				//_identifierToAssetNode.Add(assetNode.Identifier, treeNode);
 
 				Log.EngineLogger.Trace($"Created directory node for: \"{assetNode.Path}\"");
 			}
@@ -309,9 +455,39 @@ class AssetHierarchy
 
 			RemoveOrphanedEntries(treeNode);
 		}
+
+		if (!AssetsDirectory.IsWhiteSpace)
+		{
+			String filter = scope $"{AssetsDirectory}/*";
+
+			String directoryNameBuffer = scope String(256);
+
+			for (var directory in Directory.Enumerate(filter, .Directories))
+			{
+				directory.GetFilePath(directoryNameBuffer..Clear());
+
+				AddDirectoryToTree(directoryNameBuffer, _assetsDirectoryNode);
+			}
+		}
 		
-		String filter = scope $"{ContentDirectory}/*";
-		
+		if (!ResourcesDirectory.IsWhiteSpace)
+		{
+			String filter = scope $"{ResourcesDirectory}/*";
+
+			String directoryNameBuffer = scope String(256);
+	
+			for (var directory in Directory.Enumerate(filter, .Directories))
+			{
+				directory.GetFilePath(directoryNameBuffer..Clear());
+	
+				AddDirectoryToTree(directoryNameBuffer, _resourcesDirectoryNode);
+			}
+	
+			RemoveOrphanedEntries(_assetRootNode);
+		}
+
+		//*String filter = scope $"{AssetsDirectory}/*";
+		/*
 		String directoryNameBuffer = scope String(256);
 
 		for (var directory in Directory.Enumerate(filter, .Directories))
@@ -321,7 +497,7 @@ class AssetHierarchy
 			AddDirectoryToTree(directoryNameBuffer, _assetHierarchy);
 		}
 		
-		RemoveOrphanedEntries(_assetHierarchy);
+		RemoveOrphanedEntries(_assetHierarchy);*/
 
 		_fileSystemDirty = false;
 	}
@@ -336,7 +512,7 @@ class AssetHierarchy
 			fileName.RemoveFromEnd(AssetFile.ConfigFileExtension.Length);
 
 		String fileNameWithContentRoot = scope .();
-		Path.InternalCombine(fileNameWithContentRoot, _contentDirectory, fileName);
+		Path.InternalCombine(fileNameWithContentRoot, _assetsDirectory, fileName);
 
 		var nodeResult = GetNodeFromPath(fileNameWithContentRoot);
 
@@ -366,10 +542,10 @@ class AssetHierarchy
 
 
 		String oldFileNameWithContentRoot = scope .();
-		Path.InternalCombine(oldFileNameWithContentRoot, _contentDirectory, oldFilePath);
+		Path.InternalCombine(oldFileNameWithContentRoot, _assetsDirectory, oldFilePath);
 		
 		String newFileNameWithContentRoot = scope .();
-		Path.InternalCombine(newFileNameWithContentRoot, _contentDirectory, newFilePath);
+		Path.InternalCombine(newFileNameWithContentRoot, _assetsDirectory, newFilePath);
 		
 		// Rename config file
 		{

@@ -4,6 +4,7 @@ using System;
 using System.Diagnostics;
 using GlitchyEngine.Renderer.Text;
 using GlitchyEngine.World;
+using GlitchyEngine.Content;
 
 namespace GlitchyEngine.Renderer
 {
@@ -130,9 +131,9 @@ namespace GlitchyEngine.Renderer
 		private static bool s_sceneRunning;
 #endif
 
-		private static Effect s_quadBatchEffect;
-		private static Effect s_circleBatchEffect;
-		private static Effect s_lineBatchEffect;
+		private static AssetHandle<Effect> s_quadBatchEffect;
+		private static AssetHandle<Effect> s_circleBatchEffect;
+		private static AssetHandle<Effect> s_lineBatchEffect;
 		
 		private static GeometryBinding s_quadGeometry;
 
@@ -161,9 +162,9 @@ namespace GlitchyEngine.Renderer
 		private static DrawOrder s_drawOrder;
 
 		/// The effect that is currently used to draw the sprites.
-		private static Effect s_currentQuadEffect;
-		private static Effect s_currentCircleEffect;
-		private static Effect s_currentLineEffect;
+		private static AssetHandle<Effect> s_currentQuadEffect;
+		private static AssetHandle<Effect> s_currentCircleEffect;
+		private static AssetHandle<Effect> s_currentLineEffect;
 
 		public static uint32 MaxInstancesPerBatch
 		{
@@ -183,9 +184,9 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			s_quadBatchEffect = new Effect("content\\Shaders\\spritebatch.hlsl");
-			s_circleBatchEffect = new Effect("content\\Shaders\\circlebatch.hlsl");
-			s_lineBatchEffect = new Effect("content\\Shaders\\linebatch.hlsl");
+			s_quadBatchEffect = Content.LoadAsset("Resources/Shaders/spritebatch.hlsl", null, true);
+			s_circleBatchEffect = Content.LoadAsset("Resources/Shaders/circlebatch.hlsl", null, true);
+			s_lineBatchEffect = Content.LoadAsset("Resources/Shaders/linebatch.hlsl", null, true);
 		}
 
 		private static void InitGeometry()
@@ -427,10 +428,6 @@ namespace GlitchyEngine.Renderer
 
 			FontRenderer.Deinit();
 
-			s_quadBatchEffect.ReleaseRef();
-			s_circleBatchEffect.ReleaseRef();
-			s_lineBatchEffect.ReleaseRef();
-
 			s_quadGeometry.ReleaseRef();
 
 			s_whiteTexture.ReleaseRef();
@@ -449,10 +446,6 @@ namespace GlitchyEngine.Renderer
 			delete s_circleInstanceQueue;
 			delete s_lineInstanceQueue;
 
-			s_currentQuadEffect?.ReleaseRef();
-			s_currentCircleEffect?.ReleaseRef();
-			s_currentLineEffect?.ReleaseRef();
-
 			s_opaqueBlendState.ReleaseRef();
 			s_transparentBlendState.ReleaseRef();
 
@@ -462,7 +455,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		// TODO: remove?
-		public static void BeginScene(OldCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
+		public static void BeginScene(OldCamera camera, DrawOrder drawOrder = .SortByTexture, AssetHandle<Effect> effect = .Invalid, AssetHandle<Effect> circleEffect = .Invalid)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
@@ -470,28 +463,26 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
 #endif
 
-			//s_textureColorEffect.Bind(Renderer._context);
-			
-			s_currentQuadEffect?.ReleaseRef();
-			if(effect != null)
+			if(effect != .Invalid)
 			{
-				s_currentQuadEffect = effect..AddRef();
+				s_currentQuadEffect = effect;
 			}
 			else
 			{
-				s_currentQuadEffect = s_quadBatchEffect..AddRef();
+				s_currentQuadEffect = s_quadBatchEffect;
 			}
 
-			s_currentCircleEffect?.ReleaseRef();
-			if(circleEffect != null)
+			if(circleEffect != .Invalid)
 			{
-				s_currentCircleEffect = effect..AddRef();
+				s_currentCircleEffect = circleEffect;
 			}
 			else
 			{
-				s_currentCircleEffect = s_circleBatchEffect..AddRef();
+				s_currentCircleEffect = s_circleBatchEffect;
 			}
-			
+
+			s_currentLineEffect = s_lineBatchEffect;
+
 			s_currentQuadEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 			s_currentCircleEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 
@@ -502,45 +493,33 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
-		public static void BeginScene(Camera camera, Matrix transform, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
+		public static void BeginScene(Camera camera, Matrix transform, DrawOrder drawOrder = .SortByTexture, AssetHandle<Effect> effect = .Invalid, AssetHandle<Effect> circleEffect = .Invalid)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
 			Log.EngineLogger.AssertDebug(s_initialized, "Renderer2D was not initialized.");
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
 #endif
-
-			//s_textureColorEffect.Bind(Renderer._context);
 			
-			s_currentQuadEffect?.ReleaseRef();
-			if(effect != null)
+			if(effect != .Invalid)
 			{
-				s_currentQuadEffect = effect..AddRef();
+				s_currentQuadEffect = effect;
 			}
 			else
 			{
-				s_currentQuadEffect = s_quadBatchEffect..AddRef();
+				s_currentQuadEffect = s_quadBatchEffect;
 			}
 
-			s_currentCircleEffect?.ReleaseRef();
-			if(circleEffect != null)
+			if(circleEffect != .Invalid)
 			{
-				s_currentCircleEffect = effect..AddRef();
+				s_currentCircleEffect = circleEffect;
 			}
 			else
 			{
-				s_currentCircleEffect = s_circleBatchEffect..AddRef();
+				s_currentCircleEffect = s_circleBatchEffect;
 			}
-			
-			s_currentLineEffect?.ReleaseRef();
-			/*if(circleEffect != null)
-			{
-				s_currentLineEffect = effect..AddRef();
-			}
-			else
-			{*/
-				s_currentLineEffect = s_lineBatchEffect..AddRef();
-			//}
+
+			s_currentLineEffect = s_lineBatchEffect;
 
 			Matrix viewProjection = camera.Projection * Matrix.Invert(transform);
 			
@@ -555,7 +534,7 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
-		public static void BeginScene(EditorCamera camera, DrawOrder drawOrder = .SortByTexture, Effect effect = null, Effect circleEffect = null)
+		public static void BeginScene(EditorCamera camera, DrawOrder drawOrder = .SortByTexture, AssetHandle<Effect> effect = .Invalid, AssetHandle<Effect> circleEffect = .Invalid)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
@@ -563,37 +542,25 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
 #endif
 
-			//s_textureColorEffect.Bind(Renderer._context);
-			
-			s_currentQuadEffect?.ReleaseRef();
-			if(effect != null)
+			if(effect != .Invalid)
 			{
-				s_currentQuadEffect = effect..AddRef();
+				s_currentQuadEffect = effect;
 			}
 			else
 			{
-				s_currentQuadEffect = s_quadBatchEffect..AddRef();
+				s_currentQuadEffect = s_quadBatchEffect;
 			}
 
-			s_currentCircleEffect?.ReleaseRef();
-			if(circleEffect != null)
+			if(circleEffect != .Invalid)
 			{
-				s_currentCircleEffect = effect..AddRef();
+				s_currentCircleEffect = circleEffect;
 			}
 			else
 			{
-				s_currentCircleEffect = s_circleBatchEffect..AddRef();
+				s_currentCircleEffect = s_circleBatchEffect;
 			}
-			
-			s_currentLineEffect?.ReleaseRef();
-			/*if(circleEffect != null)
-			{
-				s_currentLineEffect = effect..AddRef();
-			}
-			else
-			{*/
-				s_currentLineEffect = s_lineBatchEffect..AddRef();
-			//}
+
+			s_currentLineEffect = s_lineBatchEffect;
 
 			Matrix viewProjection = camera.Projection * camera.View;
 			

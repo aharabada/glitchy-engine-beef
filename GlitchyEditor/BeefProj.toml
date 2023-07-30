@@ -7,4 +7,4 @@ TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
 
 [Configs.Debug.Win64]
-DebugCommandArguments = "\"content\\Scenes\\physics2D.scene\""
+DebugCommandArguments = "\"D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor\\SandboxProject\""

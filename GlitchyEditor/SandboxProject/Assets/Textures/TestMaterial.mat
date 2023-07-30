@@ -1,11 +1,11 @@
 {
-	Effect = "Shaders/myEffect.hlsl",
+	Effect = "Resources/Shaders/myEffect.hlsl",
 	Textures = [
-		"AlbedoTexture": "Textures/TestMat/rustediron2_albedo.png",
-		"NormalTexture": "Textures/TestMat/rustediron2_normal.png",
-		"MetallicTexture": "Textures/TestMat/rustediron2_metallic.png",
-		"RoughnessTexture": "Textures/TestMat/rustediron2_roughness.png",
-		"EmissiveTexture": "Textures/rocket.png"
+		"AlbedoTexture": "Assets/Textures/TestMat/rustediron2_albedo.png",
+		"NormalTexture": "Assets/Textures/TestMat/rustediron2_normal.png",
+		"MetallicTexture": "Assets/Textures/TestMat/rustediron2_metallic.png",
+		"RoughnessTexture": "Assets/Textures/TestMat/rustediron2_roughness.png",
+		"EmissiveTexture": "Assets/Textures/rocket.png"
 	],
 	Variables = [
 		"AlbedoColor": .ColorRGBA{

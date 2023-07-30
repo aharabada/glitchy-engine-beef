@@ -175,8 +175,8 @@ class TexturererViewerer
 
 	public this()
 	{
-		_effect = Content.LoadAsset("Shaders\\textureViewerShader.hlsl");
-		_renderTargetEffect = Content.LoadAsset("Shaders\\RenderTargetGroupViewer.hlsl");
+		_effect = Content.LoadAsset("Resources/Shaders/textureViewerShader.hlsl");
+		_renderTargetEffect = Content.LoadAsset("Resources/Shaders/RenderTargetGroupViewer.hlsl");
 	}
 	
 	float2 _position;

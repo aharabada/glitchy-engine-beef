@@ -57,11 +57,11 @@ namespace GlitchyEngine.Renderer
 
 			Path.Combine(pathNextToParent, includer._parentFileDirectory, StringView(fileName));
 
-			Stream fileStream = Application.Get().ContentManager.GetStream(pathNextToParent);
+			Stream fileStream = Application.Instance.ContentManager.GetStream(pathNextToParent);
 
 			if (fileStream == null)
 			{
-				fileStream = Application.Get().ContentManager.GetStream(StringView(fileName));
+				fileStream = Application.Instance.ContentManager.GetStream(StringView(fileName));
 			}
 
 			if (fileStream == null)

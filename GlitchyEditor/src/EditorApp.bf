@@ -36,7 +36,7 @@ namespace GlitchyEditor
 			_contentManager.SetAsDefaultAssetLoader<EffectAssetLoader>(".hlsl");
 			_contentManager.SetAssetPropertiesEditor<EffectAssetLoader>(=> EffectAssetPropertiesEditor.Factory);
 
-			_contentManager.SetContentDirectory("./content");
+			_contentManager.SetResourcesDirectory("./Resources");
 
 			return _contentManager;
 		}

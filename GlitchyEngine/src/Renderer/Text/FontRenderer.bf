@@ -4,6 +4,7 @@ using System.Diagnostics;
 using GlitchyEngine.Math;
 using System.Collections;
 using GlitchyEngine.Core;
+using GlitchyEngine.Content;
 using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
@@ -15,7 +16,7 @@ namespace GlitchyEngine.Renderer.Text
 	{
 		internal static FT_Library s_Library;
 
-		public static Effect _msdfEffect;
+		public static AssetHandle<Effect> _msdfEffect;
 
 		internal static bool s_isInitialized;
 
@@ -28,7 +29,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			InitFreetype();
 
-			_msdfEffect = new Effect("content\\Shaders\\msdfShader.hlsl");
+			_msdfEffect = Content.LoadAsset("Resources/Shaders/msdfShader.hlsl");
 
 			s_isInitialized = true;
 		}
@@ -36,8 +37,6 @@ namespace GlitchyEngine.Renderer.Text
 		internal static void Deinit()
 		{
 			Debug.Profiler.ProfileFunction!();
-
-			_msdfEffect.ReleaseRef();
 
 			DeinitFreetype();
 			
@@ -334,7 +333,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			// TODO: this is very not good!
 			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
-			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect..AddRef();
+			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect;
 			// TODO: oh no....
 			// Copy viewProjection from current effect
 			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
@@ -409,7 +408,6 @@ namespace GlitchyEngine.Renderer.Text
 
 			// TODO: not good!
 			// Change back effect
-			_msdfEffect.ReleaseRef();
 			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
 			
 			// release all atlas textures
@@ -440,7 +438,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			// TODO: this is very not good!
 			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
-			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect..AddRef();
+			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect;
 			// TODO: oh no....
 			// Copy viewProjection from current effect
 			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
@@ -663,7 +661,6 @@ namespace GlitchyEngine.Renderer.Text
 
 			// TODO: not good!
 			// Change back effect
-			_msdfEffect.ReleaseRef();
 			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
 			
 			// release all atlas textures

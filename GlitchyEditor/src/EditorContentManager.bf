@@ -15,12 +15,12 @@ namespace GlitchyEditor;
 
 class EditorContentManager : IContentManager
 {
-	private append String _contentDirectory = .();
+	private append String _resourcesDirectory = .();
+	private append String _assetsDirectory = .();
 
-	public StringView ContentDirectory => _contentDirectory;
+	public StringView ResourcesDirectory => _resourcesDirectory;
+	public StringView AssetDirectory => _assetsDirectory;
 	
-	//private append List<String> _identifiers = .() ~ _.ClearAndDeleteItems();
-
 	private append Dictionary<StringView, AssetHandle> _identiferToHandle = .(); // TODO: Check if all resources are unloaded
 
 	private append Dictionary<AssetHandle, Asset> _handleToAsset = .();
@@ -64,13 +64,20 @@ class EditorContentManager : IContentManager
 		_identiferToHandle.Add(asset.Identifier, asset.Handle);
 	}
 
-	public void SetContentDirectory(StringView contentDirectory)
+	public void SetResourcesDirectory(StringView fileName)
 	{
-		_contentDirectory.Clear();
-		_contentDirectory.Append(contentDirectory);
-		Path.Fixup(_contentDirectory);
+		_resourcesDirectory.Set(fileName);
+		Path.Fixup(_resourcesDirectory);
 
-		_assetHierarchy.SetContentDirectory(contentDirectory);
+		_assetHierarchy.SetResourcesDirectory(_resourcesDirectory);
+	}
+
+	public void SetAssetDirectory(StringView fileName)
+	{
+		_assetsDirectory.Set(fileName);
+		Path.Fixup(_assetsDirectory);
+
+		_assetHierarchy.SetAssetsDirectory(_assetsDirectory);
 	}
 
 	public void Update()
@@ -302,7 +309,7 @@ class EditorContentManager : IContentManager
 
 	private void GetResourceFilePath(StringView resourceName, String filePath)
 	{
-		Path.Combine(filePath, _contentDirectory, resourceName);
+		Path.Combine(filePath, _assetsDirectory, resourceName);
 
 		Path.Fixup(filePath);
 	}
@@ -336,8 +343,11 @@ class EditorContentManager : IContentManager
 	public AssetHandle LoadAsset(StringView identifier, bool blocking = false)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
+
+		// It's valid to request no entity, but no entity is obviously invalid.
+		if (identifier.IsWhiteSpace)
+			return .Invalid;
 		
-		// Todo: How strict should we be on paths?
 		String fixedIdentifier = scope String(identifier);
 		AssetIdentifier.Fixup(fixedIdentifier);
 
@@ -346,16 +356,15 @@ class EditorContentManager : IContentManager
 
 		GetResourceAndSubassetName(fixedIdentifier, let resourceName, let subassetName);
 
-		String filePath = scope .();
-		GetResourceFilePath(resourceName, filePath);
-
-		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromPath(filePath);
+		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromIdentifier(fixedIdentifier);
 
 		if (resultNode case .Err)
 		{
-			Log.EngineLogger.Error($"Could not find asset \"{filePath}\".");
+			Log.EngineLogger.Error($"Could not find asset \"{fixedIdentifier}\".");
 			return .Invalid;
 		}
+		
+		String filePath = scope String(resultNode->Value.Path);
 
 		AssetFile file = resultNode->Value.AssetFile;
 		
@@ -374,7 +383,7 @@ class EditorContentManager : IContentManager
 		// TODO: Support lazy loading for all asset types
 		if (!(assetLoader is EditorTextureAssetLoader) || blocking)
 		{
-			Stream stream = GetStream(filePath);
+			Stream stream = OpenStream(filePath, true);
 
 			loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
 
@@ -418,7 +427,7 @@ class EditorContentManager : IContentManager
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 		
-		Stream stream = GetStream(filePath);
+		Stream stream = OpenStream(filePath, true);
 
 		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
 
@@ -511,23 +520,13 @@ class EditorContentManager : IContentManager
 		return .Ok;
 	}
 
-	private Stream OpenStream(StringView assetIdentifier, bool openOnly)
+	private Stream OpenStream(StringView fileName, bool openOnly)
 	{
-		var assetIdentifier;
-
-		if (!assetIdentifier.StartsWith(_contentDirectory))
-		{
-			String filePath = scope:: String(assetIdentifier.Length + _contentDirectory.Length + 2);
-			Path.Combine(filePath, _contentDirectory, assetIdentifier);
-
-			assetIdentifier = filePath;
-		}
-
 		FileStream fs = new FileStream();
 
 		FileMode fileMode = openOnly ? FileMode.Open : FileMode.OpenOrCreate;
 
-		var result = fs.Open(assetIdentifier, fileMode, openOnly ? .Read : .ReadWrite, .ReadWrite);
+		var result = fs.Open(fileName, fileMode, openOnly ? .Read : .ReadWrite, .ReadWrite);
 
 		if (result case .Err)
 			return null;
@@ -535,28 +534,21 @@ class EditorContentManager : IContentManager
 		return fs;
 	}
 
-	// TODO: probably not needed
+	/// Returns a file stream for the given assetIdentifier
 	public Stream GetStream(StringView assetIdentifier)
 	{
-		return OpenStream(assetIdentifier, true);
+		String fixuppedIdentifier = scope .(assetIdentifier);
+		AssetIdentifier.Fixup(fixuppedIdentifier);
 
-		/*var assetIdentifier;
+		var node = _assetHierarchy.GetNodeFromIdentifier(fixuppedIdentifier);
 
-		if (!assetIdentifier.StartsWith(_contentDirectory))
+		if (node case .Err)
 		{
-			String filePath = scope:: String(assetIdentifier.Length + _contentDirectory.Length + 2);
-			Path.Combine(filePath, _contentDirectory, assetIdentifier);
-
-			assetIdentifier = filePath;
+			Log.EngineLogger.Error($"Could not find asset node \"{assetIdentifier}\".");
+			return null;
 		}
 
-		FileStream fs = new FileStream();
-		var result = fs.Open(assetIdentifier, .Open, .Read, .ReadWrite);
-
-		if (result case .Err)
-			return null;
-
-		return fs;*/
+		return OpenStream(node->Value.Path, true);
 	}
 
 	public AssetHandle ManageAsset(Asset asset)

@@ -176,8 +176,8 @@ namespace GlitchyEngine.Renderer
 
 		static void InitDeferredRenderer()
 		{
-			TestFullscreenEffect = Content.LoadAsset("Shaders\\simpleLight.hlsl");
-			s_tonemappingEffect = Content.LoadAsset("Shaders\\SimpleTonemapping.hlsl");
+			TestFullscreenEffect = Content.LoadAsset("Resources/Shaders/simpleLight.hlsl");
+			s_tonemappingEffect = Content.LoadAsset("Resources/Shaders/SimpleTonemapping.hlsl");
 
 			_gBuffer = new GBuffer();
 			BlendStateDescription gBufferBlendDesc = .Default;
