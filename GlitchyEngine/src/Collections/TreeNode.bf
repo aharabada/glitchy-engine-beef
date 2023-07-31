@@ -1,4 +1,5 @@
 using System.Collections;
+using System;
 
 namespace GlitchyEngine.Collections
 {
@@ -35,6 +36,11 @@ namespace GlitchyEngine.Collections
 			Children.Add(newChild);
 
 			return newChild;
+		}
+
+		public bool RemoveChild(TreeNode<T> value)
+		{
+			return Children.Remove(value);
 		}
 
 		public Self FindNode(T value)

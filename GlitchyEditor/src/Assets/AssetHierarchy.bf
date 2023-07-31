@@ -145,7 +145,9 @@ class AssetHierarchy
 			_pathToAssetNode.Remove(node->Path);
 			_identifierToAssetNode.Remove(node->Identifier);
 		});
+		_assetRootNode.RemoveChild(_resourcesDirectoryNode);
 		DeleteTreeAndChildren!(_resourcesDirectoryNode);
+		_resourcesDirectoryNode = null;
 
 		if (!Directory.Exists(ResourcesDirectory))
 		{
@@ -182,7 +184,9 @@ class AssetHierarchy
 			_pathToAssetNode.Remove(node->Path);
 			_identifierToAssetNode.Remove(node->Identifier);
 		});
+		_assetRootNode.RemoveChild(_assetsDirectoryNode);
 		DeleteTreeAndChildren!(_assetsDirectoryNode);
+		_assetsDirectoryNode = null;
 		
 		if (!Directory.Exists(AssetsDirectory))
 		{
@@ -190,6 +194,7 @@ class AssetHierarchy
 			Log.EngineLogger.Warning($"Assets directory \"{AssetsDirectory}\" doesn't exist.");
 			return;
 		}
+		
 
 		AssetNode assetNode = new AssetNode();
 		assetNode.Path = new String(AssetsDirectory);
@@ -297,6 +302,27 @@ class AssetHierarchy
 		}
 	}
 	
+	/// Determines and set the Identfier for the given asset node.
+	private void DetermineIdentifier(TreeNode<AssetNode> assetNode)
+	{
+		if (assetNode->Identifier == null)
+			assetNode->Identifier = new String();
+
+		assetNode->Identifier.Clear();
+
+		// Get the Identifier which is simply the path relative to the asste root (either Resources- or Assets-Folder)
+		if (assetNode.IsInSubtree(_resourcesDirectoryNode))
+		{
+			Path.GetRelativePath(assetNode->Path, _resourcesDirectoryNode->Path, assetNode->Identifier);
+			assetNode->Identifier.Insert(0, "Resources/");
+		}
+		else if (assetNode.IsInSubtree(_assetsDirectoryNode))
+		{
+			Path.GetRelativePath(assetNode->Path, _assetsDirectoryNode->Path, assetNode->Identifier);
+			assetNode->Identifier.Insert(0, "Assets/");
+		}
+		AssetIdentifier.Fixup(assetNode->Identifier);
+	}
 
 	/// Rebuilds the asset file hierarchy.
 	private void UpdateFiles()
@@ -324,6 +350,7 @@ class AssetHierarchy
 				entry.GetFilePath(filepathBuffer..Clear());
 
 				Path.GetExtension(filepathBuffer, .. extensionBuffer..Clear());
+				filepathBuffer.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 
 				// Ignore meta files.
 				if (extensionBuffer.Equals(AssetFile.ConfigFileExtension, .OrdinalIgnoreCase))
@@ -337,14 +364,13 @@ class AssetHierarchy
 					assetNode.Name = new String();
 					Path.GetFileName(filepathBuffer, assetNode.Name);
 					
-					filepathBuffer.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
-
 					assetNode.Path = new String(filepathBuffer);
 					assetNode.IsDirectory = false;
 					
-					DetermineIdentifier(assetNode, directory);
-
 					treeNode = directory.AddChild(assetNode);
+					
+					DetermineIdentifier(treeNode);
+
 					_pathToAssetNode.Add(assetNode.Path, treeNode);
 					_identifierToAssetNode.Add(assetNode.Identifier, treeNode);
 
@@ -376,27 +402,6 @@ class AssetHierarchy
 			}
 		}
 
-		void DetermineIdentifier(AssetNode assetNode, TreeNode<AssetNode> parentNode)
-		{
-			if (assetNode.Identifier == null)
-				assetNode.Identifier = new String();
-
-			assetNode.Identifier.Clear();
-
-			// Get the Identifier which is simply the path relative to the asste root (either Resources- or Assets-Folder)
-			if (parentNode.IsInSubtree(_resourcesDirectoryNode))
-			{
-				Path.GetRelativePath(assetNode.Path, _resourcesDirectoryNode->Path, assetNode.Identifier);
-				assetNode.Identifier.Insert(0, "Resources/");
-			}
-			else if (parentNode.IsInSubtree(_assetsDirectoryNode))
-			{
-				Path.GetRelativePath(assetNode.Path, _assetsDirectoryNode->Path, assetNode.Identifier);
-				assetNode.Identifier.Insert(0, "Assets/");
-			}
-			AssetIdentifier.Fixup(assetNode.Identifier);
-		}
-
 		/// Adds the given directory to the specified tree.
 		/// Recursively adds all Files and Subdirectories.
 		void AddDirectoryToTree(String path, TreeNode<AssetNode> parentNode)
@@ -416,8 +421,6 @@ class AssetHierarchy
 				assetNode.IsDirectory = true;
 				Path.GetFileName(assetNode.Path, assetNode.Name);
 
-				DetermineIdentifier(assetNode, parentNode);
-
 				/*// Get the Identifier which is simply the path relative to the asste root (either Resources- or Assets-Folder)
 				if (parentNode == _resourcesDirectoryNode || parentNode.IsChildOf(_resourcesDirectoryNode))
 				{
@@ -432,6 +435,9 @@ class AssetHierarchy
 				AssetIdentifier.Fixup(assetNode.Identifier);*/
 
 				treeNode = parentNode.AddChild(assetNode);
+				
+				DetermineIdentifier(treeNode);
+
 				_pathToAssetNode.Add(assetNode.Path, treeNode);
 				// No Identifiers for Directories, because we can't use directories as Assets anyways...
 				//_identifierToAssetNode.Add(assetNode.Identifier, treeNode);
@@ -450,10 +456,9 @@ class AssetHierarchy
 
 				AddDirectoryToTree(directoryNameBuffer, treeNode);
 			}
-
-			AddFilesOfDirectory(treeNode);
-
+			
 			RemoveOrphanedEntries(treeNode);
+			AddFilesOfDirectory(treeNode);
 		}
 
 		if (!AssetsDirectory.IsWhiteSpace)
@@ -573,9 +578,13 @@ class AssetHierarchy
 		}
 		
 		_pathToAssetNode.Remove(oldFileNameWithContentRoot);
+		_identifierToAssetNode.Remove(node->Identifier);
 
 		node->Path.Set(newFileNameWithContentRoot);
 		_pathToAssetNode.Add(node->Path, node);
+
+		DetermineIdentifier(node);
+		_identifierToAssetNode.Add(node->Identifier, node);
 		
 		node->Name.Clear();
 		Path.GetFileName(newFileNameWithContentRoot, node->Name);

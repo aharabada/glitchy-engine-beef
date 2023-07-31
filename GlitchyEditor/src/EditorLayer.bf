@@ -663,8 +663,18 @@ namespace GlitchyEditor
 			}
 
 			Project newProject = Project.CreateNew(directory, projectName);
+
+			defer
+			{
+				// If we return an error, we need to cleanup the directory.
+				if (@return == .Err)
+				{
+					Directory.DelTree(directory);
+					delete newProject;
+				}
+			}
 			
-			var createAssetDirResult = Directory.CreateDirectory(newProject.AssetsFolder);
+			/*var createAssetDirResult = Directory.CreateDirectory(newProject.AssetsFolder);
 
 			if (createAssetDirResult case .Err(let error))
 			{
@@ -681,11 +691,144 @@ namespace GlitchyEditor
 			{
 				Log.ClientLogger.Error($"Failed to copy .gitignore (\"{error}\").");
 			}
+			
+			CreateScriptsProject(newProject);*/
 
-			// TODO: VS Project
+			Try!(InitProject(newProject));
+
+			Try!(OpenProject(newProject));
 
 			return .Ok;
 		}
+
+		private static Result<void> CopyTemplate(Project project)
+		{
+			String templatePath = scope .();
+			Directory.GetCurrentDirectory(templatePath);
+			Path.Combine(templatePath, "Resources/ProjectTemplate");
+
+			if (Directory.Copy(templatePath, project.WorkspacePath) case .Err)
+			{
+				Log.EngineLogger.Error($"CopyTemplate: Failed to copy template {templatePath} to {project.WorkspacePath}.");
+				return .Err;
+			}
+
+			return .Ok;
+		}
+
+		private static Result<void> InitProject(Project project)
+		{
+			Try!(CopyTemplate(project));
+			
+			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.sln", scope $"Assets/Scripts/{project.Name}.sln"));
+			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.csproj", scope $"Assets/Scripts/{project.Name}.csproj"));
+
+			Try!(FixupFile(project, scope $"Assets/Scripts/{project.Name}.sln"));
+			Try!(FixupFile(project, scope $"Assets/Scripts/{project.Name}.csproj"));
+			Try!(FixupFile(project, scope $"Assets/Scripts/Properties/AssemblyInfo.cs"));
+
+			return .Ok;
+		}
+
+		private static Result<void> MoveFile(Project project, StringView fromName, StringView toName)
+		{
+			String fromPath = scope String();
+			project.PathInProject(fromPath, fromName);
+			
+			String toPath = scope String();
+			project.PathInProject(toPath, toName);
+
+			if (File.Move(fromPath, toPath) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Failed to move file from {fromPath} to {toPath}. ({error})");
+				return .Err;
+			}
+
+			return .Ok;
+		}
+
+		private static Result<void> FixupFile(Project project, StringView fileName)
+		{
+			String fileTargetPath = scope String();
+			project.PathInProject(fileTargetPath, fileName);
+
+			String fileContent = new:ScopedAlloc! String();
+			if (File.ReadAllText(fileTargetPath, fileContent, true) case .Err)
+			{
+				Log.EngineLogger.Error($"FixupFile: Failed to read file {fileTargetPath}.");
+				return .Err;
+			}
+
+			fileContent.Replace("[ProjectName]", project.Name);
+
+			String scriptCorePath = scope .();
+			Directory.GetCurrentDirectory(scriptCorePath);
+			scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
+			fileContent.Replace("[CoreLibPath]", scriptCorePath);
+
+			if (File.WriteAllText(fileTargetPath, fileContent, false) case .Err)
+			{
+				Log.EngineLogger.Error($"FixupFile: Failed to write file {fileTargetPath}.");
+				return .Err;
+			}
+
+			return .Ok;
+		}
+
+		/*private static Result<void> CreateFolderInProject(Project project, StringView directoryName)
+		{
+			String directoryPath = scope String();
+			project.PathInProject(directoryPath, directoryName);
+
+			if (Directory.CreateDirectory(directoryPath) case .Err(let error))
+			{
+				Log.ClientLogger.Error($"Failed to create directory \"{project.AssetsFolder}\".");
+				return .Err;
+			}
+
+			return .Ok;
+		}*/
+
+		/*private static Result<void> CopyAndFixupFile(Project project, StringView sourcePath, StringView targetName)
+		{
+			String fileTargetPath = scope String();
+			project.PathInProject(fileTargetPath, targetName);
+
+			if (File.Copy(sourcePath, fileTargetPath) case .Err(let error))
+			{
+				Log.ClientLogger.Error($"Failed to copy file (\"{error}\").");
+				return .Err;
+			}
+
+			String fileContent = new:ScopedAlloc! String();
+
+			Try!(File.ReadAllText(fileTargetPath, fileContent, true));
+
+			fileContent.Replace("[ProjectName]", project.Name);
+
+			String scriptCorePath = scope .();
+			Directory.GetCurrentDirectory(scriptCorePath);
+			scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
+			fileContent.Replace("[CoreLibPath]", scriptCorePath);
+
+			Try!(File.WriteAllText(fileTargetPath, fileContent, false));
+
+			return .Ok;
+		}*/
+
+		/*private Result<void> CreateScriptsProject(Project project)
+		{
+			Try!(CreateFolderInProject(project, "Assets/Scripts"));
+			Try!(CreateFolderInProject(project, "Assets/Scripts/Properties"));
+
+			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/EmptyProject.sln", scope $"Assets/Scripts/{project.Name}.sln"));
+			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/EmptyProject.csproj", scope $"Assets/Scripts/{project.Name}.csproj"));
+			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/Properties/AssemblyInfo.cs", scope $"Assets/Scripts/Properties/AssemblyInfo.cs"));
+
+			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/.gitignore", scope $"Assets/Scripts/.gitignore"));
+
+			return .Ok;
+		}*/
 
 		private bool _openCreateProjectModal;
 
@@ -763,6 +906,17 @@ namespace GlitchyEditor
 			}
 		}
 
+		private void ShowOpenProjectDialog()
+		{
+			FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
+			Result<DialogResult> result = folderDialog.ShowDialog();
+
+			if (result case .Ok(let dialogResult) && dialogResult case .OK)
+			{
+				OpenProject(folderDialog.SelectedPath);
+			}
+		}
+
 		private void CloseCurrentProject()
 		{
 			OnSceneStop();
@@ -778,15 +932,27 @@ namespace GlitchyEditor
 
 		private Result<void> OpenProject(StringView workspacePath)
 		{
+			Project openedProject = Project.Load(workspacePath);
+
+			Try!(OpenProject(openedProject));
+
+			return .Ok;
+		}
+
+		private Result<void> OpenProject(Project project)
+		{
+			if (project == null)
+				return .Err;
+			
 			CloseCurrentProject();
 
-			_currentProject = Project.Load(workspacePath);
+			_currentProject = project;
 
 			String appAssemblyPath = scope String();
 			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
-			
+
 			// TODO: obviously change dll name, configurable?
-			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, "Scripts/bin/Sandbox.dll");
+			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, scope $"Scripts/bin/{_currentProject.Name}.dll");
 
 			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
 
@@ -932,6 +1098,9 @@ namespace GlitchyEditor
 			{
 				if (ImGui.MenuItem("Create new Project...", "Ctrl+N"))
 					_openCreateProjectModal = true;
+
+				if (ImGui.MenuItem("Open Project...", "Ctrl+O"))
+					ShowOpenProjectDialog();
 
 				if (ImGui.MenuItem("New", "Ctrl+N"))
 					NewScene();

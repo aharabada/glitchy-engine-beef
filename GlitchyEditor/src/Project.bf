@@ -20,7 +20,7 @@ class Project
 	[BonIgnore]
 	private String _scriptFolder ~ delete _;
 
-	public StringView ProjectName => _projectName;
+	public StringView Name => _projectName;
 	public StringView WorkspacePath => _workspacePath;
 
 	public StringView AssetsFolder => _assetsFolder;
@@ -77,7 +77,21 @@ class Project
 		else
 		{
 			Log.EngineLogger.Warning($"Project file \"{settingsFile}\" doesn't exist.");
+
+			if (project.Name.IsWhiteSpace)
+			{
+				if (project._projectName == null)
+					project._projectName = new String();
+
+				Path.GetFileName(project.WorkspacePath, project._projectName);
+				
+				Result<void> result = Bon.SerializeIntoFile(project, settingsFile);
+
+				if (result case .Err)
+					Log.EngineLogger.Warning($"Failed to save project file \"{settingsFile}\".");
+			}
 		}
+
 
 		return project;
 	}

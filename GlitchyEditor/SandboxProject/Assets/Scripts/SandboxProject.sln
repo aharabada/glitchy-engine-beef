@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.4.33205.214
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sandbox", "Sandbox.csproj", "{7A70819C-5317-402A-8553-95C5A001E370}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SandboxProject", "SandboxProject.csproj", "{7A70819C-5317-402A-8553-95C5A001E370}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScriptCore", "..\..\..\..\ScriptCore\ScriptCore.csproj", "{6222C226-FC78-498C-80BA-5CF10AC9123C}"
 EndProject

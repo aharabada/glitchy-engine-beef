@@ -43,5 +43,7 @@ extension Path
 				target.Append(Path.DirectorySeparatorChar);
 			target.Append(component);
 		}
+
+		target.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
 	}
 }
