@@ -74,7 +74,7 @@ namespace GlitchyEditor
 
 		private float _fixedTimestep = 1.0f / 60.0f;
 		
-		append List<(String Name, String Path)> _recentProjectPaths = .() ~ {
+		append List<(String Name, String Path)> _recentScenePaths = .() ~ {
 				for (var item in _)
 				{
 					delete item.Name;
@@ -124,19 +124,15 @@ namespace GlitchyEditor
 
 			if (args.Count >= 1)
 			{
-				Result<void> result = OpenProject(args[0]);
+				Result<void> result = LoadAndOpenProject(args[0]);
 
 				if (result == .Err)
 					Log.EngineLogger.Error($"Failed to open project \"{args[0]}\".");
 			}
 
-			/*if (args.Count >= 1)
-				LoadSceneFile(args[0]);
-			*/
-
 			// Create a new scene if no scene is loaded
 			if (_activeScene == null)
-				NewScene();
+				CreateAndOpenNewScene();
 		}
 
 		private void RegisterAssetCreators()
@@ -223,8 +219,6 @@ namespace GlitchyEditor
 			});
 		}
 
-		private bool _showCreateNewProject = false;
-
 		public override void Update(GameTime gameTime)
 		{
 			Debug.Profiler.ProfileFunction!();
@@ -249,6 +243,7 @@ namespace GlitchyEditor
 				updateMode = .Physics;
 			}
 
+			// Don't step if we are in in the simulation/game but paused and don't single step
 			if (_sceneState != .Edit && _isPaused && !_singleStep)
 				updateMode = .None;
 
@@ -257,7 +252,7 @@ namespace GlitchyEditor
 			 * However in play or simulation mode we use a simulation game time
 			 * which is decoupled from the actual time. This allows us to manipulate
 			 * the simulation speed without potentially messing with the rest of the editor.
-			*/
+			 */
 			GameTime gt = null;
 
 			if (updateMode == .Editor)
@@ -399,16 +394,477 @@ namespace GlitchyEditor
 			}
 		}
 
-		public override void OnEvent(Event event)
-		{
-			EventDispatcher dispatcher = EventDispatcher(event);
+#region Project Management
 
-			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
-			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
-			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
-			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));
+		/// Creates a new Project and opens it.
+		/// @param workspaceDirectory The workspace directory of the new project (The directory that all files will be in).
+		/// @param projectName Name of the new project.
+		/// @remarks If the creation fails at any point the entire directory will be deleted.
+		private Result<void> CreateNewProject(StringView workspaceDirectory, StringView projectName)
+		{
+			if (Directory.CreateDirectory(workspaceDirectory) case .Err(let error))
+			{
+				Log.ClientLogger.Error($"Failed to create directory \"{workspaceDirectory}\". ({error})");
+				return .Err;
+			}
+
+			if (!Directory.IsEmpty(workspaceDirectory))
+			{
+				Log.ClientLogger.Error($"Target directory is not empty.");
+				return .Err;
+			}
+
+			Project newProject = Project.CreateNew(workspaceDirectory, projectName);
+
+			// If the project couldn't be created or initialization failed, we delete the workspace directory.
+			if (newProject == null || InitProject(newProject) == .Err)
+			{
+				if (Directory.DelTree(workspaceDirectory) case .Err(let error))
+				{
+					Log.EngineLogger.Error($"Failed to delete workspace ({workspaceDirectory}).");
+				}
+				delete newProject;
+
+				return .Err;
+			}
+			
+			if (OpenProject(newProject) case .Err)
+			{
+				Log.ClientLogger.Error($"Failed to open newly created project.");
+				return .Err;
+			}
+
+			return .Ok;
+		}
+		
+		/// Initializes the given project with the template.
+		private static Result<void> InitProject(Project project)
+		{
+			Try!(CopyTemplate(project));
+			
+			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.sln", scope $"Assets/Scripts/{project.Name}.sln"));
+			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.csproj", scope $"Assets/Scripts/{project.Name}.csproj"));
+
+			Try!(FixupTemplateFile(project, scope $"Assets/Scripts/{project.Name}.sln"));
+			Try!(FixupTemplateFile(project, scope $"Assets/Scripts/{project.Name}.csproj"));
+			Try!(FixupTemplateFile(project, scope $"Assets/Scripts/Properties/AssemblyInfo.cs"));
+
+			return .Ok;
+		}
+		
+		/// Copies the template files into the given project.
+		private static Result<void> CopyTemplate(Project project)
+		{
+			String templatePath = scope .();
+			Directory.GetCurrentDirectory(templatePath);
+			Path.Combine(templatePath, "Resources/ProjectTemplate");
+
+			if (Directory.Copy(templatePath, project.WorkspacePath) case .Err)
+			{
+				Log.EngineLogger.Error($"CopyTemplate: Failed to copy template {templatePath} to {project.WorkspacePath}.");
+				return .Err;
+			}
+
+			return .Ok;
+		}
+		
+		/// Renames a file within the project.
+		private static Result<void> MoveFile(Project project, StringView fromName, StringView toName)
+		{
+			String fromPath = scope String();
+			project.PathInProject(fromPath, fromName);
+			
+			String toPath = scope String();
+			project.PathInProject(toPath, toName);
+
+			if (File.Move(fromPath, toPath) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Failed to move file from {fromPath} to {toPath}. ({error})");
+				return .Err;
+			}
+
+			return .Ok;
+		}
+		
+		/// Fixups a template file by replacing placeholders with actual values.
+		private static Result<void> FixupTemplateFile(Project project, StringView fileName)
+		{
+			String fileTargetPath = scope String();
+			project.PathInProject(fileTargetPath, fileName);
+
+			String fileContent = new:ScopedAlloc! String();
+			if (File.ReadAllText(fileTargetPath, fileContent, true) case .Err)
+			{
+				Log.EngineLogger.Error($"FixupFile: Failed to read file {fileTargetPath}.");
+				return .Err;
+			}
+
+			fileContent.Replace("[ProjectName]", project.Name);
+
+			String scriptCorePath = scope .();
+			Directory.GetCurrentDirectory(scriptCorePath);
+			scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
+			fileContent.Replace("[CoreLibPath]", scriptCorePath);
+
+			if (File.WriteAllText(fileTargetPath, fileContent, false) case .Err)
+			{
+				Log.EngineLogger.Error($"FixupFile: Failed to write file {fileTargetPath}.");
+				return .Err;
+			}
+
+			return .Ok;
 		}
 
+		/// If set to true, the popup for creating a new project will be shown.
+		private bool _openCreateProjectModal;
+
+		private void ShowCreateNewProjectModal()
+		{
+			static char8[128] projectNameBuffer = .();
+			static char8[256] projectDirectoryBuffer = .();
+
+			if (_openCreateProjectModal)
+			{
+				ImGui.OpenPopup("Create new Project");
+				_openCreateProjectModal = false;
+
+				projectNameBuffer = .();
+			}
+
+			// Always center this window when appearing
+			var center = ImGui.GetMainViewport().GetCenter();
+			ImGui.SetNextWindowPos(center, .Appearing, .(0.5f, 0.5f));
+
+			if (ImGui.BeginPopupModal("Create new Project", null, .AlwaysAutoResize))
+			{
+				ImGui.TextUnformatted("Project Name:");
+				ImGui.InputText("##projectName", &projectNameBuffer, projectNameBuffer.Count - 1);
+
+				ImGui.NewLine();
+
+				ImGui.TextUnformatted("Directory:");
+				ImGui.InputText("##directory", &projectDirectoryBuffer, projectDirectoryBuffer.Count - 1);
+				ImGui.SameLine();
+
+				if (ImGui.Button("..."))
+				{
+					FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
+					Result<DialogResult> result = folderDialog.ShowDialog();
+
+					if (result case .Ok(let dialogResult) && dialogResult case .OK)
+					{
+						folderDialog.SelectedPath.CopyTo(projectDirectoryBuffer);
+					}
+				}
+
+				StringView projectName = StringView(&projectNameBuffer);
+				StringView directory = StringView(&projectDirectoryBuffer);
+
+				String target = scope String();
+				Path.Combine(target, directory, projectName);
+				
+				ImGui.NewLine();
+
+				ImGui.Text($"The Project will be in:\n{target}");
+
+				ImGui.NewLine();
+
+				ImGui.BeginDisabled(directory.IsWhiteSpace || projectName.IsWhiteSpace);
+
+				if (ImGui.Button("Create"))
+				{
+					Result<void> result = CreateNewProject(target, projectName);
+
+					if (result case .Ok)
+						ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.EndDisabled();
+
+				ImGui.SameLine();
+
+				if (ImGui.Button("Cancel"))
+				{
+					ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.EndPopup();
+			}
+		}
+
+		private void ShowOpenProjectDialog()
+		{
+			FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
+			Result<DialogResult> result = folderDialog.ShowDialog();
+
+			if (result case .Ok(let dialogResult) && dialogResult case .OK)
+			{
+				LoadAndOpenProject(folderDialog.SelectedPath);
+			}
+		}
+
+		private void CloseCurrentProject()
+		{
+			OnSceneStop();
+
+			SetReference!(_editorScene, null);
+			SetReference!(_activeScene, null);
+			_editor.CurrentScene = null;
+
+			// TODO: Do actual work here!
+			delete _currentProject;
+			_currentProject = null;
+		}
+
+		private Result<void> LoadAndOpenProject(StringView workspacePath)
+		{
+			Project openedProject = Project.Load(workspacePath);
+
+			if (OpenProject(openedProject) case .Err)
+			{
+				Log.ClientLogger.Error($"Failed to open project {workspacePath}.");
+				return .Err;
+			}
+
+			return .Ok;
+		}
+
+		private Result<void> OpenProject(Project project)
+		{
+			if (project == null)
+				return .Err;
+			
+			CloseCurrentProject();
+
+			_currentProject = project;
+
+			String appAssemblyPath = scope String();
+			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
+
+			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, scope $"Scripts/bin/{_currentProject.Name}.dll");
+
+			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
+
+			// TODO: Load last opened scene
+			CreateAndOpenNewScene();
+
+			return .Ok;
+		}
+
+#endregion Project Management
+
+#region Scene Management
+		
+		/// Starts the play mode for the current scene
+		private void OnScenePlay()
+		{
+			_editor.SceneViewportWindow.EditorMode = false;
+			_sceneState = .Play;
+
+			using (Scene runtimeScene = new Scene())
+			{
+				_editorScene.CopyTo(runtimeScene);
+
+				runtimeScene.OnRuntimeStart();
+
+				SetReference!(_activeScene, runtimeScene);
+			}
+
+			_editor.CurrentScene = _activeScene;
+		}
+
+		/// Starts the physics simulation mode for the current scene
+		private void OnSceneSimulate()
+		{
+			_editor.SceneViewportWindow.EditorMode = false;
+			_sceneState = .Simulate;
+
+			using (Scene simulationScene = new Scene())
+			{
+				_editorScene.CopyTo(simulationScene);
+
+				simulationScene.OnSimulationStart();
+
+				SetReference!(_activeScene, simulationScene);
+			}
+
+			_editor.CurrentScene = _activeScene;
+		}
+
+		/// Pauses the scene
+		private void OnScenePause()
+		{
+			_isPaused = true;
+		}
+
+		/// Resumes the simulation / game
+		private void OnSceneResume()
+		{
+			_isPaused = false;
+		}
+
+		/// Requests execution of a single simulation / game tick
+		private void DoSingleStep()
+		{
+			_singleStep = true;
+		}
+
+		/// Stops the simulation or game and returns to edit mode.
+		private void OnSceneStop()
+		{
+			if (_sceneState == .Play)
+				_activeScene.OnRuntimeStop();
+			else if (_sceneState == .Simulate)
+				_activeScene.OnSimulationStop();
+
+			SetReference!(_activeScene, _editorScene);
+
+			_editor.SceneViewportWindow.EditorMode = true;
+			_sceneState = .Edit;
+
+			_editor.CurrentScene = _activeScene;
+			
+			_isPaused = false;
+
+			if (_activeScene != null)
+			{
+				/*
+				 * Update the viewport size because if the game windows size changed in
+				 * "Game"-mode the updated aspect-rations will reset once we go back
+				 * into "Editor"-mode (because Game-Mode works on a copy of the scene).
+				 */
+				GameViewportSizeChanged(null, _editor.GameViewportWindow.ViewportSize);
+			}
+		}
+
+
+		/// Creates a new scene and openes it.
+		private void CreateAndOpenNewScene()
+		{
+			OnSceneStop();
+
+			SceneFilePath = null;
+
+			using (Scene newScene = CreateNewScene())
+			{
+				_camera.Position = .(-1.5f, 1.5f, -2.5f);
+				_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
+	
+				SetReference!(_editorScene, newScene);
+				_editor.CurrentScene = _editorScene;
+				SetReference!(_activeScene, _editorScene);
+			}
+		}
+
+		/// Creates a new default scene.
+		private static Scene CreateNewScene()
+		{
+			Scene newScene = new Scene();
+
+			// Create a default camera
+			{
+				let cameraEntity = newScene.CreateEntity("Camera");
+				let transform = cameraEntity.Transform;
+				transform.Position = float3(0, 2, -5);
+				transform.RotationEuler = float3(0, MathHelper.ToRadians(25), 0);
+				
+				let camera = cameraEntity.AddComponent<CameraComponent>();
+				camera.Primary = true;
+				camera.Camera.ProjectionType = .InfinitePerspective;
+				camera.Camera.PerspectiveFovY = MathHelper.ToRadians(75);
+				camera.Camera.PerspectiveNearPlane = 0.1f;
+			}
+
+			// Create a default light source
+			{
+				let lightEntity = newScene.CreateEntity("Light");
+				let transform = lightEntity.Transform;
+				transform.Position = .(-3, 4, -1.5f);
+				transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(75), MathHelper.ToRadians(20));
+
+				let light = lightEntity.AddComponent<LightComponent>();
+				light.SceneLight.Illuminance = 10.0f;
+				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
+			}
+
+			return newScene;
+		}
+		
+		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
+		private void SaveCurrentScene()
+		{
+			if (SceneFilePath.IsWhiteSpace)
+			{
+				SaveCurrentSceneAs();
+			}
+			else
+			{
+				SaveScene(_editorScene, SceneFilePath);
+			}
+		}
+
+		/// Saves the given scene with the specified file name.
+		private static void SaveScene(Scene scene, StringView fileName)
+		{
+			SceneSerializer serializer = scope .(scene);
+			serializer.Serialize(fileName);
+		}
+		
+		/// Opens a save file dialog and saves the scene at the user specified location.
+		private void SaveCurrentSceneAs()
+		{
+			SaveFileDialog sfd = scope .();
+			sfd.InitialDirectory = _currentProject.AssetsFolder;
+
+			if (sfd.ShowDialog() case .Ok(let result) && result == .OK)
+			{
+				SceneFilePath = sfd.FileNames[0];
+				SaveCurrentScene();
+			}
+		}
+		
+		/// Opens a open file dialog and load the scene selected by the user specified.
+		private void OpenScene()
+		{
+			OpenFileDialog ofd = scope .();
+			ofd.InitialDirectory = _currentProject.AssetsFolder;
+
+			if (ofd.ShowDialog() case .Ok(let result) && result == .OK)
+			{
+				LoadSceneFile(ofd.FileNames[0]);
+			}
+		}
+
+		/// Loads the given scene file and opens it as the current scene.
+		private void LoadSceneFile(StringView filename)
+		{
+			OnSceneStop();
+
+			SceneFilePath = scope String(filename);
+
+			using (Scene newScene = new Scene())
+			{
+				SceneSerializer serializer = scope .(newScene);
+				let result = serializer.Deserialize(SceneFilePath);
+
+				// Make sure we actually loaded something!
+				if (result case .Ok)
+				{
+					SetReference!(_editorScene, newScene);
+					_editor.CurrentScene = _editorScene;
+					SetReference!(_activeScene, _editorScene);
+				}
+				else
+				{
+					Log.ClientLogger.Error("Failed to load scene file.");
+				}
+			}
+		}
+
+#endregion Scene Management
+
+#region ImGui
+		
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
@@ -424,12 +880,13 @@ namespace GlitchyEditor
 			_settingsWindow.Show();
 			ShowCreateNewProjectModal();
 
-			UI_Toolbar();
+			ShowPlayControls();
 
 			return false;
 		}
 
-		private void UI_Toolbar()
+		/// Shows the window with Play/Pause, etc. buttons
+		private void ShowPlayControls()
 		{
 			ImGui.PushStyleVar(.WindowPadding, ImGui.Vec2(0, 2));
 			ImGui.PushStyleVar(.ItemInnerSpacing, ImGui.Vec2(0, 0));
@@ -535,9 +992,9 @@ namespace GlitchyEditor
 					ImGui.PushID(2);
 
 					ImGui.SameLine();
-	
+
 					SubTexture2D singleStepButtonIcon = _editorIcons.SingleStep;
-	
+
 					if (ImGui.ImageButton("Step", singleStepButtonIcon, .(size, size), .Zero, .Ones))
 					{
 						DoSingleStep();
@@ -560,7 +1017,7 @@ namespace GlitchyEditor
 
 						ImGui.EndPopup();
 					}
-	
+
 					ImGui.AttachTooltip("Step one Frame (Right-click to change time step)");
 
 					ImGui.PopID();
@@ -583,485 +1040,24 @@ namespace GlitchyEditor
 			ImGui.PopStyleVar(2);
 		}
 
-		private void OnScenePlay()
-		{
-			_editor.SceneViewportWindow.EditorMode = false;
-			_sceneState = .Play;
-
-			using (Scene runtimeScene = new Scene())
-			{
-				_editorScene.CopyTo(runtimeScene);
-
-				runtimeScene.OnRuntimeStart();
-
-				SetReference!(_activeScene, runtimeScene);
-			}
-
-			_editor.CurrentScene = _activeScene;
-		}
-
-		private void OnSceneSimulate()
-		{
-			_editor.SceneViewportWindow.EditorMode = false;
-			_sceneState = .Simulate;
-
-			using (Scene simulationScene = new Scene())
-			{
-				_editorScene.CopyTo(simulationScene);
-
-				simulationScene.OnSimulationStart();
-
-				SetReference!(_activeScene, simulationScene);
-			}
-
-			_editor.CurrentScene = _activeScene;
-		}
-
-		private void OnScenePause()
-		{
-			_isPaused = true;
-		}
-		
-		private void OnSceneResume()
-		{
-			_isPaused = false;
-		}
-
-		private void DoSingleStep()
-		{
-			_singleStep = true;
-		}
-
-		private void OnSceneStop()
-		{
-			if (_sceneState == .Play)
-				_activeScene.OnRuntimeStop();
-			else if (_sceneState == .Simulate)
-				_activeScene.OnSimulationStop();
-
-			SetReference!(_activeScene, _editorScene);
-
-			_editor.SceneViewportWindow.EditorMode = true;
-			_sceneState = .Edit;
-
-			_editor.CurrentScene = _activeScene;
-			
-			_isPaused = false;
-
-			if (_activeScene != null)
-			{
-				/*
-				 * Update the viewport size because if the game windows size changed in
-				 * "Game"-mode the updated aspect-rations will reset once we go back
-				 * into "Editor"-mode (because Game-Mode works on a copy of the scene).
-				 */
-				GameViewportSizeChanged(null, _editor.GameViewportWindow.ViewportSize);
-			}
-		}
-
-		private Result<void> CreateNewProject(StringView directory, StringView projectName)
-		{
-			var createDirectoryResult = Directory.CreateDirectory(directory);
-
-			if (createDirectoryResult case .Err(let error))
-			{
-				Log.ClientLogger.Error($"Failed to create directory \"{directory}\".");
-				return .Err;
-			}
-
-			if (!Directory.IsEmpty(directory))
-			{
-				Log.ClientLogger.Error($"Cannot create project in non-empty directory.");
-				return .Err;
-			}
-
-			Project newProject = Project.CreateNew(directory, projectName);
-
-			defer
-			{
-				// If we return an error, we need to cleanup the directory.
-				if (@return == .Err)
-				{
-					Directory.DelTree(directory);
-					delete newProject;
-				}
-			}
-			
-			Try!(InitProject(newProject));
-
-			Try!(OpenProject(newProject));
-
-			return .Ok;
-		}
-
-		private static Result<void> CopyTemplate(Project project)
-		{
-			String templatePath = scope .();
-			Directory.GetCurrentDirectory(templatePath);
-			Path.Combine(templatePath, "Resources/ProjectTemplate");
-
-			if (Directory.Copy(templatePath, project.WorkspacePath) case .Err)
-			{
-				Log.EngineLogger.Error($"CopyTemplate: Failed to copy template {templatePath} to {project.WorkspacePath}.");
-				return .Err;
-			}
-
-			return .Ok;
-		}
-
-		private static Result<void> InitProject(Project project)
-		{
-			Try!(CopyTemplate(project));
-			
-			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.sln", scope $"Assets/Scripts/{project.Name}.sln"));
-			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.csproj", scope $"Assets/Scripts/{project.Name}.csproj"));
-
-			Try!(FixupFile(project, scope $"Assets/Scripts/{project.Name}.sln"));
-			Try!(FixupFile(project, scope $"Assets/Scripts/{project.Name}.csproj"));
-			Try!(FixupFile(project, scope $"Assets/Scripts/Properties/AssemblyInfo.cs"));
-
-			return .Ok;
-		}
-
-		private static Result<void> MoveFile(Project project, StringView fromName, StringView toName)
-		{
-			String fromPath = scope String();
-			project.PathInProject(fromPath, fromName);
-			
-			String toPath = scope String();
-			project.PathInProject(toPath, toName);
-
-			if (File.Move(fromPath, toPath) case .Err(let error))
-			{
-				Log.EngineLogger.Error($"Failed to move file from {fromPath} to {toPath}. ({error})");
-				return .Err;
-			}
-
-			return .Ok;
-		}
-
-		private static Result<void> FixupFile(Project project, StringView fileName)
-		{
-			String fileTargetPath = scope String();
-			project.PathInProject(fileTargetPath, fileName);
-
-			String fileContent = new:ScopedAlloc! String();
-			if (File.ReadAllText(fileTargetPath, fileContent, true) case .Err)
-			{
-				Log.EngineLogger.Error($"FixupFile: Failed to read file {fileTargetPath}.");
-				return .Err;
-			}
-
-			fileContent.Replace("[ProjectName]", project.Name);
-
-			String scriptCorePath = scope .();
-			Directory.GetCurrentDirectory(scriptCorePath);
-			scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
-			fileContent.Replace("[CoreLibPath]", scriptCorePath);
-
-			if (File.WriteAllText(fileTargetPath, fileContent, false) case .Err)
-			{
-				Log.EngineLogger.Error($"FixupFile: Failed to write file {fileTargetPath}.");
-				return .Err;
-			}
-
-			return .Ok;
-		}
-
-		private bool _openCreateProjectModal;
-
-		private void ShowCreateNewProjectModal()
-		{
-			static char8[128] projectNameBuffer = .();
-			static char8[256] projectDirectoryBuffer = .();
-
-			if (_openCreateProjectModal)
-			{
-				ImGui.OpenPopup("Create new Project");
-				_openCreateProjectModal = false;
-
-				projectNameBuffer = .();
-			}
-
-			// Always center this window when appearing
-			var center = ImGui.GetMainViewport().GetCenter();
-			ImGui.SetNextWindowPos(center, .Appearing, .(0.5f, 0.5f));
-
-			if (ImGui.BeginPopupModal("Create new Project", null, .AlwaysAutoResize))
-			{
-				ImGui.TextUnformatted("Project Name:");
-				ImGui.InputText("##projectName", &projectNameBuffer, projectNameBuffer.Count - 1);
-
-				ImGui.NewLine();
-
-				ImGui.TextUnformatted("Directory:");
-				ImGui.InputText("##directory", &projectDirectoryBuffer, projectDirectoryBuffer.Count - 1);
-				ImGui.SameLine();
-
-				if (ImGui.Button("..."))
-				{
-					FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
-					Result<DialogResult> result = folderDialog.ShowDialog();
-
-					if (result case .Ok(let dialogResult) && dialogResult case .OK)
-					{
-						folderDialog.SelectedPath.CopyTo(projectDirectoryBuffer);
-					}
-				}
-
-				StringView projectName = StringView(&projectNameBuffer);
-				StringView directory = StringView(&projectDirectoryBuffer);
-
-				String target = scope String();
-				Path.Combine(target, directory, projectName);
-				
-				ImGui.NewLine();
-
-				ImGui.Text($"The Project will be in:\n{target}");
-
-				ImGui.NewLine();
-
-				ImGui.BeginDisabled(directory.IsWhiteSpace || projectName.IsWhiteSpace);
-
-				if (ImGui.Button("Create"))
-				{
-					Result<void> result = CreateNewProject(target, projectName);
-
-					if (result case .Ok)
-						ImGui.CloseCurrentPopup();
-				}
-
-				ImGui.EndDisabled();
-
-				ImGui.SameLine();
-
-				if (ImGui.Button("Cancel"))
-				{
-					ImGui.CloseCurrentPopup();
-				}
-
-				ImGui.EndPopup();
-			}
-		}
-
-		private void ShowOpenProjectDialog()
-		{
-			FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
-			Result<DialogResult> result = folderDialog.ShowDialog();
-
-			if (result case .Ok(let dialogResult) && dialogResult case .OK)
-			{
-				OpenProject(folderDialog.SelectedPath);
-			}
-		}
-
-		private void CloseCurrentProject()
-		{
-			OnSceneStop();
-
-			SetReference!(_editorScene, null);
-			SetReference!(_activeScene, null);
-			_editor.CurrentScene = null;
-
-			// TODO: Do actual work here!
-			delete _currentProject;
-			_currentProject = null;
-		}
-
-		private Result<void> OpenProject(StringView workspacePath)
-		{
-			Project openedProject = Project.Load(workspacePath);
-
-			Try!(OpenProject(openedProject));
-
-			return .Ok;
-		}
-
-		private Result<void> OpenProject(Project project)
-		{
-			if (project == null)
-				return .Err;
-			
-			CloseCurrentProject();
-
-			_currentProject = project;
-
-			String appAssemblyPath = scope String();
-			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
-
-			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, scope $"Scripts/bin/{_currentProject.Name}.dll");
-
-			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
-
-			// TODO: Load last opened scene
-			NewScene();
-
-			return .Ok;
-		}
-
-		/// Creates a new scene.
-		private void NewScene()
-		{
-			OnSceneStop();
-
-			SceneFilePath = null;
-
-			using (Scene newScene = CreateNewScene())
-			{
-				_camera.Position = .(-1.5f, 1.5f, -2.5f);
-				_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
-	
-				/*// Create a default camera
-				{
-					let cameraEntity = newScene.CreateEntity("Camera");
-					let transform = cameraEntity.Transform;
-					transform.Position = float3(0, 2, -5);
-					transform.RotationEuler = float3(0, MathHelper.ToRadians(25), 0);
-					
-					let camera = cameraEntity.AddComponent<CameraComponent>();
-					camera.Primary = true;
-					camera.Camera.ProjectionType = .InfinitePerspective;
-					camera.Camera.PerspectiveFovY = MathHelper.ToRadians(75);
-					camera.Camera.PerspectiveNearPlane = 0.1f;
-				}
-	
-				// Create a default light source
-				{
-					let lightEntity = newScene.CreateEntity("Light");
-					let transform = lightEntity.Transform;
-					transform.Position = .(-3, 4, -1.5f);
-					transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(75), MathHelper.ToRadians(20));
-	
-					let light = lightEntity.AddComponent<LightComponent>();
-					light.SceneLight.Illuminance = 10.0f;
-					light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-				}*/
-	
-				SetReference!(_editorScene, newScene);
-				_editor.CurrentScene = _editorScene;
-				SetReference!(_activeScene, _editorScene);
-			}
-		}
-
-		private static Scene CreateNewScene()
-		{
-			Scene newScene = new Scene();
-
-			// Create a default camera
-			{
-				let cameraEntity = newScene.CreateEntity("Camera");
-				let transform = cameraEntity.Transform;
-				transform.Position = float3(0, 2, -5);
-				transform.RotationEuler = float3(0, MathHelper.ToRadians(25), 0);
-				
-				let camera = cameraEntity.AddComponent<CameraComponent>();
-				camera.Primary = true;
-				camera.Camera.ProjectionType = .InfinitePerspective;
-				camera.Camera.PerspectiveFovY = MathHelper.ToRadians(75);
-				camera.Camera.PerspectiveNearPlane = 0.1f;
-			}
-
-			// Create a default light source
-			{
-				let lightEntity = newScene.CreateEntity("Light");
-				let transform = lightEntity.Transform;
-				transform.Position = .(-3, 4, -1.5f);
-				transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(75), MathHelper.ToRadians(20));
-
-				let light = lightEntity.AddComponent<LightComponent>();
-				light.SceneLight.Illuminance = 10.0f;
-				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-			}
-
-			return newScene;
-		}
-		
-		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
-		private void SaveScene()
-		{
-			if (SceneFilePath.IsWhiteSpace)
-			{
-				SaveSceneAs();
-				return;
-			}
-			
-			SceneSerializer serializer = scope .(_editorScene);
-			serializer.Serialize(SceneFilePath);
-		}
-
-		private static void SaveScene(Scene scene, StringView fileName)
-		{
-			SceneSerializer serializer = scope .(scene);
-			serializer.Serialize(fileName);
-		}
-		
-		/// Opens a save file dialog and saves the scene at the user specified location.
-		private void SaveSceneAs()
-		{
-			SaveFileDialog sfd = scope .();
-			if (sfd.ShowDialog() case .Ok(let val))
-			{
-				if (val == .OK)
-				{
-					SceneFilePath = sfd.FileNames[0];
-
-					SaveScene();
-				}
-			}
-		}
-		
-		/// Opens a open file dialog and load the scene selected by the user specified.
-		private void OpenScene()
-		{
-			OpenFileDialog ofd = scope .();
-			if (ofd.ShowDialog() case .Ok(let val))
-			{
-				if (val == .OK)
-				{
-					LoadSceneFile(ofd.FileNames[0]);
-				}
-			}
-		}
-
-		/// Loads the given scene file.
-		private void LoadSceneFile(StringView filename)
-		{
-			OnSceneStop();
-
-			SceneFilePath = scope String(filename);
-
-			using (Scene newScene = new Scene())
-			{
-				SceneSerializer serializer = scope .(newScene);
-				let result = serializer.Deserialize(SceneFilePath);
-
-				// Make sure we actually loaded something!
-				if (result case .Ok)
-				{
-					SetReference!(_editorScene, newScene);
-					_editor.CurrentScene = _editorScene;
-					SetReference!(_activeScene, _editorScene);
-				}
-				else
-				{
-					Log.EngineLogger.Error("Failed to load scene file.");
-				}
-			}
-		}
-
-		private void DrawOpenRecentProjectMenu()
+		private void ShowOpenRecentSceneMenu()
 		{
 			int i = 0;
 
-			for (let (name, path) in _recentProjectPaths)
+			for (let (name, path) in _recentScenePaths)
 			{
 				i++;
 				if (i >= 10)
 					break;
 
+				if (!File.Exists(path))
+				{
+					// TODO!
+				}
+
 				if (ImGui.MenuItem(scope $"{i}: {name} ({path})"))
 				{
-					//LoadSceneFile(path);
+					LoadSceneFile(path);
 				}
 			}
 		}
@@ -1072,17 +1068,34 @@ namespace GlitchyEditor
 
 			if(ImGui.BeginMenu("File", true))
 			{
-				if (ImGui.MenuItem("New Scene...", "Ctrl+N"))
-					NewScene();
-
-				if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
-					SaveScene();
-
-				if (ImGui.MenuItem("Save Scene as...", "Ctrl+Shift+S"))
-					SaveSceneAs();
+				if (ImGui.MenuItem("New Scene", "Ctrl+N"))
+					CreateAndOpenNewScene();
+				
+				ImGui.AttachTooltip("Creates a new (almost) empty scene.");
 
 				if (ImGui.MenuItem("Open Scene...", "Ctrl+O"))
 					OpenScene();
+				
+				ImGui.AttachTooltip("Opens an existing Scene.");
+
+				if (ImGui.BeginMenu("Open recent Scene"))
+				{
+					ShowOpenRecentSceneMenu();
+
+					ImGui.EndMenu();
+				}
+
+				ImGui.Separator();
+
+				if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
+					SaveCurrentScene();
+				
+				ImGui.AttachTooltip("Saves the current scene.");
+
+				if (ImGui.MenuItem("Save Scene as...", "Ctrl+Shift+S"))
+					SaveCurrentSceneAs();
+				
+				ImGui.AttachTooltip("Saves the scene under the given file name.");
 
 				ImGui.Separator();
 				
@@ -1094,8 +1107,6 @@ namespace GlitchyEditor
 
 				if (ImGui.BeginMenu("Open recent project"))
 				{
-					DrawOpenRecentProjectMenu();
-
 					ImGui.EndMenu();
 				}
 
@@ -1149,8 +1160,22 @@ namespace GlitchyEditor
 				ImGui.EndMenu();
 			}
 
-
 			ImGui.EndMainMenuBar();
+		}
+
+#endregion ImGui
+
+#region Events
+
+		/// Receive and dispatch global events
+		public override void OnEvent(Event event)
+		{
+			EventDispatcher dispatcher = EventDispatcher(event);
+
+			dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
+			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
+			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
+			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));
 		}
 
 		private bool OnWindowResize(WindowResizeEvent e)
@@ -1189,7 +1214,10 @@ namespace GlitchyEditor
 
 		private bool OnKeyPressed(KeyPressedEvent e)
 		{
+			// TODO: We need some kind of input system for stuff like this...
+
 			bool control = Input.IsKeyPressed(Key.Control);
+			bool alt = Input.IsKeyPressed(Key.Alt);
 			bool shift = Input.IsKeyPressed(Key.Shift);
 			
 			if (!_camera.[Friend]BindMouse && control)
@@ -1197,16 +1225,30 @@ namespace GlitchyEditor
 				switch (e.KeyCode)
 				{
 				case .N:
-					NewScene();
+					if (alt)
+						// "Create new Project..."
+						_openCreateProjectModal = true;
+					else
+						// "New Scene"
+						CreateAndOpenNewScene();
+
 					return true;
 				case .O:
-					OpenScene();
+					if (alt && control)
+						// "Open Project..."
+						ShowOpenProjectDialog();
+					else if (!alt && !control)
+						// "Open Scene..."
+						OpenScene();
+
 					return true;
 				case .S:
 					if (shift)
-						SaveSceneAs();
+						// "Save Scene as..."
+						SaveCurrentSceneAs();
 					else
-						SaveScene();
+						// "Save Scene"
+						SaveCurrentScene();
 					
 					return true;
 				default:
@@ -1223,5 +1265,7 @@ namespace GlitchyEditor
 
 			return false;
 		}
+
+#endregion
 	}
 }

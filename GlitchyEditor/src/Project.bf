@@ -39,6 +39,7 @@ class Project
 		Path.Combine(target, WorkspacePath, relativePath);
 	}
 
+	/// Creates a new project with the given directory and name.
 	public static Project CreateNew(StringView projectDirectory, StringView projectName)
 	{
 		Project project = new Project(projectDirectory);
@@ -47,10 +48,14 @@ class Project
 		String settingsFile = scope .();
 		project.PathInProject(settingsFile, "project.gep");
 
-		Result<void> result = Bon.SerializeIntoFile(project, settingsFile);
-
-		if (result case .Err)
+		/// This is not really fatal, however the project might end up unusable
+		if (Bon.SerializeIntoFile(project, settingsFile) case .Err)
+		{
 			Log.EngineLogger.Warning($"Failed to save project file \"{settingsFile}\".");
+			delete project;
+
+			return null;
+		}
 	
 		return project;
 	}
@@ -75,18 +80,20 @@ class Project
 
 			if (project.Name.IsWhiteSpace)
 			{
-				if (project._projectName == null)
-					project._projectName = new String();
+				project._projectName ??= new String();
 
 				Path.GetFileName(project.WorkspacePath, project._projectName);
 				
-				Result<void> result = Bon.SerializeIntoFile(project, settingsFile);
-
-				if (result case .Err)
+				/// This is not really fatal, however the project might end up unusable
+				if (Bon.SerializeIntoFile(project, settingsFile) case .Err)
+				{
 					Log.EngineLogger.Warning($"Failed to save project file \"{settingsFile}\".");
+					delete project;
+
+					return null;
+				}
 			}
 		}
-
 
 		return project;
 	}
