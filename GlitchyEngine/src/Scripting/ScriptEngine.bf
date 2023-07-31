@@ -189,6 +189,17 @@ static class ScriptEngine
 		_userAssemblyWatcher.StartRaisingEvents();
 	}
 
+	/// Gets rid of all entity fields.
+	public static void ClearEntityScriptFields()
+	{
+		for (var value in _entityFields.Values)
+		{
+			DeleteDictionaryAndKeys!(value);
+		}
+
+		_entityFields.Clear();
+	}
+
 	static void LoadScriptAssemblies()
 	{
 		CreateAppDomain("GlitchyEngineScriptRuntime");
@@ -201,11 +212,13 @@ static class ScriptEngine
 			s_AppAssembly = null;
 			s_AppAssemblyImage = null;
 		}
-		
-		ClearDictionaryAndReleaseValues!(_sharpClasses);
-		
+
 		GetCoreAttributes();
 		GetCoreClasses();
+
+		ClearDictionaryAndReleaseValues!(_sharpClasses);
+		ClearDictionaryAndReleaseValues!(_componentClasses);
+		ClearDictionaryAndReleaseValues!(_entityScripts);
 		
 		GetComponentsFromAssemblies();
 
@@ -366,9 +379,9 @@ static class ScriptEngine
 	/// Retrieves the base classes from which every Component or Entity inherits
 	static void GetCoreClasses()
 	{
-		s_EngineObject?.ReleaseRef();
-		s_EntityRoot?.ReleaseRef();
-		s_ComponentRoot?.ReleaseRef();
+		ReleaseRefAndNullify!(s_EngineObject);
+		ReleaseRefAndNullify!(s_EntityRoot);
+		ReleaseRefAndNullify!(s_ComponentRoot);
 
 		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage, .Class);
 		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage, .Entity);
@@ -383,8 +396,6 @@ static class ScriptEngine
 
 	private static void GetEntitiesFromAssemblies()
 	{
-		ClearDictionaryAndReleaseValues!(_entityScripts);
-
 		if (s_AppAssemblyImage == null)
 			return;
 
@@ -413,8 +424,6 @@ static class ScriptEngine
 	}
 	private static void GetComponentsFromAssemblies()
 	{
-		ClearDictionaryAndReleaseValues!(_componentClasses);
-
 	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_CoreAssemblyImage, .MONO_TABLE_TYPEDEF);
 	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
 

@@ -62,6 +62,8 @@ namespace GlitchyEditor
 
 		SettingsWindow _settingsWindow = new .() ~ delete _;
 
+		ProjectUserSettings _projectUserSettings;
+
 		EditorCamera _camera ~ _.Dispose();
 
 		EditorIcons _editorIcons ~ _.ReleaseRef();
@@ -133,6 +135,11 @@ namespace GlitchyEditor
 			// Create a new scene if no scene is loaded
 			if (_activeScene == null)
 				CreateAndOpenNewScene();
+		}
+
+		public ~this()
+		{
+			CloseCurrentProject();
 		}
 
 		private void RegisterAssetCreators()
@@ -393,6 +400,12 @@ namespace GlitchyEditor
 				Renderer2D.DrawCircle(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Radius * 2), (Texture2D)null, ColorRGBA(0f, 1f, 0f), 0.01f);
 			}
 		}
+		
+		/// Updates the title of the window.
+		private void UpdateWindowTitle()
+		{
+			Application.Instance.Window.Title = scope $"Glitchy Engine - {_currentProject.Name}";
+		}
 
 #region Project Management
 
@@ -605,11 +618,11 @@ namespace GlitchyEditor
 
 		private void CloseCurrentProject()
 		{
-			OnSceneStop();
+			CloseCurrentScene();
 
-			SetReference!(_editorScene, null);
-			SetReference!(_activeScene, null);
-			_editor.CurrentScene = null;
+			SetEditorScene(null);
+	
+			_currentProject?.SaveUserSettings();
 
 			// TODO: Do actual work here!
 			delete _currentProject;
@@ -629,6 +642,7 @@ namespace GlitchyEditor
 			return .Ok;
 		}
 
+		/// Opens the given project and makes it the current project.
 		private Result<void> OpenProject(Project project)
 		{
 			if (project == null)
@@ -645,8 +659,19 @@ namespace GlitchyEditor
 
 			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
 
-			// TODO: Load last opened scene
-			CreateAndOpenNewScene();
+			if (!_currentProject.UserSettings.LastOpenedScene.IsWhiteSpace)
+			{
+				String lastSceneFile = _currentProject.GetScopedPath!(_currentProject.UserSettings.LastOpenedScene);
+
+				if (File.Exists(lastSceneFile))
+					LoadSceneFile(lastSceneFile);
+				else
+					CreateAndOpenNewScene();
+			}
+			else
+				CreateAndOpenNewScene();
+
+			UpdateWindowTitle();
 
 			return .Ok;
 		}
@@ -737,11 +762,18 @@ namespace GlitchyEditor
 			}
 		}
 
+		/// Stops the scene and cleans up the subsystems to allow loading another scene.
+		private void CloseCurrentScene()
+		{
+			OnSceneStop();
+
+			ScriptEngine.ClearEntityScriptFields();
+		}
 
 		/// Creates a new scene and openes it.
 		private void CreateAndOpenNewScene()
 		{
-			OnSceneStop();
+			CloseCurrentScene();
 
 			SceneFilePath = null;
 
@@ -749,11 +781,17 @@ namespace GlitchyEditor
 			{
 				_camera.Position = .(-1.5f, 1.5f, -2.5f);
 				_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
-	
-				SetReference!(_editorScene, newScene);
-				_editor.CurrentScene = _editorScene;
-				SetReference!(_activeScene, _editorScene);
+
+				SetEditorScene(newScene);
 			}
+		}
+
+		/// Sets the current editor scene
+		private void SetEditorScene(Scene scene)
+		{
+			SetReference!(_editorScene, scene);
+			_editor.CurrentScene = _editorScene;
+			SetReference!(_activeScene, _editorScene);
 		}
 
 		/// Creates a new default scene.
@@ -801,6 +839,11 @@ namespace GlitchyEditor
 			{
 				SaveScene(_editorScene, SceneFilePath);
 			}
+
+			// Note: We only update the last opened scene if the CURRENT scene is saved, NOT when ANY scene is saved.
+			String relativePath = scope .();
+			Path.GetRelativePath(SceneFilePath, _currentProject.WorkspacePath, relativePath);
+			_currentProject.UserSettings.LastOpenedScene = relativePath;
 		}
 
 		/// Saves the given scene with the specified file name.
@@ -838,7 +881,9 @@ namespace GlitchyEditor
 		/// Loads the given scene file and opens it as the current scene.
 		private void LoadSceneFile(StringView filename)
 		{
-			OnSceneStop();
+			CloseCurrentScene();
+
+			ScriptEngine.ClearEntityScriptFields();
 
 			SceneFilePath = scope String(filename);
 
@@ -850,9 +895,11 @@ namespace GlitchyEditor
 				// Make sure we actually loaded something!
 				if (result case .Ok)
 				{
-					SetReference!(_editorScene, newScene);
-					_editor.CurrentScene = _editorScene;
-					SetReference!(_activeScene, _editorScene);
+					SetEditorScene(newScene);
+
+					String relativePath = scope .();
+					Path.GetRelativePath(filename, _currentProject.WorkspacePath, relativePath);
+					_currentProject.UserSettings.LastOpenedScene = relativePath;
 				}
 				else
 				{
@@ -1042,22 +1089,26 @@ namespace GlitchyEditor
 
 		private void ShowOpenRecentSceneMenu()
 		{
+			if (_currentProject == null)
+				return;
+
 			int i = 0;
 
-			for (let (name, path) in _recentScenePaths)
+			for (let scenePath in _currentProject.UserSettings.RecentScenes)
 			{
 				i++;
-				if (i >= 10)
-					break;
 
-				if (!File.Exists(path))
+				String fullScenePath = _currentProject.GetScopedPath!(scenePath);
+
+				if (!File.Exists(fullScenePath))
 				{
-					// TODO!
+					delete scenePath;
+					@scenePath.Remove();
 				}
 
-				if (ImGui.MenuItem(scope $"{i}: {name} ({path})"))
+				if (ImGui.MenuItem(scope $"{i}: {scenePath}"))
 				{
-					LoadSceneFile(path);
+					LoadSceneFile(fullScenePath);
 				}
 			}
 		}

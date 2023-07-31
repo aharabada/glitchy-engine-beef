@@ -30,10 +30,10 @@
 				}
 			},
 			MeshComponent = {
-				Mesh = "Models/sphere.glb"
+				Mesh = "Assets/Models/sphere.glb"
 			},
 			MeshRendererComponent = {
-				Material = "Textures/TestMaterial.mat"
+				Material = "Assets/Textures/TestMaterial.mat"
 			}
 		},
 		{
@@ -49,12 +49,12 @@
 				},
 				Rotation = {
 					X = 0.614328027,
-					Y = 0.239776045,
+					Y = 0.23977606,
 					Z = 0.0315669999,
-					W = 0.751073837
+					W = 0.751073778
 				},
 				Scale = {
-					X = 0.999998868,
+					X = 0.999998808,
 					Y = 1,
 					Z = 1.00000095
 				},
@@ -70,7 +70,7 @@
 				Color = {
 					R = 1,
 					G = 0.991771996,
-					B = 0.74086225
+					B = 0.74086231
 				}
 			}
 		},
@@ -103,10 +103,10 @@
 				}
 			},
 			MeshComponent = {
-				Mesh = "Models/plane.glb"
+				Mesh = "Assets/Models/plane.glb"
 			},
 			MeshRendererComponent = {
-				Material = "Textures/TestMaterial.mat"
+				Material = "Assets/Textures/TestMaterial.mat"
 			}
 		},
 		{
@@ -146,7 +146,7 @@
 				OrthographicHeight = 10,
 				OrthographicNearPlane = 0,
 				OrthographicFarPlane = 10,
-				AspectRatio = 2.19888878,
+				AspectRatio = 1.87453413,
 				FixedAspectRatio = false
 			}
 		},
@@ -164,7 +164,7 @@
 				Rotation = {
 					X = 0.18301262,
 					Y = -0.683013558,
-					Z = 0.683012128,
+					Z = 0.683012187,
 					W = 0.183013007
 				},
 				Scale = {
@@ -173,13 +173,13 @@
 					Z = 1
 				},
 				EditorEulerRotation = {
-					X = 1.57079446,
-					Y = -2.61799312,
+					X = 1.57079458,
+					Y = -2.61799288,
 					Z = 0
 				}
 			},
 			MeshComponent = {
-				Mesh = "Models/plane.glb"
+				Mesh = ""
 			},
 			MeshRendererComponent = {
 				Material = ""
@@ -192,32 +192,32 @@
 			},
 			TransformComponent = {
 				Position = {
-					X = 2.37353587,
+					X = 2.37353563,
 					Y = 0.629615188,
 					Z = -1.34831977
 				},
 				Rotation = {
 					X = 0.270598024,
-					Y = -0.65328145,
+					Y = -0.65328151,
 					Z = 0.65328151,
 					W = 0.270598054
 				},
 				Scale = {
-					X = 0.999999881,
-					Y = 0.999999821,
+					X = 0.999999821,
+					Y = 0.999999762,
 					Z = 0.999999702
 				},
 				EditorEulerRotation = {
-					X = 1.57079637,
-					Y = -2.3561945,
-					Z = 8.94069743e-08
+					X = 1.57079649,
+					Y = -2.35619426,
+					Z = 8.94069601e-08
 				}
 			},
 			MeshComponent = {
-				Mesh = "Models/plane.glb"
+				Mesh = "Assets/Models/plane.glb"
 			},
 			MeshRendererComponent = {
-				Material = "Textures/RocketMaterial.mat"
+				Material = "Assets/Textures/RocketMaterial.mat"
 			}
 		}
 	]
