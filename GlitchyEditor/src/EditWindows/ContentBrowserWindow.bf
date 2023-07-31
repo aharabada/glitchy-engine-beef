@@ -417,9 +417,6 @@ namespace GlitchyEditor.EditWindows
 			ImGui.EndChild();
 		}
 
-		//private float _zoom = 1.0f;
-		//private static float2 IconBaseSize = .(100, 100);
-
 		/// Renders the button for the given directory item.
 		private void DrawDirectoryItem(TreeNode<AssetNode> entry)
 		{
@@ -452,15 +449,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginDragDropSource())
 			{
-				String fullpath = scope String(entry->Path);
-
-				// TODO: this is dirty
-				if (fullpath.StartsWith(_manager.AssetDirectory, .OrdinalIgnoreCase))
-					fullpath.Remove(0, _manager.AssetDirectory.Length);
-
-				Path.Fixup(fullpath);
-
-				ImGui.SetDragDropPayload(.ContentBrowserItem, fullpath.CStr(), (.)fullpath.Length, .Once);
+				ImGui.SetDragDropPayload(.ContentBrowserItem, entry->Identifier, (uint64)entry->Identifier.Length, .Once);
 
 				ImGui.EndDragDropSource();
 			}
