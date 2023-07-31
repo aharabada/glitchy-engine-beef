@@ -112,7 +112,8 @@ namespace GlitchyEditor.EditWindows
 
 			if (nodeOpen)
 			{
-				showComponentEditor(entity, component);
+				if (entity.TryGetComponent<TComponent>(let actualComponent))
+					showComponentEditor(entity, actualComponent);
 
 				ImGui.TreePop();
 			}
