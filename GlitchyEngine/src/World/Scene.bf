@@ -106,7 +106,9 @@ namespace GlitchyEngine.World
 			for (let (handle, script) in target._ecsWorld.Enumerate<ScriptComponent>())
 			{
 				Entity entity = .(handle, this);
-				ScriptEngine.CopyEditorFieldsToInstance(entity, script);
+
+				if (script.Instance != null)
+					ScriptEngine.CopyEditorFieldsToInstance(entity, script);
 			}
 
 			// Copy transforms... needs special handling for the Parent<->Child relations
@@ -283,6 +285,9 @@ namespace GlitchyEngine.World
 					{
 						if (!script.IsInitialized)
 							ScriptEngine.InitializeInstance(Entity(entity, this), script);
+
+						if (script.Instance == null)
+							continue;
 
 						if (mode.HasFlag(.Runtime))
 							script.Instance.InvokeOnCreate();
