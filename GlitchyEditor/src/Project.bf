@@ -39,11 +39,6 @@ class Project
 		Path.Combine(target, WorkspacePath, relativePath);
 	}
 
-	public void GetRelativePath()
-	{
-
-	}
-
 	public static Project CreateNew(StringView projectDirectory, StringView projectName)
 	{
 		Project project = new Project(projectDirectory);

@@ -674,26 +674,6 @@ namespace GlitchyEditor
 				}
 			}
 			
-			/*var createAssetDirResult = Directory.CreateDirectory(newProject.AssetsFolder);
-
-			if (createAssetDirResult case .Err(let error))
-			{
-				Log.ClientLogger.Error($"Failed to create asset directory \"{newProject.AssetsFolder}\".");
-				return .Err;
-			}
-
-			// Copy .gitignore
-			String gitignoreTarget = scope .();
-			newProject.PathInProject(gitignoreTarget, ".gitignore");
-			var copyGitignore = File.Copy("resources/gitignore.txt", gitignoreTarget);
-
-			if (copyGitignore case .Err(let error))
-			{
-				Log.ClientLogger.Error($"Failed to copy .gitignore (\"{error}\").");
-			}
-			
-			CreateScriptsProject(newProject);*/
-
 			Try!(InitProject(newProject));
 
 			Try!(OpenProject(newProject));
@@ -774,61 +754,6 @@ namespace GlitchyEditor
 
 			return .Ok;
 		}
-
-		/*private static Result<void> CreateFolderInProject(Project project, StringView directoryName)
-		{
-			String directoryPath = scope String();
-			project.PathInProject(directoryPath, directoryName);
-
-			if (Directory.CreateDirectory(directoryPath) case .Err(let error))
-			{
-				Log.ClientLogger.Error($"Failed to create directory \"{project.AssetsFolder}\".");
-				return .Err;
-			}
-
-			return .Ok;
-		}*/
-
-		/*private static Result<void> CopyAndFixupFile(Project project, StringView sourcePath, StringView targetName)
-		{
-			String fileTargetPath = scope String();
-			project.PathInProject(fileTargetPath, targetName);
-
-			if (File.Copy(sourcePath, fileTargetPath) case .Err(let error))
-			{
-				Log.ClientLogger.Error($"Failed to copy file (\"{error}\").");
-				return .Err;
-			}
-
-			String fileContent = new:ScopedAlloc! String();
-
-			Try!(File.ReadAllText(fileTargetPath, fileContent, true));
-
-			fileContent.Replace("[ProjectName]", project.Name);
-
-			String scriptCorePath = scope .();
-			Directory.GetCurrentDirectory(scriptCorePath);
-			scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
-			fileContent.Replace("[CoreLibPath]", scriptCorePath);
-
-			Try!(File.WriteAllText(fileTargetPath, fileContent, false));
-
-			return .Ok;
-		}*/
-
-		/*private Result<void> CreateScriptsProject(Project project)
-		{
-			Try!(CreateFolderInProject(project, "Assets/Scripts"));
-			Try!(CreateFolderInProject(project, "Assets/Scripts/Properties"));
-
-			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/EmptyProject.sln", scope $"Assets/Scripts/{project.Name}.sln"));
-			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/EmptyProject.csproj", scope $"Assets/Scripts/{project.Name}.csproj"));
-			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/Properties/AssemblyInfo.cs", scope $"Assets/Scripts/Properties/AssemblyInfo.cs"));
-
-			Try!(CopyAndFixupFile(project, "Resources/Scripts/EmptyProject/.gitignore", scope $"Assets/Scripts/.gitignore"));
-
-			return .Ok;
-		}*/
 
 		private bool _openCreateProjectModal;
 
@@ -951,7 +876,6 @@ namespace GlitchyEditor
 			String appAssemblyPath = scope String();
 			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
 
-			// TODO: obviously change dll name, configurable?
 			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, scope $"Scripts/bin/{_currentProject.Name}.dll");
 
 			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
