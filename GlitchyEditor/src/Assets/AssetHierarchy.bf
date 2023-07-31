@@ -248,15 +248,7 @@ class AssetHierarchy
 		fsw.OnRenamed.Add(new (oldName, newName) => {
 			Log.EngineLogger.Trace($"File renamed (From \"{oldName}\" to \"{newName}\")");
 			
-			//_fileSystemDirty = true;
 			FileRenamed(oldName, newName);
-			/*String contentFilePath = scope String();
-
-			Path.InternalCombine(contentFilePath, ContentDirectory, oldName);
-
-			//_fileSystemDirty = true;
-			TreeNode<AssetNode> fileNode = GetNodeFromPath(contentFilePath);
-			fileNode->*/
 		});
 
 		fsw.StartRaisingEvents();
@@ -473,6 +465,9 @@ class AssetHierarchy
 
 				AddDirectoryToTree(directoryNameBuffer, _assetsDirectoryNode);
 			}
+
+			RemoveOrphanedEntries(_assetsDirectoryNode);
+			AddFilesOfDirectory(_assetsDirectoryNode);
 		}
 		
 		if (!ResourcesDirectory.IsWhiteSpace)
@@ -487,8 +482,9 @@ class AssetHierarchy
 	
 				AddDirectoryToTree(directoryNameBuffer, _resourcesDirectoryNode);
 			}
-	
-			RemoveOrphanedEntries(_assetRootNode);
+			
+			RemoveOrphanedEntries(_resourcesDirectoryNode);
+			AddFilesOfDirectory(_resourcesDirectoryNode);
 		}
 
 		//*String filter = scope $"{AssetsDirectory}/*";

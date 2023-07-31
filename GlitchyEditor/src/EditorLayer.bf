@@ -120,6 +120,8 @@ namespace GlitchyEditor
 			
 			InitEditor();
 
+			RegisterAssetCreators();
+
 			if (args.Count >= 1)
 			{
 				Result<void> result = OpenProject(args[0]);
@@ -135,6 +137,17 @@ namespace GlitchyEditor
 			// Create a new scene if no scene is loaded
 			if (_activeScene == null)
 				NewScene();
+		}
+
+		private void RegisterAssetCreators()
+		{
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Scene", "New Scene.scene", new (path) =>
+				{
+					using (Scene newScene = CreateNewScene())
+					{
+						SaveScene(newScene, path);
+					}
+				}));
 		}
 
 		private void InitGraphics()
@@ -893,12 +906,12 @@ namespace GlitchyEditor
 
 			SceneFilePath = null;
 
-			using (Scene newScene = new Scene())
+			using (Scene newScene = CreateNewScene())
 			{
 				_camera.Position = .(-1.5f, 1.5f, -2.5f);
 				_camera.RotationEuler = .(MathHelper.ToRadians(25), MathHelper.ToRadians(35), 0);
 	
-				// Create a default camera
+				/*// Create a default camera
 				{
 					let cameraEntity = newScene.CreateEntity("Camera");
 					let transform = cameraEntity.Transform;
@@ -922,12 +935,45 @@ namespace GlitchyEditor
 					let light = lightEntity.AddComponent<LightComponent>();
 					light.SceneLight.Illuminance = 10.0f;
 					light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
-				}
+				}*/
 	
 				SetReference!(_editorScene, newScene);
 				_editor.CurrentScene = _editorScene;
 				SetReference!(_activeScene, _editorScene);
 			}
+		}
+
+		private static Scene CreateNewScene()
+		{
+			Scene newScene = new Scene();
+
+			// Create a default camera
+			{
+				let cameraEntity = newScene.CreateEntity("Camera");
+				let transform = cameraEntity.Transform;
+				transform.Position = float3(0, 2, -5);
+				transform.RotationEuler = float3(0, MathHelper.ToRadians(25), 0);
+				
+				let camera = cameraEntity.AddComponent<CameraComponent>();
+				camera.Primary = true;
+				camera.Camera.ProjectionType = .InfinitePerspective;
+				camera.Camera.PerspectiveFovY = MathHelper.ToRadians(75);
+				camera.Camera.PerspectiveNearPlane = 0.1f;
+			}
+
+			// Create a default light source
+			{
+				let lightEntity = newScene.CreateEntity("Light");
+				let transform = lightEntity.Transform;
+				transform.Position = .(-3, 4, -1.5f);
+				transform.RotationEuler = .(MathHelper.ToRadians(20), MathHelper.ToRadians(75), MathHelper.ToRadians(20));
+
+				let light = lightEntity.AddComponent<LightComponent>();
+				light.SceneLight.Illuminance = 10.0f;
+				light.SceneLight.Color = .(1.0f, 0.95f, 0.8f);
+			}
+
+			return newScene;
 		}
 		
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
@@ -941,6 +987,12 @@ namespace GlitchyEditor
 			
 			SceneSerializer serializer = scope .(_editorScene);
 			serializer.Serialize(SceneFilePath);
+		}
+
+		private static void SaveScene(Scene scene, StringView fileName)
+		{
+			SceneSerializer serializer = scope .(scene);
+			serializer.Serialize(fileName);
 		}
 		
 		/// Opens a save file dialog and saves the scene at the user specified location.
@@ -1009,7 +1061,7 @@ namespace GlitchyEditor
 
 				if (ImGui.MenuItem(scope $"{i}: {name} ({path})"))
 				{
-					LoadSceneFile(path);
+					//LoadSceneFile(path);
 				}
 			}
 		}
@@ -1020,25 +1072,27 @@ namespace GlitchyEditor
 
 			if(ImGui.BeginMenu("File", true))
 			{
-				if (ImGui.MenuItem("Create new Project...", "Ctrl+N"))
-					_openCreateProjectModal = true;
-
-				if (ImGui.MenuItem("Open Project...", "Ctrl+O"))
-					ShowOpenProjectDialog();
-
-				if (ImGui.MenuItem("New", "Ctrl+N"))
+				if (ImGui.MenuItem("New Scene...", "Ctrl+N"))
 					NewScene();
 
-				if (ImGui.MenuItem("Save", "Ctrl+S"))
+				if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
 					SaveScene();
 
-				if (ImGui.MenuItem("Save as...", "Ctrl+Shift+S"))
+				if (ImGui.MenuItem("Save Scene as...", "Ctrl+Shift+S"))
 					SaveSceneAs();
 
-				if (ImGui.MenuItem("Open...", "Ctrl+O"))
+				if (ImGui.MenuItem("Open Scene...", "Ctrl+O"))
 					OpenScene();
+
+				ImGui.Separator();
 				
-				if (ImGui.BeginMenu("Open Recent"))
+				if (ImGui.MenuItem("Create new Project...", "Ctrl+ALT+N"))
+					_openCreateProjectModal = true;
+
+				if (ImGui.MenuItem("Open Project...", "Ctrl+ALT+O"))
+					ShowOpenProjectDialog();
+
+				if (ImGui.BeginMenu("Open recent project"))
 				{
 					DrawOpenRecentProjectMenu();
 

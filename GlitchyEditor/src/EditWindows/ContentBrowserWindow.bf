@@ -13,8 +13,35 @@ namespace GlitchyEditor.EditWindows
 {
 	using internal GlitchyEditor.EditorContentManager;
 
+	class AssetCreator
+	{
+		private String _name ~ delete _;
+		private String _defaultFileName ~ delete _;
+		private CreateAssetFunc _doCreateAsset ~ delete _;
+
+		public delegate void CreateAssetFunc(StringView outputPath);
+
+		public StringView Name => _name;
+		public StringView DefaultFileName => _defaultFileName;
+
+		public CreateAssetFunc CreateAsset => _doCreateAsset;
+
+		public this(StringView name, StringView defaultFileName, CreateAssetFunc createAsset)
+		{
+			_name = new String(name);
+			_defaultFileName = new String(defaultFileName);
+			_doCreateAsset = createAsset;
+		}
+	}
+
 	class ContentBrowserWindow : EditorWindow
 	{
+		private append List<AssetCreator> _assetCreators = .() ~ ClearAndDeleteItems!(_);
+
+		private typealias AssetCreatorTree = TreeNode<(StringView Name, AssetCreator Creator)>;
+
+		private AssetCreatorTree _creatorTree = new AssetCreatorTree(("Create new Asset", null)) ~ delete _;
+
 		public const String s_WindowTitle = "Content Browser";
 
 		private append String _currentDirectory = .();
@@ -31,6 +58,28 @@ namespace GlitchyEditor.EditWindows
 		public this(EditorContentManager contentManager)
 		{
 			_manager = contentManager;
+		}
+
+		public void RegisterAssetCreator(AssetCreator assetCreator)
+		{
+			_assetCreators.Add(assetCreator);
+
+			AssetCreatorTree tree = _creatorTree;
+
+			for (StringView entryName in assetCreator.Name.Split('/'))
+			{
+				AssetCreatorTree nextNode = tree.Children.Where(scope (node) => node->Name == entryName).FirstOrDefault();
+
+				// Create new node if we didn't find it
+				nextNode ??= tree.AddChild((entryName, null));
+
+				tree = nextNode;
+			}
+
+			if (tree->Creator == null)
+			{
+				tree->Creator = assetCreator;
+			}
 		}
 
 		protected override void InternalShow()
@@ -121,6 +170,63 @@ namespace GlitchyEditor.EditWindows
 				if (Path.OpenFolder(_currentDirectory) case .Err)
 					Log.EngineLogger.Error("Failed to open directory in file browser.");
 			}
+
+			ImGui.Separator();
+
+			ShowCreateContextMenu(_creatorTree);
+		}
+
+		/// Shows the menu for the given asset creator tree.
+		private void ShowCreateContextMenu(AssetCreatorTree subtree)
+		{
+			if (subtree.Children.Count == 0)
+			{
+				if (ImGui.MenuItem(subtree->Name.ToScopeCStr!()))
+				{
+					CreateAsset(subtree->Creator);
+				}
+			}
+			else
+			{
+				if (ImGui.BeginMenu(subtree->Name.ToScopeCStr!()))
+				{
+					for (let node in subtree.Children)
+					{
+						ShowCreateContextMenu(node);
+					}
+
+					ImGui.EndMenu();
+				}
+			}
+		}
+
+		/// Creates a new asset with the given creator
+		private void CreateAsset(AssetCreator creator)
+		{
+			if (!Directory.Exists(_currentDirectory))
+			{
+				Log.EngineLogger.Error($"Directory {_currentDirectory} doesn't exist.");
+				return;
+			}
+			
+			String currentFile = scope String();
+			Path.Combine(currentFile, _currentDirectory, creator.DefaultFileName);
+			
+			String fileExtension = scope String();
+			Path.GetExtension(currentFile, fileExtension);
+
+			StringView fileWithoutExtension = currentFile[0...^(fileExtension.Length + 1)];
+
+			int i = 0;
+			while (File.Exists(currentFile))
+			{
+				i++;
+				currentFile.Set(fileWithoutExtension);
+				currentFile.AppendF($"({i})");
+				currentFile.Append(fileExtension);
+			}
+
+			creator.CreateAsset(currentFile);
 		}
 
 		/// Renders a sidebar that shows a tree of all directories in the asset folder.
