@@ -518,7 +518,7 @@ namespace GlitchyEditor
 			String fileTargetPath = scope String();
 			project.PathInProject(fileTargetPath, fileName);
 
-			String fileContent = new:ScopedAlloc! String();
+			String fileContent = scope String();
 			if (File.ReadAllText(fileTargetPath, fileContent, true) case .Err)
 			{
 				Log.EngineLogger.Error($"FixupFile: Failed to read file {fileTargetPath}.");
