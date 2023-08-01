@@ -42,7 +42,7 @@ namespace GlitchyEngine
 
 		public GameTime GameTime => _gameTime;
 
-		[Inline, Obsolete("Use Application.Instance instead.", false)]
+		[Inline, Obsolete("Use Application.Instance instead.", false), NoShow]
 		public static Application Get() => s_Instance;
 
 		public static Application Instance => s_Instance;
