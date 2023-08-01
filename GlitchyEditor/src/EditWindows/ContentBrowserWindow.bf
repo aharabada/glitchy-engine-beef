@@ -469,11 +469,16 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.TextUnformatted(entry->Name);
 
+			bool wantsDelete = false;
+
 			if (ImGui.BeginPopupContextWindow())
 			{
-			    ShowItemContextMenu(entry);
+			    ShowItemContextMenu(entry, ref wantsDelete);
 			    ImGui.EndPopup();
 			}
+
+			if (wantsDelete)
+            	ImGui.OpenPopup("Delete?");
 
 			// TODO: Sub assets are probably borked now... I don't know if they ever worked, didn't test them
 			if (entry->SubAssets?.Count > 0)
@@ -532,6 +537,8 @@ namespace GlitchyEditor.EditWindows
 
 				if (ImGui.Button("Yes", ImGui.Vec2(120, 0)))
 				{
+					_manager.AssetHierarchy.DeleteFile(fileOrFolder.Value);
+
 					ImGui.CloseCurrentPopup();
 				}
 
@@ -548,7 +555,7 @@ namespace GlitchyEditor.EditWindows
 		}
 
 		/// Shows the context menu for the given file/folder.
-		private void ShowItemContextMenu(TreeNode<AssetNode> fileOrFolder)
+		private void ShowItemContextMenu(TreeNode<AssetNode> fileOrFolder, ref bool wantsDelete)
 		{
 			bool isFile = !fileOrFolder->IsDirectory;
 
@@ -570,7 +577,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Delete"))
 			{
-            	ImGui.OpenPopup("Delete?");
+				wantsDelete = true;
 			}
 		}
 

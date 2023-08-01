@@ -137,6 +137,36 @@ class AssetHierarchy
 		Log.EngineLogger.Trace($"Created root node");
 	}
 
+	/// Deletes the file that belongs to the given assetNode
+	public void DeleteFile(AssetNode assetNode)
+	{
+		if (assetNode.IsDirectory)
+		{
+			if (Directory.DelTree(assetNode.Path) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Couldn't delete Directory ({error}).");
+			}
+		}
+		else
+		{
+			if (File.Delete(assetNode.Path) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Couldn't delete File \"{assetNode.Path}\" ({error}).");
+			}
+		}
+
+		StringView assetDescriptorPath = assetNode.AssetFile?.FilePath ?? "";
+
+		// If it exists, also try to delete the .ass file
+		if (File.Exists(assetDescriptorPath))
+		{
+			if (File.Delete(assetDescriptorPath) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Couldn't delete Asset descriptor file \"{assetDescriptorPath}\" ({error}).");
+			}
+		}
+	}
+
 	public void SetResourcesDirectory(StringView fileName)
 	{
 		ResourcesDirectory = fileName;
