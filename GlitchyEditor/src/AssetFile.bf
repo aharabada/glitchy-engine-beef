@@ -40,6 +40,7 @@ class AssetFile
 
 	public StringView FilePath => _path;
 	public StringView Identifier => _identifier;
+	public StringView AssetConfigPath => _assetConfigPath;
 
 	public const String ConfigFileExtension = ".ass";
 

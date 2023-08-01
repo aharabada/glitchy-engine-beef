@@ -6,6 +6,7 @@ using GlitchyEngine.Collections;
 using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
+using GlitchyEngine.Content;
 using GlitchyEngine;
 using GlitchyEditor.Assets;
 
@@ -47,6 +48,9 @@ namespace GlitchyEditor.EditWindows
 		private append String _currentDirectory = .();
 
 		private append String _selectedFile = .();
+
+		private append String _assetToRename = .();
+		private char8[128] _renameFileNameBuffer;
 
 		public static SubTexture2D s_FolderTexture;
 		public static SubTexture2D s_FileTexture;
@@ -467,7 +471,44 @@ namespace GlitchyEditor.EditWindows
 				EntryDoubleClicked(entry);
 			}
 
-			ImGui.TextUnformatted(entry->Name);
+			if (_assetToRename == entry->Path)
+			{
+				ImGui.PushItemWidth((.)IconSize.X);
+
+				if (ImGui.InputText("##renameBox", &_renameFileNameBuffer, _renameFileNameBuffer.Count - 1, .AutoSelectAll | .EnterReturnsTrue))
+				{
+				}
+
+				ImGui.PopItemWidth();
+
+				if (ImGui.IsKeyDown(.Escape))
+				{
+					_assetToRename.Clear();
+				}
+				else if (ImGui.IsItemDeactivatedAfterEdit())
+				{
+					StringView newName = StringView(&_renameFileNameBuffer);
+
+					if (!newName.IsWhiteSpace)
+						_manager.AssetHierarchy.RenameFile(entry.Value, newName);
+					
+					_assetToRename.Clear();
+				}
+				else if (ImGui.IsItemDeactivated())
+				{
+					_assetToRename.Clear();
+				}
+
+				// TODO: Textbox
+				// TODO: Save when focus lost
+				// TODO: Abort on escape
+
+				//ImGui.TextUnformatted(entry->Name);
+			}
+			else
+			{
+				ImGui.TextUnformatted(entry->Name);
+			}
 
 			bool wantsDelete = false;
 
@@ -573,6 +614,16 @@ namespace GlitchyEditor.EditWindows
 				{
 					Log.EngineLogger.Error("Failed to show \"Open with...\" dialog.");
 				}
+			}
+
+			ImGui.Separator();
+
+			if (ImGui.MenuItem("Rename"))
+			{
+				// Copy the path, just for the rare case that fileOrFolder gets deleted
+				_assetToRename.Set(fileOrFolder->Path);
+
+				fileOrFolder->Name.CopyTo(_renameFileNameBuffer);
 			}
 
 			if (ImGui.MenuItem("Delete"))

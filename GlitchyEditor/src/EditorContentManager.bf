@@ -54,7 +54,7 @@ class EditorContentManager : IContentManager
 	public void OnFileRenamed(AssetNode assetNode, StringView oldIdentifier)
 	{
 		// Asset isn't loaded so we don't need to reload it.
-		if (assetNode.AssetFile.LoadedAsset == null)
+		if (assetNode.AssetFile?.LoadedAsset == null)
 			return;
 
 		Asset asset = assetNode.AssetFile.LoadedAsset;
