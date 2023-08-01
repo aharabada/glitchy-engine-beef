@@ -144,6 +144,14 @@ namespace GlitchyEditor
 
 		private void RegisterAssetCreators()
 		{
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Folder", "New Folder", new (path) =>
+				{
+					if (Directory.CreateDirectory(path) case .Err(let error))
+					{
+						Log.ClientLogger.Error($"Directory \"{path}\" could not be created ({error}).");
+					}
+				}));
+
 			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Scene", "New Scene.scene", new (path) =>
 				{
 					using (Scene newScene = CreateNewScene())
