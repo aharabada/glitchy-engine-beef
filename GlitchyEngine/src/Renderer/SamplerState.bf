@@ -3,6 +3,7 @@ using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 using System.Collections;
 using Bon;
+using System.Threading;
 
 namespace GlitchyEngine.Renderer
 {
@@ -170,6 +171,7 @@ namespace GlitchyEngine.Renderer
 	public static class SamplerStateManager
 	{
 		static Dictionary<SamplerStateDescription, SamplerState> _samplers;
+		static Monitor _samplersMonitor = new .() ~ delete _;
 
 		public static SamplerState PointClamp;
 		public static SamplerState PointWrap;
@@ -257,8 +259,11 @@ namespace GlitchyEngine.Renderer
 			AnisotropicClamp.ReleaseRef();
 			AnisotropicWrap.ReleaseRef();
 
-			delete _samplers;
-			_samplers = null;
+			using (_samplersMonitor.Enter())
+			{
+				delete _samplers;
+				_samplers = null;
+			}
 		}
 
 		/**
@@ -273,13 +278,18 @@ namespace GlitchyEngine.Renderer
 
 			Log.EngineLogger.AssertDebug(_samplers != null, "SamplerStateManager was not initialized.");
 
-			if(_samplers.TryGetValue(desc, let sampler))
-			{
-				return sampler..AddRef();
-			}
+			SamplerState newState;
 
-			SamplerState newState = new SamplerState(desc);
-			ManageSampler(newState);
+			using (_samplersMonitor.Enter())
+			{
+				if(_samplers.TryGetValue(desc, let sampler))
+				{
+					return sampler..AddRef();
+				}
+
+				newState = new SamplerState(desc);
+				ManageSampler(newState);
+			}
 
 			return newState;
 		}
@@ -287,8 +297,11 @@ namespace GlitchyEngine.Renderer
 		public static void ManageSampler(SamplerState samplerState)
 		{
 			Log.EngineLogger.AssertDebug(_samplers != null, "SamplerStateManager was not initialized.");
-
-			_samplers.Add(samplerState.Description, samplerState);
+			
+			using (_samplersMonitor.Enter())
+			{
+				_samplers.Add(samplerState.Description, samplerState);
+			}
 		}
 
 		/**
@@ -298,8 +311,11 @@ namespace GlitchyEngine.Renderer
 		internal static void Remove(SamplerState samplerState)
 		{
 			Log.EngineLogger.AssertDebug(samplerState.RefCount == 0, "Tried to delete sampler with nonzero reference count.");
-
-			_samplers?.Remove(samplerState.Description);
+			
+			using (_samplersMonitor.Enter())
+			{
+				_samplers?.Remove(samplerState.Description);
+			}
 		}
 	}
 
