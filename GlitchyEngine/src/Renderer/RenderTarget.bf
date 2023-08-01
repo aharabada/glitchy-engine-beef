@@ -49,7 +49,9 @@ namespace GlitchyEngine.Renderer
 		public override uint32 ArraySize => _description.ArraySize;
 		public override uint32 MipLevels => _description.MipLevels;
 		public override Format Format => _description.PixelFormat;
-		
+
+		public override TextureDimension Dimension => .Texture2D;
+
 		protected internal DepthStencilTarget _depthStenilTarget ~ _?.ReleaseRef();
 		
 		// TODO: DepthStencilTarget is just a renderTarget

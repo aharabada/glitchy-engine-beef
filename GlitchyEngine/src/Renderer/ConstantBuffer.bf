@@ -104,10 +104,27 @@ namespace GlitchyEngine.Renderer
 
 	public enum ShaderVariableType
 	{
-		Bool,
-		Float,
-		Int,
-		UInt
+		case Bool;
+		case Float;
+		case Int;
+		case UInt;
 		// todo
+
+		public int ElementSizeInBytes()
+		{
+			switch (this)
+			{
+			case .Bool:
+				return 1;
+			case .Float:
+				return 4;
+			case .Int:
+				return 4;
+			case .UInt:
+				return 4;
+			default:
+				return 0;
+			}
+		}
 	}
 }

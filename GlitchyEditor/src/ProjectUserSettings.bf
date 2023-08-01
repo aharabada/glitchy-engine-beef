@@ -70,7 +70,6 @@ class ProjectUserSettings
 
 	public void RestoreDefaults()
 	{
-		//_lastOpenedScene?.Clear();
 		if (_recentScenes != null)
 			ClearAndDeleteItems!(_recentScenes);
 

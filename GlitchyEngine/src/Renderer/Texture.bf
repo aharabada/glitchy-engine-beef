@@ -31,6 +31,8 @@ namespace GlitchyEngine.Renderer
 
 		public abstract Format Format {get;}
 
+		public abstract TextureDimension Dimension {get;}
+
 		public abstract TextureViewBinding GetViewBinding();
 	}
 
@@ -81,6 +83,8 @@ namespace GlitchyEngine.Renderer
 		public override uint32 Depth => 1;
 		//public override extern uint32 ArraySize {get;}
 		//public override extern uint32 MipLevels {get;}
+
+		public override TextureDimension Dimension => .Texture2D;
 
 		public this(Texture2DDesc desc)
 		{
@@ -163,6 +167,8 @@ namespace GlitchyEngine.Renderer
 		// public override extern uint32 ArraySize {get;}
 		// public override extern uint32 MipLevels {get;}
 		
+		public override TextureDimension Dimension => .TextureCube;
+
 		public this(Texture2DDesc desc)
 		{
 			PrepareTexturePlatform(desc, false);

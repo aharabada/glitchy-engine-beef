@@ -59,8 +59,37 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 
 		if (material == null)
 			return;
+
+		ImGui.TextUnformatted("Effect: ");
+		ImGui.SameLine();
 		
 		Effect effect = material?.Effect;
+
+		StringView effectName = (effect?.Identifier ?? "(None)");
+
+		ImGui.Button(effectName.ToScopeCStr!());
+
+		ImGui.AttachTooltip(effectName);
+
+		// Effect drop target
+		if (ImGui.BeginDragDropTarget())
+		{
+			ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
+
+			if (payload != null)
+			{
+				StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+				AssetHandle<Effect> newEffect = Content.LoadAsset(path);
+
+				material.Effect = newEffect;
+
+				//newTexture.Get().SamplerState = SamplerStateManager.AnisotropicWrap;
+				//material.SetTexture(texture.key, newTexture.Cast<Texture>());
+			}
+
+			ImGui.EndDragDropTarget();
+		}
 
 		if (effect == null)
 			return;

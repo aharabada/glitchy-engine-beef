@@ -14,30 +14,61 @@ public class Material : Asset
 
 	private uint8[] _rawVariables ~ delete _;
 
-	private Dictionary<String, (AssetHandle<Texture> Handle, TextureDimension Dimension)> _textures = new .() ~ delete _;
+	private Dictionary<String, (AssetHandle<Texture> Handle, TextureDimension Dimension)> _textures = new .() ~ DeleteDictionaryAndKeys!(_);
 
-	private Dictionary<String, (uint32 Offset, BufferVariable Variable)> _variables = new .() ~ delete _;
+	private Dictionary<String, (uint32 Offset, BufferVariable Variable)> _variables = new .() ~ DeleteDictionaryAndKeys!(_);
 
-	public Effect Effect => _effect;
+	public Effect Effect
+	{
+		get => _effect;
+		set
+		{
+			SetReference!(_effect, value);
+
+			if (_effect == null)
+				return;
+
+			// TODO: get variables from effect
+			decltype(_textures) newTextures = new .();
+
+			// Get texture slots from effect
+			for(let (name, effectTexture) in _effect.Textures)
+			{
+				// TODO: We need to be able to define default textures in the shader.
+				// At least things like "Black", "White", "Normal"
+				// At best whole paths. Shouldn't be that hard to do...
+
+				AssetHandle<Texture> textureHandle = .Invalid;
+
+				if (_textures.TryGetValue(name, let oldMaterialTexture))
+				{
+					textureHandle = oldMaterialTexture.Handle;
+				}
+
+				if (textureHandle.IsValid)
+				{
+					if (textureHandle.Dimension != effectTexture.TextureDimension)
+						textureHandle = .Invalid;
+				}
+				
+				_textures[new String(name)] = (textureHandle, effectTexture.TextureDimension);
+			}
+
+			DeleteDictionaryAndKeys!(_textures);
+			_textures = newTextures;
+
+			InitRawData();
+		}
+	}
+
+	public this()
+	{
+
+	}
 
 	public this(Effect effect)
 	{
-		_effect = effect..AddRef();
-
-		// TODO: get variables from effect
-
-		// Get texture slots from effect
-		for(let (name, entry) in _effect.Textures)
-		{
-			// TODO: We need to be able to define default textures in the shader.
-			// At least things like "Black", "White", "Normal"
-			// At best whole paths. Shouldn't be that hard to do...
-			/*var texture = entry.BoundTexture;*/
-
-			_textures.Add(name, (AssetHandle<Texture>.Invalid, entry.TextureDimension));
-		}
-
-		InitRawData();
+		Effect = effect;
 	}
 
 
@@ -47,14 +78,44 @@ public class Material : Asset
 	{
 		uint32 bufferSize = 0;
 
+		decltype(_variables) newVariables = new Dictionary<String, (uint32 Offset, BufferVariable Variable)>();
+
 		for(let variable in _effect.Variables)
 		{
-			_variables.Add(variable.Name, (bufferSize, variable));
+			newVariables.Add(new .(variable.Name), (bufferSize, variable));
 
 			bufferSize += variable._sizeInBytes;
 		}
 
-		_rawVariables = new uint8[bufferSize];
+		uint8[] newData = new uint8[bufferSize];
+
+		for (let (newKey, newValue) in newVariables)
+		{
+			if (_variables.TryGetValue(newKey, let oldEntry))
+			{
+				if (oldEntry.Variable.Type == newValue.Variable.Type)
+				{
+					int elementSize = newValue.Variable.Type.ElementSizeInBytes();
+
+					for (int r = 0; r < Math.Min(oldEntry.Variable.Rows, newValue.Variable.Rows); r++)
+					for (int c = 0; c < Math.Min(oldEntry.Variable.Columns, newValue.Variable.Columns); c++)
+					{
+						int oldElementIndex = r * oldEntry.Variable.Columns + c;
+						int newElementIndex = r * newValue.Variable.Columns + c;
+
+						Internal.MemCpy(newData.Ptr + (newValue.Offset + elementSize * oldElementIndex),
+							_rawVariables.Ptr + (oldEntry.Offset + elementSize * newElementIndex), elementSize);
+					}
+				}
+				// TODO: we could try to convert e.g. Int <-> Float
+			}
+		}
+
+		delete _rawVariables;
+		_rawVariables = newData;
+
+		DeleteDictionaryAndKeys!(_variables);
+		_variables = newVariables;
 	}
 
 	/**
