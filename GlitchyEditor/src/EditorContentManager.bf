@@ -281,7 +281,7 @@ class EditorContentManager : IContentManager
 		
 		IAssetLoader assetLoader = GetAssetLoader(file);
 
-		Stream stream = GetStream(filePath);
+		Stream stream = GetStream(filePath, true);
 
 		// TODO: Add async loading!
 		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
@@ -488,10 +488,7 @@ class EditorContentManager : IContentManager
 			Runtime.NotImplemented("Saving subassets is not currently allowed");
 		}
 
-		String filePath = scope String();
-		GetResourceFilePath(resourceName, filePath);
-
-		Result<TreeNode<AssetNode>> assetNode = AssetHierarchy.GetNodeFromPath(filePath);
+		Result<TreeNode<AssetNode>> assetNode = AssetHierarchy.GetNodeFromIdentifier(asset.Identifier);
 
 		if (assetNode case .Err)
 			return .Err(.PathNotFound);
@@ -508,7 +505,7 @@ class EditorContentManager : IContentManager
 			return .Err(.Unsavable);
 		}
 
-		Stream stream = OpenStream(filePath, false);
+		Stream stream = GetStream(asset.Identifier, false);
 
 		assetSaver.EditorSaveAsset(stream, asset, file.AssetConfig.Config, resourceName, subassetName, this);
 
@@ -520,13 +517,81 @@ class EditorContentManager : IContentManager
 		return .Ok;
 	}
 
-	private Stream OpenStream(StringView fileName, bool openOnly)
+	/// Saves the asset.
+	public Result<void, SaveAssetError> SaveAssetToFile(Asset asset, StringView fileName)
+	{
+		if (asset == null)
+			return .Err(.Unknown);
+
+		//if (asset.Identifier.IsWhiteSpace)
+		//	return .Err(.Unsavable);
+
+		String fileAssetName = scope .();
+		
+		Path.GetFileNameWithoutExtension(fileName, fileAssetName);
+
+		StringView assetName = fileAssetName;
+		StringView? subassetName = null;
+
+		if (!asset.Identifier.IsWhiteSpace)
+			GetResourceAndSubassetName(asset.Identifier, out assetName, out subassetName);
+
+		//if (subassetName != null)
+		//{
+			// TODO: should this ever be allowed? Couldn't we just save the entire asset?
+			// Would this ever be necessary?
+		//	Runtime.NotImplemented("Saving subassets is not currently allowed");
+		//}
+
+		//Result<TreeNode<AssetNode>> assetNode = AssetHierarchy.GetNodeFromIdentifier(asset.Identifier);
+
+		//if (assetNode case .Err)
+		//	return .Err(.PathNotFound);
+
+		//AssetFile file = assetNode.Get()->AssetFile;
+
+		String fileExtension = scope .();
+		Path.GetExtension(fileName, fileExtension);
+
+		IAssetLoader assetLoader = GetDefaultAssetLoader(fileExtension);//GetAssetLoader(asset.GetType());
+		
+		if (assetLoader == null)
+		{
+			Log.EngineLogger.Error($"No asset loader found for extension {fileExtension}!");
+			return .Err(.Unsavable);
+		}
+
+		IAssetSaver assetSaver = assetLoader as IAssetSaver;
+
+		if (assetSaver == null)
+		{
+			Log.EngineLogger.Error("The asset loader can't save!");
+			return .Err(.Unsavable);
+		}
+
+		Stream stream = OpenStream(fileName, false);
+
+		var config = assetLoader.GetDefaultConfig();
+
+		assetSaver.EditorSaveAsset(stream, asset, config, assetName, subassetName, this);
+
+		delete config;
+
+		// Trim off the end of the file.
+		stream.SetLength(stream.Position);
+
+		delete stream;
+
+		return .Ok;
+	}
+
+	private Stream OpenStream(StringView fileName, bool readOnly)
 	{
 		FileStream fs = new FileStream();
 
-		FileMode fileMode = openOnly ? FileMode.Open : FileMode.OpenOrCreate;
+		FileMode fileMode = readOnly ? FileMode.Open : FileMode.OpenOrCreate;
 
-		var result = fs.Open(fileName, fileMode, openOnly ? .Read : .ReadWrite, .ReadWrite);
+		var result = fs.Open(fileName, fileMode, readOnly ? .Read : .ReadWrite, .ReadWrite);
 
 		if (result case .Err)
 			return null;
@@ -535,7 +600,7 @@ class EditorContentManager : IContentManager
 	}
 
 	/// Returns a file stream for the given assetIdentifier
-	public Stream GetStream(StringView assetIdentifier)
+	public Stream GetStream(StringView assetIdentifier, bool readOnly)
 	{
 		String fixuppedIdentifier = scope .(assetIdentifier);
 		AssetIdentifier.Fixup(fixuppedIdentifier);
@@ -548,7 +613,7 @@ class EditorContentManager : IContentManager
 			return null;
 		}
 
-		return OpenStream(node->Value.Path, true);
+		return OpenStream(node->Value.Path, readOnly);
 	}
 
 	public AssetHandle ManageAsset(Asset asset)

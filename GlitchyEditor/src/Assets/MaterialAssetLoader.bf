@@ -469,7 +469,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		MaterialFile materialFile = scope .();
 
-		materialFile.Effect = new String(material.Effect.Identifier);
+		materialFile.Effect = new String(material.Effect?.Identifier ?? "");
 		materialFile.Textures = new .();
 		materialFile.Variables = new .();
 
@@ -482,59 +482,59 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		Effect effect = material.Effect;
 
-		if (effect == null)
-			return .Ok;
-
-		for (let (name, arguments) in effect.[Friend]_variableDescriptions)
+		if (effect != null)
 		{
-			VariableValue variableValue = .None;
-
-			let variable = effect.Variables[name];
-			
-			bool hasPreviewType = MaterialAssetPropertiesEditor.TryGetValue(arguments, "Type", var previewType);
-
-			if (hasPreviewType && previewType.Get<String>() == "Color")
+			for (let (name, arguments) in effect.[Friend]_variableDescriptions)
 			{
-				Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
-
-				if (variable.Columns == 3)
+				VariableValue variableValue = .None;
+	
+				let variable = effect.Variables[name];
+				
+				bool hasPreviewType = MaterialAssetPropertiesEditor.TryGetValue(arguments, "Type", var previewType);
+	
+				if (hasPreviewType && previewType.Get<String>() == "Color")
 				{
-					material.GetVariable<ColorRGB>(variable.Name, var value);
-
-					value = ColorRGB.LinearToSRGB((ColorRGB)value);
-
-					//variantValue = new box value;
-					variableValue = .ColorRGB(value);
+					Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
+	
+					if (variable.Columns == 3)
+					{
+						material.GetVariable<ColorRGB>(variable.Name, var value);
+	
+						value = ColorRGB.LinearToSRGB((ColorRGB)value);
+	
+						//variantValue = new box value;
+						variableValue = .ColorRGB(value);
+					}
+					else if (variable.Columns == 4)
+					{
+						material.GetVariable<ColorRGBA>(variable.Name, var value);
+						
+						value = ColorRGBA.LinearToSRGB((ColorRGBA)value);
+						
+						variableValue = .ColorRGBA(value);
+					}
 				}
-				else if (variable.Columns == 4)
+				else if (variable.Type == .Float && variable.Rows == 1)
 				{
-					material.GetVariable<ColorRGBA>(variable.Name, var value);
-					
-					value = ColorRGBA.LinearToSRGB((ColorRGBA)value);
-					
-					variableValue = .ColorRGBA(value);
+					switch (variable.Columns)
+					{
+					case 1:
+						material.GetVariable<float>(variable.Name, let value);
+						variableValue = .Float(value);
+					case 2:
+						material.GetVariable<float2>(variable.Name, let value);
+						variableValue = .Float2(value);
+					case 3:
+						material.GetVariable<float3>(variable.Name, let value);
+						variableValue = .Float3(value);
+					case 4:
+						material.GetVariable<float4>(variable.Name, let value);
+						variableValue = .Float4(value);
+					}
 				}
+	
+				materialFile.Variables.Add(new String(name), variableValue);
 			}
-			else if (variable.Type == .Float && variable.Rows == 1)
-			{
-				switch (variable.Columns)
-				{
-				case 1:
-					material.GetVariable<float>(variable.Name, let value);
-					variableValue = .Float(value);
-				case 2:
-					material.GetVariable<float2>(variable.Name, let value);
-					variableValue = .Float2(value);
-				case 3:
-					material.GetVariable<float3>(variable.Name, let value);
-					variableValue = .Float3(value);
-				case 4:
-					material.GetVariable<float4>(variable.Name, let value);
-					variableValue = .Float4(value);
-				}
-			}
-
-			materialFile.Variables.Add(new String(name), variableValue);
 		}
 
 		String text = scope .();

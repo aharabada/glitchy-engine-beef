@@ -135,89 +135,12 @@ namespace GlitchyEngine.Content
 		void UnmanageAsset(AssetHandle asset);
 
 		/// Returns a data stream for the given asset.
-		Stream GetStream(StringView assetIdentifier);
+		Stream GetStream(StringView assetIdentifier, bool openOnly = true);
 
 		void RegisterAssetLoader<T>() where T : new, class, IAssetLoader;
 		void SetAsDefaultAssetLoader<T>(params Span<StringView> fileExtensions) where T : IAssetLoader;
 		//void GetFilePath(String outFilename, String filename);
 
 		//Stream GetFile(String filename);
-	}
-
-	class RuntimeContentManager : IContentManager
-	{
-		public this()
-		{
-			Runtime.NotImplemented();
-		}
-
-		public AssetHandle LoadAsset(StringView assetIdentifier, bool blocking = false)
-		{
-			Runtime.NotImplemented();
-		}
-
-		public Asset GetAsset(Type assetType, AssetHandle handle)
-		{
-			Runtime.NotImplemented();
-		}
-
-		public AssetHandle ManageAsset(Asset asset)
-		{
-			Runtime.NotImplemented();
-		}
-
-		public void UnmanageAsset(AssetHandle asset)
-		{
-			Runtime.NotImplemented();
-		}
-
-		public Stream GetStream(StringView assetIdentifier)
-		{
-			Runtime.NotImplemented();
-		}
-
-		public void RegisterAssetLoader<T>() where T : IAssetLoader where T : class where T : new
-		{
-			Runtime.NotImplemented();
-		}
-
-		public void SetAsDefaultAssetLoader<T>(params Span<StringView> fileExtensions) where T : IAssetLoader
-		{
-			Runtime.NotImplemented();
-		}
-		/*private String _contentRoot;
-
-		[AllowAppend]
-		public this(String contentRoot)
-		{
-			String cntRoot = append String(contentRoot);
-			_contentRoot = cntRoot;
-
-			Runtime.Assert(Directory.Exists(contentRoot), "Content root directory doesn't exist.");
-		}
-
-		public void GetFilePath(String outFilename, String filename)
-		{
-			Path.InternalCombine(outFilename, _contentRoot, filename);
-		}
-		
-		public Stream GetFile(String filename)
-		{
-			String fullpath = scope .(_contentRoot.Length + 1 + filename.Length);
-			GetFilePath(fullpath, filename);
-
-			Log.EngineLogger.AssertDebug(File.Exists(fullpath), "File doesn't exist!");
-
-			FileStream stream = new FileStream();
-			var result = stream.Open(fullpath, .Read, .Read);
-
-			if (result case .Err(let error))
-			{
-				Log.EngineLogger.Error($"Failed to open file \"{fullpath}\". Error: {error}");
-				return null;
-			}
-
-			return stream;
-		}*/
 	}
 }

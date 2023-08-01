@@ -151,6 +151,14 @@ namespace GlitchyEditor
 						SaveScene(newScene, path);
 					}
 				}));
+
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Material", "New Material.mat", new (path) =>
+				{
+					using (Material newMaterial = new Material())
+					{
+						_contentManager.SaveAssetToFile(newMaterial, path);
+					}
+				}));
 		}
 
 		private void InitGraphics()

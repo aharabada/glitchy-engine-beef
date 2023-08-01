@@ -51,7 +51,7 @@ public class Material : Asset
 						textureHandle = .Invalid;
 				}
 				
-				_textures[new String(name)] = (textureHandle, effectTexture.TextureDimension);
+				newTextures[new String(name)] = (textureHandle, effectTexture.TextureDimension);
 			}
 
 			DeleteDictionaryAndKeys!(_textures);
