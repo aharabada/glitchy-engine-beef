@@ -17,6 +17,9 @@ class AssetConfig
 
 	[BonInclude]
 	public AssetLoaderConfig Config ~ delete _;
+	
+	[BonInclude]
+	public AssetHandle AssetHandle = .Invalid;
 }
 
 class AssetFile
@@ -79,11 +82,19 @@ class AssetFile
 		}
 	}
 
+	private void GenerateAssetHandle()
+	{
+		_assetConfig.AssetHandle = .();
+	}
+
 	private void CreateDefaultAssetLoader()
 	{
 		String fileExtension = Path.GetExtension(_path, .. scope .());
 		
 		_assetConfig = new AssetConfig();
+		
+		GenerateAssetHandle();
+
 		var assetLoader = _contentManager.GetDefaultAssetLoader(fileExtension);
 
 		// We don't have a loader -> we don't need a config
@@ -95,6 +106,7 @@ class AssetFile
 
 		_assetConfig.Config = assetLoader?.GetDefaultConfig();
 		_assetConfig.Config?.[Friend]_changed = true;
+
 
 		SaveAssetConfig();
 	}

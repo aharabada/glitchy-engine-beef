@@ -103,7 +103,10 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 	{
 		for (let texture in effect.Textures)
 		{
-			ImGui.Button(texture.key);
+			ImGui.TextUnformatted(texture.key);
+			ImGui.SameLine();
+
+			ImGui.Button("Texture");
 
 			if (ImGui.BeginDragDropTarget())
 			{
@@ -315,7 +318,8 @@ class MaterialFile
 {
 	public String Effect ~ delete _;
 
-	public Dictionary<String, String> Textures ~ DeleteDictionaryAndKeysAndValues!(_);
+	//public Dictionary<String, String> Textures ~ DeleteDictionaryAndKeysAndValues!(_);
+	public Dictionary<String, AssetHandle<Texture>> Textures ~ DeleteDictionaryAndKeys!(_);
 	public Dictionary<String, VariableValue> Variables ~
 		{
 			if (_ != null)
@@ -417,14 +421,13 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		Material material = new Material(fx);
 
-		for (let (slotName, textureIdentifier) in materialFile.Textures)
+		for (let (slotName, textureHandle) in materialFile.Textures)
 		{
-
-			AssetHandle<Texture> texture = contentManager.LoadAsset(textureIdentifier);
+			AssetHandle<Texture> texture = contentManager.LoadAsset(textureHandle);
 
 			if (texture.IsInvalid)
 			{
-				Log.EngineLogger.Error($"Failed to load texture \"{textureIdentifier}\".");
+				Log.EngineLogger.Error($"Failed to load texture \"{textureHandle}\".");
 			}
 
 			material.SetTexture(slotName, texture);
@@ -475,9 +478,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 
 		for (let (slotName, texture) in material.[Friend]_textures)
 		{
-			Texture textureAsset = texture.Handle.Get();
-
-			materialFile.Textures.Add(new String(slotName), new String(textureAsset?.Identifier ?? ""));
+			materialFile.Textures.Add(new String(slotName), texture.Handle);
 		}
 
 		Effect effect = material.Effect;

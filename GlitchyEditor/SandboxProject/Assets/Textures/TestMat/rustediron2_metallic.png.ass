@@ -2,15 +2,15 @@
 	AssetLoader = "EditorTextureAssetLoader",
 	Config = (GlitchyEditor.Assets.EditorTextureAssetLoaderConfig){
 		_samplerStateDescription = {
-			MinFilter = .Anisotropic,
-			MagFilter = .Anisotropic,
-			MipFilter = .Anisotropic,
+			MinFilter = .Linear,
+			MagFilter = .Linear,
+			MipFilter = .Linear,
 			ComparisonFunction = .Never,
-			AddressModeU = .Wrap,
-			AddressModeV = .Wrap,
+			AddressModeU = .Clamp,
+			AddressModeV = .Clamp,
 			AddressModeW = .Clamp,
-			MipMinLOD = -Infinity,
-			MipMaxLOD = Infinity,
+			MipMinLOD = -3.40282347e+38,
+			MipMaxLOD = 3.40282347e+38,
 			MaxAnisotropy = 1,
 			BorderColor = {
 				R = 1,
@@ -19,5 +19,6 @@
 				A = 1
 			}
 		}
-	}
+	},
+	AssetHandle = 13527693616095745667
 }

@@ -1064,7 +1064,7 @@ namespace GlitchyEditor.EditWindows
 
 			GeometryBinding mesh = meshComponent.Mesh;
 
-			StringView identifier = mesh?.Identifier ?? "None";
+			StringView identifier = mesh?.Identifier ?? (meshComponent.Mesh.IsValid ? "<Missing Asset>" : "None");
 			ImGui.Button(identifier.ToScopeCStr!());
 
 			if (ImGui.BeginDragDropTarget())

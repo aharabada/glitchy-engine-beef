@@ -68,6 +68,19 @@ namespace GlitchyEngine.Content
 	static class Content
 	{
 		/// Loads the specified asset with the given contentManager or the current applications content manager.
+		public static AssetHandle LoadAsset(AssetHandle assetHandle, IContentManager contentManager = null, bool blocking = false)
+		{
+			var contentManager;
+
+			if (contentManager == null)
+				contentManager = Application.Get().ContentManager;
+
+			AssetHandle handle = contentManager.LoadAsset(assetHandle, blocking);
+
+			return handle;
+		}
+
+		/// Loads the specified asset with the given contentManager or the current applications content manager.
 		public static AssetHandle LoadAsset(StringView assetIdentifier, IContentManager contentManager = null, bool blocking = false)
 		{
 			var contentManager;
@@ -118,6 +131,9 @@ namespace GlitchyEngine.Content
 	{
 		/// Loads the Asset with the given handle and returns the handle.
 		AssetHandle LoadAsset(StringView assetIdentifier, bool blocking = false);
+
+		/// Loads the Asset with the given handle and returns the handle. Returns .Invalid, if the asset handle doesn't exist.
+		AssetHandle LoadAsset(AssetHandle handle, bool blocking = false);
 
 		/// Returns the asset for the given handle or null, if it isn't loaded.
 		Asset GetAsset(AssetHandle handle)

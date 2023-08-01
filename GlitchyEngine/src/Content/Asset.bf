@@ -50,16 +50,50 @@ abstract class Asset : RefCounter
 	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(Asset));
+		
+		var handle = value.Get<Asset>()._handle;
+		Serialize.Value(writer, handle, environment);
 
-	    let identifier = value.Get<Asset>().Identifier;
-	    writer.String(identifier);
+
+		//AssetHandle.[Friend]AssetSerialize(writer, ValueView(typeof(AssetHandle), &handle), environment, state);
+
+	    //writer.String(identifier);
 	}
 
 	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(Asset));
 
-		String identifier = scope .();
+		Try!(Deserialize.Value<AssetHandle>(reader, let handle, environment));
+
+		//String identifier = scope .();
+
+		//Deserialize.String!(reader, ref identifier, environment);
+
+		AssetHandle loadedHandle = Content.LoadAsset(handle);
+
+		if (loadedHandle == .Invalid)
+		{
+			value.Assign<Asset>(null);
+			return .Ok;
+		}
+
+		Asset asset = Content.GetAsset<Asset>(handle);
+
+		if (asset != null)
+		{
+			Asset oldAsset = value.Get<Asset>();
+			oldAsset.ReleaseRef();
+
+			value.Assign(asset);
+			return .Ok;
+		}
+		else
+		{
+			Deserialize.Error!("Invalid resource path", reader, value.type);
+		}
+
+		/*String identifier = scope .();
 
 		Deserialize.String!(reader, ref identifier, environment);
 
@@ -84,7 +118,7 @@ abstract class Asset : RefCounter
 		else
 		{
 			Deserialize.Error!("Invalid resource path", reader, value.type);
-		}
+		}*/
 	}
 
 	//gBonEnv.typeHandlers.Add(typeof(Resource<>),

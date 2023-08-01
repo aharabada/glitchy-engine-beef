@@ -50,6 +50,11 @@ struct AssetHandle : IHashable
 	{
 		Log.EngineLogger.Assert(value.type == typeof(AssetHandle));
 
+		var uuid = value.Get<AssetHandle>()._uuid;
+		Serialize.Value(writer, uuid, environment);
+
+		/*Log.EngineLogger.Assert(value.type == typeof(AssetHandle));
+
 		AssetHandle handle = value.Get<AssetHandle>();
 
 		if (handle.IsInvalid)
@@ -58,20 +63,24 @@ struct AssetHandle : IHashable
 		{
 	    	let identifier = handle.Get<Asset>().Identifier;
 	    	writer.String(identifier);
-		}
+		}*/
 	}
 
 	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(AssetHandle));
 
-		String identifier = scope .();
+		Try!(Deserialize.Value<UUID>(reader, let uuid, environment));
+
+		value.Assign(AssetHandle(uuid));
+
+		/*String identifier = scope .();
 
 		Deserialize.String!(reader, ref identifier, environment);
 
 		AssetHandle handle = Content.LoadAsset(identifier);
 		
-		value.Assign<AssetHandle>(handle);
+		value.Assign<AssetHandle>(handle);*/
 
 		return .Ok;
 	}
@@ -314,29 +323,18 @@ struct AssetHandle<T> where T : Asset
 	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(AssetHandle<T>));
-
+		
 		AssetHandle handle = value.Get<AssetHandle<T>>();
-
-		if (handle.IsInvalid)
-	    	writer.String("");
-		else
-		{
-	    	let identifier = handle.Get<Asset>().Identifier;
-	    	writer.String(identifier);
-		}
+		Serialize.Value(writer, handle, environment);
 	}
 
 	static Result<void> AssetDeserialize(BonReader reader, ValueView value, BonEnvironment environment, DeserializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(AssetHandle<T>));
-
-		String identifier = scope .();
-
-		Deserialize.String!(reader, ref identifier, environment);
-
-		AssetHandle<T> handle = Content.LoadAsset(identifier);
 		
-		value.Assign<AssetHandle<T>>(handle);
+		Try!(Deserialize.Value<AssetHandle>(reader, let handle, environment));
+
+		value.Assign(AssetHandle<T>(handle));
 
 		return .Ok;
 	}

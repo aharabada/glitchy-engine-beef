@@ -5,6 +5,7 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Linq;
+using GlitchyEngine.Content;
 
 namespace GlitchyEditor.Assets;
 
@@ -96,6 +97,7 @@ class AssetHierarchy
 	internal TreeNode<AssetNode> _assetsDirectoryNode = null;
 	private append Dictionary<StringView, TreeNode<AssetNode>> _pathToAssetNode = .();
 	private append Dictionary<StringView, TreeNode<AssetNode>> _identifierToAssetNode = .();
+	private append Dictionary<AssetHandle, TreeNode<AssetNode>> _handleToAssetNode = .();
 	
 	private append String _resourcesDirectory = .();
 	private append String _assetsDirectory = .();
@@ -166,7 +168,8 @@ class AssetHierarchy
 			}
 		}
 	}
-
+	
+	/// Sets path to the directory that contains the engine assets.
 	public void SetResourcesDirectory(StringView fileName)
 	{
 		ResourcesDirectory = fileName;
@@ -206,6 +209,7 @@ class AssetHierarchy
 		Update();
 	}
 
+	/// Sets path to the directory that contains the game assets.
 	public void SetAssetsDirectory(StringView fileName)
 	{
 		AssetsDirectory = fileName;
@@ -225,7 +229,6 @@ class AssetHierarchy
 			return;
 		}
 		
-
 		AssetNode assetNode = new AssetNode();
 		assetNode.Path = new String(AssetsDirectory);
 		assetNode.Name = new String();
@@ -238,7 +241,6 @@ class AssetHierarchy
 		_identifierToAssetNode.Add(assetNode.Identifier, _assetsDirectoryNode);
 
 		Log.EngineLogger.Trace($"Created directory node for: \"{AssetsDirectory}\"");
-
 
 		_fileSystemDirty = true;
 
@@ -297,12 +299,25 @@ class AssetHierarchy
 		return .Err;
 	}
 
-	/// Gets the tree node for the given filePath or .Err, if the file/directory doesn't exist.
+	/// Gets the tree node for the given asset identifier or .Err, if the file/directory doesn't exist.
 	/// @param filePath the path for which to return the tree node.
 	/// @remarks Do not hold a reference to the TreeNode because it can become invalid when the file hierarchy changes.
 	public Result<TreeNode<AssetNode>> GetNodeFromIdentifier(StringView identifier)
 	{
 		if (_identifierToAssetNode.TryGetValue(identifier, let treeNode))
+		{
+			return treeNode;
+		}
+
+		return .Err;
+	}
+
+	/// Gets the tree node for the given asset handle; or .Err, if no file exists with the given handle.
+	/// @param filePath the path for which to return the tree node.
+	/// @remarks Do not hold a reference to the TreeNode because it can become invalid when the file hierarchy changes.
+	public Result<TreeNode<AssetNode>> GetNodeFromAssetHandle(AssetHandle assetHandle)
+	{
+		if (_handleToAssetNode.TryGetValue(assetHandle, let treeNode))
 		{
 			return treeNode;
 		}
@@ -398,6 +413,8 @@ class AssetHierarchy
 
 					//GrabSubAssets(node);
 					HandleFile(treeNode.Value);
+
+					_handleToAssetNode.Add(assetNode.AssetFile.AssetConfig.AssetHandle, treeNode);
 
 					Log.EngineLogger.Trace($"Created file node for: \"{assetNode.Path}\"");
 				}

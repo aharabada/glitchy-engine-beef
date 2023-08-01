@@ -235,10 +235,7 @@ namespace GlitchyEditor
 			_editor.EditorSceneRenderer = _editorSceneRenderer;
 
 			_editor.RequestOpenScene.Add(new (s, fileName) => {
-				String fullName = scope .();
-				Path.Combine(fullName, _currentProject.AssetsFolder, fileName);
-
-			  	LoadSceneFile(fullName);
+			  	LoadSceneFile(fileName);
 			});
 		}
 
@@ -1105,7 +1102,7 @@ namespace GlitchyEditor
 
 		private void ShowOpenRecentSceneMenu()
 		{
-			if (_currentProject == null)
+			if (_currentProject == null || _currentProject.UserSettings.RecentScenes == null)
 				return;
 
 			int i = 0;

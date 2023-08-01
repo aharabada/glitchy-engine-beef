@@ -141,8 +141,18 @@ namespace GlitchyEditor.EditWindows
 
 				if (payload != null)
 				{
-					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
-					_editor.RequestOpenScene(this, path);
+					StringView assetIdentifier = .((char8*)payload.Data, (int)payload.DataSize);
+
+					let treeNode = _editor.ContentManager.AssetHierarchy.GetNodeFromIdentifier(assetIdentifier);
+
+					if (treeNode case .Err)
+					{
+						Log.EngineLogger.Error($"Dragged Asset doesn't exist. {assetIdentifier}");
+
+						return;
+					}
+
+					_editor.RequestOpenScene(this, treeNode->Value.Path);
 				}
 
 				ImGui.EndDragDropTarget();

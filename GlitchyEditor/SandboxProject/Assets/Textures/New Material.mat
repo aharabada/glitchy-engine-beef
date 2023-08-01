@@ -1,0 +1,39 @@
+{
+	Effect = "Resources/Shaders/myEffect.hlsl",
+	Textures = [
+		"AlbedoTexture": 8153940681327484189,
+		"NormalTexture": 15822842502398518390,
+		"MetallicTexture": 13527693616095745667,
+		"RoughnessTexture": 4141437666158293647,
+		"EmissiveTexture": 0
+	],
+	Variables = [
+		"AlbedoColor": .ColorRGBA{
+			Value = {
+				R = 1,
+				G = 1,
+				B = 1,
+				A = 1
+			}
+		},
+		"NormalScaling": .Float2{
+			Value = {
+				X = 1,
+				Y = 1
+			}
+		},
+		"MetallicFactor": .Float{
+			Value = 1
+		},
+		"RoughnessFactor": .Float{
+			Value = 0
+		},
+		"EmissiveColor": .Float3{
+			Value = {
+				X = 0,
+				Y = 0,
+				Z = 0
+			}
+		}
+	]
+}

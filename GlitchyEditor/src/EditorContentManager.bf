@@ -221,7 +221,10 @@ class EditorContentManager : IContentManager
 	{
 		Asset asset = null;
 
-		_handleToAsset.TryGetValue(handle, out asset);
+		if (!_handleToAsset.TryGetValue(handle, out asset))
+		{
+			LoadAsset(handle);
+		}
 
 		if (var placeholder = asset as PlaceholderAsset)
 		{
@@ -339,7 +342,92 @@ class EditorContentManager : IContentManager
 	private append List<(PlaceholderAsset placeholder, Asset newAsset)> _finishedEntries = .();
 
 	private class MissingAsset : Asset {}
+	
+	/// Loads the Asset that is represented by the given AssetHandle.
+	/// @returns The AssetHandle of the loaded asset or .Invalid if no asset exists with the given handle.
+	public AssetHandle LoadAsset(AssetHandle handle, bool blocking = false)
+	{
+		Debug.Profiler.ProfileResourceFunction!();
 
+		if (handle.IsInvalid)
+			return .Invalid;
+
+		// If _handleToAsset contains handle, we for sure have an asset for it.
+		if (_handleToAsset.ContainsKey(handle))
+			return handle;
+
+		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromAssetHandle(handle);
+
+		if (resultNode case .Err)
+		{
+			Log.EngineLogger.Error($"Could not find asset with handle {handle}.");
+			return .Invalid;
+		}
+		
+		String filePath = scope String(resultNode->Value.Path);
+
+		AssetFile file = resultNode->Value.AssetFile;
+		
+		GetResourceAndSubassetName(file.Identifier, let resourceName, let subassetName);
+
+		IAssetLoader assetLoader = GetAssetLoader(file);
+
+		// TODO: what are we supposed to do if we don't find a loader? Surely not crash...
+		//Log.EngineLogger.AssertDebug(assetLoader != null);
+		if (assetLoader == null)
+		{
+			Log.EngineLogger.Error($"No asset loader registered for asset \"{resultNode->Value.Identifier}\" ({handle}).");
+			return .Invalid;
+		}
+
+		Asset loadedAsset;
+
+		// TODO: Support lazy loading for all asset types
+		if (!(assetLoader is EditorTextureAssetLoader) || blocking)
+		{
+			Stream stream = OpenStream(filePath, true);
+
+			loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
+
+			delete stream;
+
+			if (loadedAsset == null)
+				return .Invalid;
+		}
+		else
+		{
+			PlaceholderAsset placeholder = new PlaceholderAsset(file, assetLoader, .Loading);
+
+			String filePath2 = new String(filePath);
+			String newResourceName = new String(resourceName);
+			String newSesourceName = subassetName == null ? null : new String(subassetName.Value);
+
+			placeholder.LoadingTask = new Task(new () => {
+				AsyncLoadAsset(placeholder, filePath2, assetLoader, file,
+					newResourceName, newSesourceName);
+			});
+
+			ThreadPool.QueueUserWorkItem(placeholder.LoadingTask);
+
+			loadedAsset = placeholder;
+		}
+
+		loadedAsset.Identifier = file.Identifier;
+
+		_handleToAsset.Add(handle, loadedAsset);
+
+		loadedAsset.[Friend]_contentManager = this;
+		loadedAsset.[Friend]_handle = handle;
+
+		// Add to Identifier -> Handle map
+		_identiferToHandle.Add(loadedAsset.Identifier, handle);
+
+		file.[Friend]_loadedAsset = loadedAsset;
+
+		return handle;
+	}
+
+	/// Loads the Asset with the given asset identifier
 	public AssetHandle LoadAsset(StringView identifier, bool blocking = false)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
@@ -347,10 +435,31 @@ class EditorContentManager : IContentManager
 		// It's valid to request no entity, but no entity is obviously invalid.
 		if (identifier.IsWhiteSpace)
 			return .Invalid;
-		
+
+		// We allow backslashes as well as forward slashes. Some Path stuff like /./ is also allowed.
 		String fixedIdentifier = scope String(identifier);
 		AssetIdentifier.Fixup(fixedIdentifier);
 
+		// If we have an identifier -> handle mapping, we for sure have the asset and are done.
+		if (_identiferToHandle.TryGetValue(fixedIdentifier, let asset))
+			return asset;
+
+		if (AssetHierarchy.GetNodeFromIdentifier(fixedIdentifier) case .Ok(let assetNode))
+		{
+			return LoadAsset(assetNode->AssetFile.AssetConfig.AssetHandle, blocking);
+		}
+		else
+		{
+			Log.EngineLogger.Error($"Could not get asset node for asset {fixedIdentifier}");
+
+			return .Invalid;
+		}
+
+		//Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromIdentifier(fixedIdentifier);
+
+		//resultNode.
+
+		/*
 		if (_identiferToHandle.TryGetValue(fixedIdentifier, let asset))
 			return asset;
 
@@ -411,7 +520,24 @@ class EditorContentManager : IContentManager
 		}
 
 		loadedAsset.Identifier = fixedIdentifier;
-		AssetHandle handle = ManageAsset(loadedAsset);
+
+		AssetHandle handle = .Invalid;
+
+		if (file.AssetConfig.AssetHandle == .Invalid)
+		{
+			handle = ManageAsset(loadedAsset);
+			// TODO: Does this ever happen?
+			file.AssetConfig.AssetHandle = handle;
+		}
+		else
+		{
+			handle = file.AssetConfig.AssetHandle;
+			_handleToAsset.Add(handle, loadedAsset);
+
+			loadedAsset.[Friend]_contentManager = this;
+			loadedAsset.[Friend]_handle = handle;
+		}
+			
 		// ManageAsset increases RefCount, but this scope also holds a reference.
 		loadedAsset.ReleaseRef();
 
@@ -420,7 +546,7 @@ class EditorContentManager : IContentManager
 
 		file.[Friend]_loadedAsset = loadedAsset;
 
-		return handle;
+		return handle;*/
 	}
 
 	private void AsyncLoadAsset(PlaceholderAsset placeholder, String filePath, IAssetLoader assetLoader, AssetFile file, String resourceName, String subassetName)

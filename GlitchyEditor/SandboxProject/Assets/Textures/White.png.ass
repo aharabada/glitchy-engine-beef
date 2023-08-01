@@ -9,8 +9,8 @@
 			AddressModeU = .Clamp,
 			AddressModeV = .Clamp,
 			AddressModeW = .Clamp,
-			MipMinLOD = -340282346638528859811704183484516925440,
-			MipMaxLOD = 340282346638528859811704183484516925440,
+			MipMinLOD = -3.40282347e+38,
+			MipMaxLOD = 3.40282347e+38,
 			MaxAnisotropy = 1,
 			BorderColor = {
 				R = 1,
@@ -19,5 +19,6 @@
 				A = 1
 			}
 		}
-	}
+	},
+	AssetHandle = 14357509390762845070
 }
