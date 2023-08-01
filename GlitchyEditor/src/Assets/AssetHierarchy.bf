@@ -90,8 +90,6 @@ class AssetHierarchy
 		delete _;
 	};
 	
-	bool _fileSystemDirty = false;
-	
 	internal TreeNode<AssetNode> _assetRootNode = null ~ DeleteTreeAndChildren!(_);
 	internal TreeNode<AssetNode> _resourcesDirectoryNode = null;
 	internal TreeNode<AssetNode> _assetsDirectoryNode = null;
@@ -222,12 +220,10 @@ class AssetHierarchy
 
 		Log.EngineLogger.Trace($"Created directory node for: \"{ResourcesDirectory}\"");
 
-		_fileSystemDirty = true;
-
 		// TODO: Watch resources folder?
 		//SetupResourcesFileSystemWatcher();
 
-		Update();
+		UpdateFiles();
 	}
 
 	/// Sets path to the directory that contains the game assets.
@@ -263,11 +259,26 @@ class AssetHierarchy
 
 		Log.EngineLogger.Trace($"Created directory node for: \"{AssetsDirectory}\"");
 
-		_fileSystemDirty = true;
-
 		SetupFileSystemWatcher();
 
-		Update();
+		UpdateFiles();
+	}
+
+	private bool _fileTreeUpdateRequested = false;
+
+	/// Invokes the the file tree update on the mainthread.
+	private void DeferFileTreeUpdate()
+	{
+		_fileTreeUpdateRequested = true;
+
+		if (!_fileTreeUpdateRequested)
+		{
+			Application.Instance.InvokeOnMainThread(new () =>
+				{
+					UpdateFiles();
+					_fileTreeUpdateRequested = false;
+				});
+		}
 	}
 	
 	/// Initializes the FSW for the current ContentDirectory and registers the events.
@@ -281,7 +292,6 @@ class AssetHierarchy
 			// Note: Gets fired for a directory if a file inside it is created/removed
 			
 			Log.EngineLogger.Trace($"File content changed (\"{filename}\")");
-			//_fileSystemDirty = true;
 
 			FileContentChanged(filename);
 		});
@@ -289,13 +299,13 @@ class AssetHierarchy
 		fsw.OnCreated.Add(new (filename) => {
 			Log.EngineLogger.Trace($"File created (\"{filename}\")");
 
-			_fileSystemDirty = true;
+			DeferFileTreeUpdate();
 		});
 
 		fsw.OnDeleted.Add(new (filename) => {
 			Log.EngineLogger.Trace($"File deleted (\"{filename}\")");
 
-			_fileSystemDirty = true;
+			DeferFileTreeUpdate();
 		});
 
 		fsw.OnRenamed.Add(new (oldName, newName) => {
@@ -303,7 +313,7 @@ class AssetHierarchy
 			
 			FileRenamed(oldName, newName);
 			
-			_fileSystemDirty = true;
+			DeferFileTreeUpdate();
 		});
 
 		fsw.StartRaisingEvents();
@@ -353,15 +363,6 @@ class AssetHierarchy
 		return _pathToAssetNode.ContainsKey(filePath);
 	}
 
-	public void Update()
-	{
-		// TODO: do we really need to do this in the update loop?
-		if (_fileSystemDirty)
-		{
-			UpdateFiles();
-		}
-	}
-	
 	/// Determines and set the Identfier for the given asset node.
 	private void DetermineIdentifier(TreeNode<AssetNode> assetNode)
 	{
@@ -515,8 +516,6 @@ class AssetHierarchy
 		
 		if (!ResourcesDirectory.IsWhiteSpace)
 			AddSubdirectoriesAndFilesToTree(_resourcesDirectoryNode);
-
-		_fileSystemDirty = false;
 	}
 
 	private void FileContentChanged(StringView fileName)
@@ -609,12 +608,15 @@ class AssetHierarchy
 		// Directories have no AssetFile?
 		if (node->AssetFile != null)
 		{
+			// TODO: Somehow this leaks memory
 			node->AssetFile.[Friend]_path.Set(node->Path);
 
 			node->AssetFile.[Friend]_identifier.Set(newFilePath);
 			AssetIdentifier.Fixup(node->AssetFile.[Friend]_identifier);
 
-			node->AssetFile.[Friend]_assetConfigPath..Set(node->Path).Append(AssetFile.ConfigFileExtension);
+			node->AssetFile.[Friend]_assetConfigPath.Set(node->Path);
+			// TODO: Somehow this leaks memory
+			node->AssetFile.[Friend]_assetConfigPath.Append(AssetFile.ConfigFileExtension);
 		}
 
 		// Fire renamed event (e.g. because EditorContentManager needs to know)

@@ -92,8 +92,6 @@ class EditorContentManager : IContentManager
 			}
 			_reloadQueue.Clear();
 		}
-
-		_assetHierarchy.Update();
 	}
 
 	/// Replaces placeholders with the loaded assets
