@@ -328,7 +328,7 @@ namespace GlitchyEditor.EditWindows
 				files = currentDirectoryNode->Children;
 
 				// show back button (".."-File)
-				if (currentDirectoryNode->Parent != null)
+				if (currentDirectoryNode->Parent != _manager.AssetHierarchy.RootNode)
 				{
 					ImGui.PushID("Back");
 	
@@ -403,11 +403,14 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.PopStyleColor();
 
+			FileDropTarget(entry);
+
 			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
 			{
 				if (_selectedFile != entry->Path)
 				{
 					_selectedFile.Set(entry->Path);
+					_assetToRename.Clear();
 				}
 			}
 
@@ -419,6 +422,38 @@ namespace GlitchyEditor.EditWindows
 			ImGui.TextUnformatted("..");
 
 			ImGui.EndChild();
+		}
+
+		/// Makes a drop target for the given asset node that files and directories can be dropped on, so that Files can be moved
+		private void FileDropTarget(TreeNode<AssetNode> dropTarget)
+		{
+			if (dropTarget->IsDirectory && ImGui.BeginDragDropTarget())
+			{
+				bool allowDrop = false;
+
+				ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ContentBrowserItem, .AcceptPeekOnly);
+
+				if (peekPayload != null)
+				{
+					StringView assetIdentifier = .((char8*)peekPayload.Data, (int)peekPayload.DataSize);
+
+					allowDrop = assetIdentifier != dropTarget->Identifier;
+				}
+
+				if (allowDrop)
+				{
+					ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
+
+					if (payload != null)
+					{
+						StringView movedChild = .((char8*)payload.Data, (int)payload.DataSize);
+
+						_manager.AssetHierarchy.MoveFileToNode(movedChild, dropTarget);
+					}
+				}
+
+				ImGui.EndDragDropTarget();
+			}
 		}
 
 		/// Renders the button for the given directory item.
@@ -458,11 +493,14 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropSource();
 			}
 
+			FileDropTarget(entry);
+
 			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
 			{
 				if (_selectedFile != entry->Path)
 				{
 					_selectedFile.Set(entry->Path);
+					_assetToRename.Clear();
 				}
 			}
 
@@ -475,11 +513,11 @@ namespace GlitchyEditor.EditWindows
 			{
 				ImGui.PushItemWidth((.)IconSize.X);
 
-				if (ImGui.InputText("##renameBox", &_renameFileNameBuffer, _renameFileNameBuffer.Count - 1, .AutoSelectAll | .EnterReturnsTrue))
-				{
-				}
+				ImGui.InputText("##renameBox", &_renameFileNameBuffer, _renameFileNameBuffer.Count - 1, .AutoSelectAll);
 
 				ImGui.PopItemWidth();
+				
+				ImGui.SetKeyboardFocusHere(-1);
 
 				if (ImGui.IsKeyDown(.Escape))
 				{
@@ -498,12 +536,6 @@ namespace GlitchyEditor.EditWindows
 				{
 					_assetToRename.Clear();
 				}
-
-				// TODO: Textbox
-				// TODO: Save when focus lost
-				// TODO: Abort on escape
-
-				//ImGui.TextUnformatted(entry->Name);
 			}
 			else
 			{

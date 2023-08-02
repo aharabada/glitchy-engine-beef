@@ -187,6 +187,60 @@ class AssetHierarchy
 
 		// We don't need to rename the .ass file, because the filesystem watcher will handle this for us!
 	}
+
+	public Result<void> MoveFileToNode(StringView assetIdentifierToMove, TreeNode<AssetNode> newParentEntry)
+	{
+		TreeNode<AssetNode> fileToMove = GetNodeFromIdentifier(assetIdentifierToMove).GetValueOrDefault();
+
+		if (fileToMove == null)
+		{
+			Log.EngineLogger.Error($"Couldn't find asset node for asset {assetIdentifierToMove}");
+			return .Err;
+		}
+
+		String newPathName = scope .();
+		Path.Combine(newPathName, newParentEntry->Path, fileToMove->Name);
+
+		if (File.Exists(newPathName))
+		{
+			Log.EngineLogger.Error("Can't move file. Target already exists.");
+			return .Err;
+		}
+
+		if (fileToMove->IsDirectory)
+		{
+			if (Directory.Move(fileToMove->Path, newPathName) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Couldn't move directory from {fileToMove->Path} to {newPathName} ({error}).");
+				return .Err;
+			}
+		}
+		else
+		{
+			if (File.Move(fileToMove->Path, newPathName) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Couldn't move file from {fileToMove->Path} to {newPathName} ({error}).");
+				return .Err;
+			}
+		}
+
+		if (fileToMove->AssetFile != null)
+		{
+			if (File.Exists(fileToMove->AssetFile.AssetConfigPath))
+			{
+			String newConfigPathName = scope .(newPathName);
+			newConfigPathName.Append(AssetFile.ConfigFileExtension);
+
+				if (File.Move(fileToMove->AssetFile.AssetConfigPath, newConfigPathName) case .Err(let error))
+				{
+					Log.EngineLogger.Error($"Couldn't move asset description file from {fileToMove->AssetFile.AssetConfigPath} to {newConfigPathName} ({error}). Sorry :(");
+					return .Err;
+				}
+			}
+		}
+
+		return .Ok;
+	}
 	
 	/// Sets path to the directory that contains the engine assets.
 	public void SetResourcesDirectory(StringView fileName)
@@ -269,10 +323,10 @@ class AssetHierarchy
 	/// Invokes the the file tree update on the mainthread.
 	private void DeferFileTreeUpdate()
 	{
-		_fileTreeUpdateRequested = true;
-
 		if (!_fileTreeUpdateRequested)
 		{
+			_fileTreeUpdateRequested = true;
+
 			Application.Instance.InvokeOnMainThread(new () =>
 				{
 					UpdateFiles();
