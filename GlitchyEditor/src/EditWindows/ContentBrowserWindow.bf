@@ -490,6 +490,16 @@ namespace GlitchyEditor.EditWindows
 			{
 				ImGui.SetDragDropPayload(.ContentBrowserItem, entry->Identifier, (uint64)entry->Identifier.Length, .Once);
 
+				float2 dndIconSize = (ImGui.GetFontSize() * 2.0f).XX;
+
+				ImGui.Image(image, (.)dndIconSize);
+
+				ImGui.SameLine();
+
+				ImGui.SetCursorPosY((dndIconSize.X - ImGui.GetFontSize()) / 2);
+
+				ImGui.Text(entry->Identifier);
+
 				ImGui.EndDragDropSource();
 			}
 

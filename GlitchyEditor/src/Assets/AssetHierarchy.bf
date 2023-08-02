@@ -228,8 +228,8 @@ class AssetHierarchy
 		{
 			if (File.Exists(fileToMove->AssetFile.AssetConfigPath))
 			{
-			String newConfigPathName = scope .(newPathName);
-			newConfigPathName.Append(AssetFile.ConfigFileExtension);
+				String newConfigPathName = scope .(newPathName);
+				newConfigPathName.Append(AssetFile.ConfigFileExtension);
 
 				if (File.Move(fileToMove->AssetFile.AssetConfigPath, newConfigPathName) case .Err(let error))
 				{
