@@ -235,6 +235,57 @@ namespace GlitchyEngine.World
 						scriptOfRigidbodyB?.Instance?.InvokeOnCollisionEnter2D(collision);
 					}
 				};
+			_contactListener.endContactCallback = (contact, userData) => {
+				var fixtureA = Contact.GetFixtureA(contact);
+				var fixtureB = Contact.GetFixtureB(contact);
+
+				var bodyA = Fixture.GetBody(fixtureA);
+				var bodyB = Fixture.GetBody(fixtureB);
+
+				// Cast is obviously 64bit only
+				var colliderEntityHandleA = (EcsEntity)(uint)Fixture.GetUserData(fixtureA);
+				var colliderEntityHandleB = (EcsEntity)(uint)Fixture.GetUserData(fixtureB);
+
+				Entity colliderEntityA = .(colliderEntityHandleA, ScriptEngine.Context);
+				Entity colliderEntityB = .(colliderEntityHandleB, ScriptEngine.Context);
+
+				// Cast is obviously 64bit only
+				var rigidbodyEntityHandleA = (EcsEntity)(uint)Body.GetUserData(bodyA);
+				var rigidbodyEntityHandleB = (EcsEntity)(uint)Body.GetUserData(bodyB);
+
+				Entity rigidbodyEntityA = .(rigidbodyEntityHandleA, ScriptEngine.Context);
+				Entity rigidbodyEntityB = .(rigidbodyEntityHandleB, ScriptEngine.Context);
+
+				bool fireEventA = colliderEntityA.TryGetComponent<ScriptComponent>(let scriptOfColliderA);
+				fireEventA |= rigidbodyEntityA.TryGetComponent<ScriptComponent>(let scriptOfRigidbodyA);
+
+				if (fireEventA)
+				{
+					Collision2D collision = .();
+					collision.Entity = colliderEntityA.UUID;
+					collision.OtherEntity = colliderEntityB.UUID;
+					collision.Rigidbody = rigidbodyEntityA.UUID;
+					collision.OtherRigidbody = rigidbodyEntityB.UUID;
+					
+					scriptOfColliderA?.Instance?.InvokeOnCollisionLeave2D(collision);
+					scriptOfRigidbodyA?.Instance?.InvokeOnCollisionLeave2D(collision);
+				}
+
+				bool fireEventB = colliderEntityB.TryGetComponent<ScriptComponent>(let scriptOfColliderB);
+				fireEventB |= rigidbodyEntityB.TryGetComponent<ScriptComponent>(let scriptOfRigidbodyB);
+
+				if (fireEventB)
+				{
+					Collision2D collision = .();
+					collision.Entity = colliderEntityB.UUID;
+					collision.OtherEntity = colliderEntityA.UUID;
+					collision.Rigidbody = rigidbodyEntityB.UUID;
+					collision.OtherRigidbody = rigidbodyEntityA.UUID;
+					
+					scriptOfColliderB?.Instance?.InvokeOnCollisionLeave2D(collision);
+					scriptOfRigidbodyB?.Instance?.InvokeOnCollisionLeave2D(collision);
+				}
+			};
 
 			World.SetContactListener(_physicsWorld2D, &_contactListener);
 

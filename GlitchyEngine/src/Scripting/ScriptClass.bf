@@ -290,12 +290,15 @@ class ScriptClass : SharpClass
 	private OnDestroyMethod _onDestroy;
 	
 	private function [CallingConvention(.Cdecl)] MonoObject*(MonoObject* instance, Collision2D collision, MonoException** exception) _onCollisionEnter2D;
+	private function [CallingConvention(.Cdecl)] MonoObject*(MonoObject* instance, Collision2D collision, MonoException** exception) _onCollisionLeave2D;
 
 	//private OnCollisionEnter2DMethod _onCollisionEnter2D;
-	private OnDestroyMethod _onCollisionLeave2D;
+	//private OnDestroyMethod _onCollisionLeave2D;
 	private MonoMethod* _onCollisionEnter2DMethod;
+	private MonoMethod* _onCollisionLeave2DMethod;
 
-	public bool HasCollisionEnter2D => _onCollisionEnter2D != null;
+	public bool HasCollisionEnter2D => _onCollisionEnter2DMethod != null;
+	public bool HasCollisionLeave2D => _onCollisionLeave2DMethod != null;
 
 	/*public StringView Namespace => _namespace;
 	public StringView ClassName => _className;
@@ -314,9 +317,10 @@ class ScriptClass : SharpClass
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
 
 		_onCollisionEnter2D = (.)GetMethodThunk("OnCollisionEnter2D", 1);
-		_onCollisionLeave2D = (OnDestroyMethod)GetMethodThunk("OnCollisionLeave2D");
+		_onCollisionLeave2D = (.)GetMethodThunk("OnCollisionLeave2D", 1);
 
 		_onCollisionEnter2DMethod = GetMethod("OnCollisionEnter2D", 1);
+		_onCollisionLeave2DMethod = GetMethod("OnCollisionLeave2D", 1);
 	}
 
 	public void OnCreate(MonoObject* instance, out MonoException* exception)
@@ -354,6 +358,22 @@ class ScriptClass : SharpClass
 			void*[1] args = .(&collision);
 
 			Invoke(_onCollisionEnter2DMethod, instance, (.)&args);
+		}
+		// if (_onCollisionEnter2D != null)
+		//	_onCollisionEnter2D(instance, collision, &exception);
+	}
+	
+	public void OnCollisionLeave2D(MonoObject* instance, Collision2D collision, out MonoException* exception)
+	{
+		exception = null;
+
+		// TODO: use method thunk
+		if (_onCollisionLeave2DMethod != null)
+		{
+#unwarn
+			void*[1] args = .(&collision);
+
+			Invoke(_onCollisionLeave2DMethod, instance, (.)&args);
 		}
 		// if (_onCollisionEnter2D != null)
 		//	_onCollisionEnter2D(instance, collision, &exception);

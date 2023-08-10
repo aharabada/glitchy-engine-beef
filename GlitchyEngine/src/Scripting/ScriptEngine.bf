@@ -153,7 +153,7 @@ static class ScriptEngine
 		String directory = scope .();
 		Path.GetDirectoryPath(_appAssemblyPath, directory);
 
-		if (_userAssemblyWatcher != null && _userAssemblyWatcher.Directory != directory)
+		if (_userAssemblyWatcher != null) // _userAssemblyWatcher.Directory != directory
 		{
 			delete _userAssemblyWatcher;
 		}

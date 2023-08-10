@@ -92,6 +92,17 @@ class ScriptInstance : RefCounter
 		if (exception != null)
 			ScriptEngine.HandleMonoException(exception, this);
 	}
+	
+	public void InvokeOnCollisionLeave2D(Collision2D collision)
+	{
+		if (!_scriptClass.HasCollisionLeave2D)
+			return;
+
+		_scriptClass.OnCollisionLeave2D(_instance, collision, let exception);
+		
+		if (exception != null)
+			ScriptEngine.HandleMonoException(exception, this);
+	}
 
 	public T GetFieldValue<T>(ScriptField field)
 	{
