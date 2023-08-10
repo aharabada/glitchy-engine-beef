@@ -413,7 +413,7 @@ namespace GlitchyEngine.World
 			{
 				float angle = Box2D.Body.GetAngle(RuntimeBody);
 
-				Box2D.Body.SetTransform(RuntimeBody, ref *(Box2D.b2Vec2*)&position, angle);
+				Box2D.Body.SetTransform(RuntimeBody, position, angle);
 			}
 		}
 		
@@ -433,7 +433,7 @@ namespace GlitchyEngine.World
 			{
 				var pos = Box2D.Body.GetPosition(RuntimeBody);
 
-				Box2D.Body.SetTransform(RuntimeBody, ref pos, angle);
+				Box2D.Body.SetTransform(RuntimeBody, pos, angle);
 			}
 		}
 	}

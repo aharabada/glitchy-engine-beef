@@ -247,7 +247,7 @@ static class ScriptGlue
 		Entity entity = scene.GetEntityByID(entityId);
 
 		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
-		Box2D.Body.ApplyForce(rigidBody.[Friend]RuntimeBody, ref *(Box2D.b2Vec2*)&force, ref *(Box2D.b2Vec2*)&point, wakeUp);
+		Box2D.Body.ApplyForce(rigidBody.[Friend]RuntimeBody, force, point, wakeUp);
 	}
 	
 	[RegisterCall("ScriptGlue::RigidBody2D_ApplyForceToCenter")]
@@ -257,7 +257,7 @@ static class ScriptGlue
 		Entity entity = scene.GetEntityByID(entityId);
 
 		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
-		Box2D.Body.ApplyForceToCenter(rigidBody.[Friend]RuntimeBody, ref *(Box2D.b2Vec2*)&force, wakeUp);
+		Box2D.Body.ApplyForceToCenter(rigidBody.[Friend]RuntimeBody, force, wakeUp);
 	}
 
 #endregion RigidBody2D
@@ -281,7 +281,7 @@ static class ScriptGlue
 		Scene scene = ScriptEngine.Context;
 
 #unwarn
-		Box2D.World.SetGravity(scene.[Friend]_physicsWorld2D, ref *(b2Vec2*)&gravity);
+		Box2D.World.SetGravity(scene.[Friend]_physicsWorld2D, gravity);
 	}
 
 #endregion Physics2D

@@ -177,7 +177,7 @@ namespace GlitchyEngine.World
 		
 		public void OnSimulationStart()
 		{
-			_physicsWorld2D = World.Create(ref _gravity2D);
+			_physicsWorld2D = World.Create(_gravity2D);
 			
 			_contactListener = b2ContactListener();
 			_contactListener.beginContactCallback = (contact, userData) =>
