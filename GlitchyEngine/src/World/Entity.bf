@@ -91,7 +91,24 @@ namespace GlitchyEngine.World
 
 			return _scene._ecsWorld.GetComponent<T>(_entity);
 		}
-		
+
+		/// Returns this entity or the closest parent that has the given component.
+		public (Entity parent, T* component) GetParentWithComponent<T>() where T: struct, new
+		{
+			Entity? walker = this;
+
+			while (walker?.IsValid == true)
+			{
+				T* component = null;
+				if (walker?.TryGetComponent<T>(out component) == true)
+					return (walker.Value, component);
+
+				walker = walker?.Parent;
+			}
+
+			return (.(), null);
+		}
+
 		public bool HasComponent<T>() where T: struct, new
 		{
 			return _scene._ecsWorld.HasComponent<T>(_entity);

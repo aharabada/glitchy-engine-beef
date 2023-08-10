@@ -15,17 +15,13 @@ internal struct EntityHandle
 
 public class Entity : EngineObject
 {
-    //private UUID _uuid;
-
-    //public UUID UUID => _uuid;
-
     /// <summary>
     /// Empty constructor not used. Do NOT USE!
     /// </summary>
     protected Entity()
     { }
 
-    private Entity(UUID uuid)
+    internal Entity(UUID uuid)
     {
         _uuid = uuid;
     }

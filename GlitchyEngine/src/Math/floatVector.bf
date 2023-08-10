@@ -24,6 +24,14 @@ public struct float2
 	{
 		return half2((half)value.X, (half)value.Y);
 	}
+	
+	[Inline]
+#unwarn
+	public static implicit operator Box2D.b2Vec2(in Self value) => *(Box2D.b2Vec2*)&value;
+
+	[Inline]
+#unwarn
+	public static implicit operator Self(in Box2D.b2Vec2 value) => *(Self*)&value;
 }
 
 [BonTarget]

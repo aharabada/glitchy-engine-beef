@@ -6,6 +6,8 @@ using Box2D;
 using GlitchyEngine.Core;
 using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
+using GlitchyEngine.Math;
+using GlitchyEngine.Scripting.Classes;
 
 namespace GlitchyEngine.World
 {
@@ -17,6 +19,8 @@ namespace GlitchyEngine.World
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
 
 		internal b2World* _physicsWorld2D;
+		b2ContactListener _contactListener;
+		b2Draw draw = .();
 
 		private Dictionary<Type, function void(Entity entity, Type componentType, void* component)> _onComponentAddedHandlers = new .() ~ delete _;
 
@@ -173,13 +177,142 @@ namespace GlitchyEngine.World
 		
 		public void OnSimulationStart()
 		{
-			_physicsWorld2D = Box2D.World.Create(ref _gravity2D);
+			_physicsWorld2D = World.Create(ref _gravity2D);
+			
+			_contactListener = b2ContactListener();
+			_contactListener.beginContactCallback = (contact, userData) =>
+				{
+					// TODO: This is bare minimum! Later we need to take hierarchies into account.
+					// e.g. A is parent of B and B gets event -> A needs to get event too!
 
+					var fixtureA = Contact.GetFixtureA(contact);
+					var fixtureB = Contact.GetFixtureB(contact);
+
+					var bodyA = Fixture.GetBody(fixtureA);
+					var bodyB = Fixture.GetBody(fixtureB);
+
+					// Cast is obviously 64bit only
+					var colliderEntityHandleA = (EcsEntity)(uint)Fixture.GetUserData(fixtureA);
+					var colliderEntityHandleB = (EcsEntity)(uint)Fixture.GetUserData(fixtureB);
+
+					Entity colliderEntityA = .(colliderEntityHandleA, ScriptEngine.Context);
+					Entity colliderEntityB = .(colliderEntityHandleB, ScriptEngine.Context);
+
+					// Cast is obviously 64bit only
+					var rigidbodyEntityHandleA = (EcsEntity)(uint)Body.GetUserData(bodyA);
+					var rigidbodyEntityHandleB = (EcsEntity)(uint)Body.GetUserData(bodyB);
+
+					Entity rigidbodyEntityA = .(rigidbodyEntityHandleA, ScriptEngine.Context);
+					Entity rigidbodyEntityB = .(rigidbodyEntityHandleB, ScriptEngine.Context);
+
+					bool fireEventA = colliderEntityA.TryGetComponent<ScriptComponent>(let scriptOfColliderA);
+					fireEventA |= rigidbodyEntityA.TryGetComponent<ScriptComponent>(let scriptOfRigidbodyA);
+
+					if (fireEventA)
+					{
+						Collision2D collision = .();
+						collision.Entity = colliderEntityA.UUID;
+						collision.OtherEntity = colliderEntityB.UUID;
+						collision.Rigidbody = rigidbodyEntityA.UUID;
+						collision.OtherRigidbody = rigidbodyEntityB.UUID;
+						
+						scriptOfColliderA?.Instance?.InvokeOnCollisionEnter2D(collision);
+						scriptOfRigidbodyA?.Instance?.InvokeOnCollisionEnter2D(collision);
+					}
+
+					bool fireEventB = colliderEntityB.TryGetComponent<ScriptComponent>(let scriptOfColliderB);
+					fireEventB |= rigidbodyEntityB.TryGetComponent<ScriptComponent>(let scriptOfRigidbodyB);
+					
+					if (fireEventB)
+					{
+						Collision2D collision = .();
+						collision.Entity = colliderEntityB.UUID;
+						collision.OtherEntity = colliderEntityA.UUID;
+						collision.Rigidbody = rigidbodyEntityB.UUID;
+						collision.OtherRigidbody = rigidbodyEntityA.UUID;
+						
+						scriptOfColliderB?.Instance?.InvokeOnCollisionEnter2D(collision);
+						scriptOfRigidbodyB?.Instance?.InvokeOnCollisionEnter2D(collision);
+					}
+				};
+
+			World.SetContactListener(_physicsWorld2D, &_contactListener);
+
+			draw.drawPolygonCallback = (vertices, vertexCount, color, userData) =>
+				{
+					for (int i = 1; i < vertexCount; i++)
+					{
+						let start = vertices[i - 1];
+						let end = vertices[i];
+
+						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+					}
+					let start = vertices[vertexCount - 1];
+					let end = vertices[0];
+
+					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+				};
+			draw.drawSolidPolygonCallback = (vertices, vertexCount, color, userData) =>
+				{
+					for (int i = 1; i < vertexCount; i++)
+					{
+						let start = vertices[i - 1];
+						let end = vertices[i];
+
+						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+					}
+					let start = vertices[vertexCount - 1];
+					let end = vertices[0];
+
+					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+				};
+			draw.drawCircleCallback = (center, radius, color, userData) =>
+				{
+					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color, 0.1f);
+				};
+			draw.drawSolidCircleCallback = (center, radius, axis, color, userData) =>
+				{
+					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color);
+				};
+			draw.drawSegmentCallback = (p1, p2, color, userData) =>
+				{
+				};
+			draw.drawPointCallback = (p, size, color, userData) =>
+				{
+				};
+			draw.drawTransformCallback = (xf, userData) =>
+				{
+				};
+			draw.userData = Internal.UnsafeCastToPtr(_physicsWorld2D);
+
+			World.SetDebugDraw(_physicsWorld2D, &draw);
+			World.SetDebugDrawFlags(_physicsWorld2D, .e_shapeBit);
+
+			InitPhysics2D();
+		}
+
+		private void InitPhysics2D()
+		{
+			// Initialize all Rigidbodies
 			for (let (ecsHandle, rigidBody) in _ecsWorld.Enumerate<Rigidbody2DComponent>())
 			{
 				Entity entity = .(ecsHandle, this);
 
 				InitializeRigidbody2D(entity, rigidBody);
+			}
+
+			for (let (ecsHandle, boxCollider) in _ecsWorld.Enumerate<BoxCollider2DComponent>())
+			{
+				Entity entity = .(ecsHandle, this);
+
+				InitBoxCollider2D(entity, boxCollider);
+			}
+
+			for (let (ecsHandle, circleCollider) in _ecsWorld.Enumerate<CircleCollider2DComponent>())
+			{
+				Entity entity = .(ecsHandle, this);
+
+				InitCircleCollider2D(entity, circleCollider);
 			}
 		}
 
@@ -189,49 +322,117 @@ namespace GlitchyEngine.World
 
 			b2BodyDef def = .();
 			def.type = GetBox2DBodyType(rigidBody.BodyType);
+			def.userData = (void*)(uint)entity.Handle;
 
-			// TODO: breaks with hierarchy
-			def.position = b2Vec2(transform.Position.X, transform.Position.Y);
-			def.angle = transform.RotationEuler.Z;
+			// TODO: check how stable this is
+			Matrix.Decompose(transform.WorldTransform, let worldPosition, let worldRotation, let worldScale);
+			float3 worldRotationEuler = Quaternion.ToEulerAngles(worldRotation);
+
+			def.position = b2Vec2(worldPosition.X, worldPosition.Y);
+			def.angle = worldRotationEuler.Z;
 
 			b2Body* body = Box2D.World.CreateBody(_physicsWorld2D, &def);
 			Box2D.Body.SetFixedRotation(body, rigidBody.FixedRotation);
 
 			rigidBody.RuntimeBody = body;
+		}
 
-			if (entity.TryGetComponent<BoxCollider2DComponent>(let boxCollider))
+		private Result<void> FindParentWithRigidbody(Entity entity, out Entity walker, out Rigidbody2DComponent* rigidbody, out Matrix rigidbodyTransform)
+		{
+			walker = entity;
+			rigidbody = null;
+			rigidbodyTransform = .Identity;
+
+			while (true)
 			{
-				b2Shape* boxShape = Box2D.Shape.CreatePolygon();
-				Box2D.Shape.PolygonSetAsBox(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y);
-				Box2D.Shape.PolygonSetAsBoxWithCenterAngle(boxShape, boxCollider.Size.X * transform.Scale.X, boxCollider.Size.Y * transform.Scale.Y, ref boxCollider.b2Offset, 0.0f);
+				// Found the parent with our beloved component
+				if (walker.TryGetComponent<Rigidbody2DComponent>(out rigidbody) == true)
+					break;
 
-				b2FixtureDef fixtureDef = .();
-				fixtureDef.shape = boxShape;
-				fixtureDef.density = boxCollider.Density;
-				fixtureDef.friction = boxCollider.Friction;
-				fixtureDef.restitution = boxCollider.Restitution;
-				fixtureDef.restitutionThreshold = boxCollider.RestitutionThreshold;
+				let parent = walker.Parent;
 
-				b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
-				boxCollider.RuntimeFixture = fixture;
+				// We need a rigid body
+				if (parent == null)
+				{
+					Log.ClientLogger.Warning($"Entity {entity.Name} ({entity.Handle}) has a collider but no parent with a rigid body!");
+					return .Err;
+				}
+				
+				// Construct transform matrix from our local space to the rigidbody space
+				rigidbodyTransform = rigidbodyTransform * walker.Transform.LocalTransform;
+
+				walker = parent.Value;
 			}
 
-			if (entity.TryGetComponent<CircleCollider2DComponent>(let circleCollider))
+			return .Ok;
+		}
+
+		private void InitBoxCollider2D(Entity entity, BoxCollider2DComponent* boxCollider)
+		{
+			if (FindParentWithRigidbody(entity, let entityWithRigidbody, let rigidbody, let parentToRigidbody) case .Err)
+				return;
+
+			let localToWorld = entity.Transform.WorldTransform;
+			let worldToRigidbody = entityWithRigidbody.Transform.WorldTransform.Invert();
+
+			let boxShape = Box2D.Shape.CreatePolygon();
+
+			Box2D.b2Vec2[4] points = .(
+				.(-1, -1),
+				.( 1, -1),
+				.( 1,  1),
+				.(-1,  1));
+
+			for (int i < 4)
 			{
-				b2Shape* circleShape = Box2D.Shape.CreateCircle();
-				Box2D.Shape.CircleSetPosition(circleShape, ref circleCollider.b2Offset);
-				Box2D.Shape.SetRadius(circleShape, circleCollider.Radius);
+				points[i] = ((float2)points[i] * boxCollider.Size + boxCollider.Offset);
 
-				b2FixtureDef fixtureDef = .();
-				fixtureDef.shape = circleShape;
-				fixtureDef.density = circleCollider.Density;
-				fixtureDef.friction = circleCollider.Friction;
-				fixtureDef.restitution = circleCollider.Restitution;
-				fixtureDef.restitutionThreshold = circleCollider.RestitutionThreshold;
+				if (entity == entityWithRigidbody)
+					 points[i] = entity.Transform.Scale.XY * (float2)points[i];
 
-				b2Fixture* fixture = Box2D.Body.CreateFixture(body, &fixtureDef);
-				circleCollider.RuntimeFixture = fixture;
+				points[i] = (worldToRigidbody * localToWorld * float4(points[i], 0, 1)).XY;
 			}
+
+			Shape.PolygonSet(boxShape, &points, 4);
+
+			b2FixtureDef fixtureDef = .();
+			fixtureDef.shape = boxShape;
+			fixtureDef.density = boxCollider.Density;
+			fixtureDef.friction = boxCollider.Friction;
+			fixtureDef.restitution = boxCollider.Restitution;
+			fixtureDef.restitutionThreshold = boxCollider.RestitutionThreshold;
+			fixtureDef.userData = (void*)(uint)entity.Handle;
+
+			Log.EngineLogger.AssertDebug(rigidbody.RuntimeBody != null);
+			b2Fixture* fixture = Box2D.Body.CreateFixture(rigidbody.RuntimeBody, &fixtureDef);
+			boxCollider.RuntimeFixture = fixture;
+		}
+
+		private void InitCircleCollider2D(Entity entity, CircleCollider2DComponent* circleCollider)
+		{
+			if (FindParentWithRigidbody(entity, let entityWithRigidbody, let rigidbody, let parentToRigidbody) case .Err)
+				return;
+
+			let localToWorld = entity.Transform.WorldTransform;
+			let worldToRigidbody = entityWithRigidbody.Transform.WorldTransform.Invert();
+
+			b2Vec2 center = (worldToRigidbody * localToWorld * float4(circleCollider.b2Offset, 0, 1)).XY;
+
+			b2Shape* circleShape = Box2D.Shape.CreateCircle();
+			Box2D.Shape.CircleSetPosition(circleShape, center);
+			Box2D.Shape.SetRadius(circleShape, circleCollider.Radius);
+
+			b2FixtureDef fixtureDef = .();
+			fixtureDef.shape = circleShape;
+			fixtureDef.density = circleCollider.Density;
+			fixtureDef.friction = circleCollider.Friction;
+			fixtureDef.restitution = circleCollider.Restitution;
+			fixtureDef.restitutionThreshold = circleCollider.RestitutionThreshold;
+			fixtureDef.userData = (void*)(uint)entity.Handle;
+
+			Log.EngineLogger.AssertDebug(rigidbody.RuntimeBody != null);
+			b2Fixture* fixture = Box2D.Body.CreateFixture(rigidbody.RuntimeBody, &fixtureDef);
+			circleCollider.RuntimeFixture = fixture;
 		}
 
 		public void OnSimulationStop()
@@ -335,8 +536,24 @@ namespace GlitchyEngine.World
 						b2Vec2 position = Box2D.Body.GetPosition(body);
 						float angle = Box2D.Body.GetAngle(body);
 
-						transform.Position = .(position.x, position.y, transform.Position.Z);
-						transform.RotationEuler = .(transform.RotationEuler.XY, angle);
+						if (entity.Parent != null)
+						{
+							Matrix worldToParent = entity.Parent.Value.Transform.WorldTransform.Invert();
+
+							float4 newLocalPosition = worldToParent * float4(position, 0, 1);
+							transform.Position = float3(newLocalPosition.XY, transform.Position.Z);
+
+							// TODO: when the parent of the rigidbody-entity is rotated, the rotation is applied wrong...
+							Matrix.Decompose(worldToParent, let p, var worldToParentRotation, let s);
+							Quaternion newLocalRotation = (worldToParentRotation * Quaternion.FromEulerAngles(0, 0, angle))..Normalize();
+							// TODO: when the parent has rotation on X or Y everything breaks even more...
+							transform.Rotation = (newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
+						}
+						else
+						{
+							transform.Position = .(position.x, position.y, transform.Position.Z);
+							transform.RotationEuler = .(transform.RotationEuler.XY, angle);
+						}
 					}
 				}
 			}

@@ -2,6 +2,7 @@ using Mono;
 using System;
 using GlitchyEngine.Core;
 using System.Collections;
+using GlitchyEngine.Scripting.Classes;
 
 namespace GlitchyEngine.Scripting;
 
@@ -287,6 +288,14 @@ class ScriptClass : SharpClass
 	private OnCreateMethod _onCreate;
 	private OnUpdateMethod _onUpdate;
 	private OnDestroyMethod _onDestroy;
+	
+	private function [CallingConvention(.Cdecl)] MonoObject*(MonoObject* instance, Collision2D collision, MonoException** exception) _onCollisionEnter2D;
+
+	//private OnCollisionEnter2DMethod _onCollisionEnter2D;
+	private OnDestroyMethod _onCollisionLeave2D;
+	private MonoMethod* _onCollisionEnter2DMethod;
+
+	public bool HasCollisionEnter2D => _onCollisionEnter2D != null;
 
 	/*public StringView Namespace => _namespace;
 	public StringView ClassName => _className;
@@ -303,6 +312,11 @@ class ScriptClass : SharpClass
 		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");
 		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
+
+		_onCollisionEnter2D = (.)GetMethodThunk("OnCollisionEnter2D", 1);
+		_onCollisionLeave2D = (OnDestroyMethod)GetMethodThunk("OnCollisionLeave2D");
+
+		_onCollisionEnter2DMethod = GetMethod("OnCollisionEnter2D", 1);
 	}
 
 	public void OnCreate(MonoObject* instance, out MonoException* exception)
@@ -327,6 +341,22 @@ class ScriptClass : SharpClass
 
 		if (_onDestroy != null)
 			_onDestroy(instance, &exception);
+	}
+	
+	public void OnCollisionEnter2D(MonoObject* instance, Collision2D collision, out MonoException* exception)
+	{
+		exception = null;
+
+		// TODO: use method thunk
+		if (_onCollisionEnter2DMethod != null)
+		{
+#unwarn
+			void*[1] args = .(&collision);
+
+			Invoke(_onCollisionEnter2DMethod, instance, (.)&args);
+		}
+		// if (_onCollisionEnter2D != null)
+		//	_onCollisionEnter2D(instance, collision, &exception);
 	}
 
 	public MonoObject* CreateInstance(UUID uuid, out MonoException* exception)

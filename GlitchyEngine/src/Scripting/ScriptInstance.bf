@@ -1,6 +1,7 @@
 using Mono;
 using GlitchyEngine.Core;
 using System;
+using GlitchyEngine.Scripting.Classes;
 
 namespace GlitchyEngine.Scripting;
 
@@ -76,6 +77,17 @@ class ScriptInstance : RefCounter
 	public void InvokeOnDestroy()
 	{
 		_scriptClass.OnDestroy(_instance, let exception);
+		
+		if (exception != null)
+			ScriptEngine.HandleMonoException(exception, this);
+	}
+	
+	public void InvokeOnCollisionEnter2D(Collision2D collision)
+	{
+		if (!_scriptClass.HasCollisionEnter2D)
+			return;
+
+		_scriptClass.OnCollisionEnter2D(_instance, collision, let exception);
 		
 		if (exception != null)
 			ScriptEngine.HandleMonoException(exception, this);

@@ -192,6 +192,9 @@ class SceneRenderer
 
 		DrawDebug2D();
 
+		if (Scene._physicsWorld2D != null)
+			Box2D.World.DebugDraw(Scene._physicsWorld2D);
+
 		Renderer2D.EndScene();
 
 		// Gamma correct composit target and draw it into viewport

@@ -405,7 +405,7 @@ namespace GlitchyEditor
 			
 			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, BoxCollider2DComponent>())
 			{
-				Renderer2D.DrawRect(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Size.X * 2, collider.Size.Y * 2, 0));
+				Renderer2D.DrawRect(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Size.X * 2, collider.Size.Y * 2, 0), .Green);
 			}
 
 			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, CircleCollider2DComponent>())

@@ -64,7 +64,7 @@ static class ScriptGlue
 		s_RemoveComponentMethods.Clear();
 
 		RegisterComponent<TransformComponent>("GlitchyEngine.Transform");
-		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.RigidBody2D");
+		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Rigidbody2D");
 	}
 
 	[RegisterMethod]
@@ -99,7 +99,7 @@ static class ScriptGlue
 		}
 		else
 		{
-			Log.EngineLogger.AssertDebug(managedType != null, scope $"No C# component with name \"{{className}}\" found for Beef type \"{typeof(T)}\"");
+			Log.EngineLogger.AssertDebug(managedType != null, scope $"No C# component with name \"{className}\" found for Beef type \"{typeof(T)}\"");
 		}
 	}
 

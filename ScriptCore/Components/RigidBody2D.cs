@@ -2,7 +2,7 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine;
 
-public class RigidBody2D : Component
+public class Rigidbody2D : Component
 {
     /// <summary>
     /// Apply a force at a world point.
