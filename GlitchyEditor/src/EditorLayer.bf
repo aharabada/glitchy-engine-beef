@@ -405,12 +405,31 @@ namespace GlitchyEditor
 			
 			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, BoxCollider2DComponent>())
 			{
-				Renderer2D.DrawRect(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Size.X * 2, collider.Size.Y * 2, 0), .Green);
+				Renderer2D.DrawRect(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Size.X * 2, collider.Size.Y * 2, 0), .Green, entity.Index);
 			}
 
 			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, CircleCollider2DComponent>())
 			{
-				Renderer2D.DrawCircle(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Radius * 2), (Texture2D)null, ColorRGBA(0f, 1f, 0f), 0.01f);
+				Renderer2D.DrawCircle(transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0) * Matrix.Scaling(collider.Radius * 2), (Texture2D)null, ColorRGBA(0f, 1f, 0f), 0.01f, .(0, 0, 1, 1), entity.Index);
+			}
+
+			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, PolygonCollider2DComponent>())
+			{
+				Matrix colliderTransform = transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0);
+
+				float3 firstPosition = (colliderTransform * float4(collider.Vertices[0], 0, 1)).XYZ;
+				float3 lastPosition = firstPosition;
+
+				for (int i = 1; i < collider.VertexCount; i++)
+				{
+					float3 position = (colliderTransform * float4(collider.Vertices[i], 0, 1)).XYZ;
+
+					Renderer2D.DrawLine(lastPosition, position, .Green, entity.Index);
+
+					lastPosition = position;
+				}
+
+				Renderer2D.DrawLine(lastPosition, firstPosition, .Green, entity.Index);
 			}
 		}
 		

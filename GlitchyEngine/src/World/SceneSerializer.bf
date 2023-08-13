@@ -177,6 +177,19 @@ class SceneSerializer
 				Serialize.Value(writer, "RestitutionThreshold", component.RestitutionThreshold);
 			});
 
+			SerializeComponent<PolygonCollider2DComponent>(writer, entity, "PolygonCollider2D", scope (component) =>
+			{
+				Serialize.Value(writer, "Offset", component.Offset);
+				
+				Serialize.Value(writer, "Vertices", component.Vertices);
+				Serialize.Value(writer, "VertexCount", component.VertexCount);
+
+				Serialize.Value(writer, "Density", component.Density);
+				Serialize.Value(writer, "Friction", component.Friction);
+				Serialize.Value(writer, "Restitution", component.Restitution);
+				Serialize.Value(writer, "RestitutionThreshold", component.RestitutionThreshold);
+			});
+
 			SerializeComponent<MeshComponent>(writer, entity, "MeshComponent", scope (component) =>
 			{
 				Serialize.Value(writer, "Mesh", component.Mesh);
@@ -525,6 +538,28 @@ class SceneSerializer
 					reader.EntryEnd();
 					Deserialize.Value(reader, "Radius", out component.Radius);
 					reader.EntryEnd();
+					
+					Deserialize.Value(reader, "Density", out component.Density);
+					reader.EntryEnd();
+					Deserialize.Value(reader, "Friction", out component.Friction);
+					reader.EntryEnd();
+					Deserialize.Value(reader, "Restitution", out component.Restitution);
+					reader.EntryEnd();
+					Deserialize.Value(reader, "RestitutionThreshold", out component.RestitutionThreshold);
+
+					return .Ok;
+				}));
+			case "PolygonCollider2D":
+				Try!(DeserializeComponent<PolygonCollider2DComponent>(reader, entity, scope (component) =>
+				{
+					Deserialize.Value(reader, "Offset", out component.Offset);
+					reader.EntryEnd();
+
+					Deserialize.Value(reader, "Vertices", out component.Vertices);
+					reader.EntryEnd();
+					Deserialize.Value(reader, "VertexCount", out component.VertexCount);
+					reader.EntryEnd();
+
 					
 					Deserialize.Value(reader, "Density", out component.Density);
 					reader.EntryEnd();

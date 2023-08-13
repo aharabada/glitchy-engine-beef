@@ -505,6 +505,34 @@ namespace GlitchyEngine.World
 		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
 	}
 
+	// Todo: This component is rather large (> 1 Cache line)
+	struct PolygonCollider2DComponent
+	{
+		public float2 Offset = .(0.0f, 0.0f);
+
+		// TODO: move into 2D physics material
+		public float Density = 1.0f;
+		public float Friction = 0.5f;
+		public float Restitution = 0.0f;
+		public float RestitutionThreshold = 0.5f;
+
+		public float2[8] Vertices = .();
+		public int8 VertexCount = 3;
+
+		private int _runtimeFixture = 0;
+
+		internal b2Fixture* RuntimeFixture
+		{
+			[Inline]
+			get => (b2Fixture*)(void*)_runtimeFixture;
+			[Inline]
+			set mut => _runtimeFixture = (int)(void*)value;
+		}
+		
+		[Inline]
+		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
+	}
+
 	struct ScriptComponent : IDisposableComponent
 	{
 		private String _scriptClassName = null;

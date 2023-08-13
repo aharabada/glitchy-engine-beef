@@ -71,6 +71,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<Rigidbody2DComponent>("Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
 			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
 			ShowComponentEditor<CircleCollider2DComponent>("Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
+			ShowComponentEditor<PolygonCollider2DComponent>("Polygon collider 2D", entity, => ShowPolygonCollider2DComponentEditor, => ShowComponentContextMenu<PolygonCollider2DComponent>);
 			ShowComponentEditor<ScriptComponent>("Script Component", entity, => ShowScriptComponentEditor, => ShowComponentContextMenu<ScriptComponent>);
 
 			ShowAddComponentButton(entity);
@@ -399,7 +400,7 @@ namespace GlitchyEditor.EditWindows
 				boxCollider.Offset = offset;
 
 			float2 size = boxCollider.Size;
-			if (ImGui.Editfloat2("Size", ref size, .Zero, 0.1f, textWidth))
+			if (ImGui.Editfloat2("Size", ref size, .Zero, 0.1f, textWidth, float2(0.01f, 0.01f), float.PositiveInfinity.XX))
 				boxCollider.Size = size;
 			
 			float density = boxCollider.Density;
@@ -424,7 +425,6 @@ namespace GlitchyEditor.EditWindows
 			float textWidth = ImGui.CalcTextSize("Offset".CStr()).x;
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
-
 			float2 offset = circleCollider.Offset;
 			if (ImGui.Editfloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
 				circleCollider.Offset = offset;
@@ -448,6 +448,51 @@ namespace GlitchyEditor.EditWindows
 			float restitutionThreshold = circleCollider.RestitutionThreshold;
 			if (ImGui.DragFloat("RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, textWidth))
 				circleCollider.RestitutionThreshold = restitutionThreshold;
+		}
+		
+		private static void ShowPolygonCollider2DComponentEditor(Entity entity, PolygonCollider2DComponent* polygonCollider)
+		{
+			float textWidth = ImGui.CalcTextSize("Offset".CStr()).x;
+			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
+
+			float2 offset = polygonCollider.Offset;
+			if (ImGui.Editfloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
+				polygonCollider.Offset = offset;
+
+			// TODO: Handles in editor, etc...
+			if (ImGui.CollapsingHeader("Vertices"))
+			{
+				for (int i < polygonCollider.VertexCount)
+				{
+					ImGui.Editfloat2(scope $"{i}", ref polygonCollider.Vertices[i]);
+				}
+			}
+
+			ImGui.BeginDisabled(polygonCollider.VertexCount >= 8);
+			if (ImGui.Button("Add Vertex"))
+				polygonCollider.VertexCount++;
+			ImGui.EndDisabled();
+
+			ImGui.BeginDisabled(polygonCollider.VertexCount <= 3);
+			if (ImGui.Button("Remove Vertex"))
+				polygonCollider.VertexCount--;
+			ImGui.EndDisabled();
+
+			float density = polygonCollider.Density;
+			if (ImGui.DragFloat("Density", &density, 0.0f, 0.1f, textWidth))
+				polygonCollider.Density = density;
+			
+			float friction = polygonCollider.Friction;
+			if (ImGui.DragFloat("Friction", &friction, 0.0f, 0.1f, textWidth))
+				polygonCollider.Friction = friction;
+
+			float restitution = polygonCollider.Restitution;
+			if (ImGui.DragFloat("Restitution", &restitution, 0.0f, 0.1f, textWidth))
+				polygonCollider.Restitution = restitution;
+
+			float restitutionThreshold = polygonCollider.RestitutionThreshold;
+			if (ImGui.DragFloat("RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, textWidth))
+				polygonCollider.RestitutionThreshold = restitutionThreshold;
 		}
 
 		private static void ShowScriptComponentEditor(Entity entity, ScriptComponent* scriptComponent)
@@ -1158,6 +1203,7 @@ namespace GlitchyEditor.EditWindows
 				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
 				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");
 				ShowComponentButton<CircleCollider2DComponent>("Circle collider 2D");
+				ShowComponentButton<PolygonCollider2DComponent>("Polygon collider 2D");
 				ShowComponentButton<MeshComponent>("Mesh");
 				ShowComponentButton<MeshRendererComponent>("Mesh Renderer");
 				ShowComponentButton<ScriptComponent>("C# Script");

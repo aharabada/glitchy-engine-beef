@@ -88,6 +88,7 @@ namespace GlitchyEngine.World
 			CopyComponents<Rigidbody2DComponent>(this, target);
 			CopyComponents<BoxCollider2DComponent>(this, target);
 			CopyComponents<CircleCollider2DComponent>(this, target);
+			CopyComponents<PolygonCollider2DComponent>(this, target);
 
 			// Copy ScriptComponents... needs extra handling for the script instances
 			for (let (sourceHandle, sourceComponent) in _ecsWorld.Enumerate<ScriptComponent>())
@@ -365,6 +366,13 @@ namespace GlitchyEngine.World
 
 				InitCircleCollider2D(entity, circleCollider);
 			}
+
+			for (let (ecsHandle, polygonCollider) in _ecsWorld.Enumerate<PolygonCollider2DComponent>())
+			{
+				Entity entity = .(ecsHandle, this);
+
+				InitPolygonCollider2D(entity, polygonCollider);
+			}
 		}
 
 		private void InitializeRigidbody2D(Entity entity, Rigidbody2DComponent* rigidBody)
@@ -426,8 +434,6 @@ namespace GlitchyEngine.World
 			let localToWorld = entity.Transform.WorldTransform;
 			let worldToRigidbody = entityWithRigidbody.Transform.WorldTransform.Invert();
 
-			let boxShape = Box2D.Shape.CreatePolygon();
-
 			Box2D.b2Vec2[4] points = .(
 				.(-1, -1),
 				.( 1, -1),
@@ -444,6 +450,7 @@ namespace GlitchyEngine.World
 				points[i] = (worldToRigidbody * localToWorld * float4(points[i], 0, 1)).XY;
 			}
 
+			let boxShape = Box2D.Shape.CreatePolygon();
 			Shape.PolygonSet(boxShape, &points, 4);
 
 			b2FixtureDef fixtureDef = .();
@@ -484,6 +491,42 @@ namespace GlitchyEngine.World
 			Log.EngineLogger.AssertDebug(rigidbody.RuntimeBody != null);
 			b2Fixture* fixture = Box2D.Body.CreateFixture(rigidbody.RuntimeBody, &fixtureDef);
 			circleCollider.RuntimeFixture = fixture;
+		}
+
+		private void InitPolygonCollider2D(Entity entity, PolygonCollider2DComponent* polygonCollider)
+		{
+			if (FindParentWithRigidbody(entity, let entityWithRigidbody, let rigidbody, let parentToRigidbody) case .Err)
+				return;
+
+			let localToWorld = entity.Transform.WorldTransform;
+			let worldToRigidbody = entityWithRigidbody.Transform.WorldTransform.Invert();
+
+			Box2D.b2Vec2[8] points = .();
+
+			for (int i < polygonCollider.VertexCount)
+			{
+				points[i] = ((float2)polygonCollider.Vertices[i] + polygonCollider.Offset);
+
+				if (entity == entityWithRigidbody)
+					 points[i] = entity.Transform.Scale.XY * (float2)points[i];
+
+				points[i] = (worldToRigidbody * localToWorld * float4(points[i], 0, 1)).XY;
+			}
+			
+			let polygonShape = Box2D.Shape.CreatePolygon();
+			Shape.PolygonSet(polygonShape, &points, polygonCollider.VertexCount);
+
+			b2FixtureDef fixtureDef = .();
+			fixtureDef.shape = polygonShape;
+			fixtureDef.density = polygonCollider.Density;
+			fixtureDef.friction = polygonCollider.Friction;
+			fixtureDef.restitution = polygonCollider.Restitution;
+			fixtureDef.restitutionThreshold = polygonCollider.RestitutionThreshold;
+			fixtureDef.userData = (void*)(uint)entity.Handle;
+
+			Log.EngineLogger.AssertDebug(rigidbody.RuntimeBody != null);
+			b2Fixture* fixture = Box2D.Body.CreateFixture(rigidbody.RuntimeBody, &fixtureDef);
+			polygonCollider.RuntimeFixture = fixture;
 		}
 
 		public void OnSimulationStop()
