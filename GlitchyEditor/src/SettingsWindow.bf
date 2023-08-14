@@ -14,12 +14,14 @@ namespace GlitchyEditor
 			public Object SettingsObject;
 			public String Name ~ delete _;
 			public String FieldName ~ delete _;
+			public StringView Tooltip;
 
-			public this(StringView name, StringView fieldName, Object settingsObject)
+			public this(StringView name, StringView fieldName, Object settingsObject, StringView tooltip)
 			{
 				Name = new String(name);
 				FieldName = new String(fieldName);
 				SettingsObject = settingsObject;
+				Tooltip = tooltip;
 			}
 		}
 
@@ -36,9 +38,9 @@ namespace GlitchyEditor
 				Header = new String(header);
 			}
 
-			public void AddSetting(StringView name, StringView fieldName, Object settingsObject = null)
+			public void AddSetting(StringView name, StringView fieldName, Object settingsObject = null, StringView tooltip = "")
 			{
-				Binding binding = new .(name, fieldName, settingsObject ?? SettingsObject);
+				Binding binding = new .(name, fieldName, settingsObject ?? SettingsObject, tooltip);
 				_bindings.Add(binding);
 			}
 		}
@@ -89,7 +91,7 @@ namespace GlitchyEditor
 
 				if (settingResult case .Ok(let settingInfo))
 				{
-					AddSetting(settingInfo.Category, settingInfo.Name, field.Name, container);
+					AddSetting(settingInfo.Category, settingInfo.Name, field.Name, container, settingInfo.Tooltip);
 				}
 				
 				Result<SettingContainerAttribute> containerResult = field.GetCustomAttribute<SettingContainerAttribute>();
@@ -110,11 +112,11 @@ namespace GlitchyEditor
 			}
 		}
 
-		void AddSetting(String categoryName, String name, StringView fieldName, Object container)
+		void AddSetting(String categoryName, String name, StringView fieldName, Object container, StringView tooltip)
 		{
 			Category category = AddCategory(categoryName);
 
-			category.AddSetting(name, fieldName, container);
+			category.AddSetting(name, fieldName, container, tooltip);
 		}
 
 		protected override void InternalShow()
@@ -131,90 +133,7 @@ namespace GlitchyEditor
 			{
 				if (ImGui.BeginTabItem(category.Header))
 				{
-					ImGui.Columns(2);
-					defer ImGui.Columns(1);
-					ImGui.SetColumnWidth(0, 100);
-
-					for (Binding setting in category._bindings)
-					{
-						ImGui.TextUnformatted(setting.Name);
-
-						ImGui.NextColumn();
-
-						Type settingsObjectType = setting.SettingsObject.GetType();
-
-						Result<FieldInfo> result = settingsObjectType.GetField(setting.FieldName);
-
-						if (result case .Err)
-						{
-							ImGui.PushStyleColor(.Text, ImGui.Vec4(1f, 0f, 0f, 1f));
-							ImGui.Text($"Field {setting.FieldName} not found.");
-							ImGui.PopStyleColor();
-
-							continue;
-						}
-
-						FieldInfo fieldInfo = result.Get();
-
-						Type fieldType = fieldInfo.FieldType;
-
-						mixin GetSettingValue<T>()
-						{
-							var error = fieldInfo.GetValue<T>(setting.SettingsObject, var value);
-
-							if (error case .Err(let err))
-							{
-								Log.EngineLogger.Error($"Could not get value of setting {setting.FieldName}. Error: {err}");
-
-								ImGui.PushStyleColor(.Text, ImGui.Vec4(1f, 0f, 0f, 1f));
-								ImGui.Text($"Could not get value of setting {setting.FieldName}. Error: {err}");
-								ImGui.PopStyleColor();
-
-								break;
-							}
-
-							value
-						}
-
-						mixin SetSettingValue<T>(T value)
-						{
-							var error = fieldInfo.SetValue(setting.SettingsObject, value);
-
-							if (error case .Err(let err))
-							{
-								Log.EngineLogger.Error($"Could not set value of setting {setting.FieldName}. Error: {err}");
-							}
-						}
-
-						switch (fieldType)
-						{
-						case typeof(int32):
-							int32 value = GetSettingValue!<int32>();
-
-							if (!ImGui.InputInt(scope $"##{setting.Name}", &value))
-								break;
-
-							SetSettingValue!(value);
-
-							_settingsChanged = true;
-						case typeof(String):
-							String value = GetSettingValue!<String>();
-
-							char8[256] buffer = .();
-
-							value.CopyTo(buffer);
-
-							if (ImGui.InputText(scope $"##{setting.Name}", &buffer, buffer.Count))
-							{
-								value..Clear().Append(&buffer);
-
-								_settingsChanged = true;
-							}
-						}
-
-						ImGui.NextColumn();
-					}
-
+					ShowCategory(category);
 					ImGui.EndTabItem();
 				}
 			}
@@ -247,6 +166,116 @@ namespace GlitchyEditor
 			{
 				Settings.Load();
 				_open = false;
+			}
+		}
+
+		private void ShowCategory(Category category)
+		{
+			if (ImGui.BeginTable("SettingsTable", 2, .SizingFixedFit | .RowBg))
+			{
+				ImGui.TableSetupColumn("Settings");
+				ImGui.TableSetupColumn("Values", .WidthStretch);
+
+				ImGui.TableNextRow();
+				ImGui.TableSetColumnIndex(1);
+				ImGui.PushItemWidth(ImGui.GetContentRegionAvail().x);
+
+				for (Binding setting in category._bindings)
+				{
+					ImGui.TableNextRow();
+
+                	ImGui.TableNextColumn();
+
+					// Name of setting
+					ImGui.TextUnformatted(setting.Name);
+					
+					if (!setting.Tooltip.IsWhiteSpace)
+						ImGui.AttachTooltip(setting.Tooltip);
+
+					ImGui.TableNextColumn();
+
+					Type settingsObjectType = setting.SettingsObject.GetType();
+
+					Result<FieldInfo> result = settingsObjectType.GetField(setting.FieldName);
+
+					if (result case .Err)
+					{
+						ImGui.PushStyleColor(.Text, ImGui.Vec4(1f, 0f, 0f, 1f));
+						ImGui.Text($"Field {setting.FieldName} not found.");
+						ImGui.PopStyleColor();
+
+						continue;
+					}
+
+					FieldInfo fieldInfo = result.Get();
+
+					Type fieldType = fieldInfo.FieldType;
+
+					mixin GetSettingValue<T>()
+					{
+						var error = fieldInfo.GetValue<T>(setting.SettingsObject, var value);
+
+						if (error case .Err(let err))
+						{
+							Log.EngineLogger.Error($"Could not get value of setting {setting.FieldName}. Error: {err}");
+
+							ImGui.PushStyleColor(.Text, ImGui.Vec4(1f, 0f, 0f, 1f));
+							ImGui.Text($"Could not get value of setting {setting.FieldName}. Error: {err}");
+							ImGui.PopStyleColor();
+
+							break;
+						}
+
+						value
+					}
+
+					mixin SetSettingValue<T>(T value)
+					{
+						var error = fieldInfo.SetValue(setting.SettingsObject, value);
+
+						if (error case .Err(let err))
+						{
+							Log.EngineLogger.Error($"Could not set value of setting {setting.FieldName}. Error: {err}");
+						}
+					}
+
+					switch (fieldType)
+					{
+					case typeof(bool):
+						let value = GetSettingValue!<bool>();
+
+						if (!ImGui.Checkbox(scope $"##{setting.Name}", &value))
+							break;
+
+						SetSettingValue!(value);
+
+						_settingsChanged = true;
+					case typeof(int32):
+						int32 value = GetSettingValue!<int32>();
+
+						if (!ImGui.InputInt(scope $"##{setting.Name}", &value))
+							break;
+
+						SetSettingValue!(value);
+
+						_settingsChanged = true;
+					case typeof(String):
+						String value = GetSettingValue!<String>();
+
+						char8[256] buffer = .();
+
+						value.CopyTo(buffer);
+
+						if (ImGui.InputText(scope $"##{setting.Name}", &buffer, buffer.Count))
+						{
+							value..Clear().Append(&buffer);
+
+							_settingsChanged = true;
+						}
+					}
+				}
+				
+				ImGui.EndTable();
 			}
 		}
 	}

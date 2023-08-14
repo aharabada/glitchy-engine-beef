@@ -711,6 +711,20 @@ namespace GlitchyEditor
 #endregion Project Management
 
 #region Scene Management
+
+		/// Focuses the Play window, so that its tab will be shown.
+		private void SwitchToPlayWindow()
+		{
+			let window = ImGui.FindWindowByName(GameViewportWindow.s_WindowTitle);
+			ImGui.FocusWindow(window);
+		}
+
+		/// Focuses the Editor window, so that its tab will be shown.
+		private void SwitchToEditorWindow()
+		{
+			let window = ImGui.FindWindowByName(EditorViewportWindow.s_WindowTitle);
+			ImGui.FocusWindow(window);
+		}
 		
 		/// Starts the play mode for the current scene
 		private void OnScenePlay()
@@ -728,6 +742,9 @@ namespace GlitchyEditor
 			}
 
 			_editor.CurrentScene = _activeScene;
+
+			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnPlay)
+				SwitchToPlayWindow();
 		}
 
 		/// Starts the physics simulation mode for the current scene
@@ -746,18 +763,27 @@ namespace GlitchyEditor
 			}
 
 			_editor.CurrentScene = _activeScene;
+			
+			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnSimulate)
+				SwitchToPlayWindow();
 		}
 
 		/// Pauses the scene
 		private void OnScenePause()
 		{
 			_isPaused = true;
+			
+			if (Application.Instance.Settings.EditorSettings.SwitchToEditorOnPause)
+				SwitchToEditorWindow();
 		}
 
 		/// Resumes the simulation / game
 		private void OnSceneResume()
 		{
 			_isPaused = false;
+			
+			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnResume)
+				SwitchToPlayWindow();
 		}
 
 		/// Requests execution of a single simulation / game tick
@@ -792,6 +818,9 @@ namespace GlitchyEditor
 				 */
 				GameViewportSizeChanged(null, _editor.GameViewportWindow.ViewportSize);
 			}
+			
+			if (Application.Instance.Settings.EditorSettings.SwitchToEditorOnStop)
+				SwitchToEditorWindow();
 		}
 
 		/// Stops the scene and cleans up the subsystems to allow loading another scene.

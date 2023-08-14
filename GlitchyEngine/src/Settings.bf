@@ -23,11 +23,13 @@ namespace GlitchyEngine
 	{
 		public String Category;
 		public String Name;
+		public String Tooltip;
 
-		public this(String category, String name)
+		public this(String category, String name, String tooltip = "")
 		{
 			Category = category;
 			Name = name;
+			Tooltip = tooltip;
 		}
 	}
 
@@ -38,6 +40,8 @@ namespace GlitchyEngine
 		[SettingContainer, BonInclude]
 		public readonly ImGuiSettings ImGuiSettings = new .() ~ delete _;
 #endif
+		[BonIgnore]
+		public Event<EventHandler> OnApplySettings = .() ~ _.Dispose();
 
 		/*
 		[BonInclude]
@@ -56,6 +60,8 @@ namespace GlitchyEngine
 #if IMGUI
 			ImGuiSettings.Apply();
 #endif
+
+			OnApplySettings.Invoke(this, .Empty);
 
 			/*for (let settings in _userSettings)
 			{
@@ -119,7 +125,7 @@ namespace GlitchyEngine
 
 		public void Apply()
 		{
-			Application.Get().[Friend]_imGuiLayer.SettingsInvalid = true;
+			Application.Instance.[Friend]_imGuiLayer.SettingsInvalid = true;
 		}
 	}
 #endif
