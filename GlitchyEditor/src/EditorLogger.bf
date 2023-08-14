@@ -113,7 +113,7 @@ public class EditorLogger : Logger
 
 		Debug.Write($"[{timestamp:HH:mm:ss.fff}] ({_name})|{level.UpperString}: {message}\n");
 
-		if (Editor.Instance == null)
+		if (Editor.Instance?.LogWindow == null)
 			return;
 
 		if (args.Count > 0 && (var ex = args[^1] as MonoExceptionHelper))
