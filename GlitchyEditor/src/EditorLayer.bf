@@ -734,7 +734,7 @@ namespace GlitchyEditor
 
 			using (Scene runtimeScene = new Scene())
 			{
-				_editorScene.CopyTo(runtimeScene);
+				_editorScene.CopyTo(runtimeScene, true);
 
 				runtimeScene.OnRuntimeStart();
 
@@ -755,7 +755,7 @@ namespace GlitchyEditor
 
 			using (Scene simulationScene = new Scene())
 			{
-				_editorScene.CopyTo(simulationScene);
+				_editorScene.CopyTo(simulationScene, false);
 
 				simulationScene.OnSimulationStart();
 

@@ -65,7 +65,10 @@ namespace GlitchyEngine.World
 		{
 		}
 
-		public void CopyTo(Scene target)
+		/// Copies all entities with their components to the given target-scene.
+		/// @param target The scene that the entities are copied to.
+		/// @param initializeScripts If true script instances will be initialized.
+		public void CopyTo(Scene target, bool initializeScripts)
 		{
 			// Copy entities
 			for (let sourceHandle in _ecsWorld.Enumerate())
@@ -83,39 +86,45 @@ namespace GlitchyEngine.World
 			CopyComponents<SpriteRendererComponent>(this, target);
 			CopyComponents<CircleRendererComponent>(this, target);
 			CopyComponents<CameraComponent>(this, target);
-			CopyComponents<NativeScriptComponent>(this, target);
 			CopyComponents<LightComponent>(this, target);
+
+		
 			CopyComponents<Rigidbody2DComponent>(this, target);
 			CopyComponents<BoxCollider2DComponent>(this, target);
 			CopyComponents<CircleCollider2DComponent>(this, target);
 			CopyComponents<PolygonCollider2DComponent>(this, target);
 
-			// Copy ScriptComponents... needs extra handling for the script instances
-			for (let (sourceHandle, sourceComponent) in _ecsWorld.Enumerate<ScriptComponent>())
+			if (initializeScripts)
 			{
-				Entity sourceEntity = .(sourceHandle, this);
+				CopyComponents<NativeScriptComponent>(this, target);
 
-				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
-				ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
-				
-				targetComponent.ScriptClassName = sourceComponent.ScriptClassName;
+				// Copy ScriptComponents... needs extra handling for the script instances
+				for (let (sourceHandle, sourceComponent) in _ecsWorld.Enumerate<ScriptComponent>())
+				{
+					Entity sourceEntity = .(sourceHandle, this);
 
-				// Initializes the created instance
-				// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
-				ScriptEngine.InitializeInstance(targetEntity, targetComponent);
+					Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
+					ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
+					
+					targetComponent.ScriptClassName = sourceComponent.ScriptClassName;
+
+					// Initializes the created instance
+					// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
+					ScriptEngine.InitializeInstance(targetEntity, targetComponent);
+				}
+
+				// Copy values to entities.
+				// We do this in a separate loop because we might reference other entities.
+				// If we did it in a single loop these entities might not exist yet.
+				for (let (handle, script) in target._ecsWorld.Enumerate<ScriptComponent>())
+				{
+					Entity entity = .(handle, this);
+
+					if (script.Instance != null)
+						ScriptEngine.CopyEditorFieldsToInstance(entity, script);
+				}
 			}
-
-			// Copy values to entities.
-			// We do this in a separate loop because we might reference other entities.
-			// If we did it in a single loop these entities might not exist yet.
-			for (let (handle, script) in target._ecsWorld.Enumerate<ScriptComponent>())
-			{
-				Entity entity = .(handle, this);
-
-				if (script.Instance != null)
-					ScriptEngine.CopyEditorFieldsToInstance(entity, script);
-			}
-
+			
 			// Copy transforms... needs special handling for the Parent<->Child relations
 			for (let (sourceHandle, sourceTransform) in _ecsWorld.Enumerate<TransformComponent>())
 			{
@@ -167,6 +176,7 @@ namespace GlitchyEngine.World
 		public void OnRuntimeStart()
 		{
 			OnSimulationStart();
+			SetupPhysicsCallbacks();
 			ScriptEngine.SetContext(this);
 		}
 
@@ -175,11 +185,66 @@ namespace GlitchyEngine.World
 			OnSimulationStop();
 			ScriptEngine.OnRuntimeStop();
 		}
-		
+
 		public void OnSimulationStart()
 		{
 			_physicsWorld2D = World.Create(_gravity2D);
-			
+
+			draw.drawPolygonCallback = (vertices, vertexCount, color, userData) =>
+				{
+					for (int i = 1; i < vertexCount; i++)
+					{
+						let start = vertices[i - 1];
+						let end = vertices[i];
+
+						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+					}
+					let start = vertices[vertexCount - 1];
+					let end = vertices[0];
+
+					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+				};
+			draw.drawSolidPolygonCallback = (vertices, vertexCount, color, userData) =>
+				{
+					for (int i = 1; i < vertexCount; i++)
+					{
+						let start = vertices[i - 1];
+						let end = vertices[i];
+
+						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+					}
+					let start = vertices[vertexCount - 1];
+					let end = vertices[0];
+
+					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+				};
+			draw.drawCircleCallback = (center, radius, color, userData) =>
+				{
+					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color, 0.1f);
+				};
+			draw.drawSolidCircleCallback = (center, radius, axis, color, userData) =>
+				{
+					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color);
+				};
+			draw.drawSegmentCallback = (p1, p2, color, userData) =>
+				{
+				};
+			draw.drawPointCallback = (p, size, color, userData) =>
+				{
+				};
+			draw.drawTransformCallback = (xf, userData) =>
+				{
+				};
+			draw.userData = Internal.UnsafeCastToPtr(_physicsWorld2D);
+
+			World.SetDebugDraw(_physicsWorld2D, &draw);
+			World.SetDebugDrawFlags(_physicsWorld2D, .e_shapeBit);
+
+			InitPhysics2D();
+		}
+
+		private void SetupPhysicsCallbacks()
+		{
 			_contactListener = b2ContactListener();
 			_contactListener.beginContactCallback = (contact, userData) =>
 				{
@@ -289,58 +354,6 @@ namespace GlitchyEngine.World
 			};
 
 			World.SetContactListener(_physicsWorld2D, &_contactListener);
-
-			draw.drawPolygonCallback = (vertices, vertexCount, color, userData) =>
-				{
-					for (int i = 1; i < vertexCount; i++)
-					{
-						let start = vertices[i - 1];
-						let end = vertices[i];
-
-						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
-					}
-					let start = vertices[vertexCount - 1];
-					let end = vertices[0];
-
-					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
-				};
-			draw.drawSolidPolygonCallback = (vertices, vertexCount, color, userData) =>
-				{
-					for (int i = 1; i < vertexCount; i++)
-					{
-						let start = vertices[i - 1];
-						let end = vertices[i];
-
-						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
-					}
-					let start = vertices[vertexCount - 1];
-					let end = vertices[0];
-
-					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
-				};
-			draw.drawCircleCallback = (center, radius, color, userData) =>
-				{
-					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color, 0.1f);
-				};
-			draw.drawSolidCircleCallback = (center, radius, axis, color, userData) =>
-				{
-					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color);
-				};
-			draw.drawSegmentCallback = (p1, p2, color, userData) =>
-				{
-				};
-			draw.drawPointCallback = (p, size, color, userData) =>
-				{
-				};
-			draw.drawTransformCallback = (xf, userData) =>
-				{
-				};
-			draw.userData = Internal.UnsafeCastToPtr(_physicsWorld2D);
-
-			World.SetDebugDraw(_physicsWorld2D, &draw);
-			World.SetDebugDrawFlags(_physicsWorld2D, .e_shapeBit);
-
-			InitPhysics2D();
 		}
 
 		private void InitPhysics2D()
@@ -543,8 +556,10 @@ namespace GlitchyEngine.World
 			Editor = 0x01,
 			/// Update the physics related stuff
 			Physics = 0x02,
+			/// Execute scripts.
+			Scripts = 0x04,
 			/// Update the runtume related stuff (e.g. execute scripts). Also run physics!
-			Runtime = 0x04 | Physics,
+			Runtime = Scripts | Physics,
 		}
 
 		//private append List<UUID> _destroyQueue = .();
@@ -555,7 +570,7 @@ namespace GlitchyEngine.World
 
 			TransformSystem.Update(_ecsWorld);
 
-			if (mode.HasFlag(.Runtime))
+			if (mode.HasFlag(.Scripts))
 			{
 				// Run scripts
 				for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
