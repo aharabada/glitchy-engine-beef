@@ -330,7 +330,7 @@ namespace GlitchyEditor.EditWindows
 				name = scope:: $"Entity {(tree.Value.Handle.[Friend]Index)}";
 			}
 
-			ImGui.TreeNodeFlags flags = .OpenOnArrow | .DefaultOpen | .SpanAvailWidth;
+			ImGui.TreeNodeFlags flags = .OpenOnArrow | .DefaultOpen | .SpanAvailWidth | .OpenOnDoubleClick;
 
 			if(tree.Children.Count == 0)
 				flags |= .Leaf;
@@ -370,7 +370,12 @@ namespace GlitchyEditor.EditWindows
 			ImGui.PopID();
 
 			if (deleted)
+			{
+				if (isOpen)
+					ImGui.TreePop();
+
 				return;
+			}
 
 			bool isDragged = false;
 
@@ -385,6 +390,46 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropSource();
 			}
 
+			EntityDropTarget(tree.Value);
+
+			bool clicked = ImGui.IsItemClicked() && !ImGui.IsItemToggledOpen();
+			bool clickedRight = ImGui.IsItemClicked(.Right);
+			bool hovered = ImGui.IsItemHovered();
+			
+			if(isOpen)
+			{
+				for(var child in tree.Children)
+				{
+					ImGuiPrintEntityTree(child);
+				}
+
+				ImGui.TreePop();
+			}
+
+			if (clicked || clickedRight)
+			{
+				lastClickedEntity = tree.Value;
+			}
+
+			if (!isDragged && (!ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right) && hovered) && tree.Value == lastClickedEntity)
+			{
+				if (inSelectedList && !clickedRight)
+				{
+					DeselectEntity(tree.Value);
+					inSelectedList = false;
+				}
+				else
+				{
+					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl && !clickedRight);
+					inSelectedList = true;
+				}
+
+				lastClickedEntity = .();
+			}
+		}
+
+		private void EntityDropTarget(Entity target)
+		{
 			if(ImGui.BeginDragDropTarget())
 			{
 				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.Entity);
@@ -397,10 +442,10 @@ namespace GlitchyEditor.EditWindows
 
 					bool dropLegal = true;
 
-					Entity walker = tree.Value;
+					Entity walker = target;
 
 					// make sure the dropped entity is not a parent of the entity we dropped it on.
-					while(true)
+					while(walker.IsValid)
 					{
 						var parentTransform = walker.GetComponent<TransformComponent>();
 						
@@ -421,46 +466,11 @@ namespace GlitchyEditor.EditWindows
 					if(dropLegal)
 					{
 						var movedEntityTransform = movedEntity.GetComponent<TransformComponent>();
-						movedEntityTransform.Parent = tree.Value.Handle;
+						movedEntityTransform.Parent = target.Handle;
 					}
 				}
 
 				ImGui.EndDragDropTarget();
-			}
-
-			bool clicked = ImGui.IsItemClicked(.Left);
-			bool clickedRight = ImGui.IsItemClicked(.Right);
-			
-			if(isOpen)
-			{
-				for(var child in tree.Children)
-				{
-					ImGuiPrintEntityTree(child);
-				}
-
-				ImGui.TreePop();
-			}
-
-			if (clicked || clickedRight)
-			{
-				lastClickedEntity = tree.Value;
-			}
-
-			//if (!isDragged && (clicked || clickedRight))
-			if (!isDragged && (!ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right) && ImGui.IsItemHovered()) && tree.Value == lastClickedEntity)
-			{
-				if (inSelectedList && !clickedRight)
-				{
-					DeselectEntity(tree.Value);
-					inSelectedList = false;
-				}
-				else
-				{
-					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl && !clickedRight);
-					inSelectedList = true;
-				}
-
-				lastClickedEntity = .();
 			}
 		}
 
@@ -507,8 +517,7 @@ namespace GlitchyEditor.EditWindows
 				{
 					Entity entity = .(entityId, _scene);
 
-					//if (!entity.HasComponent<EditorComponent>())
-						InsertIntoTree(entity);
+					InsertIntoTree(entity);
 				}
 				
 				if(ImGui.TreeNodeEx("Scene", .DefaultOpen))
