@@ -164,36 +164,47 @@ namespace GlitchyEditor.EditWindows
 		{
 			_wrappedCursor = false;
 
+			let globalMousePosition = Input.GetMousePosition();
+
 			let mousePos = (float2)ImGui.GetMousePos();
+
+			let globalToImGuiMouse = (float2)globalMousePosition - mousePos;
+
 			let winPos = (float2)ImGui.GetWindowPos();
 			let regionMin = winPos + (float2)ImGui.GetWindowContentRegionMin();
 			let regionMax = winPos + (float2)ImGui.GetWindowContentRegionMax();
+
+			float2 regionSize = regionMax - regionMin;
 
 			ImGui.DrawRect((.)regionMin, (.)regionMax, .(0, 255, 0));
 
 			float2 newMousePos = mousePos;
 
-			if (mousePos.X < regionMin.X + 1)
+			const float padding = 10;
+			const float halfPadding = 5;
+
+			if (mousePos.X < regionMin.X + halfPadding)
 			{
-				newMousePos.X = regionMax.X - 2;
+				newMousePos.X += regionSize.X - padding;
 			}
-			else if (mousePos.X > regionMax.X - 1)
+			else if (mousePos.X > regionMax.X - halfPadding)
 			{
-				newMousePos.X = regionMin.X + 2;
+				newMousePos.X -= regionSize.X - padding;
 			}
-			
-			if (mousePos.Y < regionMin.Y + 1)
+
+			if (mousePos.Y < regionMin.Y + halfPadding)
 			{
-				newMousePos.Y = regionMax.Y - 100;
+				newMousePos.Y += regionSize.Y - padding;
 			}
-			else if (mousePos.Y > regionMax.Y - 1)
+			else if (mousePos.Y > regionMax.Y - halfPadding)
 			{
-				newMousePos.Y = regionMin.Y + 10;
+				newMousePos.Y -= regionSize.Y - padding;
 			}
 
 			if (any(newMousePos != mousePos))
 			{
-				Input.SetMousePosition((int2)newMousePos);
+				Input.SetMousePosition(globalMousePosition + (int2)(newMousePos - mousePos));
+
 				// After wrapping the cursor the the other side, the camera controller must not compare the positions,
 				// because the delta doesn't represent the correct movement of the cursor.
 				// TODO: can be solved by using direct mouse movement instead of comparing positions
