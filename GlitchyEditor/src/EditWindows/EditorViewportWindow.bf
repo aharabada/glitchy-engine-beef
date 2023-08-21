@@ -321,6 +321,8 @@ namespace GlitchyEditor.EditWindows
 			var view = _editor.CurrentCamera.View;
 			var projection = _editor.CurrentCamera.Projection;
 
+			Handles.SetViewProjection(view, projection);
+
 			if(_editor.EntityHierarchyWindow.SelectedEntities.Count == 0)
 				return false;
 
@@ -337,11 +339,15 @@ namespace GlitchyEditor.EditWindows
 				parentView = parentTransformCmp.WorldTransform.Invert();
 			}
 
+			_editor.ComponentEditWindow.DrawSceneGUI(entity);
+			
 			float3 snap = (float3)_snap;
 			if (_gizmoType.HasFlag(.ROTATE))
 				snap = (float3)_angleSnap;
-			
-			if (ImGuizmo.Manipulate((.)&view, (.)&projection, _gizmoType, _gizmoMode, (.)&worldTransform, null, _doSnap ? (.)&snap : null))
+
+			Handles.SetSnap(_doSnap ? (float3?)snap : null);
+
+			if (Handles.ShowGizmo(ref worldTransform, _gizmoType, _gizmoMode case .WORLD, id: 1337))
 			{
 				// TODO: Fix when parent is scaled
 				// Seems to work fine for parent rotation and translation but scaled parent ruins everything
@@ -349,7 +355,7 @@ namespace GlitchyEditor.EditWindows
 				transformCmp.LocalTransform = parentView * worldTransform;
 			}
 
-			return ImGuizmo.IsUsing();
+			return Handles.UsedGizmo;
 		}
 	}
 }

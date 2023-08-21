@@ -77,6 +77,37 @@ namespace GlitchyEditor.EditWindows
 			ShowAddComponentButton(entity);
 		}
 
+		public void DrawSceneGUI(Entity entity)
+		{
+			DrawComponenSceneGUI<PolygonCollider2DComponent>(entity, => ShowPolygonColliderSceneGUI);
+		}
+		
+		static void ShowPolygonColliderSceneGUI(Entity entity, PolygonCollider2DComponent* collider)
+		{
+			for (int i < collider.VertexCount)
+			{
+				Matrix localToWorld = entity.Transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0);
+				Matrix transform = Matrix.Translation(float3(collider.Vertices[i], 0)) * localToWorld;
+
+				if (Handles.ShowGizmo(ref transform, .TRANSLATE_X | .TRANSLATE_Y, true, id: (int32)i))
+				{
+					transform = localToWorld.Invert() * transform;
+
+					collider.Vertices[i] = transform.Translation.XY;
+				}
+			}
+		}
+
+		private static void DrawComponenSceneGUI<TComponent>(Entity entity, function void(Entity, TComponent*) showSceneGUI) where TComponent: struct, new
+		{
+			if (!entity.HasComponent<TComponent>())
+				return;
+
+			TComponent* component = entity.GetComponent<TComponent>();
+
+			showSceneGUI(entity, component);
+		}
+
 		private static void ShowComponentContextMenu<TComponent>(Entity entity, TComponent* component) where TComponent: struct, new
 		{
 			if (ImGui.Selectable("Remove Component"))
