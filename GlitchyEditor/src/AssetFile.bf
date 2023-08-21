@@ -28,7 +28,7 @@ class AssetFile
 
 	private String _path;
 	private String _identifier;
-	private String _assetConfigPath;
+	private String _assetConfigPath ~ delete _;
 
 	private AssetConfig _assetConfig ~ delete _;
 
@@ -53,7 +53,7 @@ class AssetFile
 	{
 		String identifierBuffer = append String(identifier);
 		String pathBuffer = append String(path);
-		String configPathBuffer = append String(path.Length + ConfigFileExtension.Length);
+		String configPathBuffer = new String(path.Length + ConfigFileExtension.Length);
 
 		_identifier = identifierBuffer;
 		_path = pathBuffer;

@@ -705,6 +705,12 @@ namespace GlitchyEditor
 
 			UpdateWindowTitle();
 
+			if (Directory.Exists(project.WorkspacePath))
+			{
+				Application.Instance.Settings.EditorSettings.LastOpenedProject = project.WorkspacePath;
+				Application.Instance.Settings.Save();
+			}
+
 			return .Ok;
 		}
 
@@ -1174,6 +1180,32 @@ namespace GlitchyEditor
 			}
 		}
 
+		private void ShowOpenRecentProjectMenu()
+		{
+			let recentProjects = Application.Instance.Settings.EditorSettings.RecentProjects;
+
+			if (recentProjects == null)
+				return;
+
+			int i = 0;
+
+			for (let workspacePath in recentProjects)
+			{
+				i++;
+
+				if (!Directory.Exists(workspacePath))
+				{
+					delete workspacePath;
+					@workspacePath.Remove();
+				}
+
+				if (ImGui.MenuItem(scope $"{i}: {workspacePath}"))
+				{
+					LoadAndOpenProject(workspacePath);
+				}
+			}
+		}
+
 		private void DrawMainMenuBar()
 		{
 			ImGui.BeginMainMenuBar();
@@ -1219,6 +1251,7 @@ namespace GlitchyEditor
 
 				if (ImGui.BeginMenu("Open recent project"))
 				{
+					ShowOpenRecentProjectMenu();
 					ImGui.EndMenu();
 				}
 

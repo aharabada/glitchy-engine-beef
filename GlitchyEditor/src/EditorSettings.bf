@@ -37,9 +37,51 @@ class EditorSettings
 	
 	[Setting("Editor", "Switch to Editor on pause", "If checked the editor will automatically switch to the \"Editor\" window when the game is being paused."), BonInclude]
 	public bool SwitchToEditorOnPause = false;
+	
+	[BonInclude]
+	private List<String> _recentProjects ~ DeleteContainerAndItems!(_);
 
-	//
-	//public readonly List<String> RecentProjects = new .() ~ delete _;
+	/// Gets or sets the path of the Project that was last open.
+	public StringView LastOpenedProject
+	{
+		get
+		{
+			if (_recentProjects == null || _recentProjects.Count == 0)
+				return "";
+
+			return _recentProjects[0];
+		}
+		set
+		{
+			if (_recentProjects == null)
+				_recentProjects = new List<String>();
+
+			// Remove duplicates
+			for (var entry in _recentProjects)
+			{
+				if (entry == value)
+				{
+					delete entry;
+					@entry.Remove();
+				}
+			}
+
+			_recentProjects.Insert(0, new String(value));
+
+			if (_recentProjects.Count > 10)
+			{
+				// We only store 10 entries, delete the rest
+				for (int i = 10; i < _recentProjects.Count; i++)
+				{
+					delete _recentProjects[i];
+				}
+
+				_recentProjects.Count = 10;
+			}
+		}
+	}
+
+	public List<String> RecentProjects => _recentProjects;
 
 	public void Apply()
 	{

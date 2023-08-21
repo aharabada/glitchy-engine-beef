@@ -250,6 +250,10 @@ class AssetHierarchy
 		_resourcesDirectoryNode?.ForEach(scope (node) => {
 			_pathToAssetNode.Remove(node->Path);
 			_identifierToAssetNode.Remove(node->Identifier);
+
+			let handle = node->AssetFile?.AssetConfig?.AssetHandle;
+			if (handle != null)
+				_handleToAssetNode.Remove(handle.Value);
 		});
 		_assetRootNode.RemoveChild(_resourcesDirectoryNode);
 		DeleteTreeAndChildren!(_resourcesDirectoryNode);
@@ -283,11 +287,18 @@ class AssetHierarchy
 	/// Sets path to the directory that contains the game assets.
 	public void SetAssetsDirectory(StringView fileName)
 	{
+		if (AssetsDirectory == fileName)
+			return;
+
 		AssetsDirectory = fileName;
 		
 		_assetsDirectoryNode?.ForEach(scope (node) => {
 			_pathToAssetNode.Remove(node->Path);
 			_identifierToAssetNode.Remove(node->Identifier);
+
+			let handle = node->AssetFile?.AssetConfig?.AssetHandle;
+			if (handle != null)
+				_handleToAssetNode.Remove(handle.Value);
 		});
 		_assetRootNode.RemoveChild(_assetsDirectoryNode);
 		DeleteTreeAndChildren!(_assetsDirectoryNode);
