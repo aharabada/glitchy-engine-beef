@@ -46,6 +46,12 @@ internal static class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void RigidBody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void RigidBody2D_SetPosition(UUID entityId, in float2 position);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void RigidBody2D_GetPosition(UUID entityId, out float2 position);
 
 #endregion RigidBody2D
 
@@ -74,5 +80,4 @@ internal static class ScriptGlue
     internal static extern float4 modf_float4(float4 x, out float4 integerPart);
 
 #endregion
-
 }

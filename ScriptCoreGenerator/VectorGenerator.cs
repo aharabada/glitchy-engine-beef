@@ -66,6 +66,9 @@ public class VectorGenerator : ISourceGenerator
             builder.AppendLine(vector.Struct.GetParent<CompilationUnitSyntax>().Usings.ToFullString());
 
             builder.Append($$"""
+                    // For "DebuggerBrowsable" and "DebuggerBrowsableState"
+                    using System.Diagnostics;
+
                     namespace {{vector.Struct.GetNamespace()}};
 
                     public partial struct {{vector.VectorName}}
@@ -102,13 +105,30 @@ public class VectorGenerator : ISourceGenerator
 
                 GenerateCastOperator(cast, vector, toVectorDefinition, builder);
             }
-            
+
+            GenerateToString(vector, builder);
+
             GenerateSwizzle(vector, builder);
-            
+
             builder.Append('}');
         
             context.AddSource($"{vector.VectorName}.g.cs", builder.ToString());
         }
+    }
+
+    private void GenerateToString(VectorDefinition vector, StringBuilder builder)
+    {
+        builder.Append("public override string ToString() => $\"{{");
+
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            if (i > 0)
+                builder.Append(", ");
+
+            builder.Append($"{ComponentNames[i]}: {{{ComponentNames[i]}}}");
+        }
+        
+        builder.Append("}}\";\n\n");
     }
 
     private void GenerateCastOperator(VectorCastSyntaxReceiver.VectorCast cast, VectorDefinition fromVector, VectorDefinition toVector, StringBuilder builder)
@@ -592,7 +612,10 @@ public class VectorGenerator : ISourceGenerator
 							//""");
        //         }
 
+                // DebuggerBrowsableState.Never to hide swizzle properties in debugger view
+
                 builder.Append($$"""
+                        [DebuggerBrowsable(DebuggerBrowsableState.Never)]
                         public {{vector.BaseName}}{{swizzleCount}} {{swizzleName}}
                         {
                             get => new({{swizzleConstructor}});

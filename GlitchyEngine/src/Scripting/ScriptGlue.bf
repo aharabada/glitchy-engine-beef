@@ -260,6 +260,26 @@ static class ScriptGlue
 		Box2D.Body.ApplyForceToCenter(rigidBody.[Friend]RuntimeBody, force, wakeUp);
 	}
 
+	[RegisterCall("ScriptGlue::RigidBody2D_SetPosition")]
+	static void RigidBody2D_SetPosition(UUID entityId, ref float2 position)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		rigidBody.SetPosition(position);
+	}
+
+	[RegisterCall("ScriptGlue::RigidBody2D_GetPosition")]
+	static void RigidBody2D_GetPosition(UUID entityId, ref float2 position)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		position = rigidBody.GetPosition();
+	}
+
 #endregion RigidBody2D
 
 #region Physics2D

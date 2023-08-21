@@ -27,4 +27,20 @@ public class Rigidbody2D : Component
     {
         ScriptGlue.RigidBody2D_ApplyForceToCenter(Entity._uuid, force, wakeUp);
     }
+
+    /// <summary>
+    /// Sets the position of the rigidbody.
+    /// </summary>
+    /// <param name="position">The position of the rigidbody.</param>
+    public void SetPosition(float2 position)
+    {
+        ScriptGlue.RigidBody2D_SetPosition(Entity._uuid, position);
+    }
+    
+    public float2 GetPosition()
+    {
+        ScriptGlue.RigidBody2D_GetPosition(Entity._uuid, out float2 position);
+
+        return position;
+    }
 }
