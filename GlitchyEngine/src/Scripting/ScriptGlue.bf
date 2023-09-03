@@ -213,7 +213,7 @@ static class ScriptGlue
 #region TransformComponent
 	
 	[RegisterCall("ScriptGlue::Transform_GetTranslation")]
-	static void Transform_GetTranslation(UUID entityId, ref float3 translation)
+	static void Transform_GetTranslation(UUID entityId, out float3 translation)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -222,7 +222,7 @@ static class ScriptGlue
 	}
 
 	[RegisterCall("ScriptGlue::Transform_SetTranslation")]
-	static void Transform_SetTranslation(UUID entityId, ref float3 translation)
+	static void Transform_SetTranslation(UUID entityId, in float3 translation)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -238,10 +238,10 @@ static class ScriptGlue
 
 #endregion TransformComponent
 
-#region RigidBody2D
+#region Rigidbody2D
 	
-	[RegisterCall("ScriptGlue::RigidBody2D_ApplyForce")]
-	static void RigidBody2D_ApplyForce(UUID entityId, ref float2 force, ref float2 point, bool wakeUp)
+	[RegisterCall("ScriptGlue::Rigidbody2D_ApplyForce")]
+	static void Rigidbody2D_ApplyForce(UUID entityId, in float2 force, in float2 point, bool wakeUp)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -250,8 +250,8 @@ static class ScriptGlue
 		Box2D.Body.ApplyForce(rigidBody.[Friend]RuntimeBody, force, point, wakeUp);
 	}
 	
-	[RegisterCall("ScriptGlue::RigidBody2D_ApplyForceToCenter")]
-	static void RigidBody2D_ApplyForceToCenter(UUID entityId, ref float2 force, bool wakeUp)
+	[RegisterCall("ScriptGlue::Rigidbody2D_ApplyForceToCenter")]
+	static void Rigidbody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -260,8 +260,8 @@ static class ScriptGlue
 		Box2D.Body.ApplyForceToCenter(rigidBody.[Friend]RuntimeBody, force, wakeUp);
 	}
 
-	[RegisterCall("ScriptGlue::RigidBody2D_SetPosition")]
-	static void RigidBody2D_SetPosition(UUID entityId, ref float2 position)
+	[RegisterCall("ScriptGlue::Rigidbody2D_SetPosition")]
+	static void Rigidbody2D_SetPosition(UUID entityId, in float2 position)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -270,8 +270,8 @@ static class ScriptGlue
 		rigidBody.SetPosition(position);
 	}
 
-	[RegisterCall("ScriptGlue::RigidBody2D_GetPosition")]
-	static void RigidBody2D_GetPosition(UUID entityId, ref float2 position)
+	[RegisterCall("ScriptGlue::Rigidbody2D_GetPosition")]
+	static void Rigidbody2D_GetPosition(UUID entityId, out float2 position)
 	{
 		Scene scene = ScriptEngine.Context;
 		Entity entity = scene.GetEntityByID(entityId);
@@ -279,15 +279,35 @@ static class ScriptGlue
 		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
 		position = rigidBody.GetPosition();
 	}
+	
+	[RegisterCall("ScriptGlue::Rigidbody2D_SetRotation")]
+	static void Rigidbody2D_SetRotation(UUID entityId, in float rotation)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
 
-#endregion RigidBody2D
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		rigidBody.SetAngle(rotation);
+	}
+
+	[RegisterCall("ScriptGlue::Rigidbody2D_GetRotation")]
+	static void Rigidbody2D_GetRotation(UUID entityId, out float rotation)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		rotation = rigidBody.GetAngle();
+	}
+
+#endregion Rigidbody2D
 
 #region Physics2D
 
 	// TODO: We need a wrapper class!
 
 	[RegisterCall("ScriptGlue::Physics2D_GetGravity")]
-	static void Physics2D_GetGravity(ref float2 gravity)
+	static void Physics2D_GetGravity(out float2 gravity)
 	{
 		Scene scene = ScriptEngine.Context;
 
@@ -296,7 +316,7 @@ static class ScriptGlue
 	}
 
 	[RegisterCall("ScriptGlue::Physics2D_SetGravity")]
-	static void Physics2D_SetGravity(ref float2 gravity)
+	static void Physics2D_SetGravity(in float2 gravity)
 	{
 		Scene scene = ScriptEngine.Context;
 

@@ -42,16 +42,22 @@ internal static class ScriptGlue
 #region RigidBody2D
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void RigidBody2D_ApplyForce(UUID entityId, in float2 force, float2 point, bool wakeUp);
+    internal static extern void Rigidbody2D_ApplyForce(UUID entityId, in float2 force, float2 point, bool wakeUp);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void RigidBody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp);
+    internal static extern void Rigidbody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void RigidBody2D_SetPosition(UUID entityId, in float2 position);
+    internal static extern void Rigidbody2D_SetPosition(UUID entityId, in float2 position);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void RigidBody2D_GetPosition(UUID entityId, out float2 position);
+    internal static extern void Rigidbody2D_GetPosition(UUID entityId, out float2 position);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_SetRotation(UUID entityId, in float rotation);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_GetRotation(UUID entityId, out float rotation);
 
 #endregion RigidBody2D
 

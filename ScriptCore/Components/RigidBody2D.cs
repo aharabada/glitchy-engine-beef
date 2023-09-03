@@ -14,7 +14,7 @@ public class Rigidbody2D : Component
     /// <param name="wakeUp">Wake up the body</param>
     public void ApplyForce(float2 force, float2 point, bool wakeUp = true)
     {
-        ScriptGlue.RigidBody2D_ApplyForce(Entity._uuid, force, point, wakeUp);
+        ScriptGlue.Rigidbody2D_ApplyForce(Entity._uuid, force, point, wakeUp);
     }
 
     /// <summary>
@@ -25,22 +25,34 @@ public class Rigidbody2D : Component
     /// <param name="wakeUp">Wake up the body</param>
     public void ApplyForceToCenter(float2 force, bool wakeUp = true)
     {
-        ScriptGlue.RigidBody2D_ApplyForceToCenter(Entity._uuid, force, wakeUp);
-    }
-
-    /// <summary>
-    /// Sets the position of the rigidbody.
-    /// </summary>
-    /// <param name="position">The position of the rigidbody.</param>
-    public void SetPosition(float2 position)
-    {
-        ScriptGlue.RigidBody2D_SetPosition(Entity._uuid, position);
+        ScriptGlue.Rigidbody2D_ApplyForceToCenter(Entity._uuid, force, wakeUp);
     }
     
-    public float2 GetPosition()
+    /// <summary>
+    /// Gets or sets the global position of the rigidbody.
+    /// </summary>
+    public float2 Position
     {
-        ScriptGlue.RigidBody2D_GetPosition(Entity._uuid, out float2 position);
+        get
+        {
+            ScriptGlue.Rigidbody2D_GetPosition(Entity._uuid, out float2 position);
 
-        return position;
+            return position;
+        }
+        set => ScriptGlue.Rigidbody2D_SetPosition(Entity._uuid, value);
+    }
+    
+    /// <summary>
+    /// Gets or sets the global rotation of the rigidbody.
+    /// </summary>
+    public float Rotation
+    {
+        get
+        {
+            ScriptGlue.Rigidbody2D_GetRotation(Entity._uuid, out float rotation);
+
+            return rotation;
+        }
+        set => ScriptGlue.Rigidbody2D_SetRotation(Entity._uuid, value);
     }
 }

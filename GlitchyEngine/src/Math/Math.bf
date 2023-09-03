@@ -544,6 +544,8 @@ static
 	public static float3 normalize(float3 value) => value / length(value);
 	public static float4 normalize(float4 value) => value / length(value);
 
+	public static Quaternion normalize(Quaternion value) => Quaternion.Normalize(value);
+
 	// pow
 
 #region Reflect and Refract
