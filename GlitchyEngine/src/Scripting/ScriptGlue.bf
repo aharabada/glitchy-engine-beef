@@ -300,6 +300,46 @@ static class ScriptGlue
 		rotation = rigidBody.GetAngle();
 	}
 
+	[RegisterCall("ScriptGlue::Rigidbody2D_GetLinearVelocity")]
+	static void Rigidbody2D_GetLinearVelocity(UUID entityId, out float2 velocity)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		velocity = rigidBody.GetLinearVelocity();
+	}
+	
+	[RegisterCall("ScriptGlue::Rigidbody2D_SetLinearVelocity")]
+	static void Rigidbody2D_SetLinearVelocity(UUID entityId, in float2 velocity)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+		
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		rigidBody.SetLinearVelocity(velocity);
+	}
+
+	[RegisterCall("ScriptGlue::Rigidbody2D_GetAngularVelocity")]
+	static void Rigidbody2D_GetAngularVelocity(UUID entityId, out float velocity)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		velocity = rigidBody.GetAngularVelocity();
+	}
+	
+	[RegisterCall("ScriptGlue::Rigidbody2D_SetAngularVelocity")]
+	static void Rigidbody2D_SetAngularVelocity(UUID entityId, in float velocity)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+		
+		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		rigidBody.SetAngularVelocity(velocity);
+	}
+
 #endregion Rigidbody2D
 
 #region Physics2D

@@ -55,4 +55,32 @@ public class Rigidbody2D : Component
         }
         set => ScriptGlue.Rigidbody2D_SetRotation(Entity._uuid, value);
     }
+    
+    /// <summary>
+    /// Gets or sets the linear velocity of the rigidbody.
+    /// </summary>
+    public float2 LinearVelocity
+    {
+        get
+        {
+            ScriptGlue.Rigidbody2D_GetLinearVelocity(Entity._uuid, out float2 velocity);
+
+            return velocity;
+        }
+        set => ScriptGlue.Rigidbody2D_SetLinearVelocity(Entity._uuid, value);
+    }
+    
+    /// <summary>
+    /// Gets or sets the angulara velocity of the rigidbody.
+    /// </summary>
+    public float AngularVelocity
+    {
+        get
+        {
+            ScriptGlue.Rigidbody2D_GetAngularVelocity(Entity._uuid, out float velocity);
+
+            return velocity;
+        }
+        set => ScriptGlue.Rigidbody2D_SetAngularVelocity(Entity._uuid, value);
+    }
 }

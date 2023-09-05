@@ -58,6 +58,18 @@ internal static class ScriptGlue
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetRotation(UUID entityId, out float rotation);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_SetLinearVelocity(UUID entityId, in float2 velocity);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_GetLinearVelocity(UUID entityId, out float2 velocity);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_SetAngularVelocity(UUID entityId, in float velocity);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_GetAngularVelocity(UUID entityId, out float velocity);
 
 #endregion RigidBody2D
 

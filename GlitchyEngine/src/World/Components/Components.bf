@@ -385,6 +385,9 @@ namespace GlitchyEngine.World
 
 		private int _runtimeBody = 0;
 
+		//private float _linearDamping = 0.0f;
+		//private float _angularDamping = 0.01f;
+
 		protected internal b2Body* RuntimeBody
 		{
 			[Inline]
@@ -392,6 +395,30 @@ namespace GlitchyEngine.World
 			[Inline]
 			set mut => _runtimeBody = (int)(void*)value;
 		}
+
+		/*public float LinearDamping
+		{
+			get => _linearDamping;
+			set mut
+			{
+				_linearDamping = value;
+
+				if (RuntimeBody != null)
+					Box2D.Body.SetLinearDamping(RuntimeBody, _linearDamping);
+			}
+		}
+
+		public float AngularDamping
+		{
+			get => _angularDamping;
+			set mut
+			{
+				_angularDamping = value;
+
+				if (RuntimeBody != null)
+					Box2D.Body.SetAngularDamping(RuntimeBody, _angularDamping);
+			}
+		}*/
 		
 		public float2 GetPosition()
 		{
@@ -435,6 +462,40 @@ namespace GlitchyEngine.World
 
 				Box2D.Body.SetTransform(RuntimeBody, pos, angle);
 			}
+		}
+		
+		public float2 GetLinearVelocity()
+		{
+			if (RuntimeBody != null)
+			{
+				Box2D.b2Vec2 vec = Box2D.Body.GetLinearVelocity(RuntimeBody);
+
+				return *(float2*)&vec;
+			}
+
+			return .Zero;
+		}
+
+		public void SetLinearVelocity(float2 velocity)
+		{
+			if (RuntimeBody != null)
+				Box2D.Body.SetLinearVelocity(RuntimeBody, velocity);
+		}
+		
+		public float GetAngularVelocity()
+		{
+			if (RuntimeBody != null)
+			{
+				return Box2D.Body.GetAngularVelocity(RuntimeBody);
+			}
+
+			return 0;
+		}
+
+		public void SetAngularVelocity(float velocity)
+		{
+			if (RuntimeBody != null)
+				Box2D.Body.SetAngularVelocity(RuntimeBody, velocity);
 		}
 	}
 
