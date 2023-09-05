@@ -103,7 +103,7 @@ namespace GlitchyEngine.World
 		 */
 		public float3 RotationEuler
 		{
-			get => Quaternion.ToEulerAngles(_rotation);
+			get => Quaternion.ToEulerAngles(normalize(_rotation));
 			set mut => Rotation = Quaternion.FromEulerAngles(value.Y, value.X, value.Z);
 		}
 		

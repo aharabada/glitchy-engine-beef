@@ -644,7 +644,13 @@ namespace GlitchyEngine.World
 						b2Body* body = rigidbody.RuntimeBody;
 						b2Vec2 position = Box2D.Body.GetPosition(body);
 						float angle = Box2D.Body.GetAngle(body);
+						b2Transform bodyTransform = Box2D.Body.GetTransform(body);
 
+						float cos = sqrt((1 + bodyTransform.q.c) / 2);
+						float sin = sqrt((1 - bodyTransform.q.c) / 2) * sign(bodyTransform.q.s);
+
+						Quaternion rotation = .(0, 0, sin, cos)..Normalize();
+						
 						if (entity.Parent != null)
 						{
 							Matrix worldToParent = entity.Parent.Value.Transform.WorldTransform.Invert();
@@ -654,14 +660,22 @@ namespace GlitchyEngine.World
 
 							// TODO: when the parent of the rigidbody-entity is rotated, the rotation is applied wrong...
 							Matrix.Decompose(worldToParent, let p, var worldToParentRotation, let s);
-							Quaternion newLocalRotation = (worldToParentRotation * Quaternion.FromEulerAngles(0, 0, angle))..Normalize();
+							//Quaternion newLocalRotation = (worldToParentRotation..Normalize() * rotation..Normalize())..Normalize();
+							//Quaternion newLocalRotation = (rotation * worldToParentRotation..Normalize())..Normalize();
+							//Quaternion newLocalRotation = (worldToParentRotation * rotation)..Normalize();
+							Quaternion newLocalRotation = rotation..Normalize();
+							//Quaternion newLocalRotation = Quaternion.FromEulerAngles(0, 0, angle)..Normalize();
 							// TODO: when the parent has rotation on X or Y everything breaks even more...
-							transform.Rotation = (newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
+							//transform.Rotation = (Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0)..Normalize() * newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
+							//transform.Rotation = ((transform.Rotation..Normalize() * Quaternion.FromEulerAngles(0, 0, transform.RotationEuler.Z)..Normalize())..Normalize() * newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
+							transform.Rotation = (newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
 						}
 						else
 						{
 							transform.Position = .(position.x, position.y, transform.Position.Z);
-							transform.RotationEuler = .(transform.RotationEuler.XY, angle);
+							//transform.RotationEuler = .(transform.RotationEuler.XY, angle);
+							//transform.RotationEuler = .(0, 0, angle);
+							transform.Rotation = normalize(rotation * normalize(Quaternion.FromEulerAngles(transform.RotationEuler.X, transform.RotationEuler.Y, 0)));
 						}
 					}
 				}

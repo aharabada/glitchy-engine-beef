@@ -81,7 +81,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			DrawComponenSceneGUI<PolygonCollider2DComponent>(entity, => ShowPolygonColliderSceneGUI);
 		}
-		
+
 		static void ShowPolygonColliderSceneGUI(Entity entity, PolygonCollider2DComponent* collider)
 		{
 			for (int i < collider.VertexCount)
@@ -208,7 +208,16 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			float3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
-			if (ImGui.Editfloat3("Rotation", ref rotationEuler, .Zero, 0.1f, textWidth))
+
+			bool3 componentEditable = true;
+
+			if (entity.HasComponent<Rigidbody2DComponent>())
+			{
+				componentEditable.XY = false;
+				rotationEuler.XY = 0;
+			}
+
+			if (ImGui.Editfloat3("Rotation", ref rotationEuler, .Zero, 0.1f, textWidth, componentEnabled: componentEditable))
 			{
 				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
 				

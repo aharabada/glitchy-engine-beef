@@ -119,21 +119,21 @@ namespace ImGui
 		protected internal static extern void CleanupFrame();
 	
 		/// Control to edit a vector 2 with drag functionality and reset buttons
-		public static bool Editfloat2(StringView label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float2 minValue = .Zero, float2 maxValue = .Zero)
+		public static bool Editfloat2(StringView label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float2 minValue = .Zero, float2 maxValue = .Zero, bool2 componentEnabled = true)
 		{
-			return EditVector<2>(label, ref *(float[2]*)&value, (float[2])resetValues, dragSpeed, columnWidth, (float[2])minValue, (float[2])maxValue);
+			return EditVector<2>(label, ref *(float[2]*)&value, (float[2])resetValues, dragSpeed, columnWidth, (float[2])minValue, (float[2])maxValue, (bool[2])componentEnabled);
 		}
 	
 		/// Control to edit a vector 3 with drag functionality and reset buttons
-		public static bool Editfloat3(StringView label, ref float3 value, float3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float3 minValue = .Zero, float3 maxValue = .Zero)
+		public static bool Editfloat3(StringView label, ref float3 value, float3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float3 minValue = .Zero, float3 maxValue = .Zero, bool3 componentEnabled = true)
 		{
-			return EditVector<3>(label, ref *(float[3]*)&value, (float[3])resetValues, dragSpeed, columnWidth, (float[3])minValue, (float[3])maxValue);
+			return EditVector<3>(label, ref *(float[3]*)&value, (float[3])resetValues, dragSpeed, columnWidth, (float[3])minValue, (float[3])maxValue, (bool[3])componentEnabled);
 		}
 	
 		/// Control to edit a vector 4 with drag functionality and reset buttons
-		public static bool Editfloat4(StringView label, ref float4 value, float4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float4 minValue = .Zero, float4 maxValue = .Zero)
+		public static bool Editfloat4(StringView label, ref float4 value, float4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float4 minValue = .Zero, float4 maxValue = .Zero, bool4 componentEnabled = true)
 		{
-			return EditVector<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, columnWidth, (float[4])minValue, (float[4])maxValue);
+			return EditVector<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, columnWidth, (float[4])minValue, (float[4])maxValue, (bool[4])componentEnabled);
 		}
 	
 		static (ColorRGBA Default, ColorRGBA Hovered, ColorRGBA Active)[?] VectorButtonColors = .(
@@ -142,7 +142,7 @@ namespace ImGui
 				(.(55, 55, 230), .(55, 55, 150), .(90, 90, 230)),
 				(.(230, 25, 45), .(230, 25, 45), .(230, 25, 45)));
 	
-		public static bool EditVector<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float columnWidth = 100f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .()) where NumComponents : const int32
+		public static bool EditVector<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float columnWidth = 100f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .(), bool[NumComponents] componentEnabled = .()) where NumComponents : const int32
 		{
 			const String[?] componentNames = .("X", "Y", "Z", "W");
 			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
@@ -182,7 +182,9 @@ namespace ImGui
 				PushStyleColor(.Button, VectorButtonColors[i].Default.ImGuiU32);
 				PushStyleColor(.ButtonHovered, VectorButtonColors[i].Hovered.ImGuiU32);
 				PushStyleColor(.ButtonActive, VectorButtonColors[i].Active.ImGuiU32);
-	
+
+				ImGui.BeginDisabled(!componentEnabled[i]);
+
 				if (Button(componentNames[i], buttonSize))
 				{
 					value[i] = resetValues[i];
@@ -202,7 +204,8 @@ namespace ImGui
 						Mouse.LockCurrentPosition(mouseLockId);
 					}*/
 				}
-
+				
+				ImGui.EndDisabled();
 				/*if (IsItemDeactivatedAfterEdit())
 				{
 					deactivated = true;
