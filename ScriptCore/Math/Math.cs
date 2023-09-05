@@ -838,4 +838,24 @@ public static class Math
 	// transpose und determinante für Matrizen
 
 	// sin, cos, tan, asin, acos, atan, atan2, cosh, sinh, tanh
+
+	public static float atan2(float y, float x)
+	{
+		return (float)System.Math.Atan2(y, x);
+	}
+
+	public static float2 atan2(float2 y, float2 x)
+	{
+		return new float2((float)System.Math.Atan2(y.X, x.X), (float)System.Math.Atan2(y.Y, x.Y));
+	}
+	
+	public static float3 atan2(float3 y, float3 x)
+	{
+		return new float3((float)System.Math.Atan2(y.X, x.X), (float)System.Math.Atan2(y.Y, x.Y), (float)System.Math.Atan2(y.Z, x.Z));
+	}
+
+	public static float4 atan2(float4 y, float4 x)
+	{
+		return new float4((float)System.Math.Atan2(y.X, x.X), (float)System.Math.Atan2(y.Y, x.Y), (float)System.Math.Atan2(y.Z, x.Z), (float)System.Math.Atan2(y.W, x.W));
+	}
 }
