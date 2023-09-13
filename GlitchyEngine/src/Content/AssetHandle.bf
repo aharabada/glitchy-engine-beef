@@ -24,7 +24,7 @@ struct AssetHandle : IHashable
 	/// Create a new random AssetHandle
 	public this()
 	{
-		_uuid = UUID();
+		_uuid = UUID.Create();
 	}
 
 	private this(UUID uuid)

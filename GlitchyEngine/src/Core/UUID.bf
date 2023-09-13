@@ -19,16 +19,16 @@ namespace GlitchyEngine.Core
 				((.)new => Serialize, (.)new => Deserialize));
 		}
 
-		/// Creates a new random UUID.
-		public this()
-		{
-			_uuid = s_Random.NextU64();
-		}
-		
 		/// Creates a new UUID with the given value.
 		public this(uint64 uuid)
 		{
 			_uuid = uuid;
+		}
+		
+		/// Creates a new random UUID.
+		public static UUID Create()
+		{
+			return UUID(s_Random.NextU64());
 		}
 
 		public int GetHashCode()
