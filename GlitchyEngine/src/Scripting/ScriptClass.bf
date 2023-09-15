@@ -383,7 +383,7 @@ class ScriptClass : SharpClass
 	{
 		MonoObject* instance = Mono.mono_object_new(ScriptEngine.[Friend]s_AppDomain, _monoClass);
 
-		// Invoke empty constructor to fill fields
+		// Invoke empty constructor to initialize fields with default values specified in the script itself
 		Mono.mono_runtime_object_init(instance);
 
 		// Invoke constructor with UUID

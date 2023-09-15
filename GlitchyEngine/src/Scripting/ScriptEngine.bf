@@ -238,7 +238,7 @@ static class ScriptEngine
 	{
 		for (var entry in _entityScriptInstances)
 		{
-			entry.value.ReleaseRef();
+			entry.value?.ReleaseRef();
 		}
 		_entityScriptInstances.Clear();
 
@@ -257,11 +257,29 @@ static class ScriptEngine
 		script.Instance = new ScriptInstance(entityId, scriptClass);
 		script.Instance..ReleaseRef();
 
+		if (_entityScriptInstances.TryGetValue(entityId, let currentInstance))
+			currentInstance.ReleaseRef();
+
 		_entityScriptInstances[entityId] = script.Instance..AddRef();
 
 		script.Instance.Instantiate(entityId);
 
 		return true;
+	}
+
+	public static void DestroyInstance(Entity entity, ScriptComponent* script)
+	{
+		UUID entityId = entity.UUID;
+
+		if (script.Instance != null)
+			script.Instance = null;
+
+		script.ScriptClassName = null;
+
+		if (_entityScriptInstances.TryGetValue(entityId, let currentInstance))
+			currentInstance.ReleaseRef();
+
+		_entityScriptInstances[entityId] = null;
 	}
 
 	public static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)

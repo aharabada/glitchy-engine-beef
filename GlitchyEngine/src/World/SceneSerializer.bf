@@ -22,6 +22,9 @@ class SceneSerializer
 	private Dictionary<UUID, Entity> _parentIdToChild;
 
 	private List<(Entity Entity, UUID ParentId)> _entitiesMissingParent;
+	
+	// Maps from ID in the prefab file to the actual ID in the scene.
+	private Dictionary<UUID, UUID> _fileToSceneId;
 
 	public this(Scene scene)
 	{
@@ -262,12 +265,13 @@ class SceneSerializer
 		Runtime.NotImplemented();
 	}
 	
-	public Result<void> Deserialize(StringView filePath)
+	public Result<void> Deserialize(StringView filePath, bool loadAsPrefab = false)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
 		_parentIdToChild = scope Dictionary<UUID, Entity>();
 		_entitiesMissingParent = scope List<(Entity Entity, UUID ParentId)>();
+		_fileToSceneId = scope Dictionary<UUID, UUID>();
 
 		String buffer = scope String();
 		File.ReadAllText(filePath, buffer);
@@ -298,7 +302,7 @@ class SceneSerializer
 				Try!(reader.EntryEnd());
 			}
 			
-			Try!(DeserializeEntity(reader));
+			Try!(DeserializeEntity(reader, loadAsPrefab));
 
 			first = false;
 		}
@@ -325,23 +329,12 @@ class SceneSerializer
 		return .Ok;
 	}
 
-	private Result<void> DeserializeEntity(BonReader reader)
+	/// Deserializes the next entity in the file
+	/// @param reader the reader
+	/// @param replaceId If false, the ID that is stored in the file will be used as ID in the scene.
+	/// If true, the ID in the file will be replaced with a new id (e.g. for loading prefabs)
+	private Result<void> DeserializeEntity(BonReader reader, bool newId)
 	{
-		/*mixin DeserializeAsset<T>(StringView identifier) where T : Asset
-		{
-			Asset asset = null;
-
-			Try!(Deserialize.Value(reader, identifier, out asset));
-
-			if (asset != null && !(asset is T))
-			{
-				Log.EngineLogger.Error($"Asset {asset.Identifier} is not a {nameof(T)}.");
-				return .Err;
-			}
-
-			(T)asset
-		}*/
-
 		mixin DeserializeAssetHandle<T>(StringView identifier) where T : Asset
 		{
 			Asset asset = null;
@@ -357,11 +350,29 @@ class SceneSerializer
 			asset?.Handle ?? .Invalid
 		}
 
+		UUID RemapId(UUID id)
+		{
+			if (!newId)
+				return id;
+
+			if (_fileToSceneId.TryGetValue(id, let sceneId))
+				return sceneId;
+
+			// If we remap IDs map the file Id to a random Id.
+			UUID newId = UUID.Create();
+
+			_fileToSceneId.Add(id, newId);
+
+			return newId;
+		}
+
 		Try!(reader.ObjectBlock());
 		
-		Deserialize.Value<uint64>(reader, "Id", let uuid);
+		Deserialize.Value<uint64>(reader, "Id", let rawUuid);
 
-		Entity entity = _scene.CreateEntity("", UUID(uuid));
+		UUID uuid = RemapId(UUID(rawUuid));
+
+		Entity entity = _scene.CreateEntity("", uuid);
 
 		while(reader.ObjectHasMore())
 		{
@@ -416,11 +427,13 @@ class SceneSerializer
 					let nextId = Try!(reader.Identifier());
 					if (nextId == "ParentId")
 					{
-						UUID pId;
-						Deserialize.Value(reader, out pId);
+						UUID rawParentId;
+						Deserialize.Value(reader, out rawParentId);
 						reader.EntryEnd();
 
-						var parentEntity = _scene.GetEntityByID(pId);
+						UUID parentId = RemapId(rawParentId);
+
+						var parentEntity = _scene.GetEntityByID(parentId);
 
 						if (parentEntity case .Ok(let parent))
 						{
@@ -428,7 +441,7 @@ class SceneSerializer
 						}
 						else
 						{
-							_entitiesMissingParent.Add((entity, pId));
+							_entitiesMissingParent.Add((entity, parentId));
 						}
 
 						Deserialize.Value(reader, "Position", out component.[Friend]_position);

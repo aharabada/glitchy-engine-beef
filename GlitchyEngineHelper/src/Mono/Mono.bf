@@ -208,6 +208,9 @@ static class Mono
 	public static extern char8* mono_type_get_name(MonoType* type);
 	
 	[LinkName(.C)]
+	public static extern char8* mono_type_full_name(MonoType* type);
+	
+	[LinkName(.C)]
 	public static extern MonoClass* mono_type_get_class(MonoType* type);
 
 	/// MonoError
@@ -269,6 +272,59 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern MonoObject* mono_value_box(MonoDomain* domain, MonoClass* klass, gpointer value);
+
+#region MonoArray
+
+	typealias uintptr_t = uint;
+	typealias intptr_t = int;
+
+	[LinkName(.C)]
+	public static extern MonoArray* mono_array_new(MonoDomain *domain, MonoClass *eclass, uintptr_t length);
+	
+	[LinkName(.C)]
+	public static extern MonoArray* mono_array_new_checked(MonoDomain *domain, MonoClass *eclass, uintptr_t length, MonoError *error);
+
+	[LinkName(.C)]
+	public static extern MonoArray* mono_array_new_full(MonoDomain *domain, MonoClass *array_class, uintptr_t* lengths, uintptr_t* lower_bounds);
+	
+	[LinkName(.C)]
+	public static extern MonoArray* mono_array_new_full_checked(MonoDomain *domain, MonoClass *array_class, uintptr_t* lengths, uintptr_t* lower_bounds, MonoError *error);
+
+	[LinkName(.C)]
+	public static extern void mono_array_full_copy(MonoArray* src, MonoArray* dest);
+	
+	[LinkName(.C)]
+	public static extern MonoArray* mono_array_clone(MonoArray* array);
+	
+	[LinkName(.C)]
+	public static extern MonoArray* mono_array_clone_checked(MonoArray* array, MonoError* error);
+	
+	[LinkName(.C)]
+	public static extern void* mono_array_addr_with_size(MonoArray *array, int32 size, uintptr_t idx);
+
+	[LinkName(.C)]
+	public static extern uintptr_t mono_array_length(MonoArray *array);
+	
+	[Inline]
+	public static T* mono_array_addr<T>(MonoArray* array, uintptr_t index)
+	{
+		return (T*)mono_array_addr_with_size(array, sizeof(T), index);
+	}
+
+	[Inline]
+	public static T mono_array_get<T>(MonoArray* array, uintptr_t index)
+	{
+		return *mono_array_addr<T>(array, index);
+	}
+
+	[Inline]
+	public static void mono_array_set<T>(MonoArray* array, uintptr_t index, T value)
+	{
+		T* entryPtr = mono_array_addr<T>(array, index);
+		*entryPtr = value;
+	}
+
+#endregion
 }
 
 struct MonoDomain;
@@ -292,6 +348,8 @@ struct MonoProperty;
 struct MonoThread;
 
 struct MonoVTable;
+
+struct MonoArray;
 
 struct MonoException
 {

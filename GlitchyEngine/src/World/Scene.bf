@@ -51,14 +51,17 @@ namespace GlitchyEngine.World
 				cameraComponent.Camera.SetViewportSize(e.Scene._viewportWidth, e.Scene._viewportHeight);
 			});
 
-			/*_onComponentAddedHandlers.Add(typeof(Rigidbody2DComponent), (e, t, c) => {
-				if ()
+			_onComponentAddedHandlers.Add(typeof(Rigidbody2DComponent), (e, t, c) => {
+				Rigidbody2DComponent* rigidbodyComponent = (.)c;
 
+				Scene scene = e.Scene;
 
-				Rigidbody2DComponent* rigidBodyComponent = (.)c;
-
-				//cameraComponent.Camera.SetViewportSize(e.Scene._viewportWidth, e.Scene._viewportHeight);
-			});*/
+				if (scene._physicsWorld2D != null)
+				{
+					// TODO: Add rigidbody
+					Log.EngineLogger.Error("Should have added a rigidbody");
+				}
+			});
 		}
 
 		public ~this()
@@ -152,6 +155,14 @@ namespace GlitchyEngine.World
 
 				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
 				targetEntity.AddComponent<TComponent>(*sourceComponent);
+			}
+		}
+
+		private static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new
+		{
+			if (source.TryGetComponent<TComponent>(let component))
+			{
+				target.AddComponent<TComponent>(*component);
 			}
 		}
 		
@@ -562,7 +573,7 @@ namespace GlitchyEngine.World
 			Runtime = Scripts | Physics,
 		}
 
-		//private append List<UUID> _destroyQueue = .();
+		private append List<Entity> _destroyQueue = .();
 
 		public void Update(GameTime gameTime, UpdateMode mode)
 		{
@@ -680,6 +691,17 @@ namespace GlitchyEngine.World
 					}
 				}
 			}
+
+			if (!_destroyQueue.IsEmpty)
+			{
+				for (let entity in _destroyQueue)
+				{
+					DestroyEntity(entity);
+				}
+
+				_destroyQueue.Clear();
+
+			}
 		}
 
 		/// Creates a new Entity with the given name.
@@ -718,6 +740,46 @@ namespace GlitchyEngine.World
 			}
 			
 			_ecsWorld.RemoveEntity(entity.Handle);
+		}
+		
+		/** Marks the given entity and it's children, so that they will be destroyed at the end of the frame.
+		 * @param entity The entity to delete.
+		 */
+		public void DestroyEntityDeferred(Entity entity)
+		{
+			_destroyQueue.Add(entity);
+
+			for (Entity child in entity.EnumerateChildren)
+			{
+				DestroyEntityDeferred(child);
+			}
+		}
+
+		/** Creates a copy of the given entity, including all components and children.
+		 * @param entity the entity to copy.
+		 * @returns the newly create entity.
+		 */
+		public Entity CreateInstance(Entity entity)
+		{
+			Entity CopyEntityAndChildren(Entity original)
+			{
+				Entity copy = CreateEntity(original.Name);
+
+				// TODO: Copy components
+
+				// This is kinda slow because it's in O(n*m) where n is the tree depth and m is the total number of entities in the scene...
+				for (let child in original.EnumerateChildren)
+				{
+					Entity childCopy = CopyEntityAndChildren(child);
+					childCopy.Parent = copy;
+				}
+
+				return copy;
+			}
+
+			Entity newEntity = CopyEntityAndChildren(entity);
+
+			return newEntity;
 		}
 
 		public Result<Entity> GetEntityByID(UUID id)

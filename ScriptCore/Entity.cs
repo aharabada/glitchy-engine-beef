@@ -1,26 +1,55 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using System.Xml.Linq;
 using GlitchyEngine.Core;
-using GlitchyEngine.Math;
+using GlitchyEngine.Extensions;
 
 namespace GlitchyEngine;
-
-internal struct EntityHandle
-{
-    public uint Version;
-    public uint Index;
-}
 
 public class Entity : EngineObject
 {
     /// <summary>
-    /// Empty constructor not used. Do NOT USE!
+    /// Only used by the Engine. Don't use!
     /// </summary>
     protected Entity()
-    { }
+    {
+        // We don't do anything here.
+        // This constructor will be called by the Engine to initialize the scripts fields.
+        // Especially don't call Create here! Because Create would try and create a new entity.
+    }
+    
+    /// <summary>
+    /// Creates a new Entity.
+    /// </summary>
+    /// <param name="name">The name of the new entity.</param>
+    public Entity(string name = null)
+    {
+        Create(name, null);
+    }
+    
+    /// <summary>
+    /// Creates a new Entity.
+    /// </summary>
+    /// <param name="name">The name of the new entity.</param>
+    /// <param name="components">The components that the entity shall have.</param>
+    public Entity(string name, params Type[] components)
+    {
+        Create(name, components);
+    }
 
+    private void Create(string name, Type[] components)
+    {
+        ScriptGlue.Entity_Create(this, name, components, out _uuid);
+        
+        if (_uuid == UUID.Zero)
+        {
+            throw new InvalidOperationException("Failed to create the Entity. Received UUID.Zero from the engine.");
+        }
+    }
+
+    /// <summary>
+    /// Creates an instance that represents the Entity with the given id.
+    /// </summary>
+    /// <param name="uuid">The ID of the entity that belongs to this instance.</param>
     internal Entity(UUID uuid)
     {
         _uuid = uuid;
@@ -68,9 +97,11 @@ public class Entity : EngineObject
 
         return null;
     }
-    
+
+    #region Add Components
+
     /// <summary>
-    /// Gets the component with the specified component type.
+    /// Adds the component with the specified type.
     /// </summary>
     /// <typeparam name="T">The type of the component to add.</typeparam>
     /// <returns>The component.</returns>
@@ -85,22 +116,85 @@ public class Entity : EngineObject
     }
 
     /// <summary>
-    /// Gets the component with the given component type.
+    /// Adds the component with the given type.
     /// </summary>
     /// <param name="componentType">The type of the component to add.</param>
     /// <returns>The component or null, if the given type is not a valid component type.</returns>
     /// <remarks>For performance reasons it is recommended to use <see cref="AddComponent{T}"/> if possible.</remarks>
     public Component AddComponent(Type componentType)
     {
-        // TODO: probably throw!
-        if (!componentType.IsSubclassOf(typeof(Component))) return null;
-        
+        if (!componentType.IsSubclassOf(typeof(Component)))
+        {
+            throw new ArgumentException($"Invalid component type \"{componentType}\". Must be a subclass of \"Component\".", nameof(componentType));
+        }
+
         ScriptGlue.Entity_AddComponent(_uuid, componentType);
 
         Component component = Activator.CreateInstance(componentType) as Component;
+        if (component != null)
+            component.Entity = this;
+
         return component;
     }
-    
+
+
+    /// <summary>
+    /// Adds components with the specified types to the entity.
+    /// </summary>
+    /// <param name="componentTypes">The types of the components to add.</param>
+    /// <returns>An array containing the components.</returns>
+    public Component[] AddComponents(params Type[] componentTypes)
+    {
+        foreach ((Type componentType, int index) in componentTypes.WithIndex())
+        {
+            if (!componentType.IsSubclassOf(typeof(Component)))
+            {
+                throw new ArgumentException($"Invalid component type \"{componentType}\" at index {index}. Must be a subclass of \"Component\".", nameof(componentTypes));
+            }
+        }
+
+        ScriptGlue.Entity_AddComponents(_uuid, componentTypes);
+
+        Component[] components = new Component[componentTypes.Length];
+        
+        foreach ((Type componentType, int index) in componentTypes.WithIndex())
+        {
+            components[index] = Activator.CreateInstance(componentType) as Component;
+            components[index].Entity = this;
+        }
+
+        return components;
+    }
+
+    /// <summary>
+    /// Adds the specified components to the entity.
+    /// </summary>
+    /// <returns>A tuple containing the added components.</returns>
+    public (T1, T2) AddComponents<T1, T2>()
+        where T1 : Component, new()
+        where T2 : Component, new()
+    {
+        ScriptGlue.Entity_AddComponents(_uuid, new []{typeof(T1), typeof(T2)});
+
+        return (new T1 { Entity = this }, new T2 { Entity = this });
+    }
+
+    /// <summary>
+    /// Adds the specified components to the entity.
+    /// </summary>
+    /// <returns>A tuple containing the added components.</returns>
+    public (T1, T2, T3) AddComponents<T1, T2, T3>()
+        where T1 : Component, new()
+        where T2 : Component, new()
+        where T3 : Component, new()
+    {
+        ScriptGlue.Entity_AddComponents(_uuid, new []{typeof(T1), typeof(T2), typeof(T3)});
+
+        return (new T1 { Entity = this }, new T2 { Entity = this }, new T3 { Entity = this });
+    }
+
+    #endregion Add Components
+
     /// <summary>
     /// Removes the component with the specified component type.
     /// </summary>
@@ -117,10 +211,30 @@ public class Entity : EngineObject
     /// <remarks>For performance reasons it is recommended to use <see cref="RemoveComponent{T}"/> if possible.</remarks>
     public void RemoveComponent(Type componentType)
     {
-        // TODO: probably throw!
-        if (!componentType.IsSubclassOf(typeof(Component))) return;
-        
+        if (!componentType.IsSubclassOf(typeof(Component)))
+        {
+            throw new ArgumentException($"Invalid component type \"{componentType}\". Must be a subclass of \"Component\".", nameof(componentType));
+        }
+
         ScriptGlue.Entity_RemoveComponent(_uuid, componentType);
+    }
+
+    /// <summary>
+    /// Sets the script of the entity to the specified type.
+    /// If necessary removes the existing script.
+    /// </summary>
+    /// <typeparam name="T">The type of the script.</typeparam>
+    public T SetScript<T>() where T : Entity
+    {
+        return ScriptGlue.Entity_SetScript(_uuid, typeof(T)) as T;
+    }
+    
+    /// <summary>
+    /// Removes the script from the entity.
+    /// </summary>
+    public void RemoveScript()
+    {
+        ScriptGlue.Entity_RemoveScript(_uuid);
     }
 
     public Transform Transform => GetComponent<Transform>();
@@ -145,6 +259,17 @@ public class Entity : EngineObject
 
         return new Entity(entityId);
     }
+    
+    /// <summary>
+    /// Returns true if the entity has a script component of the given type; false if the entity either has no script or the script is not of the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type of the script.</typeparam>
+    public bool Is<T>() where T : Entity
+    {
+        object scriptInstance = ScriptGlue.Entity_GetScriptInstance(_uuid);
+
+        return scriptInstance is T;
+    }
 
     /// <summary>
     /// Returns the script of the given type, or null, if the entity has no script of the given type.
@@ -158,7 +283,30 @@ public class Entity : EngineObject
         return scriptInstance as T;
     }
 
-    // Will be executed once after the entity as be created.
+    /// <summary>
+    /// Destroys the entity and all it's children.
+    /// </summary>
+    /// <remarks>
+    /// The destruction will not take place immediately. It will happen at the end of the current frame.
+    /// </remarks>
+    public void Destroy()
+    {
+        ScriptGlue.Entity_Destroy(_uuid);
+    }
+
+    /// <summary>
+    /// Instantiates a copy of the given entity and it's children.
+    /// </summary>
+    /// <param name="entity">The entity to copy.</param>
+    /// <returns>The new entity.</returns>
+    public static Entity CreateInstance(Entity entity)
+    {
+        ScriptGlue.Entity_CreateInstance(entity.UUID, out UUID newEntityId);
+
+        return new Entity(newEntityId);
+    }
+
+    // Will be executed once after the entity has be created.
     // void OnCreate();
 
     // Will be executed every frame.

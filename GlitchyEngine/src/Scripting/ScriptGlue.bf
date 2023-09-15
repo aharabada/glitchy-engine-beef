@@ -8,6 +8,7 @@ using GlitchyEngine.World;
 using GlitchyEngine.Core;
 using System.Collections;
 using Box2D;
+using GlitchyEngine.Scripting;
 
 namespace GlitchyEngine.Scripting;
 
@@ -146,7 +147,56 @@ static class ScriptGlue
 #endregion Input
 
 #region Scene/Entity stuff
+
+	[RegisterCall("ScriptGlue::Entity_Create")]
+	static void Entity_Create(MonoObject* scriptInstance, MonoString* monoEntityName, MonoArray* componentTypes, out UUID entityId)
+	{
+		char8* entityName = Mono.mono_string_to_utf8(monoEntityName);
+		
+		Entity entity = ScriptEngine.Context.CreateEntity(StringView(entityName));
+
+		Mono.mono_free(entityName);
+
+		entityId = entity.UUID;
+
+		// TODO: Script instance
+
+		if (componentTypes != null)
+		{
+			Entity_AddComponents(entityId, componentTypes);
+		}
+	}
+
+	[RegisterCall("ScriptGlue::Entity_Destroy")]
+	static void Entity_Destroy(UUID entityId)
+	{
+		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		ScriptEngine.Context.DestroyEntityDeferred(entity);
+	}
+
+	[RegisterCall("ScriptGlue::Entity_CreateInstance")]
+	static void Entity_CreateInstance(UUID entityId, out UUID newEntityId)
+	{
+		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		Entity newEntity = ScriptEngine.Context.CreateInstance(entity);
+
+		newEntityId = newEntity.UUID;
+	}
 	
+	[RegisterCall("ScriptGlue::Entity_AddComponents")]
+	static void Entity_AddComponents(UUID entityId, MonoArray* componentTypes)
+	{
+		if (componentTypes == null)
+			return;
+
+		uint length = Mono.mono_array_length(componentTypes);
+		for (uint i < length)
+		{
+			MonoReflectionType* reflectionType = Mono.mono_array_get<MonoReflectionType*>(componentTypes, i);
+			Entity_AddComponent(entityId, reflectionType);
+		}
+	}
+
 	[RegisterCall("ScriptGlue::Entity_AddComponent")]
 	static void Entity_AddComponent(UUID entityId, MonoReflectionType* componentType)
 	{
@@ -206,6 +256,47 @@ static class ScriptGlue
 	static MonoObject* Entity_GetScriptInstance(UUID entityId)
 	{
 		return ScriptEngine.GetManagedInstance(entityId);
+	}
+
+	[RegisterCall("ScriptGlue::Entity_SetScript")]
+	static MonoObject* Entity_SetScript(UUID entityId, MonoReflectionType* scriptType)
+	{
+		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		if (!entity.HasComponent<ScriptComponent>())
+		{
+			entity.AddComponent<ScriptComponent>();
+		}
+
+		if (entity.TryGetComponent<ScriptComponent>(let scriptComponent))
+		{
+			scriptComponent.Instance = null;
+
+			MonoType* type = Mono.mono_reflection_type_get_type(scriptType);
+
+			scriptComponent.ScriptClassName = StringView(Mono.mono_type_full_name(type));
+			
+			// Initializes the created instance
+			// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
+			ScriptEngine.InitializeInstance(entity, scriptComponent);
+
+			return scriptComponent.Instance.MonoInstance;
+		}
+
+		return null;
+	}
+	
+	[RegisterCall("ScriptGlue::Entity_RemoveScript")]
+	static void Entity_RemoveScript(UUID entityId)
+	{
+		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		if (entity.TryGetComponent<ScriptComponent>(let scriptComponent))
+		{
+			ScriptEngine.DestroyInstance(entity, scriptComponent);
+			
+			entity.RemoveComponent<ScriptComponent>();
+		}
 	}
 
 #endregion

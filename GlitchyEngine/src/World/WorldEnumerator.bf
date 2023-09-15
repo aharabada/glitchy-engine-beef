@@ -10,16 +10,14 @@ namespace GlitchyEngine.World
 	{
 		internal EcsWorld _world;
 		internal BitArray _bitMask;
-		internal EcsWorld.BitmaskEntry* _currentEntry;
-		internal EcsWorld.BitmaskEntry* _endEntry;
+		internal List<EcsWorld.BitmaskEntry>.Enumerator _entitiesEnumerator;
 
 		public bool IsEmpty => _bitMask == null;
 
 		public this(EcsWorld world, Type[] componentTypes)
 		{
 			_world = world;
-			_currentEntry = _world._entities.Ptr;
-			_endEntry = _world._entities.Ptr + _world._entities.Count;
+			_entitiesEnumerator = _world._entities.GetEnumerator();
 
 			_bitMask = new BitArray(_world._componentPools.Count);
 			for(var type in componentTypes)
@@ -39,7 +37,6 @@ namespace GlitchyEngine.World
 					Log.EngineLogger.Warning($"Queried component of type \"{type}\" is not registered for this world. The query will never return any results.");
 #endif
 					DeleteAndNullify!(_bitMask);
-					_endEntry = _currentEntry;
 					break;
 				}
 			}
@@ -47,9 +44,12 @@ namespace GlitchyEngine.World
 
 		public Result<EcsEntity> GetNext() mut
 		{
-			while(_currentEntry < _endEntry)
+			if (IsEmpty)
+				return .Err;
+
+			while(_entitiesEnumerator.GetNext() case .Ok(let entry))
 			{
-				EcsWorld.BitmaskEntry* entry = _currentEntry++;
+				//EcsWorld.BitmaskEntry* entry = _currentEntry++;
 
 				// Skip deleted entities
 				if(entry.ID.Index == EcsEntity.InvalidEntity.Index)

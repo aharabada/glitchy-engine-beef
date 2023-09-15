@@ -11,9 +11,21 @@ namespace GlitchyEngine;
 internal static class ScriptGlue
 {
 #region Entity
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Entity_Create(object scriptInstance, string entityName, Type[] componentTypes, out UUID entityId);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Entity_Destroy(UUID entityId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Entity_CreateInstance(UUID entityId, out UUID newEntityId);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_AddComponent(UUID entityId, Type componentType);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Entity_AddComponents(UUID entityId, Type[] componentTypes);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern bool Entity_HasComponent(UUID entityId, Type componentType);
@@ -26,6 +38,12 @@ internal static class ScriptGlue
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern object Entity_GetScriptInstance(UUID entityId);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern object Entity_SetScript(UUID entityId, Type scriptType);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Entity_RemoveScript(UUID entityId);
     
 #endregion Entity
 
