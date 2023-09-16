@@ -282,6 +282,41 @@ static class ScriptEngine
 		_entityScriptInstances[entityId] = null;
 	}
 
+	/// Returns an instance that can be used as a reference to the entity with the given ID in Scripts
+	private static MonoObject* GetOrCreateScriptReferenceInstance(UUID entityId)
+	{
+		MonoObject* referencedEntity = GetManagedInstance(entityId);
+
+		if (referencedEntity == null)
+		{	 
+			referencedEntity = s_EntityRoot.CreateInstance(entityId, let exception);
+			
+			if (exception != null)
+				ScriptEngine.HandleMonoException(exception, null);
+		}
+
+		return referencedEntity;
+	}
+
+	/// Creates an instance of the given component class referencing the specified entity instance.
+	private static MonoObject* CreateComponentReferenceInstance(ScriptClass componentClass, MonoObject* entityReferenceInstance)
+	{
+		MonoObject* componentInstance = componentClass.CreateInstance();
+
+		// TODO: We could cache the property, but this might be fine
+		MonoProperty* entityProperty = Mono.mono_class_get_property_from_name(componentClass.[Friend]_monoClass, "Entity");
+
+		MonoObject* exception = null;
+
+#unwarn
+		Mono.mono_property_set_value(entityProperty, componentInstance, (void**)&entityReferenceInstance, &exception);
+
+		if (exception != null)
+			ScriptEngine.HandleMonoException((MonoException*)exception, null);
+
+		return componentInstance;
+	}
+
 	public static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
 	{
 		Log.EngineLogger.AssertDebug(script.Instance != null);
@@ -304,8 +339,30 @@ static class ScriptEngine
 				// But here its just easier to always use the script instance.
 				// Obviously breaks once we support multiple scripts per entity.
 				UUID referencedId = field.GetData<UUID>();
-				MonoObject* referencedEntity = GetManagedInstance(referencedId);
+				MonoObject* referencedEntity = GetOrCreateScriptReferenceInstance(referencedId);
+
 				script.Instance.SetFieldValue(scriptField, referencedEntity);
+			case .Component:
+				// Get or create entity reference
+				UUID referencedId = field.GetData<UUID>();
+				MonoObject* referencedEntity = GetOrCreateScriptReferenceInstance(referencedId);
+
+				MonoType* fieldMonoType = scriptField.GetMonoType();
+				
+				SharpType componentType = ScriptEngine.GetSharpType(fieldMonoType);
+
+				var componentClass = ComponentClasses[componentType.FullName];
+
+				MonoObject* componentInstance = CreateComponentReferenceInstance(componentClass, referencedEntity);
+
+				script.Instance.SetFieldValue(scriptField, componentInstance);
+
+				componentType.ReleaseRef();
+			default:
+				script.Instance.SetFieldValue(scriptField, field._data);
+			}
+		}
+	}
 			case .Component:
 				// We create a new instance of a component class
 				MonoType* type = scriptField.GetMonoType();
@@ -606,11 +663,12 @@ static class ScriptEngine
 		return _entityFields[uuid];
 	}
 
+	/// Returns the script instance or null.
 	public static MonoObject* GetManagedInstance(UUID entityId)
 	{
 		if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
 			return scriptInstance.MonoInstance;
-		
+
 		return null;
 	}
 
