@@ -60,8 +60,40 @@ namespace GlitchyEngine.World
 
 				if (scene._physicsWorld2D != null)
 				{
-					// TODO: Add rigidbody
-					Log.EngineLogger.Error("Should have added a rigidbody");
+					scene.InitializeRigidbody2D(e, rigidbodyComponent);
+				}
+			});
+
+			_onComponentAddedHandlers.Add(typeof(BoxCollider2DComponent), (e, t, c) => {
+				BoxCollider2DComponent* collider = (.)c;
+
+				Scene scene = e.Scene;
+
+				if (scene._physicsWorld2D != null)
+				{
+					scene.InitBoxCollider2D(e, collider);
+				}
+			});
+
+			_onComponentAddedHandlers.Add(typeof(CircleCollider2DComponent), (e, t, c) => {
+				CircleCollider2DComponent* collider = (.)c;
+
+				Scene scene = e.Scene;
+
+				if (scene._physicsWorld2D != null)
+				{
+					scene.InitCircleCollider2D(e, collider);
+				}
+			});
+
+			_onComponentAddedHandlers.Add(typeof(PolygonCollider2DComponent), (e, t, c) => {
+				PolygonCollider2DComponent* collider = (.)c;
+
+				Scene scene = e.Scene;
+
+				if (scene._physicsWorld2D != null)
+				{
+					scene.InitPolygonCollider2D(e, collider);
 				}
 			});
 		}
@@ -767,16 +799,15 @@ namespace GlitchyEngine.World
 		 */
 		public Entity CreateInstance(Entity entity)
 		{
-			Log.EngineLogger.Info("Ja moin");
-
 			List<Entity> newEntities = scope .();
 			Dictionary<EcsEntity, EcsEntity> sourceToTargetEntity = scope .();
 			Dictionary<UUID, UUID> sourceIdToTargetId = scope .();
 			Dictionary<UUID, Entity> targetIdToSourceEntity = scope .();
 			
-			Entity CopyEntityAndChildren(Entity original)
+			Entity CopyEntityAndChildren(Entity original, Entity? copyParent)
 			{
 				Entity copy = CreateEntity(original.Name);
+				copy.Parent = copyParent;
 
 				newEntities.Add(copy);
 				sourceToTargetEntity.Add(original.Handle, copy.Handle);
@@ -815,14 +846,13 @@ namespace GlitchyEngine.World
 				// This is kinda slow because it's in O(n*m) where n is the tree depth and m is the total number of entities in the scene...
 				for (let child in original.EnumerateChildren)
 				{
-					Entity childCopy = CopyEntityAndChildren(child);
-					childCopy.Parent = copy;
+					CopyEntityAndChildren(child, copy);
 				}
 
 				return copy;
 			}
 
-			Entity newEntity = CopyEntityAndChildren(entity);
+			Entity newEntity = CopyEntityAndChildren(entity, null);
 			
 			for (let copy in newEntities)
 			{
