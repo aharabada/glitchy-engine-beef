@@ -72,7 +72,7 @@ public class Entity : EngineObject
         {
             return new T
             {
-                Entity = this
+                _uuid = _uuid
             };
         }
 
@@ -111,7 +111,7 @@ public class Entity : EngineObject
 
         return new T
         {
-            Entity = this
+            _uuid = _uuid
         };
     }
 
@@ -132,7 +132,9 @@ public class Entity : EngineObject
 
         Component component = Activator.CreateInstance(componentType) as Component;
         if (component != null)
-            component.Entity = this;
+        {
+            component._uuid = _uuid;
+        }
 
         return component;
     }
@@ -160,7 +162,7 @@ public class Entity : EngineObject
         foreach ((Type componentType, int index) in componentTypes.WithIndex())
         {
             components[index] = Activator.CreateInstance(componentType) as Component;
-            components[index].Entity = this;
+            components[index]._uuid = _uuid;
         }
 
         return components;
@@ -176,7 +178,7 @@ public class Entity : EngineObject
     {
         ScriptGlue.Entity_AddComponents(_uuid, new []{typeof(T1), typeof(T2)});
 
-        return (new T1 { Entity = this }, new T2 { Entity = this });
+        return (new T1 { _uuid = _uuid }, new T2 { _uuid = _uuid });
     }
 
     /// <summary>
@@ -190,7 +192,7 @@ public class Entity : EngineObject
     {
         ScriptGlue.Entity_AddComponents(_uuid, new []{typeof(T1), typeof(T2), typeof(T3)});
 
-        return (new T1 { Entity = this }, new T2 { Entity = this }, new T3 { Entity = this });
+        return (new T1 { _uuid = _uuid }, new T2 { _uuid = _uuid }, new T3 { _uuid = _uuid });
     }
 
     #endregion Add Components

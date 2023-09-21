@@ -29,6 +29,8 @@ namespace GlitchyEngine.World
 		// Maps ids to the entities they represent.
 		private Dictionary<UUID, EcsEntity> _idToEntity = new .() ~ delete _;
 
+		private HashSet<EcsEntity> _updateBlockList = new .() ~ delete _;
+
 		public Entity ActiveCamera => {
 			Entity cameraEntity = .();
 
@@ -99,7 +101,7 @@ namespace GlitchyEngine.World
 
 			if (initializeScripts)
 			{
-				CopyComponents<NativeScriptComponent>(this, target);
+				//CopyComponents<NativeScriptComponent>(this, target);
 
 				// Copy ScriptComponents... needs extra handling for the script instances
 				for (let (sourceHandle, sourceComponent) in _ecsWorld.Enumerate<ScriptComponent>())
@@ -583,6 +585,8 @@ namespace GlitchyEngine.World
 
 			if (mode.HasFlag(.Scripts))
 			{
+				Debug.Profiler.ProfileScope!("Update scripts");
+
 				// Run scripts
 				for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
 				{
@@ -595,12 +599,9 @@ namespace GlitchyEngine.World
 	
 					script.Instance.[Friend]OnUpdate(gameTime);
 				}
-			/*}
-			
-			if (mode.HasFlag(.Runtime) || mode.HasFlag(.Editor))
-			{*/
+
 				// Run scripts
-				for (var (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
+				for (let (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
 				{
 					if (!script.IsCreated)
 					{
@@ -615,7 +616,12 @@ namespace GlitchyEngine.World
 					}
 					
 					if (mode.HasFlag(.Runtime))
-						script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
+					{
+						if (_updateBlockList.Contains(entity))
+							_updateBlockList.Remove(entity);
+						else
+							script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
+					}
 				}
 			}
 
@@ -761,11 +767,50 @@ namespace GlitchyEngine.World
 		 */
 		public Entity CreateInstance(Entity entity)
 		{
+			Log.EngineLogger.Info("Ja moin");
+
+			List<Entity> newEntities = scope .();
+			Dictionary<EcsEntity, EcsEntity> sourceToTargetEntity = scope .();
+			Dictionary<UUID, UUID> sourceIdToTargetId = scope .();
+			Dictionary<UUID, Entity> targetIdToSourceEntity = scope .();
+			
 			Entity CopyEntityAndChildren(Entity original)
 			{
 				Entity copy = CreateEntity(original.Name);
 
-				// TODO: Copy components
+				newEntities.Add(copy);
+				sourceToTargetEntity.Add(original.Handle, copy.Handle);
+				sourceIdToTargetId.Add(original.UUID, copy.UUID);
+				targetIdToSourceEntity.Add(copy.UUID, original);
+				_updateBlockList.Add(copy.Handle);
+
+				CopyComponent<MeshRendererComponent>(original, copy);
+				CopyComponent<MeshComponent>(original, copy);
+				CopyComponent<EditorComponent>(original, copy);
+				CopyComponent<SpriteRendererComponent>(original, copy);
+				CopyComponent<CircleRendererComponent>(original, copy);
+				CopyComponent<CameraComponent>(original, copy);
+				CopyComponent<LightComponent>(original, copy);
+
+				CopyComponent<Rigidbody2DComponent>(original, copy);
+				CopyComponent<BoxCollider2DComponent>(original, copy);
+				CopyComponent<CircleCollider2DComponent>(original, copy);
+				CopyComponent<PolygonCollider2DComponent>(original, copy);
+				
+				// Copy ScriptComponent... needs extra handling for the script instances
+				if (original.TryGetComponent<ScriptComponent>(let sourceScript))
+				{
+					ScriptComponent* targetScript = copy.AddComponent<ScriptComponent>();
+					
+					targetScript.ScriptClassName = sourceScript.ScriptClassName;
+
+					// Initializes the created instance
+					// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
+					ScriptEngine.InitializeInstance(copy, targetScript);
+
+					// TODO: Copy Data from one instance to another
+					//ScriptEngine.CopyFieldsToInstance(targetScript, sourceScript);
+				}
 
 				// This is kinda slow because it's in O(n*m) where n is the tree depth and m is the total number of entities in the scene...
 				for (let child in original.EnumerateChildren)
@@ -778,6 +823,22 @@ namespace GlitchyEngine.World
 			}
 
 			Entity newEntity = CopyEntityAndChildren(entity);
+			
+			for (let copy in newEntities)
+			{
+				if (copy.TryGetComponent<ScriptComponent>(let targetScript))
+				{
+					Entity originalEntity = targetIdToSourceEntity[copy.UUID];
+
+					if (!originalEntity.TryGetComponent<ScriptComponent>(let sourceScript))
+						continue;
+
+					ScriptEngine.CopyFieldsToInstance(targetScript, sourceScript, sourceIdToTargetId);
+
+					//targetScript.Instance.InvokeOnCreate();
+				}
+			}
+
 
 			return newEntity;
 		}

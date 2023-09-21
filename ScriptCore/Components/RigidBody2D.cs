@@ -14,7 +14,7 @@ public class Rigidbody2D : Component
     /// <param name="wakeUp">Wake up the body</param>
     public void ApplyForce(float2 force, float2 point, bool wakeUp = true)
     {
-        ScriptGlue.Rigidbody2D_ApplyForce(Entity._uuid, force, point, wakeUp);
+        ScriptGlue.Rigidbody2D_ApplyForce(_uuid, force, point, wakeUp);
     }
 
     /// <summary>
@@ -25,7 +25,7 @@ public class Rigidbody2D : Component
     /// <param name="wakeUp">Wake up the body</param>
     public void ApplyForceToCenter(float2 force, bool wakeUp = true)
     {
-        ScriptGlue.Rigidbody2D_ApplyForceToCenter(Entity._uuid, force, wakeUp);
+        ScriptGlue.Rigidbody2D_ApplyForceToCenter(_uuid, force, wakeUp);
     }
     
     /// <summary>
@@ -35,11 +35,11 @@ public class Rigidbody2D : Component
     {
         get
         {
-            ScriptGlue.Rigidbody2D_GetPosition(Entity._uuid, out float2 position);
+            ScriptGlue.Rigidbody2D_GetPosition(_uuid, out float2 position);
 
             return position;
         }
-        set => ScriptGlue.Rigidbody2D_SetPosition(Entity._uuid, value);
+        set => ScriptGlue.Rigidbody2D_SetPosition(_uuid, value);
     }
     
     /// <summary>
@@ -49,11 +49,11 @@ public class Rigidbody2D : Component
     {
         get
         {
-            ScriptGlue.Rigidbody2D_GetRotation(Entity._uuid, out float rotation);
+            ScriptGlue.Rigidbody2D_GetRotation(_uuid, out float rotation);
 
             return rotation;
         }
-        set => ScriptGlue.Rigidbody2D_SetRotation(Entity._uuid, value);
+        set => ScriptGlue.Rigidbody2D_SetRotation(_uuid, value);
     }
     
     /// <summary>
@@ -63,11 +63,11 @@ public class Rigidbody2D : Component
     {
         get
         {
-            ScriptGlue.Rigidbody2D_GetLinearVelocity(Entity._uuid, out float2 velocity);
+            ScriptGlue.Rigidbody2D_GetLinearVelocity(_uuid, out float2 velocity);
 
             return velocity;
         }
-        set => ScriptGlue.Rigidbody2D_SetLinearVelocity(Entity._uuid, value);
+        set => ScriptGlue.Rigidbody2D_SetLinearVelocity(_uuid, value);
     }
     
     /// <summary>
@@ -77,10 +77,10 @@ public class Rigidbody2D : Component
     {
         get
         {
-            ScriptGlue.Rigidbody2D_GetAngularVelocity(Entity._uuid, out float velocity);
+            ScriptGlue.Rigidbody2D_GetAngularVelocity(_uuid, out float velocity);
 
             return velocity;
         }
-        set => ScriptGlue.Rigidbody2D_SetAngularVelocity(Entity._uuid, value);
+        set => ScriptGlue.Rigidbody2D_SetAngularVelocity(_uuid, value);
     }
 }

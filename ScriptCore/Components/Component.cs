@@ -2,7 +2,7 @@ using GlitchyEngine.Core;
 
 namespace GlitchyEngine;
 
-public abstract class Component
+public abstract class Component : EngineObject
 {
-    public Entity Entity { get; internal set; }
+    public Entity Entity => new(_uuid);
 }
