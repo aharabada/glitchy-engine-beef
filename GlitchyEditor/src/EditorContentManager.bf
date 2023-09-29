@@ -267,14 +267,11 @@ class EditorContentManager : IContentManager
 
 		GetResourceAndSubassetName(oldIdentifier, let resourceName, let subassetName);
 		
-		String filePath = scope .();
-		GetResourceFilePath(resourceName, filePath);
-
-		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromPath(filePath);
+		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromAssetHandle(handle);
 
 		if (resultNode case .Err)
 		{
-			Log.EngineLogger.Error($"Could not find asset \"{filePath}\".");
+			Log.EngineLogger.Error($"Could not find asset node for asset \"{oldIdentifier}\".");
 			return;
 		}
 
@@ -282,7 +279,7 @@ class EditorContentManager : IContentManager
 		
 		IAssetLoader assetLoader = GetAssetLoader(file);
 
-		Stream stream = GetStream(filePath, true);
+		Stream stream = OpenStream(file.FilePath, true);
 
 		// TODO: Add async loading!
 		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
@@ -709,6 +706,7 @@ class EditorContentManager : IContentManager
 		return .Ok;
 	}
 
+	// Returns a filestream for the given asset file path
 	private Stream OpenStream(StringView fileName, bool readOnly)
 	{
 		FileStream fs = new FileStream();
