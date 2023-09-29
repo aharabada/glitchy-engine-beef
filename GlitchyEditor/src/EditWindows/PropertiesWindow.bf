@@ -106,22 +106,32 @@ class PropertiesWindow : EditorWindow
 			return;
 		
 		_currentPropertiesEditor.ShowEditor();
-		
-		if (ImGui.Button("Save Asset"))
-		{
-			Asset asset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
-			_editor.ContentManager.SaveAsset(asset);
-		}
 
-		if (!assetFile.AssetConfig.Config.Changed)
+		bool assetConfigChanged = assetFile.AssetConfig.Config.Changed;
+		bool hasAssetSaver = (_editor.ContentManager.[Friend]GetAssetLoader(assetFile) is IAssetSaver);
+
+		// If the asset can't be saved and it's config didn't change disable save button
+		if (!hasAssetSaver && !assetConfigChanged)
 		{
 			ImGui.BeginDisabled();
 			defer:: { ImGui.EndDisabled(); }
 		}
-		
-		ImGui.Separator();
 
-		if (ImGui.Button("Apply"))
-			assetFile.SaveAssetConfig();
+		if (ImGui.Button("Save"))
+		{
+			// Only save config if it changed
+			if (assetConfigChanged)
+			{
+				assetFile.SaveAssetConfig();
+			}
+
+			// If the asset type has an asset saver, also save the asset
+			// TODO: Check whether or not the asset was changed?
+			if (hasAssetSaver)
+			{
+				Asset asset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
+				_editor.ContentManager.SaveAsset(asset);
+			}
+		}
 	}
 }
