@@ -144,7 +144,7 @@ namespace GlitchyEditor
 
 		private void RegisterAssetCreators()
 		{
-			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Folder", "New Folder", new (path) =>
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Folder", "New Folder", "", new (path) =>
 				{
 					if (Directory.CreateDirectory(path) case .Err(let error))
 					{
@@ -152,7 +152,7 @@ namespace GlitchyEditor
 					}
 				}));
 
-			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Scene", "New Scene.scene", new (path) =>
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Scene", "New Scene", ".scene", new (path) =>
 				{
 					using (Scene newScene = CreateNewScene())
 					{
@@ -160,13 +160,104 @@ namespace GlitchyEditor
 					}
 				}));
 
-			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Material", "New Material.mat", new (path) =>
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Material", "New Material", ".mat", new (path) =>
 				{
 					using (Material newMaterial = new Material())
 					{
 						_contentManager.SaveAssetToFile(newMaterial, path);
 					}
 				}));
+			
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Script", "New Entity", ".cs", new (path) =>
+				{
+					String templatePath = scope .();
+					Directory.GetCurrentDirectory(templatePath);
+					Path.Combine(templatePath, "Resources/Templates/ScriptTemplate.cs");
+
+					String scriptContent = scope .();
+
+					if (File.ReadAllText(templatePath, scriptContent, true) case .Err(let error))
+					{
+						Log.EngineLogger.Error($"Failed to read template file from \"{templatePath}\". Error: {error}");
+						return;
+					}
+
+					scriptContent.Replace("[ProjectName]", CurrentProject.Name);
+
+					String fileName = scope .();
+					Path.GetFileName(path, fileName);
+
+					Log.EngineLogger.AssertDebug(fileName.EndsWith(".cs"));
+
+					if (fileName.EndsWith(".cs"))
+						fileName.RemoveFromEnd(3);
+
+					String pascalFileName = scope .(fileName.Length);
+					ToPascalCase(fileName, pascalFileName);
+					String cSharpClassName = scope .(pascalFileName.Length);
+					ToCSharpName(pascalFileName, cSharpClassName);
+
+					scriptContent.Replace("[EntityName]", cSharpClassName);
+
+					if (File.WriteAllText(path, scriptContent, false) case .Err)
+					{
+						Log.EngineLogger.Error($"Failed to save script file to \"{path}\".");
+						return;
+					}
+				}));
+		}
+
+		private void ToCSharpName(String input, String output)
+		{
+			for (char32 c in input.DecodedChars)
+			{
+				if (c.IsLetterOrDigit || c == '_' || c == '@')
+				{
+					output.Append(c);
+				}
+			}
+
+			let decode = System.Text.UTF8.Decode(output.Ptr, output.Length);
+			
+			// Make sure the name starts with a letter or _ or @
+			if (!(decode.c.IsLetter || decode.c == '_' || decode.c == '@'))
+			{
+				output.Insert(0, '@');
+			}
+		}
+
+		private void ToPascalCase(String input, String output)
+		{
+			bool newWord = true;
+
+			for (char32 c in input.DecodedChars)
+			{
+				if (c.IsLetter)
+				{
+					if (newWord)
+					{
+						output.Append(c.ToUpper);
+						newWord = false;
+					}
+					else
+					{
+						output.Append(c);
+					}
+				}
+				else
+				{
+					newWord = true;
+
+					if (c.IsWhiteSpace || c == '_')
+					{
+						continue;
+					}
+					else
+					{
+						output.Append(c);
+					}
+				}
+			}
 		}
 
 		private void InitGraphics()

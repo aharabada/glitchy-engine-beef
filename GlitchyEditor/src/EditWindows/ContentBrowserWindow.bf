@@ -18,19 +18,22 @@ namespace GlitchyEditor.EditWindows
 	{
 		private String _name ~ delete _;
 		private String _defaultFileName ~ delete _;
+		private String _fileExtension ~ delete _;
 		private CreateAssetFunc _doCreateAsset ~ delete _;
 
 		public delegate void CreateAssetFunc(StringView outputPath);
 
 		public StringView Name => _name;
 		public StringView DefaultFileName => _defaultFileName;
+		public StringView FileExtension => _fileExtension;
 
 		public CreateAssetFunc CreateAsset => _doCreateAsset;
 
-		public this(StringView name, StringView defaultFileName, CreateAssetFunc createAsset)
+		public this(StringView name, StringView defaultFileName, StringView fileExtension, CreateAssetFunc createAsset)
 		{
 			_name = new String(name);
 			_defaultFileName = new String(defaultFileName);
+			_fileExtension = new String(fileExtension);
 			_doCreateAsset = createAsset;
 		}
 	}
@@ -58,6 +61,10 @@ namespace GlitchyEditor.EditWindows
 		public EditorContentManager _manager;
 
 		public StringView SelectedFile => _selectedFile;
+
+		char8[256] _newFileName = .();
+		bool _showNewFile = false;
+		AssetCreator _newFileCreator = null;
 
 		public this(EditorContentManager contentManager)
 		{
@@ -106,6 +113,7 @@ namespace GlitchyEditor.EditWindows
 
 			bool alt_pressed = ImGui.GetIO().KeyAlt;
 
+			// Table with two columns, one for Directory-Sidebar and one for File-Browser
 			if (ImGui.BeginTable("table", 2, .BordersInnerV | .Resizable | .Reorderable | .NoPadOuterX))
 			{
 				if (alt_pressed)
@@ -178,6 +186,13 @@ namespace GlitchyEditor.EditWindows
 			ImGui.Separator();
 
 			ShowCreateContextMenu(_creatorTree);
+			
+			ImGui.Separator();
+
+			if (ImGui.MenuItem("Open C# Project..."))
+			{
+				// TODO
+			}
 		}
 
 		/// Shows the menu for the given asset creator tree.
@@ -187,7 +202,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				if (ImGui.MenuItem(subtree->Name.ToScopeCStr!()))
 				{
-					CreateAsset(subtree->Creator);
+					ShowNewFile(subtree->Creator);
 				}
 			}
 			else
@@ -204,8 +219,24 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
+		/// Shows a dummy file in the asset browser where the user can enter a file name and create an asset.
+		private void ShowNewFile(AssetCreator creator)
+		{
+			_newFileCreator = creator;
+			creator.DefaultFileName.CopyTo(_newFileName);
+			_showNewFile = true;
+		}
+
+		/// Hides the dummy file.
+		private void HideNewFile()
+		{
+			_newFileCreator = null;
+			_showNewFile = false;
+			_newFileName = .();
+		}
+
 		/// Creates a new asset with the given creator
-		private void CreateAsset(AssetCreator creator)
+		private void CreateAsset()
 		{
 			if (!Directory.Exists(_currentDirectory))
 			{
@@ -214,23 +245,29 @@ namespace GlitchyEditor.EditWindows
 			}
 			
 			String currentFile = scope String();
-			Path.Combine(currentFile, _currentDirectory, creator.DefaultFileName);
-			
-			String fileExtension = scope String();
-			Path.GetExtension(currentFile, fileExtension);
+			Path.Combine(currentFile, _currentDirectory, StringView(&_newFileName));
 
-			StringView fileWithoutExtension = currentFile[0...^(fileExtension.Length + 1)];
+			// Add file extension, if necessary
+			if (!currentFile.EndsWith(_newFileCreator.FileExtension))
+			{
+				currentFile.Append(_newFileCreator.FileExtension);
+			}
 
+			StringView fileWithoutExtension = currentFile[0...^(_newFileCreator.FileExtension.Length + 1)];
+
+			// If the file already exists find a unused number to attach to the end.
 			int i = 0;
 			while (File.Exists(currentFile))
 			{
 				i++;
 				currentFile.Set(fileWithoutExtension);
 				currentFile.AppendF($"({i})");
-				currentFile.Append(fileExtension);
+				currentFile.Append(_newFileCreator.FileExtension);
 			}
 
-			creator.CreateAsset(currentFile);
+			_newFileCreator.CreateAsset(currentFile);
+
+			HideNewFile();
 		}
 
 		/// Renders a sidebar that shows a tree of all directories in the asset folder.
@@ -367,6 +404,15 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.PopID();
 			}
+
+			if (_showNewFile)
+			{
+			    ImGui.PushID("New File");
+	
+				ShowNewFile();
+	
+				ImGui.PopID();
+			}	
 		}
 		
 		float _zoom = 1.0f;
@@ -598,6 +644,59 @@ namespace GlitchyEditor.EditWindows
 			ImGui.EndChild();
 
 			ImGui.AttachTooltip(entry->Name);
+		}
+
+		/// Renders the button for the given directory item.
+		private void ShowNewFile()
+		{
+			ImGui.PushStyleVar(.WindowPadding, .(0, 0));
+			ImGui.PushStyleVar(.FramePadding, .(0, 0));
+			ImGui.PushStyleVar(.ItemSpacing, .(0, 0));
+
+			defer { ImGui.PopStyleVar(3); }
+
+			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
+
+			ImGui.BeginChild("item", (.)DirectoryItemSize, false, .NoScrollbar);
+			
+			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
+
+			// TODO: preview images
+			SubTexture2D image = s_FileTexture;
+
+			ImGui.ImageButton("FileImage", image, (.)IconSize);
+
+			ImGui.PopStyleColor();
+
+			ImGui.PushItemWidth((.)IconSize.X);
+
+			ImGui.InputText("##newFileNameBox", &_newFileName, _newFileName.Count - 1, .AutoSelectAll);
+
+			ImGui.PopItemWidth();
+			
+			ImGui.SetKeyboardFocusHere(-1);
+
+			void CreateFile()
+			{
+				CreateAsset();
+			}
+
+			if (ImGui.IsKeyDown(.Escape))
+			{
+				// Abort
+				HideNewFile();
+			}
+			else if (ImGui.IsItemDeactivatedAfterEdit())
+			{
+				CreateFile();
+			}
+			else if (ImGui.IsItemDeactivated())
+			{
+				// Abort
+				HideNewFile();
+			}
+
+			ImGui.EndChild();
 		}
 
 		private void DeleteItemPopup(TreeNode<AssetNode> fileOrFolder)
