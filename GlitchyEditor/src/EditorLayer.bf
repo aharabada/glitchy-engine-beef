@@ -204,6 +204,34 @@ namespace GlitchyEditor
 						Log.EngineLogger.Error($"Failed to save script file to \"{path}\".");
 						return;
 					}
+
+					// Add to .csproj
+					String assetRelativePath = scope .();
+					Path.GetRelativePath(path, _currentProject.WorkspacePath, assetRelativePath);
+
+					String projectPath = scope .();
+					Editor.Instance.CurrentProject.PathInProject(projectPath, scope $"{Editor.Instance.CurrentProject.Name}.csproj");
+
+					String projectFile = scope .();
+					let loadProjectResult = File.ReadAllText(projectPath, projectFile, true);
+
+					if (loadProjectResult case .Err(let err))
+					{
+						Log.EngineLogger.Error($"Failed to open project file ({err}). Please add the file to the project manually.");
+					}
+
+					const String scriptFilesMarker = "<!-- Script Files -->";
+
+					int index = projectFile.IndexOf(scriptFilesMarker);
+					int lineEndIndex = projectFile.IndexOf('\n', index);
+					projectFile.Insert(lineEndIndex + 1, scope $"    <Compile Include=\"{assetRelativePath}\" />\n");
+					
+					let saveProjectResult = File.WriteAllText(projectPath, projectFile);
+
+					if (saveProjectResult case .Err(let err))
+					{
+						Log.EngineLogger.Error($"Failed to edit project file ({err}). Please add the file to the project manually.");
+					}
 				}));
 		}
 
@@ -577,13 +605,14 @@ namespace GlitchyEditor
 		private static Result<void> InitProject(Project project)
 		{
 			Try!(CopyTemplate(project));
-			
-			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.sln", scope $"Assets/Scripts/{project.Name}.sln"));
-			Try!(MoveFile(project, "Assets/Scripts/TemplateProject.csproj", scope $"Assets/Scripts/{project.Name}.csproj"));
 
-			Try!(FixupTemplateFile(project, scope $"Assets/Scripts/{project.Name}.sln"));
-			Try!(FixupTemplateFile(project, scope $"Assets/Scripts/{project.Name}.csproj"));
-			Try!(FixupTemplateFile(project, scope $"Assets/Scripts/Properties/AssemblyInfo.cs"));
+			// Rename files within project
+			Try!(MoveFile(project, "TemplateProject.sln", scope $"{project.Name}.sln"));
+			Try!(MoveFile(project, "TemplateProject.csproj", scope $"{project.Name}.csproj"));
+
+			Try!(FixupTemplateFile(project, scope $"{project.Name}.sln"));
+			Try!(FixupTemplateFile(project, scope $"{project.Name}.csproj"));
+			Try!(FixupTemplateFile(project, scope $"Properties/AssemblyInfo.cs"));
 
 			return .Ok;
 		}
@@ -703,6 +732,11 @@ namespace GlitchyEditor
 
 				ImGui.Text($"The Project will be in:\n{target}");
 
+				if (Directory.Exists(target))
+				{
+					ImGui.TextColored(.(1, 0, 0, 1), "The directory is not empty!");
+				}
+
 				ImGui.NewLine();
 
 				ImGui.BeginDisabled(directory.IsWhiteSpace || projectName.IsWhiteSpace);
@@ -775,10 +809,12 @@ namespace GlitchyEditor
 
 			_currentProject = project;
 
+			_editor.CurrentProject = _currentProject;
+
 			String appAssemblyPath = scope String();
 			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
 
-			Path.Combine(appAssemblyPath, _currentProject.AssetsFolder, scope $"Scripts/bin/{_currentProject.Name}.dll");
+			_currentProject.PathInProject(appAssemblyPath, scope $"bin/{_currentProject.Name}.dll");
 
 			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
 
@@ -1288,6 +1324,7 @@ namespace GlitchyEditor
 				{
 					delete workspacePath;
 					@workspacePath.Remove();
+					continue;
 				}
 
 				if (ImGui.MenuItem(scope $"{i}: {workspacePath}"))

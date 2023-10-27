@@ -9,6 +9,7 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Content;
 using GlitchyEngine;
 using GlitchyEditor.Assets;
+using System.Diagnostics;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -191,7 +192,17 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Open C# Project..."))
 			{
-				// TODO
+				String solutionPath = scope .();
+				Editor.Instance.CurrentProject.PathInProject(solutionPath, scope $"{Editor.Instance.CurrentProject.Name}.sln");
+
+				ProcessStartInfo psi = scope .();
+				psi.SetFileName("devenv");
+				psi.SetArguments(solutionPath);
+
+				scope SpawnedProcess().Start(psi);
+
+				/*if (Path.OpenFolder(solutionPath) case .Err)
+					Log.EngineLogger.Error("Failed to open file.");*/
 			}
 		}
 
@@ -399,7 +410,7 @@ namespace GlitchyEditor.EditWindows
 				float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
 
 				// If we aren't the last entry and the next button won't fit on the same line we start a new line.
-				if (entry != files.Back && expectedButtonRight < window_visible_x2)
+				if ((entry != files.Back || _showNewFile) && expectedButtonRight < window_visible_x2)
 				    ImGui.SameLine();
 
 				ImGui.PopID();
@@ -462,7 +473,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
 			{
-				EntryDoubleClicked(entry);
+				OpenEntry(entry);
 			}
 
 			ImGui.TextUnformatted("..");
@@ -562,7 +573,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
 			{
-				EntryDoubleClicked(entry);
+				OpenEntry(entry);
 			}
 
 			if (_assetToRename == entry->Path)
@@ -773,7 +784,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private void EntryDoubleClicked(TreeNode<AssetNode> entry)
+		private void OpenEntry(TreeNode<AssetNode> entry)
 		{
 			if (entry->IsDirectory)
 			{
@@ -782,7 +793,7 @@ namespace GlitchyEditor.EditWindows
 			else
 			{
 				if (Path.OpenFolder(entry->Path) case .Err)
-					Log.EngineLogger.Error("Failed to open directory in file browser.");
+					Log.EngineLogger.Error("Failed to open file.");
 			}
 		}
 	}

@@ -15,6 +15,8 @@ namespace GlitchyEditor
 
 		private EditorContentManager _contentManager;
 
+		private Project _currentProject;
+
 		private EntityHierarchyWindow _entityHierarchyWindow ~ delete _;
 		private ComponentEditWindow _componentEditWindow ~ delete _;
 		private EditorViewportWindow _sceneViewportWindow ~ delete _;
@@ -38,7 +40,13 @@ namespace GlitchyEditor
 		}
 
 		public EditorContentManager ContentManager => _contentManager;
-		
+
+		public Project CurrentProject
+		{
+			get => _currentProject;
+			set => _currentProject = value;
+		}
+
 		public EntityHierarchyWindow EntityHierarchyWindow => _entityHierarchyWindow;
 		public ComponentEditWindow ComponentEditWindow => _componentEditWindow;
 		public EditorViewportWindow SceneViewportWindow => _sceneViewportWindow;

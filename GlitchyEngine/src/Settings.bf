@@ -48,11 +48,16 @@ namespace GlitchyEngine
 		private List<ISettings> _userSettings ~ ClearAndDeleteItems!(_);
 		*/
 
-		[AllowAppend]
 		public this()
 		{
 			/*List<ISettings> userSettings = append .();
 			_userSettings = userSettings;*/
+			RegisterEventListeners();
+		}
+
+		protected virtual void RegisterEventListeners()
+		{
+
 		}
 
 		public void Apply()

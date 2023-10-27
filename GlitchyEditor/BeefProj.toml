@@ -7,4 +7,14 @@ TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
 
 [Configs.Debug.Win64]
-DebugCommandArguments = "\"D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor\\SandboxProject\""
+PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
+DebugCommandArguments = "\"D:\\Development\\Git\\SingleStateToOrbit\""
+
+[Configs.Release.Win64]
+PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
+
+[Configs.Paranoid.Win64]
+PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
+
+[Configs.Test.Win64]
+PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
