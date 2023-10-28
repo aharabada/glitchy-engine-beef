@@ -375,7 +375,7 @@ namespace GlitchyEngine.World
 		public SceneLight SceneLight;
 	}
 
-	struct Rigidbody2DComponent
+	struct Rigidbody2DComponent : IDisposableComponent
 	{
 		public enum BodyType { Static = 0, Dynamic = 1, Kinematic = 2 }
 
@@ -496,6 +496,12 @@ namespace GlitchyEngine.World
 		{
 			if (RuntimeBody != null)
 				Box2D.Body.SetAngularVelocity(RuntimeBody, velocity);
+		}
+
+		public void Dispose()
+		{
+			if (RuntimeBody != null && ScriptEngine.Context?.[Friend]_physicsWorld2D != null)
+				Box2D.World.DestroyBody(ScriptEngine.Context.[Friend]_physicsWorld2D, RuntimeBody);
 		}
 	}
 
