@@ -11,6 +11,9 @@ enum ScriptFieldType
 	case Class;
 	case Enum;
 	case Struct;
+
+	case GenericClass;
+	case Array;
 	
 	case Bool;
 	

@@ -27,7 +27,6 @@ static sealed class ScriptEngineHelper
 		("System.UInt64", .ULong),
 
 		("System.Single", .Float),
-		// TODO: We probably want to switch the C#-Library to use the superior floatN-Names
 		("GlitchyEngine.Math.float2", .float2),
 		("GlitchyEngine.Math.float3", .float3),
 		("GlitchyEngine.Math.float4", .float4),
@@ -153,38 +152,40 @@ static class ScriptEngine
 		String directory = scope .();
 		Path.GetDirectoryPath(_appAssemblyPath, directory);
 
-		if (_userAssemblyWatcher != null) // _userAssemblyWatcher.Directory != directory
+		/*if (_userAssemblyWatcher != null) // _userAssemblyWatcher.Directory != directory
 		{
 			delete _userAssemblyWatcher;
-		}
+		}*/
 
 		String fileName = scope .("*/");
 		Path.GetFileName(_appAssemblyPath, fileName);
 
-		// TODO: Obviously don't hardcode path
-		_userAssemblyWatcher = new FileSystemWatcher(directory, fileName);
-		_userAssemblyWatcher.OnChanged.Add(new (fileName) =>
+		if (_userAssemblyWatcher == null)
 		{
-			// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
-			if (_entityScriptInstances.Count > 0)
+			_userAssemblyWatcher = new FileSystemWatcher(directory, fileName);
+			_userAssemblyWatcher.OnChanged.Add(new (fileName) =>
 			{
-				Log.EngineLogger.Warning("There are script instances. Skipping assembly reload.");
-				return;
-			}
-
-			Log.EngineLogger.Info("Script reload requested.");
-			_userAssemblyWatcher.StopRaisingEvents();
-
-			Application.Instance.InvokeOnMainThread(new () =>
-			{
-				Log.EngineLogger.Info("Reloading scripts...");
-				ReloadAssemblies();
-				Log.EngineLogger.Info("Scripts reloaded!");
-
-				_userAssemblyWatcher.StartRaisingEvents();
+				// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
+				if (_entityScriptInstances.Count > 0)
+				{
+					Log.EngineLogger.Warning("There are script instances. Skipping assembly reload.");
+					return;
+				}
+	
+				Log.EngineLogger.Info("Script reload requested.");
+				_userAssemblyWatcher.StopRaisingEvents();
+	
+				Application.Instance.InvokeOnMainThread(new () =>
+				{
+					Log.EngineLogger.Info("Reloading scripts...");
+					ReloadAssemblies();
+					Log.EngineLogger.Info("Scripts reloaded!");
+	
+					_userAssemblyWatcher.StartRaisingEvents();
+				});
+	
 			});
-
-		});
+		}
 
 		_userAssemblyWatcher.StartRaisingEvents();
 	}
@@ -628,7 +629,7 @@ static class ScriptEngine
 
 		Mono.MonoTypeEnum fieldType = Mono.Mono.mono_type_get_type(monoType);
 
-		MonoClass* monoClass = Mono.mono_type_get_class(monoType);
+		MonoClass* monoClass = Mono.mono_class_from_mono_type(monoType);
 
 		if (monoClass == null)
 			return null;
@@ -666,6 +667,17 @@ static class ScriptEngine
 		else if (fieldType == .Valuetype)
 		{
 			scriptType = .Struct;
+		}
+		// TODO! ?!
+		else if (fieldType == .Genericinst)
+		{
+			scriptType = .GenericClass;
+			return null;
+		}
+		else if (fieldType == .SzArray)
+		{
+			scriptType = .Array;
+			return null;
 		}
 
 		Log.EngineLogger.AssertDebug(scriptType != .None);

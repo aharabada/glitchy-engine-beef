@@ -541,7 +541,7 @@ namespace GlitchyEditor.EditWindows
 
 			StringView search = StringView();
 
-			char8* scriptLabel = scriptComponent.Instance?.ScriptClass.FullName.ToScopeCStr!() ?? "Select Script...";
+			char8* scriptLabel = scriptComponent.ScriptClassName.ToScopeCStr!() ?? "Select Script...";
 
 			if (ImGui.Button(scriptLabel))
 				ImGui.OpenPopup("SelectScript");
@@ -791,7 +791,6 @@ namespace GlitchyEditor.EditWindows
 						var value = field.GetData<bool>();
 						if (ImGui.Checkbox(fieldName.CStr(), &value))
 							field.SetData(value);
-
 					case .SByte:
 						var value = field.GetData<int8>();
 						if (ImGui.DragScalar(fieldName.CStr(), .S8, &value))

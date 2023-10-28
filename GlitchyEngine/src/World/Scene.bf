@@ -841,6 +841,9 @@ namespace GlitchyEngine.World
 
 					// TODO: Copy Data from one instance to another
 					//ScriptEngine.CopyFieldsToInstance(targetScript, sourceScript);
+
+					// TODO: Only if we are in Runtime
+					targetScript.Instance.InvokeOnCreate();
 				}
 
 				// This is kinda slow because it's in O(n*m) where n is the tree depth and m is the total number of entities in the scene...
@@ -913,6 +916,14 @@ namespace GlitchyEngine.World
 		}
 
 		private void OnComponentAdded(Entity entity, Type componentType, void* component)
+		{
+			if (_onComponentAddedHandlers.TryGetValue(componentType, let handler))
+			{
+				handler(entity, componentType, component);
+			}
+		}
+
+		private void OnComponentRemoved(Entity entity, Type componentType, void* component)
 		{
 			if (_onComponentAddedHandlers.TryGetValue(componentType, let handler))
 			{

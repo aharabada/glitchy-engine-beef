@@ -523,7 +523,7 @@ enum MonoTypeEnum : int32
 	Class = 0x12,       /* arg: <type> token */
 	Var = 0x13,	   /* number */
 	Array = 0x14,       /* type, rank, boundsCount, bound1, loCount, lo1 */
-	Genericins = 0x15,	   /* <type> <type-arg-count> <type-1> \x{2026} <type-n> */
+	Genericinst = 0x15,	   /* <type> <type-arg-count> <type-1> \x{2026} <type-n> */
 	Typedbyref = 0x16,
 	I = 0x18,
 	U = 0x19,
