@@ -31,3 +31,6 @@
 [submodule "GlitchyEngine/vendor/Beef.Linq"]
 	path = GlitchyEngine/vendor/Beef.Linq
 	url = https://github.com/aharabada/Beef.Linq.git
+[submodule "vendor/ImGui.NET"]
+	path = vendor/ImGui.NET
+	url = https://github.com/aharabada/ImGui.NET.git

@@ -121,6 +121,16 @@ class SharpClass : SharpType
 
 		ExtractFields();
 	}
+	
+	internal this(MonoClass* monoClass, ScriptFieldType fieldType = .Class) :
+		base(StringView(Mono.mono_class_get_namespace(monoClass)), StringView(Mono.mono_class_get_name(monoClass)), fieldType)
+	{
+		_monoClass = monoClass;
+
+		Log.EngineLogger.AssertDebug(_monoClass != null);
+
+		ExtractFields();
+	}
 
 	internal MonoType* GetMonoType()
 	{

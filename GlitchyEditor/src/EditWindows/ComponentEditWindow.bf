@@ -572,6 +572,10 @@ namespace GlitchyEditor.EditWindows
 				}
 				ImGui.EndPopup();
 			}
+			
+			ScriptEngine.ShowScriptEditor(entity, scriptComponent);
+
+			ImGui.Separator();
 
 			ScriptClass scriptClass = ScriptEngine.GetScriptClass(scriptComponent.ScriptClassName);
 

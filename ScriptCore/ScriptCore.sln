@@ -3,7 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.6.33723.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ScriptCore", "ScriptCore.csproj", "{454CBEB0-2425-47B4-B75B-BE11EAF56E34}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScriptCore", "ScriptCore.csproj", "{454CBEB0-2425-47B4-B75B-BE11EAF56E34}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ScriptCoreGenerator", "..\ScriptCoreGenerator\ScriptCoreGenerator.csproj", "{5E8CE036-B41E-4382-AC53-7F9A39ED529D}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ImGui.NET", "..\vendor\ImGui.NET\src\ImGui.NET\ImGui.NET.csproj", "{9D60C9CF-044C-4F2D-ADF0-B5A60BE3DADB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{454CBEB0-2425-47B4-B75B-BE11EAF56E34}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{454CBEB0-2425-47B4-B75B-BE11EAF56E34}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{454CBEB0-2425-47B4-B75B-BE11EAF56E34}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E8CE036-B41E-4382-AC53-7F9A39ED529D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E8CE036-B41E-4382-AC53-7F9A39ED529D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E8CE036-B41E-4382-AC53-7F9A39ED529D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E8CE036-B41E-4382-AC53-7F9A39ED529D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9D60C9CF-044C-4F2D-ADF0-B5A60BE3DADB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9D60C9CF-044C-4F2D-ADF0-B5A60BE3DADB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9D60C9CF-044C-4F2D-ADF0-B5A60BE3DADB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9D60C9CF-044C-4F2D-ADF0-B5A60BE3DADB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

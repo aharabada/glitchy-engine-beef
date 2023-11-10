@@ -61,6 +61,8 @@ static class ScriptEngine
 	private static ScriptClass s_EntityRoot ~ _?.ReleaseRef();
 	private static ScriptClass s_EngineObject ~ _?.ReleaseRef();
 
+	private static ScriptClass s_EntityEditor ~ _?.ReleaseRef();
+
 	private static Dictionary<StringView, SharpType> _sharpClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
 	
 	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
@@ -142,6 +144,8 @@ static class ScriptEngine
 
 		Mono.mono_thread_set_main(Mono.mono_thread_current());
 	}
+	
+	static bool _requestingReload = false;
 
 	static void InitAssemblyWatcher()
 	{
@@ -165,6 +169,13 @@ static class ScriptEngine
 			_userAssemblyWatcher = new FileSystemWatcher(directory, fileName);
 			_userAssemblyWatcher.OnChanged.Add(new (fileName) =>
 			{
+				_userAssemblyWatcher.StopRaisingEvents();
+				
+				if (_requestingReload)
+					return;
+
+				_requestingReload = true;
+
 				// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
 				if (_entityScriptInstances.Count > 0)
 				{
@@ -173,14 +184,14 @@ static class ScriptEngine
 				}
 	
 				Log.EngineLogger.Info("Script reload requested.");
-				_userAssemblyWatcher.StopRaisingEvents();
-	
+
 				Application.Instance.InvokeOnMainThread(new () =>
 				{
 					Log.EngineLogger.Info("Reloading scripts...");
 					ReloadAssemblies();
 					Log.EngineLogger.Info("Scripts reloaded!");
-	
+					
+					_requestingReload = false;
 					_userAssemblyWatcher.StartRaisingEvents();
 				});
 	
@@ -520,10 +531,14 @@ static class ScriptEngine
 		ReleaseRefAndNullify!(s_EngineObject);
 		ReleaseRefAndNullify!(s_EntityRoot);
 		ReleaseRefAndNullify!(s_ComponentRoot);
+		ReleaseRefAndNullify!(s_EntityEditor);
 
 		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage, .Class);
 		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage, .Entity);
 		s_ComponentRoot = new ScriptClass("GlitchyEngine", "Component", s_CoreAssemblyImage, .Component);
+
+		// Editor classes
+		s_EntityEditor = new ScriptClass("GlitchyEngine.Editor", "EntityEditor", s_CoreAssemblyImage, .Class);
 	}
 	
 	/// Retrieves the classes for Attributes that are defined in the Core library
@@ -672,11 +687,18 @@ static class ScriptEngine
 		else if (fieldType == .Genericinst)
 		{
 			scriptType = .GenericClass;
+
 			return null;
+			//return new SharpClass(monoClass, scriptType);
 		}
 		else if (fieldType == .SzArray)
 		{
 			scriptType = .Array;
+			return null;
+		}
+		else if (fieldType == .Object)
+		{
+			// TODO: Help
 			return null;
 		}
 
@@ -774,5 +796,25 @@ static class ScriptEngine
 		Log.ClientLogger.Error($"Mono Exception \"{wrappedException.FullName}\": \"{wrappedException.Message}\"{entityInfo}\nStackTrace:\n{wrappedException.StackTrace}", wrappedException);
 
 		wrappedException.ReleaseRef();
+	}
+
+	public static void ShowScriptEditor(Entity entity, ScriptComponent* scriptComponent)
+	{
+		let method = s_EntityEditor.GetMethod("ShowDefaultEntityEditor", 2);
+		
+		ScriptClass scriptClass = ScriptEngine.GetScriptClass(scriptComponent.ScriptClassName);
+
+		if (scriptClass == null)
+			return;
+
+		let monoType = scriptClass.GetMonoType();
+		let monoReflectionType = Mono.mono_type_get_object(s_AppDomain, monoType);
+
+		let entityId = entity.UUID;
+
+#unwarn
+		void*[2] args = .(&entityId, monoReflectionType);
+
+		s_EntityEditor.Invoke(method, null, &args);
 	}
 }

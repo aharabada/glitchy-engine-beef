@@ -469,6 +469,12 @@ static class ScriptGlue
 
 #endregion
 
+#region Editor Stuff
+
+
+
+#endregion
+
 	private static void RegisterCall<T>(String name, T method) where T : var
 	{
 		Mono.mono_add_internal_call(scope $"GlitchyEngine.{name}", (void*)method);

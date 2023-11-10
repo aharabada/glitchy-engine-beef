@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ScriptCoreGenerator\ScriptCoreGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\vendor\ImGui.NET\src\ImGui.NET\ImGui.NET.csproj" />
   </ItemGroup>
 
 </Project>
