@@ -152,6 +152,8 @@ namespace GlitchyEditor
 					}
 				}));
 
+			Editor.Instance.ContentBrowserWindow.InsertAssetCreatorSeparator();
+
 			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Scene", "New Scene", ".scene", new (path) =>
 				{
 					using (Scene newScene = CreateNewScene())

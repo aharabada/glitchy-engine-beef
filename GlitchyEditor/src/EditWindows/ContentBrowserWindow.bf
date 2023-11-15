@@ -45,7 +45,9 @@ namespace GlitchyEditor.EditWindows
 
 		private typealias AssetCreatorTree = TreeNode<(StringView Name, AssetCreator Creator)>;
 
-		private AssetCreatorTree _creatorTree = new AssetCreatorTree(("Create new Asset", null)) ~ delete _;
+		private AssetCreatorTree _creatorTree = new AssetCreatorTree(("Create new", null)) ~ delete _;
+		/// The last Asset Creator that was inserted.
+		private AssetCreatorTree _lastInsertedAssetCreator = null;
 
 		public const String s_WindowTitle = "Content Browser";
 
@@ -72,6 +74,7 @@ namespace GlitchyEditor.EditWindows
 			_manager = contentManager;
 		}
 
+		/// Registers an asset creator that will show up in the "Create new" drop down menu
 		public void RegisterAssetCreator(AssetCreator assetCreator)
 		{
 			_assetCreators.Add(assetCreator);
@@ -92,6 +95,17 @@ namespace GlitchyEditor.EditWindows
 			{
 				tree->Creator = assetCreator;
 			}
+
+			_lastInsertedAssetCreator = tree;
+		}
+
+		/// Adds a seperator line after the asset creator that was last added.
+		public void InsertAssetCreatorSeparator()
+		{
+			AssetCreatorTree parent = _lastInsertedAssetCreator.Parent;
+
+			// Separators have an empty name and no creator!
+			parent.AddChild(("", null));
 		}
 
 		protected override void InternalShow()
@@ -209,6 +223,14 @@ namespace GlitchyEditor.EditWindows
 		/// Shows the menu for the given asset creator tree.
 		private void ShowCreateContextMenu(AssetCreatorTree subtree)
 		{
+			// Separators have an empty name and no creator
+			if (subtree->Name.IsWhiteSpace && subtree->Creator == null)
+			{
+				ImGui.Separator();
+
+				return;
+			}
+
 			if (subtree.Children.Count == 0)
 			{
 				if (ImGui.MenuItem(subtree->Name.ToScopeCStr!()))
