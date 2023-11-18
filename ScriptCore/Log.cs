@@ -2,6 +2,9 @@ using System.Runtime.CompilerServices;
 
 namespace GlitchyEngine;
 
+/// <summary>
+/// Provides methods to log messages to the Engine Console.
+/// </summary>
 public class Log
 {
     public enum LogLevel
@@ -19,11 +22,6 @@ public class Log
     {
         LogMessage_Impl(LogLevel.Trace, message);
     }
-
-    //public static void LogDebug(string message)
-    //{
-    //    LogMessage_Impl(LogLevel.Info, message);
-    //}
 
     public static void Info(string message)
     {
@@ -45,6 +43,28 @@ public class Log
         LogMessage_Impl(LogLevel.Critical, message);
     }
     
+    public static void Trace(object obj)
+    {
+        LogMessage_Impl(LogLevel.Trace, obj.ToString());
+    }
+    public static void Info(object obj)
+    {
+        LogMessage_Impl(LogLevel.Info, obj.ToString());
+    }
+    public static void Warning(object obj)
+    {
+        LogMessage_Impl(LogLevel.Warning, obj.ToString());
+    }
+    public static void Error(object obj)
+    {
+        LogMessage_Impl(LogLevel.Error, obj.ToString());
+    }
+
+    public static void Critical(object obj)
+    {
+        LogMessage_Impl(LogLevel.Critical, obj.ToString());
+    }
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern string LogMessage_Impl(LogLevel logLevel, string message);
 }
