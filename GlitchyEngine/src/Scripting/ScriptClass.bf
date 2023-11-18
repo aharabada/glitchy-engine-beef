@@ -279,24 +279,12 @@ class SharpStruct : SharpClass
 
 class ScriptClass : SharpClass
 {
-	/*private String _namespace ~ delete _;
-	private String _className ~ delete _;
-	private String _fullName ~ delete _;
-
-	private MonoClass* _monoClass;
-
-	//private List<MonoClassField*> _monoFields ~ delete _;
-	private Dictionary<StringView, ScriptField> _monoFields ~ delete _;*/
-
-	//typealias ConstructorMethod = function void(MonoObject* instance, UUID uuid, MonoException** exception);
 	typealias OnCreateMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
 	typealias OnUpdateMethod = function MonoObject*(MonoObject* instance, float deltaTime, MonoException** exception);
 	typealias OnDestroyMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
 
-	//private MonoMethod* _constructor;
-	private List<MonoMethod*> _constructors ~ delete _;
+	private MonoMethod* _constructor;
 
-	//private ConstructorMethod _constructor;
 	private OnCreateMethod _onCreate;
 	private OnUpdateMethod _onUpdate;
 	private OnDestroyMethod _onDestroy;
@@ -312,19 +300,11 @@ class ScriptClass : SharpClass
 	public bool HasCollisionEnter2D => _onCollisionEnter2DMethod != null;
 	public bool HasCollisionLeave2D => _onCollisionLeave2DMethod != null;
 
-	/*public StringView Namespace => _namespace;
-	public StringView ClassName => _className;
-	public StringView FullName => _fullName;
-
-	public Dictionary<StringView, ScriptField> Fields => _monoFields;*/
-
 	[AllowAppend]
 	public this(StringView classNamespace, StringView className, MonoImage* image, ScriptFieldType scriptFieldType = .Class) :
 		base(classNamespace, className, image, scriptFieldType)
 	{
-		//_constructor = (ConstructorMethod)GetMethodThunk(".ctor", 1); // GetMethod(".ctor", 1);//
-		CreateConstructorChain();
-		//_constructor = GetMethod(".ctor", 1);
+		_constructor = FindConstructor();
 		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");
 		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
@@ -336,59 +316,37 @@ class ScriptClass : SharpClass
 		_onCollisionLeave2DMethod = GetMethod("OnCollisionLeave2D", 1);
 	}
 
-	private void CreateConstructorChain()
+	private MonoMethod* FindConstructor()
 	{
-		_constructors = new List<MonoMethod*>();
+		MonoMethod* constructor = null;
 
-		MonoClass* @class = _monoClass;
-
-		while (@class != null)
+		MonoMethodDesc* constructorDesc = Mono.mono_method_desc_new(":.ctor(GlitchyEngine.Core.UUID)", true);
+		
+		// Entities usually don't have a constructor that takes the UUID, so we have to look for it in the parents.
+		for (MonoClass* @class = _monoClass; @class != null; @class = Mono.mono_class_get_parent(@class))
 		{
-			void* iter = null;
-			MonoMethod* method = null;
+			constructor = Mono.mono_method_desc_search_in_class(constructorDesc, @class);
 
-			while ((method = Mono.mono_class_get_methods(@class, &iter)) != null)
-			{
-				if (StringView(Mono.mono_method_get_name(method)) == ".ctor")
-				{
-					MonoMethodSignature* signature = Mono.mono_method_signature(method);
-					if (Mono.mono_signature_get_param_count(signature) == 1)
-					{
-						void* paramsIterator = null;
-						MonoType* paramType = Mono.mono_signature_get_params(signature, &paramsIterator);
-
-						let name = Mono.mono_type_get_name(paramType);
-
-						// TODO: Compare types with something stored in ScriptEngine
-						if (StringView(name) == "GlitchyEngine.Core.UUID")
-						{
-							_constructors.Add(method);
-						}						
-					}
-				}
-			}
-			
-        	@class = Mono.mono_class_get_parent(@class);
+			if (constructor != null)
+				break;
 		}
+
+		Mono.mono_method_desc_free(constructorDesc);
+
+		return constructor;
 	}
 
 	private void CallConstructorChain(MonoObject* instance, UUID uuid, out MonoException* exception)
 	{
 		exception = null;
 
-		if (_constructors.Count == 0)
+		if (_constructor == null)
 			return;
 
+#unwarn
 		void*[1] args = void*[](&uuid);
 
-		for (MonoMethod* constructor in _constructors)
-		{
-			// Invoke constructor with UUID
-			MonoObject* result = Mono.mono_runtime_invoke(constructor, instance, &args, (.)&exception);
-			break;
-//#unwarn
-			//ScriptEngine.[Friend]s_EngineObject.Invoke(constructor, instance, out exception, &uuid);
-		}
+		Mono.mono_runtime_invoke(_constructor, instance, &args, (.)&exception);
 	}
 
 	public void OnCreate(MonoObject* instance, out MonoException* exception)
@@ -452,7 +410,7 @@ class ScriptClass : SharpClass
 		MonoObject* instance = Mono.mono_object_new(ScriptEngine.[Friend]s_AppDomain, _monoClass);
 
 		// Invoke empty constructor to initialize fields with default values specified in the script itself
-		//Mono.mono_runtime_object_init(instance);
+		Mono.mono_runtime_object_init(instance);
 
 		// Invoke UUID Constructors:
 		CallConstructorChain(instance, uuid, out exception);

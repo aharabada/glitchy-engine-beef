@@ -377,6 +377,10 @@ static class ScriptEngine
 				script.Instance.SetFieldValue(scriptField, componentInstance);
 
 				componentType.ReleaseRef();
+			case .Struct:
+				// TODO: Handle Structs when copying fields to instance.
+			case .Class:
+				// TODO: Handle Class when copying fields to instance.
 			default:
 				script.Instance.SetFieldValue(scriptField, field._data);
 			}

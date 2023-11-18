@@ -343,7 +343,22 @@ static class Mono
 	}
 
 #endregion
+
+#region DebugHelpers
+	
+	[LinkName(.C)]
+	public static extern MonoMethod* mono_method_desc_search_in_class(MonoMethodDesc* desc, MonoClass* klass);
+
+	[LinkName(.C)]
+	public static extern MonoMethodDesc* mono_method_desc_new(char8* name, mono_bool include_namespace);
+
+	[LinkName(.C)]
+	public static extern void mono_method_desc_free(MonoMethodDesc* decs);
+
+#endregion
 }
+
+struct MonoMethodDesc;
 
 struct MonoDomain;
 
