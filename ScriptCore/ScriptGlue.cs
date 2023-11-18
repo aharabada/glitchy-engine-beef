@@ -37,7 +37,7 @@ internal static class ScriptGlue
     internal static extern void Entity_FindEntityWithName(string name, out UUID uuid);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern object Entity_GetScriptInstance(UUID entityId);
+    internal static extern void Entity_GetScriptInstance(UUID entityId, out object instance);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern object Entity_SetScript(UUID entityId, Type scriptType);

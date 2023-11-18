@@ -253,9 +253,9 @@ static class ScriptGlue
 	}
 
 	[RegisterCall("ScriptGlue::Entity_GetScriptInstance")]
-	static MonoObject* Entity_GetScriptInstance(UUID entityId)
+	static void Entity_GetScriptInstance(UUID entityId, out MonoObject* instance)
 	{
-		return ScriptEngine.GetManagedInstance(entityId);
+		instance = ScriptEngine.GetManagedInstance(entityId);
 	}
 
 	[RegisterCall("ScriptGlue::Entity_SetScript")]

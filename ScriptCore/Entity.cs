@@ -50,10 +50,7 @@ public class Entity : EngineObject
     /// Creates an instance that represents the Entity with the given id.
     /// </summary>
     /// <param name="uuid">The ID of the entity that belongs to this instance.</param>
-    internal Entity(UUID uuid)
-    {
-        _uuid = uuid;
-    }
+    internal Entity(UUID uuid) : base(uuid) { }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent<T>() => HasComponent(typeof(T));
@@ -268,7 +265,7 @@ public class Entity : EngineObject
     /// <typeparam name="T">The type of the script.</typeparam>
     public bool Is<T>() where T : Entity
     {
-        object scriptInstance = ScriptGlue.Entity_GetScriptInstance(_uuid);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out object scriptInstance);
 
         return scriptInstance is T;
     }
@@ -280,7 +277,7 @@ public class Entity : EngineObject
     /// <returns>The script instance or null.</returns>
     public T As<T>() where T : Entity
     {
-        object scriptInstance = ScriptGlue.Entity_GetScriptInstance(_uuid);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out object scriptInstance);
 
         return scriptInstance as T;
     }
