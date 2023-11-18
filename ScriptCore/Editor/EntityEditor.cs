@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -32,25 +33,20 @@ internal class EntityEditor
     
     public static void ShowDefaultEntityEditor(UUID entityId, Type entityType)
     {
-        object instance = ScriptGlue.Entity_GetScriptInstance(entityId);
+        ScriptGlue.Entity_GetScriptInstance(entityId, out object instance);
 
         ShowEditor(entityType, instance);
     }
 
     public static object ShowFieldEditor(object reference, Type fieldType, string fieldName)
     {
+        object newValue = DidNotChange;
+
         if (fieldType.IsGenericType)
         {
             if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
             {
-                //ImGui.Text($"{fieldName} List");
-
-                //object @class = (reference != null) ? field.GetValue(reference) : null;
-
-                //if (@class != null)
-                // ShowListEditor(@class, fieldName);
-                if (reference != null)
-                    ShowListEditor(reference, fieldName);
+                newValue = ShowListEditor(fieldType, reference, fieldName);
             }
             else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
             {
@@ -63,7 +59,18 @@ internal class EntityEditor
         }
         else if (fieldType.IsEnum)
         {
-            ImGui.Text($"{fieldName} Enum");
+            if (ImGui.BeginCombo(fieldName, reference.ToString()))
+            {
+                foreach (object enumValue in Enum.GetValues(fieldType))
+                {
+                    if (ImGui.Selectable(enumValue.ToString(), enumValue == reference))
+                    {
+                        newValue = enumValue;
+                    }
+                }
+
+                ImGui.EndCombo();
+            }
         }
         else if (fieldType.IsPrimitive)
         {
@@ -76,7 +83,7 @@ internal class EntityEditor
                     float f = (float)reference;
                     if (ImGui.DragFloat(fieldName, ref f))
                     {
-                        return f;
+                        newValue = f;
                     }
                 }
                 else if (fieldType == typeof(int))
@@ -84,9 +91,17 @@ internal class EntityEditor
                     int f = (int)reference;
                     if (ImGui.DragInt(fieldName, ref f))
                     {
-                        return f;
+                        newValue = f;
                     }
                 }
+                else if (fieldType == typeof(bool))
+                {
+                    bool value = (bool)reference;
+                    if (ImGui.Checkbox(fieldName, ref value))
+                        newValue = value;
+                }
+
+                // TODO: Do all the other types
             }
         }
         else if (fieldType.IsValueType)
@@ -105,7 +120,7 @@ internal class EntityEditor
 
                 ImGui.TreePop();
 
-                return reference;
+                newValue = reference;
             }
         }
         else if (fieldType.IsSubclassOf(typeof(Entity)) || fieldType == typeof(Entity))
@@ -136,7 +151,7 @@ internal class EntityEditor
                             if (ImGui.Selectable(t.Name))
                             {
                                 object instance = Activator.CreateInstance(t);
-                                //return instance;
+                                newValue = instance;
                                 //field.SetValue(reference, instance);
                             }
                         }
@@ -150,7 +165,7 @@ internal class EntityEditor
 
                     if (ImGui.SmallButton("Remove"))
                     {
-                        //return null;
+                        newValue = null;
                         //field.SetValue(reference, null);
                     }
                 }
@@ -165,7 +180,7 @@ internal class EntityEditor
             }
         }
 
-        return DidNotChange;
+        return newValue;
     }
 
     public static void ShowEditor(Type type, object reference)
@@ -201,20 +216,16 @@ internal class EntityEditor
         }
     }
 
-    private static void ShowListEditor(object list, string fieldName)
+    private static object ShowListEditor(Type fieldType, object list, string fieldName)
     {
+        object newList = DidNotChange;
         IList myList = list as IList;
 
-        if (myList == null)
-        {
-            Log.Error($"List \"{fieldName}\" is not an IList");
-            return;
-        }
-
-        Type elementType = list.GetType().GenericTypeArguments[0];
+        Type elementType = fieldType.GenericTypeArguments[0];
 
         // The buttons should always be visible -> save whether the node is open
-        bool listOpen = ImGui.TreeNode(fieldName);
+        // If we have no instance, the user shouldn't be able to open the list
+        bool listOpen = ImGui.TreeNodeEx(fieldName, myList == null ? ImGuiTreeNodeFlags.Leaf : ImGuiTreeNodeFlags.None);
         
         var addButtonWidth = ImGui.CalcTextSize("+").X + 2 * ImGui.GetStyle().FramePadding.X;
         var removeButtonWidth = ImGui.CalcTextSize("-").X + 2 * ImGui.GetStyle().FramePadding.X;
@@ -223,6 +234,14 @@ internal class EntityEditor
 
         if (ImGui.SmallButton("+"))
         {
+            if (myList == null)
+            {
+                newList = Activator.CreateInstance(fieldType);
+                myList = newList as IList;
+
+                Debug.Assert(myList != null);
+            }
+
             object newElement = Activator.CreateInstance(elementType);
             myList.Add(newElement);
         }
@@ -231,34 +250,35 @@ internal class EntityEditor
             
         ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
 
+        ImGui.BeginDisabled(myList == null);
+
         if (ImGui.SmallButton("-"))
         {
-            myList.RemoveAt(myList.Count - 1);
+            myList!.RemoveAt(myList.Count - 1);
         }
+
+        ImGui.EndDisabled();
         
         ImGui.SetTooltip("Remove the last Element from the list.");
 
         if (listOpen)
         {
-            for (int i = 0; i < myList.Count; i++)
+            for (int i = 0; i < myList?.Count; i++)
             {
-                if (ImGui.TreeNodeEx($"Element {i}"))
+                object element = myList[i];
+
+                object newValue = ShowFieldEditor(element, element.GetType(), $"Element {i}");
+
+                if (newValue != DidNotChange)
                 {
-                    object element = myList[i];
-
-                    object newValue = ShowFieldEditor(element, element.GetType(), $"Element {i}");
-
-                    if (newValue != DidNotChange)
-                    {
-                        myList[i] = newValue;
-                    }
-
-                    ImGui.TreePop();
+                    myList[i] = newValue;
                 }
             }
 
             ImGui.TreePop();
         }
+
+        return newList;
     }
 
     /// <summary>
