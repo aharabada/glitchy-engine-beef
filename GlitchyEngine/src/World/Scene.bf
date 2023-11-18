@@ -133,6 +133,9 @@ namespace GlitchyEngine.World
 
 			if (initializeScripts)
 			{
+				// Set context, so that constructors can correctly reference the scene
+				ScriptEngine.SetContext(target);
+
 				//CopyComponents<NativeScriptComponent>(this, target);
 
 				// Copy ScriptComponents... needs extra handling for the script instances
