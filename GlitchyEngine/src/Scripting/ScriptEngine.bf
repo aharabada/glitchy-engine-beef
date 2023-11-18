@@ -121,7 +121,7 @@ static class ScriptEngine
 
 	static void InitMono()
 	{
-		Mono.mono_set_assemblies_path("mono/lib");
+		Mono.mono_set_assemblies_path("mono/lib/4.5");
 
 		if (_debuggingEnabled)
 		{
