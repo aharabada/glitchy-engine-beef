@@ -112,6 +112,9 @@ static class Mono
 	public static extern void mono_runtime_object_init(MonoObject* this_obj);
 
 	[LinkName(.C)]
+	public static extern MonoMethod* mono_class_get_methods(MonoClass* klass, gpointer* iter);
+
+	[LinkName(.C)]
 	public static extern MonoMethod* mono_class_get_method_from_name(MonoClass* klass, char8* name, int param_count);
 
 	[LinkName(.C)]
@@ -129,7 +132,19 @@ static class Mono
 	
 	[LinkName(.C)]
 	public static extern gpointer mono_method_get_unmanaged_thunk(MonoMethod *method);
+
+	[LinkName(.C)]
+	public static extern char8* mono_method_get_name(MonoMethod *method);
 	
+	[LinkName(.C)]
+	public static extern MonoMethodSignature* mono_method_signature(MonoMethod *method);
+
+	[LinkName(.C)]
+	public static extern uint32 mono_signature_get_param_count(MonoMethodSignature *sig);
+	
+	[LinkName(.C)]
+	public static extern MonoType* mono_signature_get_params(MonoMethodSignature *sig, gpointer *iter);
+
 	[LinkName(.C)]
 	public static extern mono_bool mono_class_is_subclass_of(MonoClass *monoClass, MonoClass *parentClass,
 		mono_bool check_interfaces);
@@ -166,6 +181,9 @@ static class Mono
 
 	[LinkName(.C)]
 	public static extern MonoClassField* mono_class_get_fields(MonoClass* klass, gpointer* iter);
+
+	[LinkName(.C)]
+	public static extern MonoClass* mono_class_get_parent(MonoClass* klass);
 	
 	[LinkName(.C)]
 	public static extern char8* mono_field_get_name(MonoClassField* field);
@@ -342,6 +360,8 @@ struct MonoClass;
 struct MonoObject;
 
 struct MonoMethod;
+
+struct MonoMethodSignature;
 
 struct MonoProperty;
 
