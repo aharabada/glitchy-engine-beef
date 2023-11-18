@@ -84,6 +84,8 @@ public class VectorGenerator : ISourceGenerator
 
             GenerateEqualityOperators(vector, builder);
 
+            GenerateEquals(vector, builder);
+
             if (receiver.ComparableReceiver.ComparableVectors.Contains(vector.VectorName))
             {
                 GenerateComparisonOperators(vector, builder);
@@ -116,6 +118,21 @@ public class VectorGenerator : ISourceGenerator
         }
     }
 
+    private void GenerateEquals(VectorDefinition vector, StringBuilder builder)
+    {
+        builder.Append($$"""
+                             public override bool Equals(object other)
+                             {
+                                 if (other is {{vector.VectorName}} otherVector)
+                                    return Math.all(this == otherVector);
+                                    
+                                return false;
+                             }
+
+
+                         """);
+    }
+    
     private void GenerateToString(VectorDefinition vector, StringBuilder builder)
     {
         builder.Append("public override string ToString() => $\"{{");
