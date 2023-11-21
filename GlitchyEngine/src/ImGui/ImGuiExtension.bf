@@ -117,21 +117,27 @@ namespace ImGui
 	
 		/// Releases references that accumulated calls like ImGui::Image
 		protected internal static extern void CleanupFrame();
-	
+
+		[Export, LinkName(.C)]
+		private static bool ImGui_EditFloat2(char8* label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float2 minValue = .Zero, float2 maxValue = .Zero, bool2 componentEnabled = true)
+		{
+			return EditFloat2(StringView(label), ref value, resetValues, dragSpeed, columnWidth, minValue, maxValue, componentEnabled);
+		}
+
 		/// Control to edit a vector 2 with drag functionality and reset buttons
-		public static bool Editfloat2(StringView label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float2 minValue = .Zero, float2 maxValue = .Zero, bool2 componentEnabled = true)
+		public static bool EditFloat2(StringView label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float2 minValue = .Zero, float2 maxValue = .Zero, bool2 componentEnabled = true)
 		{
 			return EditVector<2>(label, ref *(float[2]*)&value, (float[2])resetValues, dragSpeed, columnWidth, (float[2])minValue, (float[2])maxValue, (bool[2])componentEnabled);
 		}
 	
 		/// Control to edit a vector 3 with drag functionality and reset buttons
-		public static bool Editfloat3(StringView label, ref float3 value, float3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float3 minValue = .Zero, float3 maxValue = .Zero, bool3 componentEnabled = true)
+		public static bool EditFloat3(StringView label, ref float3 value, float3 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float3 minValue = .Zero, float3 maxValue = .Zero, bool3 componentEnabled = true)
 		{
 			return EditVector<3>(label, ref *(float[3]*)&value, (float[3])resetValues, dragSpeed, columnWidth, (float[3])minValue, (float[3])maxValue, (bool[3])componentEnabled);
 		}
 	
 		/// Control to edit a vector 4 with drag functionality and reset buttons
-		public static bool Editfloat4(StringView label, ref float4 value, float4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float4 minValue = .Zero, float4 maxValue = .Zero, bool4 componentEnabled = true)
+		public static bool EditFloat4(StringView label, ref float4 value, float4 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float4 minValue = .Zero, float4 maxValue = .Zero, bool4 componentEnabled = true)
 		{
 			return EditVector<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, columnWidth, (float[4])minValue, (float[4])maxValue, (bool[4])componentEnabled);
 		}

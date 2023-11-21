@@ -226,7 +226,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 						float2 minV = hasMin ? min.Get<float2>() : (float2)float.MinValue;
 						float2 maxV = hasMax ? max.Get<float2>() : (float2)float.MaxValue;
 						
-						if (ImGui.Editfloat2(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
+						if (ImGui.EditFloat2(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
 							material.SetVariable(variable.Name, value);
 					case 3:
 						material.GetVariable<float3>(variable.Name, var value);
@@ -234,7 +234,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 						float3 minV = hasMin ? min.Get<float3>() : (float3)float.MinValue;
 						float3 maxV = hasMax ? max.Get<float3>() : (float3)float.MaxValue;
 
-						if (ImGui.Editfloat3(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
+						if (ImGui.EditFloat3(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
 							material.SetVariable(variable.Name, value);
 					case 4:
 						material.GetVariable<float4>(variable.Name, var value);
@@ -242,7 +242,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 						float4 minV = hasMin ? min.Get<float4>() : (float4)float.MinValue;
 						float4 maxV = hasMax ? max.Get<float4>() : (float4)float.MaxValue;
 
-						if (ImGui.Editfloat4(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
+						if (ImGui.EditFloat4(displayName, ref value, .Zero, 0.1f, 100.0f, minV, maxV))
 							material.SetVariable(variable.Name, value);
 					}
 				}

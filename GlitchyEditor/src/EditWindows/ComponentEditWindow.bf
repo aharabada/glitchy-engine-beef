@@ -196,7 +196,7 @@ namespace GlitchyEditor.EditWindows
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
 			float3 position = transform.Position;
-			if (ImGui.Editfloat3("Position", ref position, .Zero, 0.1f, textWidth))
+			if (ImGui.EditFloat3("Position", ref position, .Zero, 0.1f, textWidth))
 			{
 				transform.Position = position;
 
@@ -217,7 +217,7 @@ namespace GlitchyEditor.EditWindows
 				rotationEuler.XY = 0;
 			}
 
-			if (ImGui.Editfloat3("Rotation", ref rotationEuler, .Zero, 0.1f, textWidth, componentEnabled: componentEditable))
+			if (ImGui.EditFloat3("Rotation", ref rotationEuler, .Zero, 0.1f, textWidth, componentEnabled: componentEditable))
 			{
 				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
 				
@@ -229,7 +229,7 @@ namespace GlitchyEditor.EditWindows
 			}
 			
 			float3 scale = transform.Scale;
-			if (ImGui.Editfloat3("Scale", ref scale, .One, 0.1f, textWidth))
+			if (ImGui.EditFloat3("Scale", ref scale, .One, 0.1f, textWidth))
 				transform.Scale = scale;
 		}
 		
@@ -436,11 +436,11 @@ namespace GlitchyEditor.EditWindows
 
 
 			float2 offset = boxCollider.Offset;
-			if (ImGui.Editfloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
+			if (ImGui.EditFloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
 				boxCollider.Offset = offset;
 
 			float2 size = boxCollider.Size;
-			if (ImGui.Editfloat2("Size", ref size, .Zero, 0.1f, textWidth, float2(0.01f, 0.01f), float.PositiveInfinity.XX))
+			if (ImGui.EditFloat2("Size", ref size, .Zero, 0.1f, textWidth, float2(0.01f, 0.01f), float.PositiveInfinity.XX))
 				boxCollider.Size = size;
 			
 			float density = boxCollider.Density;
@@ -466,7 +466,7 @@ namespace GlitchyEditor.EditWindows
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
 			float2 offset = circleCollider.Offset;
-			if (ImGui.Editfloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
+			if (ImGui.EditFloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
 				circleCollider.Offset = offset;
 
 			float radius = circleCollider.Radius;
@@ -496,7 +496,7 @@ namespace GlitchyEditor.EditWindows
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
 			float2 offset = polygonCollider.Offset;
-			if (ImGui.Editfloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
+			if (ImGui.EditFloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
 				polygonCollider.Offset = offset;
 
 			// TODO: Handles in editor, etc...
@@ -504,7 +504,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				for (int i < polygonCollider.VertexCount)
 				{
-					ImGui.Editfloat2(scope $"{i}", ref polygonCollider.Vertices[i]);
+					ImGui.EditFloat2(scope $"{i}", ref polygonCollider.Vertices[i]);
 				}
 			}
 
@@ -629,159 +629,108 @@ namespace GlitchyEditor.EditWindows
 
 			if (scriptComponent.Instance?.IsInitialized == true)
 			{
-				SharpClass sharpClass = scriptComponent.Instance.ScriptClass;
-				ScriptInstance scriptInstance = scriptComponent.Instance;
+				// SharpClass sharpClass = scriptComponent.Instance.ScriptClass;
+				// ScriptInstance scriptInstance = scriptComponent.Instance;
 
-				/*void DoFunnyStuff(void* instance, SharpType sharpType)
-				{
-					for (let (fieldName, scriptField) in sharpType.Fields)
-					{
-						var monoField = scriptField.[Friend]_monoField;
-						
-						switch (scriptField.FieldType)
-						{
-						case .Float:
-							var value = GetData<float>(instance, scriptField);
-							if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Float, &value))
-								SetData(instance, scriptField, value);
-							
-						case .Struct:
-							{
-								var v = Mono.mono_field_get_value_object(ScriptEngine.[Friend]s_AppDomain, scriptField.[Friend]_monoField, (.)instance);
-
-								void* dataPtr = Mono.mono_object_unbox(v);
-
-								Span<uint8> data = .((.)dataPtr, scriptField.SizeInBytes);
-
-								if (ImGui.CollapsingHeader(fieldName.Ptr))
-								{
-									DoFunnyStuff(dataPtr, scriptField.SharpType);
-								}
-
-								SetData<MonoObject>(instance, scriptField, v);
-
-								//Mono.mono_field_set_value_object(ScriptEngine.[Friend]s_AppDomain, scriptField.[Friend]_monoField, (.)instance);
-								//uint8* data = ;
-
-								/*uint8[] data = scope .[scriptField.SizeInBytes];
-								
-								GetData(instance, scriptField, data.Ptr);
-
-								if (ImGui.CollapsingHeader(fieldName.Ptr))
-								{
-									DoFunnyStuff(data.Ptr, scriptField.SharpType);
-								}
-
-								MonoObject* boxed = Mono.mono_value_box(ScriptEngine.[Friend]s_AppDomain, ((SharpClass)scriptField.SharpType).[Friend]_monoClass, data.Ptr);
-
-								SetData<MonoObject>(instance, scriptField, boxed);*/
-								
-								//Mono.mono_field_get_value(instance, scriptField.[Friend]_monoField, data.Ptr);
-
-							}
-						default:
-							//Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
-						}
-					}
-				}
-
-				DoFunnyStuff(scriptInstance.[Friend]_instance, sharpClass);*/
-
-				for (let (fieldName, scriptField) in sharpClass.Fields)
-				{
-					var monoField = scriptField.[Friend]_monoField;
+				// for (let (fieldName, scriptField) in sharpClass.Fields)
+				// {
+				// 	var monoField = scriptField.[Friend]_monoField;
 					
-					switch (scriptField.FieldType)
-					{
-					case .Bool:
-						var value = GetFieldValue<bool>(scriptInstance, scriptField);
-						if (ImGui.Checkbox(fieldName.ToScopeCStr!(), &value))
-							SetFieldValue(scriptInstance, scriptField, value);
+				// 	switch (scriptField.FieldType)
+				// 	{
+				// 	case .Bool:
+				// 		var value = GetFieldValue<bool>(scriptInstance, scriptField);
+				// 		if (ImGui.Checkbox(fieldName.ToScopeCStr!(), &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
 
-					case .SByte:
-						var value = GetFieldValue<int8>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S8, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .Short:
-						var value = GetFieldValue<int16>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S16, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .Int:
-						var value = GetFieldValue<int32>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S32, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .Long:
-						var value = GetFieldValue<int64>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S64, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .SByte:
+				// 		var value = GetFieldValue<int8>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S8, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .Short:
+				// 		var value = GetFieldValue<int16>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S16, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .Int:
+				// 		var value = GetFieldValue<int32>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S32, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .Long:
+				// 		var value = GetFieldValue<int64>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .S64, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
 
-					case .Byte:
-						var value = GetFieldValue<uint8>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U8, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .UShort:
-						var value = GetFieldValue<uint16>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U16, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .UInt:
-						var value = GetFieldValue<uint32>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U32, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .ULong:
-						var value = GetFieldValue<uint64>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U64, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .Byte:
+				// 		var value = GetFieldValue<uint8>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U8, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .UShort:
+				// 		var value = GetFieldValue<uint16>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U16, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .UInt:
+				// 		var value = GetFieldValue<uint32>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U32, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .ULong:
+				// 		var value = GetFieldValue<uint64>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .U64, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
 
-					case .Float:
-						var value = GetFieldValue<float>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Float, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .Float:
+				// 		var value = GetFieldValue<float>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Float, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
 
-					case .float2:
-						GetFieldValue<float2>(scriptInstance, scriptField, var value);
-						if (ImGui.Editfloat2(fieldName, ref value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .float3:
-						GetFieldValue<float3>(scriptInstance, scriptField, var value);
-						if (ImGui.Editfloat3(fieldName, ref value))
-							SetFieldValue(scriptInstance, scriptField, value);
-					case .float4:
-						GetFieldValue<float4>(scriptInstance, scriptField, var value);
-						if (ImGui.Editfloat4(fieldName, ref value))
-							SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .float2:
+				// 		GetFieldValue<float2>(scriptInstance, scriptField, var value);
+				// 		if (ImGui.EditFloat2(fieldName, ref value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .float3:
+				// 		GetFieldValue<float3>(scriptInstance, scriptField, var value);
+				// 		if (ImGui.EditFloat3(fieldName, ref value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .float4:
+				// 		GetFieldValue<float4>(scriptInstance, scriptField, var value);
+				// 		if (ImGui.EditFloat4(fieldName, ref value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
 
-					case .Double:
-						var value = GetFieldValue<double>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
+				// 	case .Double:
+				// 		var value = GetFieldValue<double>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
 
-					case .Entity:
-						// TODO!
+				// 	case .Entity:
+				// 		// TODO!
 						
-					case .Enum:
-						// TODO!
-					case .Struct:
-						// TODO!
-						/*{
-							uint8[] data = scope .[scriptField.SizeInBytes];
+				// 	case .Enum:
+				// 		// TODO!
+				// 	case .Struct:
+				// 		// TODO!
+				// 		/*{
+				// 			uint8[] data = scope .[scriptField.SizeInBytes];
 
-							Mono.mono_field_get_value(scriptInstance.[Friend]_instance, scriptField.[Friend]_monoField, data.Ptr);
+				// 			Mono.mono_field_get_value(scriptInstance.[Friend]_instance, scriptField.[Friend]_monoField, data.Ptr);
 
-							//scriptField.
+				// 			//scriptField.
 
-							//scriptInstance.GetFieldValue();
+				// 			//scriptInstance.GetFieldValue();
 
-							//scriptInstance.ScriptClass.Fields[]
-						 /*
-						var value = GetFieldValue<double>(scriptInstance, scriptField);
-						if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
-							SetFieldValue(scriptInstance, scriptField, value);
-							*/
-						}*/
-					default:
-						Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
-					}
-				}
+				// 			//scriptInstance.ScriptClass.Fields[]
+				// 		 /*
+				// 		var value = GetFieldValue<double>(scriptInstance, scriptField);
+				// 		if (ImGui.DragScalar(fieldName.ToScopeCStr!(), .Double, &value))
+				// 			SetFieldValue(scriptInstance, scriptField, value);
+				// 			*/
+				// 		}*/
+				// 	case .Class:
+				// 		{
+				// 			var value = GetFieldValue<void*>(scriptInstance, scriptField);
+				// 		}
+				// 	default:
+				// 		Log.EngineLogger.Error($"Unhandled field type {scriptField.FieldType}");
+				// 	}
+				// }
 			}
 			else if (scriptClass != null)
 			{
@@ -847,15 +796,15 @@ namespace GlitchyEditor.EditWindows
 							field.SetData(value);
 					case .float2:
 						var value = field.GetData<float2>();
-						if (ImGui.Editfloat2(fieldName, ref value))
+						if (ImGui.EditFloat2(fieldName, ref value))
 							field.SetData(value);
 					case .float3:
 						var value = field.GetData<float3>();
-						if (ImGui.Editfloat3(fieldName, ref value))
+						if (ImGui.EditFloat3(fieldName, ref value))
 							field.SetData(value);
 					case .float4:
 						var value = field.GetData<float4>();
-						if (ImGui.Editfloat4(fieldName, ref value))
+						if (ImGui.EditFloat4(fieldName, ref value))
 							field.SetData(value);
 
 					case .Double:
