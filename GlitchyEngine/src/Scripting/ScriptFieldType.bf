@@ -16,7 +16,8 @@ enum ScriptFieldType
 	case Array;
 	
 	case Bool;
-	
+	case Char;
+
 	case SByte;
 	case Short;
 	case Int, Int2, Int3, Int4;

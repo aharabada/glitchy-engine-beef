@@ -15,6 +15,7 @@ static sealed class ScriptEngineHelper
 	private static Dictionary<StringView, ScriptFieldType> _scriptFieldTypes = new Dictionary<StringView, ScriptFieldType>()
 	{
 		("System.Boolean", .Bool),
+		("System.Char", .Char),
 
 		("System.SByte", .SByte),
 		("System.Int16", .Short),
