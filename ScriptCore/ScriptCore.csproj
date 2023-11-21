@@ -7,6 +7,7 @@
 	  <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
 	  <RootNamespace>GlitchyEngine</RootNamespace>
 	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	  <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

@@ -6,6 +6,8 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using GlitchyEngine.Core;
+using GlitchyEngine.Extensions;
+using GlitchyEngine.Math;
 using ImGuiNET;
 
 namespace GlitchyEngine.Editor;
@@ -38,8 +40,17 @@ internal class EntityEditor
         ShowEditor(entityType, instance);
     }
 
-    public static object ShowFieldEditor(object reference, Type fieldType, string fieldName)
+    public static object ShowFieldEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes = null)
     {
+        T GetAttribute<T>() where T : Attribute
+        {
+            return (T)attributes?.FirstOrDefault(a => a is T);
+        }
+
+        ReadonlyAttribute readonlyAttribute = GetAttribute<ReadonlyAttribute>();
+        
+        ImGui.BeginDisabled(readonlyAttribute != null);
+
         object newValue = DidNotChange;
 
         if (fieldType.IsGenericType)
@@ -76,51 +87,101 @@ internal class EntityEditor
         {
             ImGui.Text($"{fieldName} Primitive");
 
+            unsafe void DragScalar<T>(ImGuiDataType dataType) where T : unmanaged
+            {
+                RangeAttribute range = GetAttribute<RangeAttribute>();
+
+                T min = default;
+                T max = default;
+
+                if (range != null)
+                {
+                    min = (T)Convert.ChangeType(range.Min, typeof(T));
+                    max = (T)Convert.ChangeType(range.Max, typeof(T));
+                }
+
+                var value = (T)reference;
+                if (ImGui.DragScalar(fieldName, dataType, (IntPtr)(&value), 1, (IntPtr)(&min), (IntPtr)(&max)))
+                {
+                    newValue = value;
+                }
+            }
+
             if (reference != null)
             {
-                if (fieldType == typeof(float))
-                {
-                    float f = (float)reference;
-                    if (ImGui.DragFloat(fieldName, ref f))
-                    {
-                        newValue = f;
-                    }
-                }
-                else if (fieldType == typeof(int))
-                {
-                    int f = (int)reference;
-                    if (ImGui.DragInt(fieldName, ref f))
-                    {
-                        newValue = f;
-                    }
-                }
-                else if (fieldType == typeof(bool))
+                if (fieldType == typeof(bool))
                 {
                     bool value = (bool)reference;
                     if (ImGui.Checkbox(fieldName, ref value))
                         newValue = value;
                 }
+                else if (fieldType == typeof(char))
+                {
+                    unsafe
+                    {
+                        char value = (char)reference;
 
-                // TODO: Do all the other types
+                        if (ImGui.InputText(fieldName, (IntPtr)(&value), 2))
+                            newValue = value;
+                    }
+                }
+                else if (fieldType == typeof(byte))
+                    DragScalar<byte>(ImGuiDataType.U8);
+                else if (fieldType == typeof(sbyte))
+                    DragScalar<sbyte>(ImGuiDataType.S8);
+                else if (fieldType == typeof(short))
+                    DragScalar<short>(ImGuiDataType.S16);
+                else if (fieldType == typeof(ushort))
+                    DragScalar<ushort>(ImGuiDataType.U16);
+                else if (fieldType == typeof(int))
+                    DragScalar<int>(ImGuiDataType.S32);
+                else if (fieldType == typeof(uint))
+                    DragScalar<uint>(ImGuiDataType.U32);
+                else if (fieldType == typeof(long))
+                    DragScalar<long>(ImGuiDataType.S64);
+                else if (fieldType == typeof(ulong))
+                    DragScalar<ulong>(ImGuiDataType.U64);
+                else if (fieldType == typeof(float))
+                    DragScalar<float>(ImGuiDataType.Float);
+                else if (fieldType == typeof(double))
+                    DragScalar<double>(ImGuiDataType.Double);
             }
         }
         else if (fieldType.IsValueType)
         {
+            if (fieldType == typeof(bool2))
+            {
+                bool2 value = (bool2)reference;
+                    
+                ImGui.TextUnformatted(fieldName);
+
+                ImGui.SameLine();
+
+                if (ImGui.Checkbox($"##{fieldName}X", ref value.X))
+                    newValue = value;
+                    
+                ImGui.SameLine();
+
+                if (ImGui.Checkbox($"##{fieldName}Y", ref value.Y))
+                    newValue = value;
+            }
+            
+            ImGui.EndDisabled();
+
             // Struct
             if (ImGui.TreeNode(fieldName))
             {
-                //object @struct = (reference != null) ? field.GetValue(reference) : null;
+                ImGui.BeginDisabled(readonlyAttribute != null);
 
                 ShowEditor(fieldType, reference);
-
-                //if (@struct != null)
-                //{
-                //    field.SetValue(reference, @struct);
-                //}
-
+                
                 ImGui.TreePop();
 
                 newValue = reference;
+            }
+            else
+            {
+                ImGui.BeginDisabled(readonlyAttribute != null);
             }
         }
         else if (fieldType.IsSubclassOf(typeof(Entity)) || fieldType == typeof(Entity))
@@ -135,11 +196,12 @@ internal class EntityEditor
         }
         else
         {
+            ImGui.EndDisabled();
+
             if (ImGui.TreeNode(fieldName))
             {
-                //object @class = (reference != null) ? field.GetValue(reference) : null;
+                ImGui.BeginDisabled(readonlyAttribute != null);
 
-                //if (@class == null)
                 if (reference == null)
                 {
                     ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - ImGui.CalcTextSize("Create").X - 2 * ImGui.GetStyle().FramePadding.X);
@@ -152,7 +214,6 @@ internal class EntityEditor
                             {
                                 object instance = Activator.CreateInstance(t);
                                 newValue = instance;
-                                //field.SetValue(reference, instance);
                             }
                         }
 
@@ -166,11 +227,9 @@ internal class EntityEditor
                     if (ImGui.SmallButton("Remove"))
                     {
                         newValue = null;
-                        //field.SetValue(reference, null);
                     }
                 }
 
-                //if (@class == null)
                 if (reference == null)
                     ImGui.Text("(NULL)");
                 else
@@ -178,7 +237,13 @@ internal class EntityEditor
 
                 ImGui.TreePop();
             }
+            else
+            {
+                ImGui.BeginDisabled(readonlyAttribute != null);
+            }
         }
+
+        ImGui.EndDisabled();
 
         return newValue;
     }
@@ -199,11 +264,13 @@ internal class EntityEditor
 
             if (ShowFieldInEditor(field))
             {
-                Log.Info(field.Name);
+                //Log.Info(field.Name);
 
                 object value = field.GetValue(reference);
 
-                object newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, field.Name);
+                IEnumerable<Attribute> attributes = field.GetCustomAttributes();
+
+                object newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, field.Name, attributes);
 
                 if (newValue != DidNotChange)
                 {
