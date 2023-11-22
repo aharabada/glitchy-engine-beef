@@ -36,6 +36,8 @@ internal class EntityEditor
     
     public static void ShowDefaultEntityEditor(UUID entityId, Type entityType)
     {
+        // TODO: Call custom editors here!
+
         ScriptGlue.Entity_GetScriptInstance(entityId, out object instance);
 
         ShowEditor(entityType, instance);
@@ -69,16 +71,17 @@ internal class EntityEditor
 
             RangeAttribute range = GetAttribute<RangeAttribute>(attributes);
 
+            // Get Min and Max Values from Type T
             T min = ReadStaticField<T>("MinValue");
             T max = ReadStaticField<T>("MaxValue");
-            float speed = 1.0f;
+            float dragSpeed = 1.0f;
             
             // RangeAttribute takes precedence over Minimum- and Maximum-Attribute
             if (range != null)
             {
                 min = ChangeTypeSafe(range.Min);
                 max = ChangeTypeSafe(range.Max);
-                speed = range.Speed;
+                dragSpeed = range.Speed;
             }
             else
             {
@@ -112,7 +115,7 @@ internal class EntityEditor
             }
             else
             {
-                if (ImGui.DragScalar(fieldName, dataType, (IntPtr)(&value), speed, (IntPtr)(&min), (IntPtr)(&max)))
+                if (ImGui.DragScalar(fieldName, dataType, (IntPtr)(&value), dragSpeed, (IntPtr)(&min), (IntPtr)(&max)))
                 {
                     newValue = value;
                 }
@@ -134,6 +137,7 @@ internal class EntityEditor
                 {
                     char value = (char)reference;
 
+                    // TODO: Allow entering chars like '\0', '\n', etc...
                     if (ImGui.InputText(fieldName, (IntPtr)(&value), 2))
                         newValue = value;
                 }
@@ -359,6 +363,12 @@ internal class EntityEditor
         }
     }
 
+    struct ListPayload
+    {
+        public IList List;
+        public int Element;
+    }
+
     private static object ShowListEditor(Type fieldType, object list, string fieldName)
     {
         object newList = DidNotChange;
@@ -389,33 +399,97 @@ internal class EntityEditor
             myList.Add(newElement);
         }
 
-        ImGui.SetTooltip("Add a new Element at the end of the list.");
+        ImGuiExtension.AttachTooltip("Add a new Element at the end of the list.");
             
         ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
 
-        ImGui.BeginDisabled(myList == null);
+        ImGui.BeginDisabled(myList == null || myList.Count == 0);
 
         if (ImGui.SmallButton("-"))
         {
             myList!.RemoveAt(myList.Count - 1);
         }
 
+        ImGuiExtension.AttachTooltip("Remove the last Element from the list.");
+
         ImGui.EndDisabled();
         
-        ImGui.SetTooltip("Remove the last Element from the list.");
 
-        if (listOpen)
+        if (listOpen && myList != null)
         {
-            for (int i = 0; i < myList?.Count; i++)
+            void DropTarget(int insertIndex, string tooltip)
+            {
+                if (ImGui.BeginDragDropTarget())
+                {
+                    ImGui.SetTooltip(tooltip);
+
+                    var payloadPtr = ImGui.AcceptDragDropPayload("SCRIPT_EDITOR_LIST_ELEMENT");
+
+                    unsafe
+                    {
+                        if (payloadPtr.NativePtr != null)
+                        {
+                            ListPayload payload = *(ListPayload*)(payloadPtr.Data);
+
+                            // Make sure the index is still correct
+                            if (payload.Element < myList.Count)
+                            {
+                                object item = myList[payload.Element];
+
+                                myList.RemoveAt(payload.Element);
+
+                                if (payload.Element >= insertIndex)
+                                    myList.Insert(insertIndex, item);
+                                else
+                                    // If the original index is before the insert index, the insert index will be moved after removing the element
+                                    // thus we have to subtract one.
+                                    myList.Insert(insertIndex - 1, item);
+                            }
+                        }
+                    }
+
+                    ImGui.EndDragDropTarget();
+                }
+            }
+            
+            // Drop at index 0
+            ImGui.Separator();
+            DropTarget(0, "Drop before Element 0.");
+
+            for (int i = 0; i < myList.Count; i++)
             {
                 object element = myList[i];
 
-                object newValue = ShowFieldEditor(element, element.GetType(), $"Element {i}");
+                // A Bullet point to grab the element
+                ImGui.Bullet();
+                if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceAllowNullID))
+                {
+                    unsafe
+                    {
+                        ListPayload payload = new() { List = myList, Element = i };
 
+                        ImGui.SetDragDropPayload("SCRIPT_EDITOR_LIST_ELEMENT", (IntPtr)(&payload), (uint)sizeof(ListPayload));
+                    }
+
+                    ImGui.SetTooltip($"Move Element {i}");
+
+                    ImGui.EndDragDropSource();
+                }
+                
+                DropTarget(i, $"Drop before Element {i}.");
+
+                ImGui.SameLine();
+                
+                object newValue = ShowFieldEditor(element, element.GetType(), $"Element {i}");
+                
                 if (newValue != DidNotChange)
                 {
                     myList[i] = newValue;
                 }
+                
+                // Drop after current element
+                ImGui.Separator();
+                DropTarget(i + 1, $"Drop after Element {i}.");
             }
 
             ImGui.TreePop();

@@ -34,43 +34,36 @@ public static class ImGuiDataTypeExtension
     }
 }
 
-//namespace ImGuiNET;
+public static class ImGuiExtension
+{
+    /// <summary>
+    /// A helper function to attach a tooltip to the previous item. It automatically checks IsItemHovered before showing a tooltip with the given text.
+    /// </summary>
+    /// <param name="tooltip">The text to be displayed in the tooltip.</param>
+    public static void AttachTooltip(string tooltip)
+    {
+        if (!ImGui.IsItemHovered())
+            return;
 
-//public static unsafe partial class ImGui
-//{
-//    [DllImport("__Internal", CallingConvention = CallingConvention.Cdecl)]
-//    private static extern unsafe bool ImGui_EditFloat2(byte* label, ref float2 value, float2 resetValues, float dragSpeed, float columnWidth, float2 minValue, float2 maxValue, bool2 componentEnabled);
+        ImGui.BeginTooltip();
+        
+        ImGui.TextUnformatted(tooltip);
+        
+        ImGui.EndTooltip();
+    }
+    /// <summary>
+    /// A helper function to attach a tooltip to the previous item. It automatically checks IsItemHovered before showing a tooltip with the given content.
+    /// </summary>
+    /// <param name="tooltipContent">A method that will be called to show the content of the tooltip.</param>
+    public static void AttachTooltip(Action tooltipContent)
+    {
+        if (!ImGui.IsItemHovered())
+            return;
 
-//    public static bool EditFloat2(string label, ref float2 value, float2 resetValues = default, float dragSpeed = 0.1f,
-//        float columnWidth = 100f, float2 minValue = default, float2 maxValue = default)
-//    {
-//        byte* native_label;
-//        int label_byteCount = 0;
-//        if (label != null)
-//        {
-//            label_byteCount = Encoding.UTF8.GetByteCount(label);
-//            if (label_byteCount > Util.StackAllocationSizeLimit)
-//            {
-//                native_label = Util.Allocate(label_byteCount + 1);
-//            }
-//            else
-//            {
-//                byte* native_label_stackBytes = stackalloc byte[label_byteCount + 1];
-//                native_label = native_label_stackBytes;
-//            }
-//            int native_label_offset = Util.GetUtf8(label, native_label, label_byteCount);
-//            native_label[native_label_offset] = 0;
-//        }
-//        else { native_label = null; }
+        ImGui.BeginTooltip();
 
-//        return ImGui_EditFloat2(native_label, ref value, resetValues, dragSpeed, columnWidth, minValue, maxValue, true);
-//    }
-
-//    public static bool EditFloat2(string label, ref float2 value, float2 resetValues, float dragSpeed,
-//        float columnWidth, float2 minValue, float2 maxValue, bool2 componentEnabled)
-//    {
-//        return ImGui_EditFloat2(label, ref value, resetValues, dragSpeed, columnWidth, minValue, maxValue, true);
-//    }
-
-//    //ImGui_EditFloat2(char8* label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float columnWidth = 100f, float2 minValue = .Zero, float2 maxValue = .Zero, bool2 componentEnabled = true)
-//}
+        tooltipContent();
+        
+        ImGui.EndTooltip();
+    }
+}
