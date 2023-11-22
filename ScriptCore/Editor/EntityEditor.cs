@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Reflection;
 using System.Text;
 using GlitchyEngine.Core;
@@ -40,14 +41,155 @@ internal class EntityEditor
         ShowEditor(entityType, instance);
     }
 
-    public static object ShowFieldEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes = null)
+    private static T GetAttribute<T>(IEnumerable<Attribute> attributes) where T : Attribute
     {
-        T GetAttribute<T>() where T : Attribute
+        return (T)attributes?.FirstOrDefault(a => a is T);
+    }
+
+    private static object ShowPrimitiveEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes)
+    {
+        object newValue = DidNotChange;
+
+        unsafe void DragScalar<T>(ImGuiDataType dataType) where T : unmanaged
         {
-            return (T)attributes?.FirstOrDefault(a => a is T);
+            T ChangeTypeSafe(object value)
+            {
+                try
+                {
+                    return (T)Convert.ChangeType(value, typeof(T));
+                }
+                catch (OverflowException e)
+                {
+                    // Log.Error($"Could not apply value: {e.Message}");
+                    ImGui.TextColored(new Vector4(1, 0, 0, 1), $"Value {value} can not be converted to type {typeof(T)}: {e.Message}.");
+
+                    return default;
+                }
+            }
+
+            RangeAttribute range = GetAttribute<RangeAttribute>(attributes);
+
+            T min = ReadStaticField<T>("MinValue");
+            T max = ReadStaticField<T>("MaxValue");
+            float speed = 1.0f;
+            
+            // RangeAttribute takes precedence over Minimum- and Maximum-Attribute
+            if (range != null)
+            {
+                min = ChangeTypeSafe(range.Min);
+                max = ChangeTypeSafe(range.Max);
+                speed = range.Speed;
+            }
+            else
+            {
+                MinimumAttribute minimum = GetAttribute<MinimumAttribute>(attributes);
+                MaximumAttribute maximum = GetAttribute<MaximumAttribute>(attributes);
+                
+                // Don't use range, if it is invalid
+                if (minimum != null && maximum != null && minimum.Min > maximum.Max)
+                {
+                    //Log.Error($"Minimum value ({minimum.Min}) specified for field {fieldName} must not be greater than the maximum value ({maximum.Max})! Ignoring range...");
+                    ImGui.TextColored(new Vector4(1, 0, 0, 1), $"Minimum value ({minimum.Min}) specified for field {fieldName} must not be greater than the maximum value ({maximum.Max})! Ignoring range...");
+                }
+                else
+                {
+                    if (minimum != null)
+                        min = ChangeTypeSafe(minimum.Min);
+
+                    if (maximum != null)
+                        max = ChangeTypeSafe(maximum.Max);
+                }
+            }
+
+            var value = (T)reference;
+
+            if (range?.Slider == true)
+            {
+                if (ImGui.SliderScalar(fieldName, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max)))
+                {
+                    newValue = value;
+                }
+            }
+            else
+            {
+                if (ImGui.DragScalar(fieldName, dataType, (IntPtr)(&value), speed, (IntPtr)(&min), (IntPtr)(&max)))
+                {
+                    newValue = value;
+                }
+            }
         }
 
-        ReadonlyAttribute readonlyAttribute = GetAttribute<ReadonlyAttribute>();
+        // TODO: allow editing in edit-mode
+        if (reference != null)
+        {
+            if (fieldType == typeof(bool))
+            {
+                bool value = (bool)reference;
+                if (ImGui.Checkbox(fieldName, ref value))
+                    newValue = value;
+            }
+            else if (fieldType == typeof(char))
+            {
+                unsafe
+                {
+                    char value = (char)reference;
+
+                    if (ImGui.InputText(fieldName, (IntPtr)(&value), 2))
+                        newValue = value;
+                }
+            }
+            else if (fieldType == typeof(byte))
+                DragScalar<byte>(ImGuiDataType.U8);
+            else if (fieldType == typeof(sbyte))
+                DragScalar<sbyte>(ImGuiDataType.S8);
+            else if (fieldType == typeof(short))
+                DragScalar<short>(ImGuiDataType.S16);
+            else if (fieldType == typeof(ushort))
+                DragScalar<ushort>(ImGuiDataType.U16);
+            else if (fieldType == typeof(int))
+                DragScalar<int>(ImGuiDataType.S32);
+            else if (fieldType == typeof(uint))
+                DragScalar<uint>(ImGuiDataType.U32);
+            else if (fieldType == typeof(long))
+                DragScalar<long>(ImGuiDataType.S64);
+            else if (fieldType == typeof(ulong))
+                DragScalar<ulong>(ImGuiDataType.U64);
+            else if (fieldType == typeof(float))
+                DragScalar<float>(ImGuiDataType.Float);
+            else if (fieldType == typeof(double))
+                DragScalar<double>(ImGuiDataType.Double);
+            else
+            {
+                ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{fieldName}: Type {fieldType} is not implemented.");
+            }
+        }
+
+        return newValue;
+    }
+
+    private static object ShowEnumEditor(object reference, Type fieldType, string fieldName)
+    {
+        object newValue = DidNotChange;
+
+        if (ImGui.BeginCombo(fieldName, reference.ToString()))
+        {
+            foreach (object enumValue in Enum.GetValues(fieldType))
+            {
+                if (ImGui.Selectable(enumValue.ToString(), enumValue == reference))
+                {
+                    newValue = enumValue;
+                }
+            }
+
+            ImGui.EndCombo();
+        }
+
+        return newValue;
+    }
+
+    public static object ShowFieldEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes = null)
+    {
+        ReadonlyAttribute readonlyAttribute = GetAttribute<ReadonlyAttribute>(attributes);
         
         ImGui.BeginDisabled(readonlyAttribute != null);
 
@@ -63,6 +205,11 @@ internal class EntityEditor
             {
                 ImGui.Text($"{fieldName} Dictionary");
             }
+            else
+            {
+                // TODO: Try to use a custom editor
+                ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{fieldName}: Type {fieldType} is not implemented.");
+            }
         }
         else if (fieldType.IsArray)
         {
@@ -70,82 +217,11 @@ internal class EntityEditor
         }
         else if (fieldType.IsEnum)
         {
-            if (ImGui.BeginCombo(fieldName, reference.ToString()))
-            {
-                foreach (object enumValue in Enum.GetValues(fieldType))
-                {
-                    if (ImGui.Selectable(enumValue.ToString(), enumValue == reference))
-                    {
-                        newValue = enumValue;
-                    }
-                }
-
-                ImGui.EndCombo();
-            }
+            newValue = ShowEnumEditor(reference, fieldType, fieldName);
         }
         else if (fieldType.IsPrimitive)
         {
-            ImGui.Text($"{fieldName} Primitive");
-
-            unsafe void DragScalar<T>(ImGuiDataType dataType) where T : unmanaged
-            {
-                RangeAttribute range = GetAttribute<RangeAttribute>();
-
-                T min = default;
-                T max = default;
-
-                if (range != null)
-                {
-                    min = (T)Convert.ChangeType(range.Min, typeof(T));
-                    max = (T)Convert.ChangeType(range.Max, typeof(T));
-                }
-
-                var value = (T)reference;
-                if (ImGui.DragScalar(fieldName, dataType, (IntPtr)(&value), 1, (IntPtr)(&min), (IntPtr)(&max)))
-                {
-                    newValue = value;
-                }
-            }
-
-            if (reference != null)
-            {
-                if (fieldType == typeof(bool))
-                {
-                    bool value = (bool)reference;
-                    if (ImGui.Checkbox(fieldName, ref value))
-                        newValue = value;
-                }
-                else if (fieldType == typeof(char))
-                {
-                    unsafe
-                    {
-                        char value = (char)reference;
-
-                        if (ImGui.InputText(fieldName, (IntPtr)(&value), 2))
-                            newValue = value;
-                    }
-                }
-                else if (fieldType == typeof(byte))
-                    DragScalar<byte>(ImGuiDataType.U8);
-                else if (fieldType == typeof(sbyte))
-                    DragScalar<sbyte>(ImGuiDataType.S8);
-                else if (fieldType == typeof(short))
-                    DragScalar<short>(ImGuiDataType.S16);
-                else if (fieldType == typeof(ushort))
-                    DragScalar<ushort>(ImGuiDataType.U16);
-                else if (fieldType == typeof(int))
-                    DragScalar<int>(ImGuiDataType.S32);
-                else if (fieldType == typeof(uint))
-                    DragScalar<uint>(ImGuiDataType.U32);
-                else if (fieldType == typeof(long))
-                    DragScalar<long>(ImGuiDataType.S64);
-                else if (fieldType == typeof(ulong))
-                    DragScalar<ulong>(ImGuiDataType.U64);
-                else if (fieldType == typeof(float))
-                    DragScalar<float>(ImGuiDataType.Float);
-                else if (fieldType == typeof(double))
-                    DragScalar<double>(ImGuiDataType.Double);
-            }
+            newValue = ShowPrimitiveEditor(reference, fieldType, fieldName, attributes);
         }
         else if (fieldType.IsValueType)
         {
@@ -360,5 +436,17 @@ internal class EntityEditor
         {
             if (baseType.IsAssignableFrom(type) && !type.IsAbstract) yield return type;
         }
+    }
+
+    private static T ReadStaticField<T>(string name)
+    {
+        FieldInfo field = typeof(T).GetField(name, BindingFlags.Public | BindingFlags.Static);
+        
+        if (field == null)
+        {
+            throw new InvalidOperationException($"Type {typeof(T).Name} has no static field \"{name}\"");
+        }
+
+        return (T)field.GetValue(null);
     }
 }
