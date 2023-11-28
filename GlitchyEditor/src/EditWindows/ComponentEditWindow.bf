@@ -45,14 +45,13 @@ namespace GlitchyEditor.EditWindows
 				ImGui.End();
 				return;
 			}
-			
-			if(_entityHierarchyWindow.SelectedEntities.Count == 1)
-			{
-				Entity entity = _entityHierarchyWindow.SelectedEntities.Front;
 
+			if (_entityHierarchyWindow.SelectionSize == 1)
+			{
+				Entity entity = _entityHierarchyWindow.GetSelectedEntity(0);
 				ShowComponents(entity);
 			}
-			
+
 			ImGui.PopStyleVar();
 			ImGui.End();
 		}

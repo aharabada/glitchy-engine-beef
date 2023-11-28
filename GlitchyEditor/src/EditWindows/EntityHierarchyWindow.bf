@@ -4,6 +4,8 @@ using ImGui;
 using System;
 using System.Collections;
 using GlitchyEngine;
+using GlitchyEngine.Core;
+using System.Diagnostics;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -19,13 +21,37 @@ namespace GlitchyEditor.EditWindows
 
 		private Scene _scene;
 
-		private List<Entity> _selectedEntities = new .() ~ delete _;
+		private List<UUID> _selectedEntityIds = new .() ~ delete _;
 
 		private Entity _entityToHighlight;
 
-		public List<Entity> SelectedEntities => _selectedEntities;
+		/// Gets a list of selected entity IDs.
+		public List<UUID> SelectedEntityIds => _selectedEntityIds;
 
 		private List<Entity> _entitiesToUnfold = new .() ~ delete _;
+
+		/// Gets the number of entities that are currently selected.
+		public int SelectionSize => _selectedEntityIds.Count;
+
+		/// Returns the Entity at the given index or null if it doesn't exist.
+		public Entity GetSelectedEntity(int index)
+		{
+			var index;
+
+			if (index < 0)
+				index = _selectedEntityIds.Count + index;
+
+			UUID id = _selectedEntityIds[index];
+
+			Result<Entity> selectedEntity = _editor.CurrentScene.GetEntityByID(id);
+
+			if (selectedEntity case .Ok(let entity))
+				return entity;
+
+			// TODO: The entity should always exist in the scene, I'm sure!
+			// If we can assume that, then we can remove the nullable and make everything even easier!
+			Runtime.FatalError(scope $"No entity exists with selected id \"{id}\".");
+		}
 
 		public void HighlightEntity(Entity e)
 		{
@@ -49,7 +75,9 @@ namespace GlitchyEditor.EditWindows
 
 		public void SetContext(Scene scene)
 		{
-			ClearEntitySelection();
+			// We could have looked here first, then we wouldn't changed the selection system to use UUIDs...
+			// We could have gotten the IDs here and simply searched for the corresponding entities in the new scene.
+			//ClearEntitySelection();
 			_scene = scene;
 		}
 
@@ -66,7 +94,7 @@ namespace GlitchyEditor.EditWindows
 		/// Deselects all entities.
 		public void ClearEntitySelection()
 		{
-			_selectedEntities.Clear();
+			_selectedEntityIds.Clear();
 		}
 
 		/// Selects the given entity.
@@ -77,20 +105,20 @@ namespace GlitchyEditor.EditWindows
 			if (clearOldSelection)
 				ClearEntitySelection();
 
-			_selectedEntities.Add(entity);
+			_selectedEntityIds.Add(entity.UUID);
 		}
 
 		/// Deselects the given entity.
 		/// @param entity The entity to deselect.
 		public bool DeselectEntity(Entity entity)
 		{
-			return _selectedEntities.Remove(entity);
+			return _selectedEntityIds.Remove(entity.UUID);
 		}
 
 		/// Returns whether or not the given entity is currently selected.
 		public bool IsEntitySelected(Entity entity)
 		{
-			return _selectedEntities.Contains(entity);
+			return _selectedEntityIds.Contains(entity.UUID);
 		}
 
 		protected override void InternalShow()
@@ -137,13 +165,15 @@ namespace GlitchyEditor.EditWindows
 		/// Returns whether or not all selected entities have the same parent.
 		internal bool AllSelectionsOnSameLevel()
 		{
-			EcsEntity? parent = .InvalidEntity;
+			EcsEntity? parent = null;
 
-			for(var selectedEntity in _selectedEntities)
+			for (int i < SelectionSize)
 			{
-				var transformComponent = selectedEntity.GetComponent<TransformComponent>();
+				Entity entity = GetSelectedEntity(i);
 
-				if(parent == .InvalidEntity)
+				var transformComponent = entity.GetComponent<TransformComponent>();
+
+				if(parent == null)
 				{
 					parent = transformComponent.Parent;
 				}
@@ -174,12 +204,13 @@ namespace GlitchyEditor.EditWindows
 		/// Deletes all selected entities and their children.
 		internal void DeleteSelectedEntities()
 		{
-			for (var entity in _selectedEntities)
+			for (int i < _selectedEntityIds.Count)
 			{
-				_scene.DestroyEntity(entity, true);
+				Entity selectedEntity = GetSelectedEntity(i);
+				_scene.DestroyEntity(selectedEntity, true);
 			}
 
-			_selectedEntities.Clear();
+			_selectedEntityIds.Clear();
 		}
 
 		private void ShowEntityHierarchyMenuBar()
@@ -190,7 +221,7 @@ namespace GlitchyEditor.EditWindows
 
 				Show_ContextMenu_Delete();
 
-				if(ImGui.MenuItem("Delete", null, false, !_selectedEntities.IsEmpty) ||
+				if(ImGui.MenuItem("Delete", null, false, SelectionSize != 0) ||
 					(Input.IsKeyPressed(.Delete) && ImGui.IsWindowHovered()))
 				{
 					DeleteSelectedEntities();
@@ -210,9 +241,9 @@ namespace GlitchyEditor.EditWindows
 		/// Creates a new entity that is a child of the given entity.
 		private void CreateChild(Entity? entity)
 		{
-			var newEntity = _scene.CreateEntity();
+			let newEntity = _scene.CreateEntity();
 
-			var transformCmp = newEntity.GetComponent<TransformComponent>();
+			let transformCmp = newEntity.GetComponent<TransformComponent>();
 			// Last entity in list is the entity that has been selected last.
 			transformCmp.Parent = entity?.Handle ?? .InvalidEntity;
 		}
@@ -220,29 +251,29 @@ namespace GlitchyEditor.EditWindows
 		/// Creates a new entity that is a parent of the selected entities.
 		private void CreateParent()
 		{
-			if (_selectedEntities.IsEmpty || !AllSelectionsOnSameLevel())
+			if (SelectionSize == 0 || !AllSelectionsOnSameLevel())
 			{
 				Log.EngineLogger.Error("Cannot create parent entity.");
 				return;
 			}
 
-			var commonParent = _selectedEntities.Front.GetComponent<TransformComponent>();
+			let commonParent = GetSelectedEntity(0).GetComponent<TransformComponent>();
 
-			var newEntity = _scene.CreateEntity();
+			let newEntity = _scene.CreateEntity();
 
 			if(commonParent != null)
 			{
 				// parent of selected entities is parent of the new entity.
 				// (which is why this doesn't work if the entities don't have the same parent)
-				var newEntityTransform = newEntity.GetComponent<TransformComponent>();
+				let newEntityTransform = newEntity.GetComponent<TransformComponent>();
 				newEntityTransform.Parent = commonParent.Parent;
 			}
-
+			
 			// new entity is parent of all selected entities.
-			for(var selectedEntity in _selectedEntities)
+			for (int i < SelectionSize)
 			{
-				var selectedTransform = selectedEntity.GetComponent<TransformComponent>();
-				selectedTransform.Parent = newEntity.Handle;
+				let selectedTransform = GetSelectedEntity(i).GetComponent<TransformComponent>();
+				selectedTransform?.Parent = newEntity.Handle;
 			}
 		}
 
@@ -254,11 +285,11 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.MenuItem("Empty Entity"))
 					{
-						if (_selectedEntities.IsEmpty)
+						if (SelectionSize == 0)
 							_scene.CreateEntity();
 						else
 						{
-							Entity? parent = _selectedEntities.Back.Parent;
+							Entity? parent = GetSelectedEntity(-1).Parent;
 							CreateChild(parent);
 						}
 					}
@@ -271,9 +302,10 @@ namespace GlitchyEditor.EditWindows
 
 				if (allowChild)
 				{
-					if(ImGui.MenuItem("Empty Child", null, false, !_selectedEntities.IsEmpty))
+					if(ImGui.MenuItem("Empty Child", null, false, SelectionSize != 0))
 					{
-						CreateChild(_selectedEntities.Back);
+						Entity selectedEntity = GetSelectedEntity(-1);
+						CreateChild(selectedEntity);
 					}
 					
 					if(ImGui.IsItemHovered())
@@ -282,7 +314,7 @@ namespace GlitchyEditor.EditWindows
 
 				if (allowParent)
 				{
-					if(ImGui.MenuItem("Parent", null, false, !_selectedEntities.IsEmpty && AllSelectionsOnSameLevel()))
+					if(ImGui.MenuItem("Parent", null, false, SelectionSize != 0 && AllSelectionsOnSameLevel()))
 					{
 						CreateParent();
 					}
@@ -302,7 +334,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			bool deleted = false;
 
-			if(ImGui.MenuItem("Delete", null, false, !_selectedEntities.IsEmpty))
+			if(ImGui.MenuItem("Delete", null, false, SelectionSize != 0))
 			{
 				DeleteSelectedEntities();
 

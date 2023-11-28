@@ -323,10 +323,10 @@ namespace GlitchyEditor.EditWindows
 
 			Handles.SetViewProjection(view, projection);
 
-			if(_editor.EntityHierarchyWindow.SelectedEntities.Count == 0)
+			if(_editor.EntityHierarchyWindow.SelectionSize == 0)
 				return false;
 
-			var entity = _editor.EntityHierarchyWindow.SelectedEntities.Back;
+			Entity entity = _editor.EntityHierarchyWindow.GetSelectedEntity(-1);
 
 			var transformCmp = entity.GetComponent<TransformComponent>();
 

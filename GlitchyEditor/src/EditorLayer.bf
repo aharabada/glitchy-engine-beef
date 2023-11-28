@@ -492,7 +492,7 @@ namespace GlitchyEditor
 
 			for (var (entity, transform, camera) in _activeScene.GetEntities<TransformComponent, CameraComponent>())
 			{
-				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _activeScene)))
+				if (_editor.EntityHierarchyWindow.IsEntitySelected(.(entity, _activeScene)))
 				{
 					DebugRenderer.DrawViewFrustum(transform.WorldTransform, camera.Camera.Projection, .White);
 				}
@@ -506,7 +506,7 @@ namespace GlitchyEditor
 
 			for (var (entity, transform, light) in _activeScene.GetEntities<TransformComponent, LightComponent>())
 			{
-				if (_editor.EntityHierarchyWindow.SelectedEntities.Contains(.(entity, _activeScene)))
+				if (_editor.EntityHierarchyWindow.IsEntitySelected(.(entity, _activeScene)))
 				{
 					Renderer.DrawRay(.Zero, .(0, 0, 20), ColorRGBA(light.SceneLight.Color, 1.0f), transform.WorldTransform);
 
