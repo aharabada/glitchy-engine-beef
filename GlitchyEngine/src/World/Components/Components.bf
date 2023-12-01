@@ -308,34 +308,6 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct NativeScriptComponent : IDisposableComponent
-	{
-		public ScriptableEntity Instance = null;
-		
-		public function void (mut NativeScriptComponent this) Func;
-
-		public function ScriptableEntity () InstantiateFunction;
-		public function void (NativeScriptComponent* self) DestroyInstanceFunction;
-
-		public void Bind<T>() mut where T : ScriptableEntity
-		{
-			InstantiateFunction = () =>
-				{
-					return new T();
-				};
-
-			DestroyInstanceFunction = (self) =>
-				{
-					delete self.Instance;
-				};
-		}
-
-		public void Dispose() mut
-		{
-			DestroyInstanceFunction(&this);
-		}
-	}
-
 	struct SceneLight
 	{
 		public enum LightType

@@ -623,19 +623,6 @@ namespace GlitchyEngine.World
 				Debug.Profiler.ProfileScope!("Update scripts");
 
 				// Run scripts
-				for (var (entity, script) in _ecsWorld.Enumerate<NativeScriptComponent>())
-				{
-					if (script.Instance == null)
-					{
-						script.Instance = script.InstantiateFunction();
-						script.Instance._entity = Entity(entity, this);
-						script.Instance.[Friend]OnCreate();
-					}
-	
-					script.Instance.[Friend]OnUpdate(gameTime);
-				}
-
-				// Run scripts
 				for (let (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
 				{
 					if (!script.IsCreated)
