@@ -283,6 +283,8 @@ class ScriptClass : SharpClass
 	typealias OnUpdateMethod = function MonoObject*(MonoObject* instance, float deltaTime, MonoException** exception);
 	typealias OnDestroyMethod = function MonoObject*(MonoObject* instance, MonoException** exception);
 
+	private bool _runInEditMode;
+
 	private MonoMethod* _constructor;
 
 	private OnCreateMethod _onCreate;
@@ -300,6 +302,8 @@ class ScriptClass : SharpClass
 	public bool HasCollisionEnter2D => _onCollisionEnter2DMethod != null;
 	public bool HasCollisionLeave2D => _onCollisionLeave2DMethod != null;
 
+	public bool RunInEditMode => _runInEditMode;
+
 	[AllowAppend]
 	public this(StringView classNamespace, StringView className, MonoImage* image, ScriptFieldType scriptFieldType = .Class) :
 		base(classNamespace, className, image, scriptFieldType)
@@ -314,6 +318,19 @@ class ScriptClass : SharpClass
 
 		_onCollisionEnter2DMethod = GetMethod("OnCollisionEnter2D", 1);
 		_onCollisionLeave2DMethod = GetMethod("OnCollisionLeave2D", 1);
+
+		DetermineRunInEditMode();
+	}
+
+	/// Determines whether or not scripts of this class will be executed in edit mode.
+	private void DetermineRunInEditMode()
+	{
+		// TODO: This is only relevant for the editor!
+		MonoCustomAttrInfo* attributes = Mono.mono_custom_attrs_from_class(_monoClass);
+
+		if (attributes != null)
+		_runInEditMode = Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Attributes.s_RunInEditModeAttribute);
+
 	}
 
 	private MonoMethod* FindConstructor()

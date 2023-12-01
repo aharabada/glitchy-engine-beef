@@ -5,6 +5,7 @@ using System.Collections;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 using GlitchyEngine.World;
+using System.Diagnostics;
 
 namespace GlitchyEngine.Scripting;
 
@@ -104,6 +105,7 @@ static class ScriptEngine
 	internal static class Attributes
 	{
 		internal static MonoClass* s_ShowInEditorAttribute;
+		internal static MonoClass* s_RunInEditModeAttribute;
 	}
 	
 	public static void Init()
@@ -553,7 +555,12 @@ static class ScriptEngine
 	/// Retrieves the classes for Attributes that are defined in the Core library
 	static void GetCoreAttributes()
 	{
+		// We definitely need these attributes!
+		// TODO: Some only for the editor!
 		Attributes.s_ShowInEditorAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "ShowInEditorAttribute");
+		Debug.Assert(Attributes.s_ShowInEditorAttribute != null);
+		Attributes.s_RunInEditModeAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "RunInEditModeAttribute");
+		Debug.Assert(Attributes.s_RunInEditModeAttribute != null);
 	}
 
 	private static void GetEntitiesFromAssemblies()

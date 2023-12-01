@@ -600,12 +600,12 @@ namespace GlitchyEngine.World
 		{
 			/// No special update configuration (this does NOT mean nothing will be updated!)
 			None = 0x00,
-			/// Update editor-specific stuff
-			Editor = 0x01,
 			/// Update the physics related stuff
-			Physics = 0x02,
+			Physics = 0x01,
 			/// Execute scripts.
-			Scripts = 0x04,
+			Scripts = 0x02,
+			/// Update editor-specific stuff and also scripts (most only ever initialize, but some update!)
+			Editor = 0x04 | Scripts,
 			/// Update the runtume related stuff (e.g. execute scripts). Also run physics!
 			Runtime = Scripts | Physics,
 		}
@@ -630,7 +630,10 @@ namespace GlitchyEngine.World
 						if (!script.IsInitialized)
 							ScriptEngine.InitializeInstance(Entity(entity, this), script);
 
-						if (script.Instance == null)
+						// Skip OnCreate and OnUpdate invocation if we didn't create an instance
+						// (happens, if script component has no script class associated)
+						// Also skip if we are in edit mode and the class doesn't have the RunInEditMode-Attribute
+						if (script.Instance == null || (mode.HasFlag(.Editor) && !script.Instance.ScriptClass.RunInEditMode))
 							continue;
 
 						if (mode.HasFlag(.Runtime))
