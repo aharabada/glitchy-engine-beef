@@ -25,24 +25,3 @@ PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 
 [Configs.Debug.Win64]
 PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI"]
-
-[[ProjectFolder.Items]]
-Type = "AutoFolder"
-Name = "Math"
-
-[[ProjectFolder.Items.Items]]
-Type = "IgnoreSource"
-Name = "Vector2.bf"
-
-[[ProjectFolder.Items.Items]]
-Type = "IgnoreSource"
-Name = "Vector3.bf"
-
-[[ProjectFolder.Items.Items]]
-Type = "IgnoreSource"
-Name = "Vector4.bf"
-
-[[ProjectFolder.Items.Items]]
-Type = "IgnoreFolder"
-Name = "Vectors"
-AutoInclude = true
