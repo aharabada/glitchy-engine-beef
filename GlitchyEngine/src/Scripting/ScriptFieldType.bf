@@ -15,7 +15,9 @@ enum ScriptFieldType
 	case GenericClass;
 	case Array;
 	
-	case Bool;
+	case String;
+
+	case Bool, Bool2, Bool3, Bool4;
 	case Char;
 
 	case SByte;
@@ -29,7 +31,7 @@ enum ScriptFieldType
 	
 	case Float, float2, float3, float4;
 	case Double, Double2, Double3, Double4;
-	
+
 	case Entity;
 	case Component;
 
@@ -37,8 +39,20 @@ enum ScriptFieldType
 	{
 		switch(this)
 		{
+		case .String:
+			return typeof(String);
+
 		case .Bool:
 			return typeof(bool);
+		case .Bool2:
+			return typeof(bool2);
+		case .Bool3:
+			return typeof(bool3);
+		case .Bool4:
+			return typeof(bool4);
+
+		case .Char:
+			return typeof(char16);
 
 		case .SByte:
 			return typeof(int8);

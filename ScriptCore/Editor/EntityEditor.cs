@@ -274,6 +274,10 @@ internal class EntityEditor
             // TODO: Show component drop target
             ImGui.Text($"{fieldName} Component ({fieldType.Name})");
         }
+        else if (fieldType == typeof(string))
+        {
+            newValue = ShowStringEditor(reference, fieldType, fieldName, attributes);
+        }
         else
         {
             ImGui.EndDisabled();
@@ -324,6 +328,29 @@ internal class EntityEditor
         }
 
         ImGui.EndDisabled();
+
+        return newValue;
+    }
+
+    private static object ShowStringEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes)
+    {
+        object newValue = DidNotChange;
+
+        TextFieldAttribute textField = GetAttribute<TextFieldAttribute>(attributes);
+
+        string value = reference as string ?? $"{float.MinValue}";
+
+        if (textField?.Multiline == true)
+        {
+            ImGui.Text(fieldName);
+            if (ImGui.InputTextMultiline($"##{fieldName}", ref value, 1000, new Vector2(-1.0f, ImGui.GetTextLineHeight() * textField.TextFieldLines)))
+                newValue = value;
+        }
+        else
+        {
+            if (ImGui.InputText(fieldName, ref value, 1000))
+                newValue = value;
+        }
 
         return newValue;
     }

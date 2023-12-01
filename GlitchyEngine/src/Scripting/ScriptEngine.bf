@@ -14,6 +14,8 @@ static sealed class ScriptEngineHelper
 {
 	private static Dictionary<StringView, ScriptFieldType> _scriptFieldTypes = new Dictionary<StringView, ScriptFieldType>()
 	{
+		("System.String", .String),
+
 		("System.Boolean", .Bool),
 		("System.Char", .Char),
 
@@ -382,6 +384,8 @@ static class ScriptEngine
 				// TODO: Handle Structs when copying fields to instance.
 			case .Class:
 				// TODO: Handle Class when copying fields to instance.
+			case .String:
+				// TODO: Handle String when copying fields to instance.
 			default:
 				script.Instance.SetFieldValue(scriptField, field._data);
 			}
