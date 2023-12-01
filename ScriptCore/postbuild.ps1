@@ -5,18 +5,20 @@ param
     [string]$destinationDir
 )
 
-# Überprüfe, ob die Verzeichnisse existieren
-if ((Test-Path -Path $sourceDir) -and (Test-Path -Path $destinationDir))
+if (-not (Test-Path -Path $sourceDir))
 {
-    
-    # Gebe die Pfadinformationen aus
-    Write-Host "Kopiere Dateien von $sourceDir nach $destinationDir"
-    
-    # Kopiere alle Dateien vom Quell- zum Zielverzeichnis
-    Get-ChildItem -Path $sourceDir -File | ForEach-Object { Copy-Item -Path $_.FullName -Destination $destinationDir }
+    Write-Host "Source directory $sourceDir doesn't exist."
+    exit
+}
 
-}
-else
+# Create destination if necessary
+if (-not (Test-Path -Path $destinationDir))
 {
-    Write-Host "Ein oder beide Verzeichnisse existieren nicht."
+    New-Item -ItemType Directory -Force -Path $destinationDir
 }
+    
+# Gebe die Pfadinformationen aus
+Write-Host "Kopiere Dateien von $sourceDir nach $destinationDir"
+
+# Copy all files from source folder to the destination folder
+Copy-Item -Path "$sourceDir\*" -Destination $destinationDir -Recurse
