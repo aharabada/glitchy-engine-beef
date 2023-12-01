@@ -405,8 +405,12 @@ internal class EntityEditor
 
         // The buttons should always be visible -> save whether the node is open
         // If we have no instance, the user shouldn't be able to open the list
-        bool listOpen = ImGui.TreeNodeEx(fieldName, myList == null ? ImGuiTreeNodeFlags.Leaf : ImGuiTreeNodeFlags.None);
-        
+        bool listOpen = ImGui.TreeNodeEx(fieldName,
+            myList == null ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen : ImGuiTreeNodeFlags.Framed);
+
+        if (myList == null)
+            listOpen = false;
+
         var addButtonWidth = ImGui.CalcTextSize("+").X + 2 * ImGui.GetStyle().FramePadding.X;
         var removeButtonWidth = ImGui.CalcTextSize("-").X + 2 * ImGui.GetStyle().FramePadding.X;
 
@@ -427,7 +431,7 @@ internal class EntityEditor
         }
 
         ImGuiExtension.AttachTooltip("Add a new Element at the end of the list.");
-            
+
         ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
 
         ImGui.BeginDisabled(myList == null || myList.Count == 0);
@@ -440,12 +444,16 @@ internal class EntityEditor
         ImGuiExtension.AttachTooltip("Remove the last Element from the list.");
 
         ImGui.EndDisabled();
-        
 
-        if (listOpen && myList != null)
+        if (listOpen)
         {
-            void DropTarget(int insertIndex, string tooltip)
+            Debug.Assert(myList != null, "Opened tree node even though it should have been a leaf!");
+
+            /// Returns true if something was dropped into the droptarget
+            bool DropTarget(int insertIndex, string tooltip)
             {
+                bool dropped = false;
+
                 if (ImGui.BeginDragDropTarget())
                 {
                     ImGui.SetTooltip(tooltip);
@@ -471,20 +479,28 @@ internal class EntityEditor
                                     // If the original index is before the insert index, the insert index will be moved after removing the element
                                     // thus we have to subtract one.
                                     myList.Insert(insertIndex - 1, item);
+
+                                dropped = true;
                             }
                         }
                     }
 
                     ImGui.EndDragDropTarget();
                 }
+
+                return dropped;
             }
-            
+
             // Drop at index 0
             ImGui.Separator();
             DropTarget(0, "Drop before Element 0.");
 
-            for (int i = 0; i < myList.Count; i++)
+            bool orderChanged = false;
+
+            for (int i = 0, id = 0; i < myList.Count; i++, id++)
             {
+                ImGui.PushID(id);
+
                 object element = myList[i];
 
                 // A Bullet point to grab the element
@@ -502,21 +518,39 @@ internal class EntityEditor
 
                     ImGui.EndDragDropSource();
                 }
-                
-                DropTarget(i, $"Drop before Element {i}.");
 
+                orderChanged |= DropTarget(i, $"Drop before Element {i}.");
+
+                if (ImGui.BeginPopupContextWindow($"ListElementContext{i}"))
+                {
+                    if (ImGui.MenuItem($"Remove Element {i}"))
+                    {
+                        myList.RemoveAt(i);
+                        i--;
+                        ImGui.EndPopup();
+                        ImGui.PopID();
+                        continue;
+                    }
+
+                    ImGui.EndPopup();
+                }
+                
                 ImGui.SameLine();
-                
+
                 object newValue = ShowFieldEditor(element, element.GetType(), $"Element {i}");
-                
-                if (newValue != DidNotChange)
+
+                // Don't apply changes, when the order changed
+                if (newValue != DidNotChange && !orderChanged)
                 {
                     myList[i] = newValue;
                 }
-                
+
                 // Drop after current element
                 ImGui.Separator();
-                DropTarget(i + 1, $"Drop after Element {i}.");
+                
+                orderChanged |= DropTarget(i + 1, $"Drop after Element {i}.");
+
+                ImGui.PopID();
             }
 
             ImGui.TreePop();
