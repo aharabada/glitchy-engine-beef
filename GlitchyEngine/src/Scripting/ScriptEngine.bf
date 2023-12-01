@@ -809,8 +809,9 @@ static class ScriptEngine
 
 	public static void ShowScriptEditor(Entity entity, ScriptComponent* scriptComponent)
 	{
-		let method = s_EntityEditor.GetMethod("ShowDefaultEntityEditor", 2);
-		
+		if (scriptComponent.Instance == null)
+			return;
+
 		ScriptClass scriptClass = ScriptEngine.GetScriptClass(scriptComponent.ScriptClassName);
 
 		if (scriptClass == null)
@@ -823,6 +824,8 @@ static class ScriptEngine
 
 #unwarn
 		void*[2] args = .(&entityId, monoReflectionType);
+		
+		let method = s_EntityEditor.GetMethod("ShowDefaultEntityEditor", 2);
 
 		s_EntityEditor.Invoke(method, null, &args);
 	}
