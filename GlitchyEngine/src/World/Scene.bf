@@ -104,8 +104,11 @@ namespace GlitchyEngine.World
 
 		/// Copies all entities with their components to the given target-scene.
 		/// @param target The scene that the entities are copied to.
-		/// @param initializeScripts If true script instances will be initialized.
-		public void CopyTo(Scene target, bool initializeScripts)
+		/// @param copyScripts If true script components will be copied. 
+		///			This is for simulation mode, where the script-components won't be executing, thus we don't copy them.
+		///			TODO: But in reality we still might want to have scripts, because the user might want to run some code, just not OnCreate/OnUpdate?
+		///			TODO: Honestly, I'm not quite sure what simulation mode is actually good for. Maybe we better just remove it?
+		public void CopyTo(Scene target, bool copyScripts)
 		{
 			// Copy entities
 			for (let sourceHandle in _ecsWorld.Enumerate())
@@ -124,47 +127,25 @@ namespace GlitchyEngine.World
 			CopyComponents<CircleRendererComponent>(this, target);
 			CopyComponents<CameraComponent>(this, target);
 			CopyComponents<LightComponent>(this, target);
-
 		
 			CopyComponents<Rigidbody2DComponent>(this, target);
 			CopyComponents<BoxCollider2DComponent>(this, target);
 			CopyComponents<CircleCollider2DComponent>(this, target);
 			CopyComponents<PolygonCollider2DComponent>(this, target);
 
-			if (initializeScripts)
+			if (copyScripts)
 			{
-				// Set context, so that constructors can correctly reference the scene
-				ScriptEngine.SetContext(target);
-
-				//CopyComponents<NativeScriptComponent>(this, target);
-
-				// Copy ScriptComponents... needs extra handling for the script instances
-				for (let (sourceHandle, sourceComponent) in _ecsWorld.Enumerate<ScriptComponent>())
+				for (let (sourceHandle, sourceScript) in _ecsWorld.Enumerate<ScriptComponent>())
 				{
-					Entity sourceEntity = .(sourceHandle, this);
+					Entity sourceEntity = .(sourceHandle, target);
 
 					Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
-					ScriptComponent* targetComponent = targetEntity.AddComponent<ScriptComponent>();
-					
-					targetComponent.ScriptClassName = sourceComponent.ScriptClassName;
+					ScriptComponent* targetScript = targetEntity.AddComponent<ScriptComponent>();
 
-					// Initializes the created instance
-					// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
-					ScriptEngine.InitializeInstance(targetEntity, targetComponent);
-				}
-
-				// Copy values to entities.
-				// We do this in a separate loop because we might reference other entities.
-				// If we did it in a single loop these entities might not exist yet.
-				for (let (handle, script) in target._ecsWorld.Enumerate<ScriptComponent>())
-				{
-					Entity entity = .(handle, this);
-
-					if (script.Instance != null)
-						ScriptEngine.CopyEditorFieldsToInstance(entity, script);
+					targetScript.ScriptClassName = sourceScript.ScriptClassName;
 				}
 			}
-			
+
 			// Copy transforms... needs special handling for the Parent<->Child relations
 			for (let (sourceHandle, sourceTransform) in _ecsWorld.Enumerate<TransformComponent>())
 			{
@@ -221,21 +202,36 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public void OnRuntimeStart()
+		public void Start(bool simulation, bool runtime)
 		{
-			OnSimulationStart();
-			SetupPhysicsCallbacks();
-			ScriptEngine.SetContext(this);
+			if (simulation)
+				StartSimulation();
+
+			
 		}
 
-		public void OnRuntimeStop()
+		public void StartRuntime()
 		{
-			OnSimulationStop();
-			ScriptEngine.OnRuntimeStop();
+			ScriptEngine.StartRuntime(this);
+
+			// Initialize ScriptComponents
+			for (let (handle, scriptComponent) in _ecsWorld.Enumerate<ScriptComponent>())
+			{
+				Entity entity = .(handle, this);
+				// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly
+				ScriptEngine.InitializeInstance(entity, scriptComponent);
+			}
 		}
 
-		public void OnSimulationStart()
+		public void StopRuntime()
 		{
+			ScriptEngine.StopRuntime();
+		}
+
+		public void StartSimulation()
+		{
+			// TODO: Add Setting for the user to define whether Physics will be initialized or not?
+			
 			_physicsWorld2D = World.Create(_gravity2D);
 
 			draw.drawPolygonCallback = (vertices, vertexCount, color, userData) =>
@@ -289,6 +285,8 @@ namespace GlitchyEngine.World
 			World.SetDebugDrawFlags(_physicsWorld2D, .e_shapeBit);
 
 			InitPhysics2D();
+			
+			SetupPhysicsCallbacks();
 		}
 
 		private void SetupPhysicsCallbacks()
@@ -590,10 +588,15 @@ namespace GlitchyEngine.World
 			polygonCollider.RuntimeFixture = fixture;
 		}
 
-		public void OnSimulationStop()
+		public void StopSimulation()
 		{
+			if (_physicsWorld2D == null)
+				return;
+
 			Box2D.World.Delete(_physicsWorld2D);
 			_physicsWorld2D = null;
+
+			// TODO: Get rid of all references to colliders, etc. in physics components.
 		}
 
 		public enum UpdateMode

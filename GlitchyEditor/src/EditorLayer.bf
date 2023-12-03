@@ -864,6 +864,8 @@ namespace GlitchyEditor
 		/// Starts the play mode for the current scene
 		private void OnScenePlay()
 		{
+			// TODO: Dictionary<UUID, ScriptData> scriptData = _editorScene.SerializeScripts();
+
 			_editor.SceneViewportWindow.EditorMode = false;
 			_sceneState = .Play;
 
@@ -871,15 +873,36 @@ namespace GlitchyEditor
 			{
 				_editorScene.CopyTo(runtimeScene, true);
 
-				runtimeScene.OnRuntimeStart();
+				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true);
 
-				SetReference!(_activeScene, runtimeScene);
+				// TODO: runtimeScene.DeserializeScripts(scriptData);
 			}
 
 			_editor.CurrentScene = _activeScene;
 
 			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnPlay)
 				SwitchToPlayWindow();
+		}
+
+		/// Activates the given scene.
+		/// @param scene The scene to be activated.
+		/// @param startRuntime If set to true, the script runtime will be initialized for the given scene.
+		/// @param startSimulation If set to true, the physics simulation will be initialized for the given scene.
+		private void SetActiveScene(Scene scene, bool startRuntime, bool startSimulation)
+		{
+			_activeScene?.StopRuntime();
+			_activeScene?.StopSimulation();
+
+			if (scene != null)
+			{
+				if (startRuntime)
+					scene.StartRuntime();
+	
+				if (startSimulation)
+					scene.StartSimulation();
+			}
+
+			SetReference!(_activeScene, scene);
 		}
 
 		/// Starts the physics simulation mode for the current scene
@@ -892,9 +915,7 @@ namespace GlitchyEditor
 			{
 				_editorScene.CopyTo(simulationScene, false);
 
-				simulationScene.OnSimulationStart();
-
-				SetReference!(_activeScene, simulationScene);
+				SetActiveScene(simulationScene, startRuntime: false, startSimulation: true);
 			}
 
 			_editor.CurrentScene = _activeScene;
@@ -930,12 +951,9 @@ namespace GlitchyEditor
 		/// Stops the simulation or game and returns to edit mode.
 		private void OnSceneStop()
 		{
-			if (_sceneState == .Play)
-				_activeScene.OnRuntimeStop();
-			else if (_sceneState == .Simulate)
-				_activeScene.OnSimulationStop();
+			SetActiveScene(_editorScene, startRuntime: true, startSimulation: false);
 
-			SetReference!(_activeScene, _editorScene);
+			// TODO: _editorScene.DeserializeScripts(scriptData);
 
 			_editor.SceneViewportWindow.EditorMode = true;
 			_sceneState = .Edit;
@@ -985,9 +1003,19 @@ namespace GlitchyEditor
 		/// Sets the current editor scene
 		private void SetEditorScene(Scene scene)
 		{
+			if (_editorScene != null)
+			{
+				_editorScene.StopRuntime();
+			}
+
 			SetReference!(_editorScene, scene);
 			_editor.CurrentScene = _editorScene;
 			SetReference!(_activeScene, _editorScene);
+
+			if (_editorScene != null)
+			{
+				_editorScene.StartRuntime();
+			}
 		}
 
 		/// Creates a new default scene.

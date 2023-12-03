@@ -83,7 +83,12 @@ static class ScriptEngine
 	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
 	public static Dictionary<StringView, ScriptClass> ComponentClasses => _componentClasses;
 
-	public static Scene Context => s_Context;
+	/// Gets or sets the current scene context for the runtime.
+	public static Scene Context
+	{
+		get => s_Context;
+		private set => SetReference!(s_Context, value);
+	}
 
 	private static Dictionary<UUID, ScriptFieldMap> _entityFields = new .() ~
 		{
@@ -246,20 +251,38 @@ static class ScriptEngine
 		InitAssemblyWatcher();
 	}
 
-	public static void SetContext(Scene scene)
+	/// Starts the script runtime and sets the context scene.
+	public static void StartRuntime(Scene context)
 	{
-		SetReference!(s_Context, scene);
+		/// At the moment only set the context.
+
+		Debug.Assert(s_Context == null, "StartRuntime was called twice without StopRuntime in between!");
+		Context = context;
 	}
 
-	public static void OnRuntimeStop()
+	/// Stopts the script runtime and disposes of all script instances.
+	public static void StopRuntime()
 	{
-		for (var entry in _entityScriptInstances)
+		if (Context == null)
 		{
-			entry.value?.ReleaseRef();
+			// There should be nothing to do, if we have no context
+			Debug.Assert(_entityScriptInstances.Count == 0, "There are script instances but no context scene.");
+			return;
+		}
+
+		for (let (id, instance) in _entityScriptInstances)
+		{
+			instance?.ReleaseRef();
+
+			Entity entity = Context.GetEntityByID(id);
+
+			// Remove Instance from script
+			ScriptComponent* script = entity.GetComponent<ScriptComponent>();
+			script.Instance = null;
 		}
 		_entityScriptInstances.Clear();
 
-		SetContext(null);
+		Context = null;
 	}
 
 	public static bool InitializeInstance(Entity entity, ScriptComponent* script)
