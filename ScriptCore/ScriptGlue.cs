@@ -116,4 +116,18 @@ internal static class ScriptGlue
     internal static extern float4 modf_float4(float4 x, out float4 integerPart);
 
 #endregion
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void UUID_CreateNew(out UUID uuid);
+
+#region Application
+    
+// TODO: Implement IsEditor and IsPlaying
+    //[MethodImpl(MethodImplOptions.InternalCall)]
+    //internal static extern bool Application_IsEditor();
+    
+    //[MethodImpl(MethodImplOptions.InternalCall)]
+    //internal static extern bool Application_IsPlaying();
+
+#endregion
 }

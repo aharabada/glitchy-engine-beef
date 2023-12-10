@@ -14,6 +14,12 @@ public struct UUID
 
     public static UUID Zero = new UUID(0);
 
+    public static UUID CreateNew()
+    {
+        ScriptGlue.UUID_CreateNew(out UUID id);
+        return id;
+    }
+
     public static bool operator ==(UUID left, UUID right) => left._uuid == right._uuid;
 
     public static bool operator !=(UUID left, UUID right) => left._uuid != right._uuid;

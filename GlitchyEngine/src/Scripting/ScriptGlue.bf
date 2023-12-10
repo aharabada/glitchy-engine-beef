@@ -468,6 +468,12 @@ static class ScriptGlue
 	}
 
 #endregion
+	
+	[RegisterCall("ScriptGlue::UUID_CreateNew")]
+	static void UUID_Create(out UUID id)
+	{
+		id = UUID.Create();
+	}
 
 #region Editor Stuff
 
