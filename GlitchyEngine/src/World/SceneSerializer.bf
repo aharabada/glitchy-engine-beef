@@ -137,8 +137,6 @@ class SceneSerializer
 				Serialize.Value(writer, "AspectRatio", camera.AspectRatio);
 				Serialize.Value(writer, "FixedAspectRatio", camera.FixedAspectRatio);
 			});
-
-			// TODO: native script component
 			
 			SerializeComponent<LightComponent>(writer, entity, "LightComponent", scope (component) =>
 			{
@@ -501,7 +499,6 @@ class SceneSerializer
 
 					return .Ok;
 				}));
-			// TODO: native script component
 			case "LightComponent":
 				Try!(DeserializeComponent<LightComponent>(reader, entity, scope (component) =>
 				{
@@ -787,8 +784,6 @@ class SceneSerializer
 				Serialize.Value(writer, "AspectRatio", camera.AspectRatio);
 				Serialize.Value(writer, "FixedAspectRatio", camera.FixedAspectRatio);
 			});
-
-			// TODO: native script component
 			
 
 			SerializeComponent<LightComponent>(writer, entity, "LightComponent", scope (component) =>
