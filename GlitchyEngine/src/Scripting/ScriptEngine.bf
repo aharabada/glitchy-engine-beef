@@ -112,7 +112,69 @@ static class ScriptEngine
 		internal static MonoClass* s_ShowInEditorAttribute;
 		internal static MonoClass* s_RunInEditModeAttribute;
 	}
-	
+
+	public class ApplicationData
+	{
+		private bool _isEditor;
+		private bool _isPlayer;
+
+		private bool _isInEditMode;
+		private bool _isInPlayMode;
+
+		public bool IsEditor
+		{
+			get => _isEditor;
+			set
+			{
+				_isEditor = value;
+
+				if (_isEditor)
+					_isPlayer = false;
+			}
+		}
+		
+		public bool IsPlayer
+		{
+			get => _isPlayer;
+			set
+			{
+				_isPlayer = value;
+
+				if (_isPlayer)
+					_isEditor = false;
+			}
+		}
+		
+		public bool IsInEditMode
+		{
+			get => _isInEditMode;
+			set
+			{
+				_isInEditMode = value;
+
+				if (_isInEditMode)
+					_isInPlayMode = false;
+			}
+		}
+
+		public bool IsInPlayMode
+		{
+			get => _isInPlayMode;
+			set
+			{
+				_isInPlayMode = value;
+
+				if (_isInPlayMode)
+					_isInEditMode = false;
+			}
+		}
+	}
+
+	private static ApplicationData _applicationData = new ApplicationData() ~ delete _;
+
+	/// Contains information about the application context
+	public static ApplicationData ApplicationInfo => _applicationData;
+
 	public static void Init()
 	{
 		InitMono();

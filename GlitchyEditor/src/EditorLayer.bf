@@ -110,6 +110,8 @@ namespace GlitchyEditor
 		{
 			Application.Get().Window.IsVSync = true;
 
+			ScriptEngine.ApplicationInfo.IsEditor = true;
+
 			_contentManager = contentManager;
 
 			InitGraphics();
@@ -871,6 +873,8 @@ namespace GlitchyEditor
 
 			using (Scene runtimeScene = new Scene())
 			{
+				ScriptEngine.ApplicationInfo.IsInPlayMode = true;
+
 				_editorScene.CopyTo(runtimeScene, true);
 
 				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true);
@@ -951,6 +955,8 @@ namespace GlitchyEditor
 		/// Stops the simulation or game and returns to edit mode.
 		private void OnSceneStop()
 		{
+			ScriptEngine.ApplicationInfo.IsInEditMode = true;
+
 			SetActiveScene(_editorScene, startRuntime: true, startSimulation: false);
 
 			// TODO: _editorScene.DeserializeScripts(scriptData);

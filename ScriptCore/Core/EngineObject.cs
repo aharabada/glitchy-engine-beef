@@ -1,5 +1,3 @@
-using System;
-
 namespace GlitchyEngine.Core;
 
 public abstract class EngineObject

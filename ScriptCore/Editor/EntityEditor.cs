@@ -24,11 +24,16 @@ internal class EntityEditor
     public static bool ShowFieldInEditor(FieldInfo fieldInfo)
     {
         if (fieldInfo.IsPublic)
+        {
+            // Public fields are visible by default (No HideInEditorAttribute)
+            if (fieldInfo.HasCustomAttribute<HideInEditorAttribute>())
+                return false;
+
             return true;
-
-        var showInEditorAttribute = fieldInfo.GetCustomAttribute<ShowInEditorAttribute>();
-
-        if (showInEditorAttribute != null)
+        }
+        
+        // Private, protected and internal fields are hidden by default (No ShowInEditorAttribute)
+        if (fieldInfo.HasCustomAttribute<ShowInEditorAttribute>())
             return true;
 
         return false;
@@ -357,13 +362,9 @@ internal class EntityEditor
 
     public static void ShowEditor(Type type, object reference)
     {
-        T GetValue<T>(FieldInfo fieldInfo)
-        {
-            return default;
-        }
-
         int i = 0;
 
+        // Iterate all fields
         foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
         {
             i++;
@@ -371,8 +372,6 @@ internal class EntityEditor
 
             if (ShowFieldInEditor(field))
             {
-                //Log.Info(field.Name);
-
                 object value = field.GetValue(reference);
 
                 IEnumerable<Attribute> attributes = field.GetCustomAttributes();
@@ -386,6 +385,35 @@ internal class EntityEditor
                 }
             }
             
+            ImGui.PopID();
+        }
+        
+        // Iterate all methods
+        foreach (MethodInfo method in type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+        {
+            var showButton = method.GetCustomAttribute<ShowButtonAttribute>();
+
+            if (showButton == null)
+                continue;
+
+            if (Application.IsInEditMode && !showButton.Visibility.HasFlag(ButtonVisibility.InEditMode))
+                continue;
+        
+            if (Application.IsInPlayMode && !showButton.Visibility.HasFlag(ButtonVisibility.InPlayMode))
+                continue;
+
+            i++;
+            ImGui.PushID(i);
+
+            if (method.GetParameters().Length > 0)
+            {
+                Log.Error($"Method {method.Name} cannot be executed from editor, because it expects arguments.");
+            }
+            else if (ImGui.Button(showButton.ButtonText))
+            {
+                method.Invoke(reference, null);
+            }
+    
             ImGui.PopID();
         }
     }

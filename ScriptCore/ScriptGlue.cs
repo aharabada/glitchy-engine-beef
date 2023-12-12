@@ -120,14 +120,19 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void UUID_CreateNew(out UUID uuid);
 
-#region Application
-    
-// TODO: Implement IsEditor and IsPlaying
-    //[MethodImpl(MethodImplOptions.InternalCall)]
-    //internal static extern bool Application_IsEditor();
-    
-    //[MethodImpl(MethodImplOptions.InternalCall)]
-    //internal static extern bool Application_IsPlaying();
+    #region Application
 
-#endregion
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Application_IsEditor();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Application_IsPlayer();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Application_IsInEditMode();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Application_IsInPlayMode();
+
+    #endregion
 }

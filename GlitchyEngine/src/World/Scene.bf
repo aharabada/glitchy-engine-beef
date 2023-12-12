@@ -202,14 +202,6 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public void Start(bool simulation, bool runtime)
-		{
-			if (simulation)
-				StartSimulation();
-
-			
-		}
-
 		public void StartRuntime()
 		{
 			ScriptEngine.StartRuntime(this);

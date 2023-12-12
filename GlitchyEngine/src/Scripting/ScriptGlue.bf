@@ -475,9 +475,31 @@ static class ScriptGlue
 		id = UUID.Create();
 	}
 
-#region Editor Stuff
+#region Application
+	
+	[RegisterCall("ScriptGlue::Application_IsEditor")]
+	static bool Application_IsEditor()
+	{
+		return ScriptEngine.ApplicationInfo.IsEditor;
+	}
 
+	[RegisterCall("ScriptGlue::Application_IsPlayer")]
+	static bool Application_IsPlayer()
+	{
+		return ScriptEngine.ApplicationInfo.IsPlayer;
+	}
 
+	[RegisterCall("ScriptGlue::Application_IsInEditMode")]
+	static bool Application_IsInEditMode()
+	{
+		return ScriptEngine.ApplicationInfo.IsInEditMode;
+	}
+
+	[RegisterCall("ScriptGlue::Application_IsInPlayMode")]
+	static bool Application_IsInPlayMode()
+	{
+		return ScriptEngine.ApplicationInfo.IsInPlayMode;
+	}
 
 #endregion
 
