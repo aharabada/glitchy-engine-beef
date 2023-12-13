@@ -631,7 +631,7 @@ static class ScriptEngine
 
 		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage, .Class);
 		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage, .Entity);
-		s_ComponentRoot = new ScriptClass("GlitchyEngine", "Component", s_CoreAssemblyImage, .Component);
+		s_ComponentRoot = new ScriptClass("GlitchyEngine.Components", "Component", s_CoreAssemblyImage, .Component);
 
 		// Editor classes
 		s_EntityEditor = new ScriptClass("GlitchyEngine.Editor", "EntityEditor", s_CoreAssemblyImage, .Class);

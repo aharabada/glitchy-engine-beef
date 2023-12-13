@@ -1,14 +1,18 @@
 using System;
 using System.Runtime.CompilerServices;
+using GlitchyEngine.Components;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 
 namespace GlitchyEngine;
 
+/// <summary>
+/// The base class for all entities and scripts in the current world.
+/// </summary>
 public class Entity : EngineObject
 {
     /// <summary>
-    /// Only used by the Engine. Don't use!
+    /// Don't call this constructor yourself.
     /// </summary>
     protected Entity()
     {
