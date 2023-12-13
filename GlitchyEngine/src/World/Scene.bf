@@ -599,10 +599,11 @@ namespace GlitchyEngine.World
 			Physics = 0x01,
 			/// Execute scripts.
 			Scripts = 0x02,
+			/// Update editor-specific stuff
+			EditMode = 0x04,
 			/// Update editor-specific stuff and also scripts (most only ever initialize, but some update!)
-			Editor = 0x04 | Scripts,
 			/// Update the runtume related stuff (e.g. execute scripts). Also run physics!
-			Runtime = Scripts | Physics,
+			//RuntimeMode = Scripts | Physics,
 		}
 
 		private append List<Entity> _destroyQueue = .();
@@ -628,14 +629,14 @@ namespace GlitchyEngine.World
 						// Skip OnCreate and OnUpdate invocation if we didn't create an instance
 						// (happens, if script component has no script class associated)
 						// Also skip if we are in edit mode and the class doesn't have the RunInEditMode-Attribute
-						if (script.Instance == null || (mode.HasFlag(.Editor) && !script.Instance.ScriptClass.RunInEditMode))
+						if (script.Instance == null || (mode.HasFlag(.EditMode) && !script.Instance.ScriptClass.RunInEditMode))
 							continue;
 
-						if (mode.HasFlag(.Runtime))
-							script.Instance.InvokeOnCreate();
+						script.Instance.InvokeOnCreate();
 					}
-					
-					if (mode.HasFlag(.Runtime))
+
+					// Update the script, if we aren't in editor or it has RunInEditMode-Attribute
+					if (!mode.HasFlag(.EditMode) || script.Instance.ScriptClass.RunInEditMode)
 					{
 						if (_updateBlockList.Contains(entity))
 							_updateBlockList.Remove(entity);
@@ -645,21 +646,6 @@ namespace GlitchyEngine.World
 				}
 			}
 
-			/*if (mode.HasFlag(.Editor))
-			{
-				// Run editor scripts
-				for (var (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
-				{
-					if (!script.InInstantiated)
-					{
-						ScriptEngine.InitializeInstance(Entity(entity, this), script);
-					}
-
-					// TODO: Editor update
-					//script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
-				}
-			}*/
-			
 			if (mode.HasFlag(.Physics))
 			{
 				// Update 2D physics

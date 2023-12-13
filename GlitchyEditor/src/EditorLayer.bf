@@ -379,9 +379,9 @@ namespace GlitchyEditor
 			switch (_sceneState)
 			{
 			case .Edit:
-				updateMode = .Editor;
+				updateMode = .Scripts | .EditMode;
 			case .Play:
-				updateMode = .Runtime;
+				updateMode = .Scripts | .Physics;
 			case .Simulate:
 				updateMode = .Physics;
 			}
@@ -398,7 +398,7 @@ namespace GlitchyEditor
 			 */
 			GameTime gt = null;
 
-			if (updateMode == .Editor)
+			if (updateMode.HasFlag(.EditMode))
 			{
 				gt = gameTime;
 			}
