@@ -1,11 +1,14 @@
 namespace GlitchyEngine.Core;
 
+/// <summary>
+/// The base class for all classes that represent something that belongs to the engine (Entities, Components and Assets).
+/// </summary>
 public abstract class EngineObject
 {
     protected internal UUID _uuid;
 
     /// <summary>
-    /// UUID used for identifying the object in the engine.
+    /// UUID (Universally Unique Identifier) used for identifying the object in the engine.
     /// </summary>
     public UUID UUID => _uuid;
 

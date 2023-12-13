@@ -3,6 +3,9 @@ using System.Runtime.CompilerServices;
 
 namespace GlitchyEngine.Math;
 
+/// <summary>
+/// Provides constants and methods for trigonometric and vector calculations.
+/// </summary>
 public static class Math
 {
     /// An optimal representation of π.
@@ -89,28 +92,32 @@ public static class Math
 
 	#region modf / frac / trunc
 
-    // Splits the value x into fractional and integer parts, each of which has the same sign as x.
+    /// <summary>
+	/// Splits the value x into fractional and integer parts, each of which has the same sign as x.
+	/// </summary>
     public static float modf(float x, out float integerPart) => ScriptGlue.modf_float(x, out integerPart);
 	
-    // Splits the value x into fractional and integer parts, each of which has the same sign as x.
+    /// <inheritdoc cref="modf(float,out float)"/>
     public static float2 modf(float2 x, out float2 integerPart) => ScriptGlue.modf_float2(x, out integerPart);
-
-    // Splits the value x into fractional and integer parts, each of which has the same sign as x.
+	
+    /// <inheritdoc cref="modf(float2,out float2)"/>
     public static float3 modf(float3 x, out float3 integerPart) => ScriptGlue.modf_float3(x, out integerPart);
-
-    // Splits the value x into fractional and integer parts, each of which has the same sign as x.
+	
+    /// <inheritdoc cref="modf(float2,out float2)"/>
     public static float4 modf(float4 x, out float4 integerPart) => ScriptGlue.modf_float4(x, out integerPart);
 	
-    // Returns the fractional (or decimal) part of x; which is greater than or equal to 0 and less than 1.
+    /// <summary>
+	/// Returns the fractional (or decimal) part of x; which is greater than or equal to 0 and less than 1.
+	/// </summary>
     public static float frac(float x) => modf(x, out _);
-
-	// Returns the fractional (or decimal) part of x; which is greater than or equal to 0 and less than 1.
+	
+    /// <inheritdoc cref="frac(float)"/>
 	public static float2 frac(float2 x) => modf(x, out _);
-
-	// Returns the fractional (or decimal) part of x; which is greater than or equal to 0 and less than 1.
+	
+    /// <inheritdoc cref="frac(float)"/>
 	public static float3 frac(float3 x) => modf(x, out _);
-
-	// Returns the fractional (or decimal) part of x; which is greater than or equal to 0 and less than 1.
+	
+    /// <inheritdoc cref="frac(float)"/>
 	public static float4 frac(float4 x) => modf(x, out _);
 
 

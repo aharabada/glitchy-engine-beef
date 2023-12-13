@@ -5,6 +5,9 @@ using System.Text;
 
 namespace GlitchyEngine.Extensions;
 
+/// <summary>
+/// Extends the <see cref="FieldInfo"/>-class with useful methods.
+/// </summary>
 public static class FieldInfoExtension
 {
     /// <summary>

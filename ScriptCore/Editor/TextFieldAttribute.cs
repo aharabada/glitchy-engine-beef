@@ -4,6 +4,10 @@ using System.Text;
 
 namespace GlitchyEngine.Editor;
 
+/// <summary>
+/// Specifies the properties of the textfield for the <see cref="string"/> that the attribute is attached to.
+/// </summary>
+[AttributeUsage(AttributeTargets.Field)]
 public sealed class TextFieldAttribute : Attribute
 {
     /// <summary>

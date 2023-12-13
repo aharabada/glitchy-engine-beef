@@ -3,6 +3,9 @@ using System;
 
 namespace GlitchyEngine.Editor;
 
+/// <summary>
+/// Specifies the visibility of a button.
+/// </summary>
 public enum ButtonVisibility
 {
     /// <summary>

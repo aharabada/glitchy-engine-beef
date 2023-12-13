@@ -1,8 +1,12 @@
 ﻿using System.Runtime.InteropServices;
+using GlitchyEngine.Components;
 using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Physics;
 
+/// <summary>
+/// Represents a collision that occurred between two rigid bodies.
+/// </summary>
 [StructLayout(LayoutKind.Sequential, Pack=1)]
 public struct Collision2D
 {

@@ -12,7 +12,8 @@ namespace GlitchyEngine;
 public class Entity : EngineObject
 {
     /// <summary>
-    /// Don't call this constructor yourself.
+    /// Only to be called by the engine. Don't call this constructor yourself, it will not result in a valid entity.
+    /// If you want to create a new entity use <see cref="Entity(string)"/> or <see cref="Entity(string, Type[])"/>
     /// </summary>
     protected Entity()
     {
@@ -20,7 +21,7 @@ public class Entity : EngineObject
         // This constructor will be called by the Engine to initialize the scripts fields.
         // Especially don't call Create here! Because Create would try and create a new entity.
     }
-    
+
     /// <summary>
     /// Creates a new Entity.
     /// </summary>
@@ -31,7 +32,7 @@ public class Entity : EngineObject
     }
     
     /// <summary>
-    /// Creates a new Entity.
+    /// Creates a new Entity with the specified components attached to it.
     /// </summary>
     /// <param name="name">The name of the new entity.</param>
     /// <param name="components">The components that the entity shall have.</param>
@@ -56,9 +57,17 @@ public class Entity : EngineObject
     /// <param name="uuid">The ID of the entity that belongs to this instance.</param>
     internal Entity(UUID uuid) : base(uuid) { }
 
+    /// <summary>
+    /// Returns <see langword="true"/> if a component of the given type is attached to this entity.
+    /// </summary>
+    /// <typeparam name="T">The type of the component.</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent<T>() => HasComponent(typeof(T));
     
+    /// <summary>
+    /// Returns <see langword="true"/> if a component of the given type is attached to this entity.
+    /// </summary>
+    /// <param name="type">The type of the component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent(Type type) => ScriptGlue.Entity_HasComponent(_uuid, type);
 
@@ -240,13 +249,10 @@ public class Entity : EngineObject
         ScriptGlue.Entity_RemoveScript(_uuid);
     }
 
+    /// <summary>
+    /// Gets the <see cref="GlitchyEngine.Transform"/> <see cref="Component"/> of this <see cref="Entity"/>.
+    /// </summary>
     public Transform Transform => GetComponent<Transform>();
-
-    //public Vector3 Translation
-    //{
-    //    get => Transform.Translation;
-    //    set => Transform.Translation = value;
-    //}
 
     /// <summary>
     /// Returns the first entity with the given name.

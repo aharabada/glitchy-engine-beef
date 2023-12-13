@@ -1,8 +1,10 @@
-using GlitchyEngine.Components;
 using GlitchyEngine.Math;
 
-namespace GlitchyEngine;
+namespace GlitchyEngine.Components;
 
+/// <summary>
+/// Rigid body component for 2D physics.
+/// </summary>
 public class Rigidbody2D : Component
 {
     /// <summary>

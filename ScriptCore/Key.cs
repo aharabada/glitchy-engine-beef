@@ -1,5 +1,8 @@
 ﻿namespace GlitchyEngine;
 
+/// <summary>
+/// An enum of all keys that can be queried using methods in <see cref="Input"/>.
+/// </summary>
 public enum Key
 {
 	// Based on Win32 Virtual Keys
