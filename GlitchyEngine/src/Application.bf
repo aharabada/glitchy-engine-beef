@@ -59,7 +59,10 @@ namespace GlitchyEngine
 			_layerStack = new LayerStack();
 			_gameTime = new GameTime(true);
 
-			_window = new Window(.Default);
+			WindowDescription windowDesc = .Default;
+			windowDesc.Icon = "Resources/Textures/GlitchyEngineIcon.ico";
+
+			_window = new Window(windowDesc);
 			_window.EventCallback = new => OnEvent;
 
 			Input.Init();
