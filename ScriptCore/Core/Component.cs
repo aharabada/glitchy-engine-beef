@@ -1,6 +1,4 @@
-using GlitchyEngine.Core;
-
-namespace GlitchyEngine.Components;
+namespace GlitchyEngine.Core;
 
 /// <summary>
 /// The base class for all Components.

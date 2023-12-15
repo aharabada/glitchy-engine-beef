@@ -64,8 +64,8 @@ static class ScriptGlue
 		s_HasComponentMethods.Clear();
 		s_RemoveComponentMethods.Clear();
 
-		RegisterComponent<TransformComponent>("GlitchyEngine.Transform");
-		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Rigidbody2D");
+		RegisterComponent<TransformComponent>("GlitchyEngine.Core.Transform");
+		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Physics.Rigidbody2D");
 	}
 
 	[RegisterMethod]

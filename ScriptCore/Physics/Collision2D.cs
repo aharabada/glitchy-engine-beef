@@ -1,5 +1,4 @@
 ﻿using System.Runtime.InteropServices;
-using GlitchyEngine.Components;
 using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Physics;

@@ -1,8 +1,6 @@
-using GlitchyEngine.Components;
-using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
-namespace GlitchyEngine;
+namespace GlitchyEngine.Core;
 
 /// <summary>
 /// Represents the position, rotation and scale of an entity in the world.

@@ -6,7 +6,6 @@ using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Text;
-using GlitchyEngine.Components;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using GlitchyEngine.Math;

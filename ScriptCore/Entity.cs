@@ -1,6 +1,5 @@
 using System;
 using System.Runtime.CompilerServices;
-using GlitchyEngine.Components;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 
@@ -250,7 +249,7 @@ public class Entity : EngineObject
     }
 
     /// <summary>
-    /// Gets the <see cref="GlitchyEngine.Transform"/> <see cref="Component"/> of this <see cref="Entity"/>.
+    /// Gets the <see cref="Core.Transform"/> <see cref="Component"/> of this <see cref="Entity"/>.
     /// </summary>
     public Transform Transform => GetComponent<Transform>();
 
