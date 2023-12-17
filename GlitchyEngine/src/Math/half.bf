@@ -24,7 +24,7 @@ struct half : IFloating, ISigned, IFormattable, IHashable, IEquatable<half>, ICa
 
 	public bool IsNegative => (_data & Half_Sign_Mask) > 0;
 
-	public bool IsFinity => (_data & ~Half_Sign_Mask) < Half_Exponent_Mask;
+	public bool IsFinite => (_data & ~Half_Sign_Mask) < Half_Exponent_Mask;
 	public bool IsInfinity => (_data & ~Half_Sign_Mask) == Half_Exponent_Mask;
 	
 	public bool IsPositiveInfinity => _data == PositiveInfinity._data;
@@ -297,6 +297,16 @@ struct half : IFloating, ISigned, IFormattable, IHashable, IEquatable<half>, ICa
 	public static half operator %(half lhs, half rhs)
 	{
 		return (half)((float)lhs % (float)rhs);
+	}
+
+	public static half operator ++(half value)
+	{
+		return (half)((float)value + 1.0f);
+	}
+
+	public static half operator --(half value)
+	{
+		return (half)((float)value - 1.0f);
 	}
 
 	public static bool operator==(half value1, half value2) => value1._data == value2._data;

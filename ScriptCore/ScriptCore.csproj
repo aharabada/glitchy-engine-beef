@@ -15,10 +15,6 @@
   </Target>
 
   <ItemGroup>
-    <PackageReference Include="Half" Version="1.0.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ScriptCoreGenerator\ScriptCoreGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\vendor\ImGui.NET\src\ImGui.NET\ImGui.NET.csproj" />
   </ItemGroup>
