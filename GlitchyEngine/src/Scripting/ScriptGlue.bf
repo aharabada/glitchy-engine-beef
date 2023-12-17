@@ -471,28 +471,28 @@ static class ScriptGlue
 
 	private static void RegisterHalfFunctions()
 	{
-		RegisterCall<function void(float, out half)>("Math.MyHalf::FromFloat32", (value, halfValue) => halfValue = GlitchyEngine.Math.half.FromFloat32(value));
-		RegisterCall<function void(half, out float)>("Math.MyHalf::ToFloat32", (value, floatValue) => floatValue = GlitchyEngine.Math.half.ToFloat32(value));
+		RegisterCall<function void(float, out half)>("Math.Half::FromFloat32", (value, halfValue) => halfValue = GlitchyEngine.Math.half.FromFloat32(value));
+		RegisterCall<function void(half, out float)>("Math.Half::ToFloat32", (value, floatValue) => floatValue = GlitchyEngine.Math.half.ToFloat32(value));
 		
-		RegisterCall<function void(half, half, out bool)>("Math.MyHalf::LessThan_Impl", (left, right, result) => result = left < right);
-		RegisterCall<function void(half, half, out bool)>("Math.MyHalf::LessThanOrEqual_Impl", (left, right, result) => result = left <= right);
-		RegisterCall<function void(half, half, out bool)>("Math.MyHalf::GreaterThan_Impl", (left, right, result) => result = left > right);
-		RegisterCall<function void(half, half, out bool)>("Math.MyHalf::GreaterThanOrEqual_Impl", (left, right, result) => result = left >= right);
+		RegisterCall<function void(half, half, out bool)>("Math.Half::LessThan_Impl", (left, right, result) => result = left < right);
+		RegisterCall<function void(half, half, out bool)>("Math.Half::LessThanOrEqual_Impl", (left, right, result) => result = left <= right);
+		RegisterCall<function void(half, half, out bool)>("Math.Half::GreaterThan_Impl", (left, right, result) => result = left > right);
+		RegisterCall<function void(half, half, out bool)>("Math.Half::GreaterThanOrEqual_Impl", (left, right, result) => result = left >= right);
 
-		RegisterCall<function void(half, half, out half)>("Math.MyHalf::Add_Impl", (left, right, result) => result = left + right);
-		RegisterCall<function void(half, half, out half)>("Math.MyHalf::Subtract_Impl", (left, right, result) => result = left - right);
-		RegisterCall<function void(half, half, out half)>("Math.MyHalf::Multiply_Impl", (left, right, result) => result = left * right);
-		RegisterCall<function void(half, half, out half)>("Math.MyHalf::Divide_Impl", (left, right, result) => result = left / right);
-		RegisterCall<function void(half, half, out half)>("Math.MyHalf::Modulo_Impl", (left, right, result) => result = left % right);
-		RegisterCall<function void(half, out half)>("Math.MyHalf::Negate_Impl", (value, result) => result = -value);
-		RegisterCall<function void(half, out half)>("Math.MyHalf::Increment_Impl", (value, result) => result = ++value);
-		RegisterCall<function void(half, out half)>("Math.MyHalf::Decrement_Impl", (value, result) => result = --value);
+		RegisterCall<function void(half, half, out half)>("Math.Half::Add_Impl", (left, right, result) => result = left + right);
+		RegisterCall<function void(half, half, out half)>("Math.Half::Subtract_Impl", (left, right, result) => result = left - right);
+		RegisterCall<function void(half, half, out half)>("Math.Half::Multiply_Impl", (left, right, result) => result = left * right);
+		RegisterCall<function void(half, half, out half)>("Math.Half::Divide_Impl", (left, right, result) => result = left / right);
+		RegisterCall<function void(half, half, out half)>("Math.Half::Modulo_Impl", (left, right, result) => result = left % right);
+		RegisterCall<function void(half, out half)>("Math.Half::Negate_Impl", (value, result) => result = -value);
+		RegisterCall<function void(half, out half)>("Math.Half::Increment_Impl", (value, result) => result = ++value);
+		RegisterCall<function void(half, out half)>("Math.Half::Decrement_Impl", (value, result) => result = --value);
 		
-		RegisterCall<function bool(half)>("Math.MyHalf::IsNegative_Impl", (value) => value.IsNegative);
-		RegisterCall<function bool(half)>("Math.MyHalf::IsFinite_Impl", (value) => value.IsFinite);
-		RegisterCall<function bool(half)>("Math.MyHalf::IsInfinity_Impl", (value) => value.IsInfinity);
-		RegisterCall<function bool(half)>("Math.MyHalf::IsNan_Impl", (value) => value.IsNaN);
-		RegisterCall<function bool(half)>("Math.MyHalf::IsSubnormal_Impl", (value) => value.IsSubnormal);
+		RegisterCall<function bool(half)>("Math.Half::IsNegative_Impl", (value) => value.IsNegative);
+		RegisterCall<function bool(half)>("Math.Half::IsFinite_Impl", (value) => value.IsFinite);
+		RegisterCall<function bool(half)>("Math.Half::IsInfinity_Impl", (value) => value.IsInfinity);
+		RegisterCall<function bool(half)>("Math.Half::IsNan_Impl", (value) => value.IsNaN);
+		RegisterCall<function bool(half)>("Math.Half::IsSubnormal_Impl", (value) => value.IsSubnormal);
 	}
 
 #endregion

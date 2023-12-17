@@ -38,7 +38,8 @@ public struct Half : IComparable , IComparable<Half>, IConvertible, IEquatable<H
 
     public Half(float value)
     {
-        FromFloat32(value, out this);
+        FromFloat32(value, out Half halfValue);
+        this = halfValue;
     }
 
     private Half(ushort data)
