@@ -1,6 +1,6 @@
 using GlitchyEngine.Math;
 
-namespace GlitchyEngine;
+namespace GlitchyEngine.Physics;
 
 /// <summary>
 /// Allows changing the properties of the 2D physics simulation in the current scene.
