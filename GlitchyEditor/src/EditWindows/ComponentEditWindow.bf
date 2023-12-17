@@ -122,7 +122,7 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.PushID(header);
 
-			bool nodeOpen = ImGui.TreeNodeEx(header.CStr(), .DefaultOpen | .AllowItemOverlap | .Framed | .SpanFullWidth);
+			bool nodeOpen = ImGui.TreeNodeEx(header.CStr(), .DefaultOpen | .AllowOverlap | .Framed | .SpanFullWidth);
 
 			if (showComponentContextMenu != null)
 			{

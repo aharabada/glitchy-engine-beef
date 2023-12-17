@@ -464,7 +464,7 @@ namespace GlitchyEditor.EditWindows
 
 			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
 
-			ImGui.BeginChild("item", (.)DirectoryItemSize, false, .NoScrollbar);
+			ImGui.BeginChild("item", (.)DirectoryItemSize, .None, .NoScrollbar);
 
 			if (entry->Path == _selectedFile)
 			{
@@ -546,7 +546,7 @@ namespace GlitchyEditor.EditWindows
 
 			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
 
-			ImGui.BeginChild("item", (.)DirectoryItemSize, false, .NoScrollbar);
+			ImGui.BeginChild("item", (.)DirectoryItemSize, .None, .NoScrollbar);
 
 			if (entry->Path == _selectedFile)
 			{
@@ -690,7 +690,7 @@ namespace GlitchyEditor.EditWindows
 
 			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
 
-			ImGui.BeginChild("item", (.)DirectoryItemSize, false, .NoScrollbar);
+			ImGui.BeginChild("item", (.)DirectoryItemSize, .None, .NoScrollbar);
 			
 			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
 
