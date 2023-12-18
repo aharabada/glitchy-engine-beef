@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
@@ -492,7 +493,7 @@ internal class EntityEditor
                     {
                         if (payloadPtr.NativePtr != null)
                         {
-                            ListPayload payload = *(ListPayload*)(payloadPtr.Data);
+                            ref ListPayload payload = ref Unsafe.AsRef<ListPayload>((void*)payloadPtr.Data);
 
                             // Make sure the index is still correct
                             if (payload.Element < myList.Count)
@@ -539,7 +540,7 @@ internal class EntityEditor
                     {
                         ListPayload payload = new() { List = myList, Element = i };
 
-                        ImGui.SetDragDropPayload("SCRIPT_EDITOR_LIST_ELEMENT", (IntPtr)(&payload), (uint)sizeof(ListPayload));
+                        ImGui.SetDragDropPayload("SCRIPT_EDITOR_LIST_ELEMENT", (IntPtr)Unsafe.AsPointer(ref payload), (uint)Unsafe.SizeOf<ListPayload>());
                     }
 
                     ImGui.SetTooltip($"Move Element {i}");
