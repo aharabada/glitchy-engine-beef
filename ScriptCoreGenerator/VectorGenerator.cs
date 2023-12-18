@@ -85,6 +85,7 @@ public class VectorGenerator : ISourceGenerator
             GenerateEqualityOperators(vector, builder);
 
             GenerateEquals(vector, builder);
+            GenerateGetHashCode(vector, builder);
 
             if (receiver.ComparableReceiver.ComparableVectors.Contains(vector.VectorName))
             {
@@ -127,6 +128,32 @@ public class VectorGenerator : ISourceGenerator
                                     return Math.all(this == otherVector);
                                     
                                 return false;
+                             }
+
+
+                         """);
+    }
+
+    private void GenerateGetHashCode(VectorDefinition vector, StringBuilder builder)
+    {
+        builder.Append("""
+                           public override int GetHashCode()
+                           {
+                               // Unchecked to allow overflow
+                               unchecked
+                               {
+                                   int hash = 17;
+                       
+                       """);
+
+        for (int i = 0; i < vector.ComponentCount; i++)
+        {
+            builder.Append($"\t\t\thash = hash * 23 + {ComponentNames[i]}.GetHashCode();\n");
+        }
+
+        builder.Append("""
+                                     return hash;
+                                 }
                              }
 
 
