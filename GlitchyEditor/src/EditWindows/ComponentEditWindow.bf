@@ -653,13 +653,12 @@ namespace GlitchyEditor.EditWindows
 				{
 					Entity draggedEntity = *(Entity*)peekPayload.Data;
 
-					ScriptClass draggedScriptClass = ScriptEngine.[Friend]s_EntityRoot;
+					ScriptClass draggedScriptClass = ScriptEngine.Classes.EntityRoot;
 
 					if (draggedEntity.TryGetComponent<ScriptComponent>(let draggedScript))
 					{
 						var draggedClassName = draggedScript.ScriptClassName;
 						draggedScriptClass = ScriptEngine.GetScriptClass(draggedClassName);
-
 					}
 
 					// TODO: I don't like the fact, that we are using mono directly

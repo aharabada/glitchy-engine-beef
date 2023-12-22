@@ -48,6 +48,48 @@ static sealed class ScriptEngineHelper
 	}
 }
 
+class EngineClasses
+{
+	private ScriptClass s_ComponentRoot ~ _?.ReleaseRef();
+	private ScriptClass s_EntityRoot ~ _?.ReleaseRef();
+	private ScriptClass s_EngineObject ~ _?.ReleaseRef();
+
+	private ScriptClass s_EntityEditor ~ _?.ReleaseRef();
+
+	private ScriptClass s_EntitySerializer ~ _?.ReleaseRef();
+	private ScriptClass s_SerializationContext ~ _?.ReleaseRef();
+
+	public ScriptClass ComponentRoot => s_ComponentRoot;
+	public ScriptClass EntityRoot => s_EntityRoot;
+	public ScriptClass EngineObject => s_EngineObject;
+
+	public ScriptClass EntityEditor => s_EntityEditor;
+
+	internal void ReleaseAndNullify()
+	{
+		ReleaseRefAndNullify!(s_EngineObject);
+		ReleaseRefAndNullify!(s_EntityRoot);
+		ReleaseRefAndNullify!(s_ComponentRoot);
+
+		ReleaseRefAndNullify!(s_EntityEditor);
+
+		ReleaseRefAndNullify!(s_EntitySerializer);
+		ReleaseRefAndNullify!(s_SerializationContext);
+	}
+
+	internal void LoadClasses(MonoImage* image)
+	{
+		ReleaseAndNullify();
+
+		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", image, .Class);
+		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", image, .Entity);
+		s_ComponentRoot = new ScriptClass("GlitchyEngine.Core", "Component", image, .Component);
+
+		// Editor classes
+		s_EntityEditor = new ScriptClass("GlitchyEngine.Editor", "EntityEditor", image, .Class);
+	}
+}
+
 static class ScriptEngine
 {
 	private static MonoDomain* s_RootDomain;
@@ -61,11 +103,9 @@ static class ScriptEngine
 
 	private static Scene s_Context ~ _?.ReleaseRef();
 
-	private static ScriptClass s_ComponentRoot ~ _?.ReleaseRef();
-	private static ScriptClass s_EntityRoot ~ _?.ReleaseRef();
-	private static ScriptClass s_EngineObject ~ _?.ReleaseRef();
+	private static append EngineClasses _classes = .();
 
-	private static ScriptClass s_EntityEditor ~ _?.ReleaseRef();
+	public static EngineClasses Classes => _classes;
 
 	private static Dictionary<StringView, SharpType> _sharpClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
 	
@@ -298,7 +338,7 @@ static class ScriptEngine
 		}
 
 		GetCoreAttributes();
-		GetCoreClasses();
+		Classes.LoadClasses(s_CoreAssemblyImage);
 
 		ClearDictionaryAndReleaseValues!(_sharpClasses);
 		ClearDictionaryAndReleaseValues!(_componentClasses);
@@ -391,7 +431,7 @@ static class ScriptEngine
 
 		if (referencedEntity == null)
 		{	 
-			referencedEntity = s_EntityRoot.CreateInstance(entityId, let exception);
+			referencedEntity = Classes.EntityRoot.CreateInstance(entityId, let exception);
 			
 			if (exception != null)
 				ScriptEngine.HandleMonoException(exception, null);
@@ -407,7 +447,7 @@ static class ScriptEngine
 
 		MonoClassField* idField = Mono.mono_class_get_field_from_name(componentClass.[Friend]_monoClass, "_uuid");
 
-		s_ComponentRoot.SetFieldValue<UUID>(componentInstance, idField, id);
+		Classes.ComponentRoot.SetFieldValue<UUID>(componentInstance, idField, id);
 
 		/*// TODO: We could cache the property, but this might be fine
 		MonoProperty* entityProperty = Mono.mono_class_get_property_from_name(componentClass.[Friend]_monoClass, "Entity");
@@ -499,8 +539,8 @@ static class ScriptEngine
 
 				if (sourceEntityReference != null)
 				{
-					let idField = Mono.mono_class_get_field_from_name(s_EntityRoot._monoClass, "_uuid");
-					UUID sourceId = s_EntityRoot.GetFieldValue<UUID>(sourceEntityReference, idField);
+					let idField = Mono.mono_class_get_field_from_name(Classes.EntityRoot._monoClass, "_uuid");
+					UUID sourceId = Classes.EntityRoot.GetFieldValue<UUID>(sourceEntityReference, idField);
 
 					// Check if we need to translate, copy otherwise
 					if (sourceIdToTargetId.TryGetValue(sourceId, let referencedId))
@@ -523,8 +563,8 @@ static class ScriptEngine
 				// Get or create entity reference
 				if (sourceComponentReference != null)
 				{
-					let idField = Mono.mono_class_get_field_from_name(s_EngineObject._monoClass, "_uuid");
-					UUID sourceId = s_EntityRoot.GetFieldValue<UUID>(sourceComponentReference, idField);
+					let idField = Mono.mono_class_get_field_from_name(Classes.EngineObject._monoClass, "_uuid");
+					UUID sourceId = Classes.EntityRoot.GetFieldValue<UUID>(sourceComponentReference, idField);
 					
 					MonoType* fieldMonoType = scriptField.GetMonoType();
 
@@ -621,22 +661,6 @@ static class ScriptEngine
 		return (assembly, image);
 	}
 
-	/// Retrieves the base classes from which every Component or Entity inherits
-	static void GetCoreClasses()
-	{
-		ReleaseRefAndNullify!(s_EngineObject);
-		ReleaseRefAndNullify!(s_EntityRoot);
-		ReleaseRefAndNullify!(s_ComponentRoot);
-		ReleaseRefAndNullify!(s_EntityEditor);
-
-		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", s_CoreAssemblyImage, .Class);
-		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", s_CoreAssemblyImage, .Entity);
-		s_ComponentRoot = new ScriptClass("GlitchyEngine.Core", "Component", s_CoreAssemblyImage, .Component);
-
-		// Editor classes
-		s_EntityEditor = new ScriptClass("GlitchyEngine.Editor", "EntityEditor", s_CoreAssemblyImage, .Class);
-	}
-	
 	/// Retrieves the classes for Attributes that are defined in the Core library
 	static void GetCoreAttributes()
 	{
@@ -667,7 +691,7 @@ static class ScriptEngine
 			MonoClass* monoClass = Mono.mono_class_from_name(s_AppAssemblyImage, nameSpace, name);
 			
 			// Check if it is an entity
-			if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot.[Friend]_monoClass, false))
+			if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, Classes.EntityRoot.[Friend]_monoClass, false))
 			{
 				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage, .Entity);
 				_entityScripts.Add(entityScript.FullName, entityScript);
@@ -692,7 +716,7 @@ static class ScriptEngine
 			MonoClass* monoClass = Mono.mono_class_from_name(s_CoreAssemblyImage, nameSpace, name);
 			
 			// Check if it is a component but not the root Component class
-			if (monoClass != null && monoClass != s_ComponentRoot.[Friend]_monoClass && Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot.[Friend]_monoClass, false))
+			if (monoClass != null && monoClass != Classes.ComponentRoot.[Friend]_monoClass && Mono.mono_class_is_subclass_of(monoClass, Classes.ComponentRoot.[Friend]_monoClass, false))
 			{
 				ScriptClass componentClass = new ScriptClass(StringView(nameSpace), StringView(name), s_CoreAssemblyImage, .Component);
 				_componentClasses.Add(componentClass.FullName, componentClass);
@@ -767,11 +791,11 @@ static class ScriptEngine
 		}
 		else if (fieldType == .Class)
 		{
-			if (Mono.mono_class_is_subclass_of(monoClass, s_EntityRoot._monoClass, false))
+			if (Mono.mono_class_is_subclass_of(monoClass, Classes.EntityRoot._monoClass, false))
 			{
 				scriptType = .Entity;
 			}
-			else if (Mono.mono_class_is_subclass_of(monoClass, s_ComponentRoot._monoClass, false))
+			else if (Mono.mono_class_is_subclass_of(monoClass, Classes.ComponentRoot._monoClass, false))
 			{
 				scriptType = .Component;
 			}
@@ -917,8 +941,19 @@ static class ScriptEngine
 #unwarn
 		void*[2] args = .(&entityId, monoReflectionType);
 		
-		let method = s_EntityEditor.GetMethod("ShowDefaultEntityEditor", 2);
+		let method = Classes.EntityEditor.GetMethod("ShowDefaultEntityEditor", 2);
 
-		s_EntityEditor.Invoke(method, null, &args);
+		Classes.EntityEditor.Invoke(method, null, &args);
+	}
+
+	/// Serializes all script instances
+	public static void SerializeScriptInstances(String output)
+	{
+		ScriptInstanceSerializer serializer = scope .();
+
+		for (let (id, script) in _entityScriptInstances)
+		{
+			serializer.Serialize(script);
+		}
 	}
 }
