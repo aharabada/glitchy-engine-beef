@@ -866,8 +866,10 @@ namespace GlitchyEditor
 		/// Starts the play mode for the current scene
 		private void OnScenePlay()
 		{
-			// TODO: Dictionary<UUID, ScriptData> scriptData = _editorScene.SerializeScripts();
+			Dictionary<UUID, SerializedObject> serializedData = scope .();
 
+			ScriptEngine.SerializeScriptInstances(serializedData);
+			
 			_editor.SceneViewportWindow.EditorMode = false;
 			_sceneState = .Play;
 
@@ -878,14 +880,19 @@ namespace GlitchyEditor
 				_editorScene.CopyTo(runtimeScene, true);
 
 				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true);
-
-				// TODO: runtimeScene.DeserializeScripts(scriptData);
+				
+				ScriptEngine.DeserializeScriptInstances(serializedData);
 			}
 
 			_editor.CurrentScene = _activeScene;
 
 			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnPlay)
 				SwitchToPlayWindow();
+
+			for (let v in serializedData)
+			{
+				delete v.value;
+			}
 		}
 
 		/// Activates the given scene.

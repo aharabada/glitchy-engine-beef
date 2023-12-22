@@ -531,6 +531,37 @@ static class ScriptGlue
 
 #endregion
 
+#region Serialization
+
+	[RegisterCall("ScriptGlue::Serialization_SerializeField")]
+	static void Serialization_SerializeField(void* serializationContext, SerializationType type, MonoString* nameObject, MonoObject* valueObject)
+	{
+		SerializedObject context = Internal.UnsafeCastToObject(serializationContext) as SerializedObject;
+
+		Log.EngineLogger.AssertDebug(context != null);
+
+		char8* name = Mono.mono_string_to_utf8(nameObject);
+
+		context.AddField(StringView(name), type, valueObject);
+		
+		Mono.mono_free(name);
+	}
+	
+	[RegisterCall("ScriptGlue::Serialization_CreateObject")]
+	static void Serialization_CreateObject(void* currentContext, out void* newContext, out UUID newId)
+	{
+		SerializedObject context = Internal.UnsafeCastToObject(currentContext) as SerializedObject;
+
+		Log.EngineLogger.AssertDebug(context != null);
+
+		SerializedObject newObject = new SerializedObject(context.AllObjects);
+
+		newContext = Internal.UnsafeCastToPtr(newObject);
+		newId = newObject.Id;
+	}
+
+#endregion
+
 	private static void RegisterCall<T>(String name, T method) where T : var
 	{
 		Mono.mono_add_internal_call(scope $"GlitchyEngine.{name}", (void*)method);

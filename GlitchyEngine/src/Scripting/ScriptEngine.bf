@@ -65,6 +65,9 @@ class EngineClasses
 
 	public ScriptClass EntityEditor => s_EntityEditor;
 
+	public ScriptClass EntitySerializer => s_EntitySerializer;
+	//public ScriptClass SerializationContext => s_SerializationContext;
+
 	internal void ReleaseAndNullify()
 	{
 		ReleaseRefAndNullify!(s_EngineObject);
@@ -87,6 +90,9 @@ class EngineClasses
 
 		// Editor classes
 		s_EntityEditor = new ScriptClass("GlitchyEngine.Editor", "EntityEditor", image, .Class);
+
+		s_EntitySerializer = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer", image, .Class);
+		//s_SerializationContext = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer.SerializationContext", image, .Class);
 	}
 }
 
@@ -947,13 +953,34 @@ static class ScriptEngine
 	}
 
 	/// Serializes all script instances
-	public static void SerializeScriptInstances(String output)
+	public static void SerializeScriptInstances(Dictionary<UUID, SerializedObject> allObjects)
 	{
-		ScriptInstanceSerializer serializer = scope .();
-
 		for (let (id, script) in _entityScriptInstances)
 		{
-			serializer.Serialize(script);
+			if (script.ScriptClass.ClassName != "SerializationTest")
+				continue;
+
+			SerializedObject object = new SerializedObject(allObjects);
+
+			object.Id = script.EntityId;
+			object.AllObjects = allObjects;
+
+			object.Serialize(script);
+		}
+	}
+
+	/// Deserializes the given data into the script instances
+	public static void DeserializeScriptInstances(Dictionary<UUID, SerializedObject> allObjects)
+	{
+		for (let (id, script) in _entityScriptInstances)
+		{
+			if (script.ScriptClass.ClassName != "SerializationTest")
+				continue;
+
+			if (allObjects.TryGetValue(id, let object))
+			{
+				object.Deserialize(script);
+			}
 		}
 	}
 }

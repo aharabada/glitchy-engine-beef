@@ -2,6 +2,7 @@ using System;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
+using GlitchyEngine.Serialization;
 
 namespace GlitchyEngine;
 
@@ -133,6 +134,16 @@ internal static class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern bool Application_IsInPlayMode();
+
+    #endregion
+
+    #region Serialization
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string name, object value);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Serialization_CreateObject(IntPtr currentContext, out IntPtr context, out UUID id);
 
     #endregion
 }
