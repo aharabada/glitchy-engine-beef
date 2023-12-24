@@ -559,6 +559,20 @@ static class ScriptGlue
 		newContext = Internal.UnsafeCastToPtr(newObject);
 		newId = newObject.Id;
 	}
+	
+	[RegisterCall("ScriptGlue::Serialization_DeserializeField")]
+	public static void Serialization_DeserializeField(void* internalContext, SerializationType expectedType, MonoString* fieldName, uint8* target)
+	{
+		SerializedObject context = Internal.UnsafeCastToObject(internalContext) as SerializedObject;
+
+		Log.EngineLogger.AssertDebug(context != null);
+		
+		char8* name = Mono.mono_string_to_utf8(fieldName);
+
+		context.GetField(StringView(name), expectedType, target);
+
+		Mono.mono_free(name);
+	}
 
 #endregion
 

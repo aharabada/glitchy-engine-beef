@@ -960,11 +960,7 @@ static class ScriptEngine
 			if (script.ScriptClass.ClassName != "SerializationTest")
 				continue;
 
-			SerializedObject object = new SerializedObject(allObjects);
-
-			object.Id = script.EntityId;
-			object.AllObjects = allObjects;
-
+			SerializedObject object = new SerializedObject(allObjects, script.EntityId);
 			object.Serialize(script);
 		}
 	}

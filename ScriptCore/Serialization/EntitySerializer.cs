@@ -4,6 +4,8 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
@@ -251,262 +253,314 @@ public static class EntitySerializer
             }
         }
     }
-
-    public class SerializationContext
+    
+    public class DeserializationObject
     {
-        StringBuilder _builder = new();
+        private IntPtr _internalContext;
 
-        public Dictionary<object, SerializationContext> SerializedClasses = new();
+        private UUID _id;
 
-        public UUID ID = UUID.CreateNew();
+        private Stack<string> _structScope = new();
 
-        private int _indentLevel = 0;
+        private string _structScopeName;
 
-        private void BeginLine()
+        public Dictionary<object, SerializedObject> SerializedClasses;
+
+        public DeserializationObject(IntPtr internalContext, UUID id, Dictionary<object, SerializedObject> serializedClasses)
         {
-            for (int i = 0; i < _indentLevel; i++)
-                _builder.Append('\t');
+            _internalContext = internalContext;
+            _id = id;
+            SerializedClasses = serializedClasses;
         }
-
-        private void WriteLine(string line)
+        
+        private (SerializedObject context, bool newContext) GetSerializedObject(object o)
         {
-            BeginLine();
-
-            _builder.AppendLine(line);
-        }
-
-        private void WriteField(string type, string name, string value)
-        {
-            BeginLine();
-
-            _builder.AppendFormat("{0} {1} = {2}", type, name, value);
-            _builder.Append('\n');
-        }
-
-        private void StartBlock()
-        {
-            WriteLine("{");
-            _indentLevel++;
-        }
-
-        private void EndBlock()
-        {
-            Debug.Assert(_indentLevel > 0);
-            _indentLevel--;
-            WriteLine("}");
-        }
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="o"></param>
-        /// <returns>A serialization context for the given object. And true, if the context was used before, false otherwise.</returns>
-        private (SerializationContext context, bool newContext) GetReferenceTypeContext(object o)
-        {
-            SerializationContext context;
+            SerializedObject context;
 
             if (SerializedClasses.TryGetValue(o, out context))
                 return (context, false);
             
-            context = new SerializationContext
-            {
-                SerializedClasses = SerializedClasses,
-                // The indentation is arbitrary anyway, this is just for style
-                _indentLevel = 1
-            };
+            ScriptGlue.Serialization_CreateObject(_internalContext, out IntPtr contextPtr, out UUID id);
+
+            context = new SerializedObject(contextPtr, id, SerializedClasses);
 
             SerializedClasses.Add(o, context);
 
             return (context, true);
         }
+
+        private void PushScope(string name)
+        {
+            _structScope.Push(name);
+
+            _structScopeName += $"{name}.";
+        }
+
+        private void PopScope()
+        {
+            string scopeToRemove = _structScope.Pop();
+            _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
+        }
+
+        private unsafe object GetFieldValue(string fieldName, SerializationType serializationType)
+        {
+            string completeFieldName = $"{_structScopeName}{fieldName}";
+
+            // Decimal is the larges primitive we store so we use a decimal as stack allocated memory (because stackalloc doesn't seem to work :(
+            //decimal backingFieldOnStack = 0.0m;
+            byte* rawData = stackalloc byte[16];
+            //byte* rawData = (byte*)&backingFieldOnStack;
+
+            ScriptGlue.Serialization_DeserializeField(_internalContext, serializationType, completeFieldName, rawData);
+
+            string GetString()
+            {
+                // rawData contains a Pointer and a string length!
+                byte* utf8Ptr = *(byte**)rawData;
+                ulong length = *(ulong*)(rawData + 8);
+
+                return Encoding.UTF8.GetString(utf8Ptr, (int)length);
+            }
+
+            switch (serializationType)
+            {
+                case SerializationType.Bool:
+                    return *(bool*)rawData;
+                case SerializationType.Char:
+                    return *(char*)rawData;
+                case SerializationType.String:
+                    return GetString();
+                case SerializationType.Int8:
+                    return *(sbyte*)rawData;
+                case SerializationType.Int16:
+                    return *(short*)rawData;
+                case SerializationType.Int32:
+                    return *(int*)rawData;
+                case SerializationType.Int64:
+                    return *(long*)rawData;
+                case SerializationType.UInt8:
+                    return *(byte*)rawData;
+                case SerializationType.UInt16:
+                    return *(ushort*)rawData;
+                case SerializationType.UInt32:
+                    return *(uint*)rawData;
+                case SerializationType.UInt64:
+                    return *(ulong*)rawData;
+	
+                case SerializationType.Float:
+                    return *(float*)rawData;
+                case SerializationType.Double:
+                    return *(double*)rawData;
+                case SerializationType.Decimal:
+                    return *(decimal*)rawData;
+
+                case SerializationType.Enum:
+                    string value = GetString();
+                    // TODO!
+                    return null;
+	
+                case SerializationType.EntityReference:
+                case SerializationType.ComponentReference:
+                case SerializationType.ObjectReference:
+                    return *(UUID*)rawData;
+                default:
+                    return null;
+            }
+        }
+
+        public void Deserialize(Entity entity)
+        {
+            DeserializeFields(entity);
+        }
         
-        private void SerializeArray(string fieldName, Type fieldType, object o)
+        private bool DeserializeFields(object obj)
         {
-            Type type = o.GetType();
+            Type type = obj.GetType();
 
-            Debug.Assert(type.IsArray);
+            bool changed = false;
 
-            Type elementType = type.GetElementType();
-            
-            Debug.Assert(elementType != null);
-            
-            WriteField(type.ToString(), fieldName, "");
-
-            StartBlock();
-
-            Array array = (Array)o;
-
-            foreach (var element in array)
+            foreach (FieldInfo field in type.GetFields())
             {
-                Serialize("", elementType, element);
-            }
-
-            EndBlock();
-        }
-
-        public void SerializeList(string fieldName, Type fieldType, object o)
-        {
-            Type type = o.GetType();
-            
-            Debug.Assert(type.IsGenericType);
-
-            Type elementType = type.GetGenericArguments()[0];
-            
-            WriteField(type.ToString(), fieldName, "");
-
-            StartBlock();
-
-            IList list = (IList)o;
-
-            foreach (var element in list)
-            {
-                Serialize("", elementType, element);
-            }
-
-            EndBlock();
-        }
-        void SerializeFields(Type objectType, object instance)
-        {
-            foreach (FieldInfo fieldInfo in objectType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
-            {
-                if (!SerializeField(fieldInfo))
+                if (!EntitySerializer.SerializeField(field))
                     continue;
 
-                object value = fieldInfo.GetValue(instance);
-                Serialize(fieldInfo.Name, fieldInfo.FieldType, value);
+                changed |= DeserializeField(obj, field);
             }
+
+            return changed;
         }
 
-
-        /// <summary>
-        /// 
-        /// </summary>
-        /// <param name="o"></param>
-        /// <param name="shallowEntities">If true, entities will only be serialized as their UUID</param>
-        public void Serialize(string fieldName, Type fieldType, object o, bool shallowEntities = true)
+        private bool DeserializeField(object targetInstance, FieldInfo field)
         {
-            // TODO: is this shortcut valid?
-            if (o == null)
-            {
-                WriteField(fieldType.ToString(), fieldName, "null");
-                return;
-            }
+            Type fieldType = field.FieldType;
 
-            Type type = o.GetType();
+            if (fieldType.IsPrimitive)
+            {
+                object value = DeserializePrimitive(field.Name, fieldType);
 
-            if (typeof(Entity).IsAssignableFrom(type))
-            {
-                if (shallowEntities)
-                    WriteField(type.ToString(), fieldName, ((Entity)o).UUID.ToString());
-                else
-                    SerializeClass(fieldName, type, o);
-                    //SerializeFields(type, o);
+                if (value != null)
+                {
+                    field.SetValue(targetInstance, value);
+                    return true;
+                }
             }
-            else if (typeof(Component).IsAssignableFrom(type))
+            else if (fieldType == typeof(string))
             {
-                WriteField(type.ToString(), fieldName, ((Component)o).UUID.ToString());
+                object value = GetFieldValue(field.Name, SerializationType.String);
+
+                if (value != null)
+                {
+                    field.SetValue(targetInstance, value);
+                    return true;
+                }
             }
-            else if (type == typeof(string))
+            else if (fieldType.IsEnum)
             {
-                WriteField(type.ToString(), fieldName, $"\"{(string)o}\"");
+            //    SerializeEnum(fieldName, fieldValue, fieldType);
             }
-            else if (type.IsPrimitive)
+            else if (fieldType.IsArray)
             {
-                WriteField(type.ToString(), fieldName, o.ToString());
+            //    Log.Error($"Array serialization not yet implemented");
             }
-            else if (type.IsEnum)
-            {
-                WriteField(type.ToString(), fieldName, o.ToString());
-            }
-            else if (type.IsArray)
-            {
-                SerializeArray(fieldName, type, o);
-            }
-            else if (type.IsGenericType)
+            else if (fieldType.IsGenericType)
             {
                 if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
                 {
-                    SerializeList(fieldName, type, o);
+                    //SerializeList(fieldName, type, o);
+                    Log.Error($"List serialization not yet implemented");
                 }
-                //else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+                 //else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
                 //{
                 //    ImGui.Text($"{fieldName} Dictionary");
                 //}
                 else
                 {
                     // TODO: what to do?
+                    Log.Error($"Generic class serialization not yet implemented");
                 }
             }
-            else if (type.IsValueType)
+            else if (fieldType.IsValueType)
             {
-                SerializeStruct(fieldName, type, o);
+                object structValue = field.GetValue(targetInstance);
+
+                bool changed = DeserializeStruct(field.Name, structValue);
+
+                if (changed)
+                {
+                    field.SetValue(targetInstance, structValue);
+                    return true;
+                }
             }
-            else if (type.IsClass)
+            else if (fieldType.IsClass)
             {
-                // TODO: Use custom serializer, if available
-                
-                SerializeClass(fieldName, type, o);
+            //    SerializeClass(fieldName, fieldValue, fieldType);
             }
             else
             {
-                Log.Error($"Encountered unhandled type \"{type}\" while serializing.");
+                Log.Error($"Encountered unhandled type \"{fieldType}\" while serializing.");
             }
+
+            return false;
         }
-        
-        private void SerializeStruct(string fieldName, Type type, object o)
+
+        private object DeserializePrimitive(string fieldName, Type fieldType)
         {
-            WriteField(type.ToString(), fieldName, "{");
-            StartBlock();
+            Debug.Assert(fieldType.IsPrimitive, $"{fieldType} is not a primitive type.");
+
+            SerializationType expectedType = SerializationType.None;
             
-            SerializeFields(type, o);
-
-            EndBlock();
-        }
-
-        private void SerializeClass(string fieldName, Type type, object o)
-        {
-            (SerializationContext context, bool newContext) = GetReferenceTypeContext(o);
-            
-            // Only serialize the class, if it wasn't serialized before, obviously...
-            if (newContext)
-                context.SerializeFields(type, o);
-
-            WriteField(type.ToString(), fieldName, context.ID.ToString());
-        }
-
-        public override string ToString()
-        {
-            StringBuilder finalBuilder = new();
-
-            foreach (var context in SerializedClasses)
+            if (fieldType == typeof(bool))
+                expectedType = SerializationType.Bool;
+            else if (fieldType == typeof(char))
+                expectedType = SerializationType.Char;
+            else if (fieldType == typeof(byte))
+                expectedType = SerializationType.UInt8;
+            else if (fieldType == typeof(sbyte))
+                expectedType = SerializationType.Int8;
+            else if (fieldType == typeof(ushort))
+                expectedType = SerializationType.UInt16;
+            else if (fieldType == typeof(short))
+                expectedType = SerializationType.Int16;
+            else if (fieldType == typeof(uint))
+                expectedType = SerializationType.UInt32;
+            else if (fieldType == typeof(int))
+                expectedType = SerializationType.Int32;
+            else if (fieldType == typeof(ulong))
+                expectedType = SerializationType.UInt64;
+            else if (fieldType == typeof(long))
+                expectedType = SerializationType.Int64;
+            else if (fieldType == typeof(float))
+                expectedType = SerializationType.Float;
+            else if (fieldType == typeof(double))
+                expectedType = SerializationType.Double;
+            else if (fieldType == typeof(decimal))
+                expectedType = SerializationType.Decimal;
+            else
             {
-                finalBuilder.Append($"{context.Value.ID} = {{\n");
-                
-                finalBuilder.Append(context.Value._builder);
-                
-                finalBuilder.Append("}\n\n");
+                Log.Error($"The primitive {fieldType} is not implemented.");
             }
-            
-            finalBuilder.Append("Object:");
 
-            finalBuilder.Append(_builder);
+            return GetFieldValue(fieldName, expectedType);
+        }
 
-            return finalBuilder.ToString();
+        private void SerializeEnum(string fieldName, object fieldValue, Type fieldType)
+        {
+            //AddField(fieldName, SerializationType.Enum, fieldValue.ToString());
+        }
 
+        private bool DeserializeStruct(string fieldName, object targetInstance)
+        {
+            PushScope(fieldName);
+
+            bool changed = DeserializeFields(targetInstance);
+
+            PopScope();
+
+            return changed;
+        }
+
+        private void SerializeClass(string fieldName, object fieldValue, Type fieldType)
+        {
+            //if (typeof(Entity).IsAssignableFrom(fieldType))
+            //{
+            //    AddField(fieldName, SerializationType.EntityReference, ((Entity)fieldValue)?.UUID ?? UUID.Zero);
+            //}
+            //else if (typeof(Component).IsAssignableFrom(fieldType))
+            //{
+            //        AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero);
+            //}
+            //else
+            //{
+            //    if (fieldValue == null)
+            //    {
+            //        AddField(fieldName, SerializationType.ObjectReference, UUID.Zero);
+            //    }
+            //    else
+            //    {
+            //        var (context, newContext) = GetSerializedObject(fieldValue);
+
+            //        if (newContext)
+            //        {
+            //            context.SerializeFields(fieldValue);
+            //        }
+
+            //        AddField(fieldName, SerializationType.ObjectReference, context._id);   
+            //    }
+            //}
         }
     }
 
-    //public static void Serialize(Entity entity, SerializationContext context)
-    //{
-    //    context ??= new SerializationContext();
-        
-    //    context.Serialize($"Entity: {entity.UUID}", typeof(Entity), entity, false);
-    //}
 
     public static void Serialize(Entity entity, IntPtr internalContext)
     {
         SerializedObject obj = new SerializedObject(internalContext, UUID.Zero, new Dictionary<object, SerializedObject>());
         obj.Serialize(entity);
+    }
+    
+    public static void Deserialize(Entity entity, IntPtr internalContext)
+    {
+        DeserializationObject obj = new DeserializationObject(internalContext, UUID.Zero, new Dictionary<object, SerializedObject>());
+        obj.Deserialize(entity);
     }
 
     public static bool SerializeField(FieldInfo fieldInfo)
@@ -533,3 +587,253 @@ public static class EntitySerializer
         return false;
     }
 }
+
+/*
+ *
+ *
+   public class SerializationContext
+   {
+   StringBuilder _builder = new();
+   
+   public Dictionary<object, SerializationContext> SerializedClasses = new();
+   
+   public UUID ID = UUID.CreateNew();
+   
+   private int _indentLevel = 0;
+   
+   private void BeginLine()
+   {
+   for (int i = 0; i < _indentLevel; i++)
+   _builder.Append('\t');
+   }
+   
+   private void WriteLine(string line)
+   {
+   BeginLine();
+   
+   _builder.AppendLine(line);
+   }
+   
+   private void WriteField(string type, string name, string value)
+   {
+   BeginLine();
+   
+   _builder.AppendFormat("{0} {1} = {2}", type, name, value);
+   _builder.Append('\n');
+   }
+   
+   private void StartBlock()
+   {
+   WriteLine("{");
+   _indentLevel++;
+   }
+   
+   private void EndBlock()
+   {
+   Debug.Assert(_indentLevel > 0);
+   _indentLevel--;
+   WriteLine("}");
+   }
+   
+   /// <summary>
+   /// 
+   /// </summary>
+   /// <param name="o"></param>
+   /// <returns>A serialization context for the given object. And true, if the context was used before, false otherwise.</returns>
+   private (SerializationContext context, bool newContext) GetReferenceTypeContext(object o)
+   {
+   SerializationContext context;
+   
+   if (SerializedClasses.TryGetValue(o, out context))
+   return (context, false);
+   
+   context = new SerializationContext
+   {
+   SerializedClasses = SerializedClasses,
+   // The indentation is arbitrary anyway, this is just for style
+   _indentLevel = 1
+   };
+   
+   SerializedClasses.Add(o, context);
+   
+   return (context, true);
+   }
+   
+   private void SerializeArray(string fieldName, Type fieldType, object o)
+   {
+   Type type = o.GetType();
+   
+   Debug.Assert(type.IsArray);
+   
+   Type elementType = type.GetElementType();
+   
+   Debug.Assert(elementType != null);
+   
+   WriteField(type.ToString(), fieldName, "");
+   
+   StartBlock();
+   
+   Array array = (Array)o;
+   
+   foreach (var element in array)
+   {
+   Serialize("", elementType, element);
+   }
+   
+   EndBlock();
+   }
+   
+   public void SerializeList(string fieldName, Type fieldType, object o)
+   {
+   Type type = o.GetType();
+   
+   Debug.Assert(type.IsGenericType);
+   
+   Type elementType = type.GetGenericArguments()[0];
+   
+   WriteField(type.ToString(), fieldName, "");
+   
+   StartBlock();
+   
+   IList list = (IList)o;
+   
+   foreach (var element in list)
+   {
+   Serialize("", elementType, element);
+   }
+   
+   EndBlock();
+   }
+   void SerializeFields(Type objectType, object instance)
+   {
+   foreach (FieldInfo fieldInfo in objectType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance))
+   {
+   if (!SerializeField(fieldInfo))
+   continue;
+   
+   object value = fieldInfo.GetValue(instance);
+   Serialize(fieldInfo.Name, fieldInfo.FieldType, value);
+   }
+   }
+   
+   
+   /// <summary>
+   /// 
+   /// </summary>
+   /// <param name="o"></param>
+   /// <param name="shallowEntities">If true, entities will only be serialized as their UUID</param>
+   public void Serialize(string fieldName, Type fieldType, object o, bool shallowEntities = true)
+   {
+   // TODO: is this shortcut valid?
+   if (o == null)
+   {
+   WriteField(fieldType.ToString(), fieldName, "null");
+   return;
+   }
+   
+   Type type = o.GetType();
+   
+   if (typeof(Entity).IsAssignableFrom(type))
+   {
+   if (shallowEntities)
+   WriteField(type.ToString(), fieldName, ((Entity)o).UUID.ToString());
+   else
+   SerializeClass(fieldName, type, o);
+   //SerializeFields(type, o);
+   }
+   else if (typeof(Component).IsAssignableFrom(type))
+   {
+   WriteField(type.ToString(), fieldName, ((Component)o).UUID.ToString());
+   }
+   else if (type == typeof(string))
+   {
+   WriteField(type.ToString(), fieldName, $"\"{(string)o}\"");
+   }
+   else if (type.IsPrimitive)
+   {
+   WriteField(type.ToString(), fieldName, o.ToString());
+   }
+   else if (type.IsEnum)
+   {
+   WriteField(type.ToString(), fieldName, o.ToString());
+   }
+   else if (type.IsArray)
+   {
+   SerializeArray(fieldName, type, o);
+   }
+   else if (type.IsGenericType)
+   {
+   if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
+   {
+   SerializeList(fieldName, type, o);
+   }
+   //else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
+   //{
+   //    ImGui.Text($"{fieldName} Dictionary");
+   //}
+   else
+   {
+   // TODO: what to do?
+   }
+   }
+   else if (type.IsValueType)
+   {
+   SerializeStruct(fieldName, type, o);
+   }
+   else if (type.IsClass)
+   {
+   // TODO: Use custom serializer, if available
+   
+   SerializeClass(fieldName, type, o);
+   }
+   else
+   {
+   Log.Error($"Encountered unhandled type \"{type}\" while serializing.");
+   }
+   }
+   
+   private void SerializeStruct(string fieldName, Type type, object o)
+   {
+   WriteField(type.ToString(), fieldName, "{");
+   StartBlock();
+   
+   SerializeFields(type, o);
+   
+   EndBlock();
+   }
+   
+   private void SerializeClass(string fieldName, Type type, object o)
+   {
+   (SerializationContext context, bool newContext) = GetReferenceTypeContext(o);
+   
+   // Only serialize the class, if it wasn't serialized before, obviously...
+   if (newContext)
+   context.SerializeFields(type, o);
+   
+   WriteField(type.ToString(), fieldName, context.ID.ToString());
+   }
+   
+   public override string ToString()
+   {
+   StringBuilder finalBuilder = new();
+   
+   foreach (var context in SerializedClasses)
+   {
+   finalBuilder.Append($"{context.Value.ID} = {{\n");
+   
+   finalBuilder.Append(context.Value._builder);
+   
+   finalBuilder.Append("}\n\n");
+   }
+   
+   finalBuilder.Append("Object:");
+   
+   finalBuilder.Append(_builder);
+   
+   return finalBuilder.ToString();
+   
+   }
+   }
+   
+ *
+ */

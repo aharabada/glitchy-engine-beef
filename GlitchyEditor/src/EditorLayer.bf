@@ -863,12 +863,14 @@ namespace GlitchyEditor
 			ImGui.FocusWindow(window);
 		}
 		
+		append Dictionary<UUID, SerializedObject> _prePlaySerializedData = .() ~ ClearDictionaryAndDeleteValues!(_prePlaySerializedData);
+
 		/// Starts the play mode for the current scene
 		private void OnScenePlay()
 		{
-			Dictionary<UUID, SerializedObject> serializedData = scope .();
+			Log.EngineLogger.AssertDebug(_prePlaySerializedData.Count == 0, "Somehow some entities are serialized.");
 
-			ScriptEngine.SerializeScriptInstances(serializedData);
+			ScriptEngine.SerializeScriptInstances(_prePlaySerializedData);
 			
 			_editor.SceneViewportWindow.EditorMode = false;
 			_sceneState = .Play;
@@ -881,18 +883,13 @@ namespace GlitchyEditor
 
 				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true);
 				
-				ScriptEngine.DeserializeScriptInstances(serializedData);
+				ScriptEngine.DeserializeScriptInstances(_prePlaySerializedData);
 			}
 
 			_editor.CurrentScene = _activeScene;
 
 			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnPlay)
 				SwitchToPlayWindow();
-
-			for (let v in serializedData)
-			{
-				delete v.value;
-			}
 		}
 
 		/// Activates the given scene.
@@ -987,11 +984,24 @@ namespace GlitchyEditor
 			
 			if (Application.Instance.Settings.EditorSettings.SwitchToEditorOnStop)
 				SwitchToEditorWindow();
+
+			// Reconstruct state before play
+			ScriptEngine.DeserializeScriptInstances(_prePlaySerializedData);
+
+			ClearPrePlaySerializedData();
+		}
+
+		/// Clears the serialized data cache.
+		private void ClearPrePlaySerializedData()
+		{
+			ClearDictionaryAndDeleteValues!(_prePlaySerializedData);
 		}
 
 		/// Stops the scene and cleans up the subsystems to allow loading another scene.
 		private void CloseCurrentScene()
 		{
+			// Clear serialized data, so that we don't waste time deserializing it.
+			ClearPrePlaySerializedData();
 			OnSceneStop();
 
 			ScriptEngine.ClearEntityScriptFields();

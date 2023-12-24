@@ -67,7 +67,17 @@ namespace GlitchyEngine
 			{
 				for (var value in dictionary)
 					delete value.key;
-				delete dictionary;
+				dictionary.Clear();
+			}
+		}
+
+		public static mixin ClearDictionaryAndDeleteValues(var dictionary)
+		{
+			if (dictionary != null)
+			{
+				for (var value in dictionary)
+					delete value.value;
+				dictionary.Clear();
 			}
 		}
 

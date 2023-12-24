@@ -144,6 +144,9 @@ internal static class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Serialization_CreateObject(IntPtr currentContext, out IntPtr context, out UUID id);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern unsafe void Serialization_DeserializeField(IntPtr internalContext, SerializationType expectedType, string fieldName, byte* value);
 
     #endregion
 }

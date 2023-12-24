@@ -58,6 +58,10 @@ public enum SerializationType : int32
 			return 16;
 		case .EntityReference, .ComponentReference, .ObjectReference:
 			return sizeof(UUID);
+		case .String:
+			return sizeof(StringView);
+		case .Enum:
+			return sizeof(StringView);
 		default:
 			return 0;
 		}
@@ -74,16 +78,23 @@ class SerializedObject
 
 	public append Dictionary<StringView, (SerializationType PrimitiveType, uint8[16] Data)> Fields = .();
 
-	public this(Dictionary<UUID, SerializedObject> allObjects)
+	public this(Dictionary<UUID, SerializedObject> allObjects, UUID? id = null)
 	{
 		AllObjects = allObjects;
 
-		// Make sure we have no duplicate keys
-		repeat
+		if (id == null)
 		{
-			Id = UUID.Create();
+			// Make sure we have no duplicate keys
+			repeat
+			{
+				Id = UUID.Create();
+			}
+			while (AllObjects.ContainsKey(Id));
 		}
-		while (AllObjects.ContainsKey(Id));
+		else
+		{
+			Id = id.Value;
+		}
 
 		AllObjects.Add(Id, this);
 	}
@@ -140,6 +151,33 @@ class SerializedObject
 		Fields.Add(nameCopy, (primitiveType, data));
 	}
 	
+	public void GetField(StringView fieldName, SerializationType expectedType, uint8* target)
+	{
+		if (!Fields.TryGetValue(fieldName, let field))
+			return;
+
+		if (expectedType != field.PrimitiveType)
+			return;
+
+		switch (field.PrimitiveType)
+		{
+		case .String, .Enum:
+#unwarn
+			StringView view = *(StringView*)&field.Data;
+
+			char8* stringPtr = view.Ptr;
+			int stringLen = view.Length;
+
+			// We just pass the raw utf8-Pointer and length to C#
+			Internal.MemCpy(target, &stringPtr, sizeof(void*));
+			Internal.MemCpy(target + 8, &stringLen, sizeof(int));
+		default:
+		// Most values can simply be copied, the conversion will be done in C#
+#unwarn
+		Internal.MemCpy(target, &field.Data, 16);
+		}
+	}
+	
 	typealias SerializeMethod = function MonoObject*(MonoObject* entity, void* contextPtr, MonoException** exception);
 	typealias DeserializeMethod = function MonoObject*(MonoObject* entity, void* contextPtr, MonoException** exception);
 
@@ -158,7 +196,7 @@ class SerializedObject
 
 	public void Deserialize(ScriptInstance scriptInstance)
 	{
-		DeserializeMethod deserialize = (DeserializeMethod)ScriptEngine.Classes.EntitySerializer.GetMethodThunk("Serialize", 2);
+		DeserializeMethod deserialize = (DeserializeMethod)ScriptEngine.Classes.EntitySerializer.GetMethodThunk("Deserialize", 2);
 
 		void* thisPtr = Internal.UnsafeCastToPtr(this);
 
