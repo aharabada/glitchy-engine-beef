@@ -79,8 +79,6 @@ public struct ScriptFieldInstance
 	}
 }
 
-public typealias ScriptFieldMap = Dictionary<String, ScriptFieldInstance>;
-
 abstract class SharpType : RefCounter
 {
 	protected String _namespace ~ delete _;

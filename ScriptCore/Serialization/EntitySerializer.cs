@@ -453,7 +453,8 @@ public static class EntitySerializer
             }
             else if (fieldType.IsClass)
             {
-            //    SerializeClass(fieldName, fieldValue, fieldType);
+                //DeserializeClass(fieldName, fieldValue, fieldType);
+                Log.Error("Class is not yet implemented.");
             }
             else
             {
@@ -565,6 +566,10 @@ public static class EntitySerializer
 
     public static bool SerializeField(FieldInfo fieldInfo)
     {
+        // TODO: We want to be able to serialize static fields in the future!
+        if (fieldInfo.IsStatic)
+            return false;
+
         var serializeField = fieldInfo.HasCustomAttribute<SerializeFieldAttribute>();
         var dontSerializeField = fieldInfo.HasCustomAttribute<DontSerializeFieldAttribute>();
         //var hideField = fieldInfo.HasCustomAttribute<HideInEditorAttribute>();

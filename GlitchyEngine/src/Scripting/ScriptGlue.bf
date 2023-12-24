@@ -60,6 +60,8 @@ static class ScriptGlue
 
 	public static void RegisterManagedComponents()
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		s_AddComponentMethods.Clear();
 		s_HasComponentMethods.Clear();
 		s_RemoveComponentMethods.Clear();

@@ -209,7 +209,8 @@ class SceneSerializer
 				// TODO: Thats not a good check, I think. At least we know the script class is valid
 				if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
 				{
-					let fields = ScriptEngine.GetScriptFieldMap(entity);
+					// TODO: Serialize Script Instance!
+					/*let fields = ScriptEngine.GetScriptFieldMap(entity);
 					
 					writer.Identifier("Fields");
 
@@ -234,7 +235,7 @@ class SceneSerializer
 								Serialize.Value(writer, ValueView(fieldInstance.Type.GetBeefType(), &fieldInstance.[Friend]_data), gBonEnv);
 							}
 						}
-					}
+					}*/
 				}
 			});
 		}
@@ -624,7 +625,8 @@ class SceneSerializer
 						// But that is a bug for me to rediscover in the distant future, so in case this bug occurred and it took ages for you to
 						// figure out what happened: You are welcome :)
 
-						ScriptEngine.CreateScriptFieldMap(entity);
+						// TODO: We need a new way to Serialize/Deserialize these fields!
+						/*ScriptEngine.CreateScriptFieldMap(entity);
 
 						var fields = ScriptEngine.GetScriptFieldMap(entity);
 						
@@ -708,19 +710,11 @@ class SceneSerializer
 							}
 	
 							Try!(reader.ArrayBlockEnd());
-						}
+						}*/
 					}
 
 					return .Ok;
 				}));
-				 /*
-				 
-
-				SerializeComponent<ScriptComponent>(writer, entity, "ScriptComponent", scope (component) =>
-				{
-					Serialize.Value(writer, "ScriptClass", component.ScriptClass?.FullName);
-				});
-				 */
 			default:
 				Log.EngineLogger.AssertDebug(false, "Unknown component type");
 				//return .Err;

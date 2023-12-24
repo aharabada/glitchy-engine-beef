@@ -560,8 +560,6 @@ namespace GlitchyEditor.EditWindows
 						className == scriptComponent.ScriptClassName))
 					{
 						scriptComponent.ScriptClassName = scriptClass.FullName;
-						
-						ScriptEngine.CreateScriptFieldMap(entity);
 					}
 				}
 				ImGui.EndPopup();

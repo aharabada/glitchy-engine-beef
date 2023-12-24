@@ -1003,8 +1003,6 @@ namespace GlitchyEditor
 			// Clear serialized data, so that we don't waste time deserializing it.
 			ClearPrePlaySerializedData();
 			OnSceneStop();
-
-			ScriptEngine.ClearEntityScriptFields();
 		}
 
 		/// Creates a new scene and openes it.
@@ -1129,8 +1127,6 @@ namespace GlitchyEditor
 		private void LoadSceneFile(StringView filename)
 		{
 			CloseCurrentScene();
-
-			ScriptEngine.ClearEntityScriptFields();
 
 			SceneFilePath = scope String(filename);
 

@@ -135,16 +135,6 @@ static class ScriptEngine
 		get => s_Context;
 		private set => SetReference!(s_Context, value);
 	}
-
-	private static Dictionary<UUID, ScriptFieldMap> _entityFields = new .() ~
-		{
-			for (var value in _entityFields.Values)
-			{
-				DeleteDictionaryAndKeys!(value);
-			}
-
-			delete _;
-		};
 	
 	private static FileSystemWatcher _userAssemblyWatcher ~ delete _;
 
@@ -294,20 +284,11 @@ static class ScriptEngine
 
 				_requestingReload = true;
 
-				// TODO: Temporary, we want to be able to reload while in play-mode. (+ Editor Scripts will be a thing some day)
-				if (_entityScriptInstances.Count > 0)
-				{
-					Log.EngineLogger.Warning("There are script instances. Skipping assembly reload.");
-					return;
-				}
-	
 				Log.EngineLogger.Info("Script reload requested.");
 
 				Application.Instance.InvokeOnMainThread(new () =>
 				{
-					Log.EngineLogger.Info("Reloading scripts...");
 					ReloadAssemblies();
-					Log.EngineLogger.Info("Scripts reloaded!");
 					
 					_requestingReload = false;
 					_userAssemblyWatcher.StartRaisingEvents();
@@ -319,19 +300,10 @@ static class ScriptEngine
 		_userAssemblyWatcher.StartRaisingEvents();
 	}
 
-	/// Gets rid of all entity fields.
-	public static void ClearEntityScriptFields()
-	{
-		for (var value in _entityFields.Values)
-		{
-			DeleteDictionaryAndKeys!(value);
-		}
-
-		_entityFields.Clear();
-	}
-
 	static void LoadScriptAssemblies()
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		CreateAppDomain("GlitchyEngineScriptRuntime");
 		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
 
@@ -393,6 +365,8 @@ static class ScriptEngine
 		Context = null;
 	}
 
+	/// Instantiates the entities script components script and runs the constructor.
+	/// Disposes of and replaces the old instance, if one exists.
 	public static bool InitializeInstance(Entity entity, ScriptComponent* script)
 	{
 		ScriptClass scriptClass = GetScriptClass(script.ScriptClassName);
@@ -469,60 +443,6 @@ static class ScriptEngine
 			ScriptEngine.HandleMonoException((MonoException*)exception, null);*/
 
 		return componentInstance;
-	}
-
-	public static void CopyEditorFieldsToInstance(Entity entity, ScriptComponent* script)
-	{
-		Log.EngineLogger.AssertDebug(script.Instance != null);
-
-		// Technically the map is for a different entity (namely the editor-entity),
-		// however the UUID is the same, so we get the correct field map
-		let fields = GetScriptFieldMap(entity);
-
-		for (var (fieldName, field) in fields)
-		{
-			// TODO: a litte assertion maybe?
-			
-			ScriptField scriptField = script.Instance.ScriptClass.Fields[fieldName];
-
-			switch (scriptField.FieldType)
-			{
-			case .Entity:
-				// On the C# side we actually differentiate between an Entity and the Script
-				// in the sense that getting an entity and a script yields two different results (one creates a new Entity-Class instance, the other returns the actual instance).
-				// But here its just easier to always use the script instance.
-				// Obviously breaks once we support multiple scripts per entity.
-				UUID referencedId = field.GetData<UUID>();
-				MonoObject* referencedEntity = GetOrCreateScriptReferenceInstance(referencedId);
-
-				script.Instance.SetFieldValue(scriptField, referencedEntity);
-			case .Component:
-				// Get or create entity reference
-				UUID referencedId = field.GetData<UUID>();
-				//MonoObject* referencedEntity = GetOrCreateScriptReferenceInstance(referencedId);
-
-				MonoType* fieldMonoType = scriptField.GetMonoType();
-				
-				SharpType componentType = ScriptEngine.GetSharpType(fieldMonoType);
-
-				var componentClass = ComponentClasses[componentType.FullName];
-
-				//MonoObject* componentInstance = CreateComponentReferenceInstance(componentClass, referencedEntity);
-				MonoObject* componentInstance = CreateComponentReferenceInstance(componentClass, referencedId);
-
-				script.Instance.SetFieldValue(scriptField, componentInstance);
-
-				componentType.ReleaseRef();
-			case .Struct:
-				// TODO: Handle Structs when copying fields to instance.
-			case .Class:
-				// TODO: Handle Class when copying fields to instance.
-			case .String:
-				// TODO: Handle String when copying fields to instance.
-			default:
-				script.Instance.SetFieldValue(scriptField, field._data);
-			}
-		}
 	}
 
 	public static void CopyFieldsToInstance(ScriptComponent* targetScript, ScriptComponent* sourceScript, Dictionary<UUID, UUID> sourceIdToTargetId)
@@ -661,6 +581,8 @@ static class ScriptEngine
 
 	static (MonoAssembly* assembly, MonoImage* image) LoadAssembly(StringView filepath, bool loadPDB = false)
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		MonoAssembly* assembly = LoadCSharpAssembly(filepath, loadPDB);
 		MonoImage* image = Mono.mono_assembly_get_image(assembly);
 
@@ -680,6 +602,8 @@ static class ScriptEngine
 
 	private static void GetEntitiesFromAssemblies()
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		if (s_AppAssemblyImage == null)
 			return;
 
@@ -706,8 +630,11 @@ static class ScriptEngine
 			}
 	    }
 	}
+
 	private static void GetComponentsFromAssemblies()
 	{
+		Debug.Profiler.ProfileFunction!();
+
 	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_CoreAssemblyImage, .MONO_TABLE_TYPEDEF);
 	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
 
@@ -736,18 +663,41 @@ static class ScriptEngine
 	{
 		Debug.Profiler.ProfileFunction!();
 
-		Mono.mono_domain_set(s_RootDomain, false);
+		Log.EngineLogger.Info("Reloading script assemblies.");
+
+		Dictionary<UUID, SerializedObject> serializedData = scope .();
+
+		SerializeScriptInstances(serializedData);
+
+		Mono.mono_domain_set(s_RootDomain, true);
 
 		Mono.mono_domain_unload(s_AppDomain);
 
 		LoadScriptAssemblies();
 
-		// TODO: ScriptFields might get added
-		// TODO: ScriptField Types may change after reload!
-		// TODO: Scripts may be renamed (probably not detectable (trivially))
+		{
+			Debug.Profiler.ProfileScope!("Initialize Instances");
+			
+			// We need to create a new instance for every entity
+			for (let (id, scriptInstance) in _entityScriptInstances)
+			{
+				if (Context.GetEntityByID(id) case .Ok(let entity))
+				{
+					ScriptComponent* script = entity.GetComponent<ScriptComponent>();
+					InitializeInstance(entity, script);
+				}
+				else
+				{
+					Log.EngineLogger.AssertDebug(false, "Entities script was just serialized but the entity doesn't exist anymore.");
+				}
+			}
+		}
 
-		// TODO: Reload in play mode
-		// Only scripts that were changed should actually be reinstatiated
+		DeserializeScriptInstances(serializedData);
+
+		ClearDictionaryAndDeleteValues!(serializedData);
+
+		Log.EngineLogger.Info("Script assemblies reloaded!");
 	}
 
 	public static void Shutdown()
@@ -838,58 +788,6 @@ static class ScriptEngine
 		return new SharpClass(classNamespace, className, Mono.mono_class_get_image(monoClass), scriptType);
 	}
 
-	public static void CreateScriptFieldMap(Entity entity)
-	{
-		Log.EngineLogger.AssertDebug(entity.IsValid);
-
-		if (_entityFields.TryGetValue(entity.UUID, var entityFields))
-		{
-			ClearDictionaryAndDeleteKeys!(entityFields);
-		}
-		else
-		{
-			entityFields = new ScriptFieldMap();
-			_entityFields.Add(entity.UUID, entityFields);
-		}
-
-		let scriptComponent = entity.GetComponent<ScriptComponent>();
-
-		ScriptClass scriptClass = GetScriptClass(scriptComponent.ScriptClassName);
-		
-		Log.EngineLogger.AssertDebug(scriptClass != null);
-
-		void AddFieldsToMap(Dictionary<StringView, ScriptField> classFields, StringView baseName)
-		{
-			for (let (fieldName, field) in classFields)
-			{
-				/*if (field.FieldType == .Struct && field.SharpType != null)
-				{
-					AddFieldsToMap(field.SharpType.Fields, scope $"{baseName}{fieldName}.");
-				}
-				else
-				{
-					entityFields.Add(new $"{baseName}{fieldName}", ScriptFieldInstance(field.FieldType));
-				}*/
-
-				entityFields.Add(new String(fieldName), ScriptFieldInstance(field.FieldType));
-			}
-		}
-
-		AddFieldsToMap(scriptClass.Fields, "");
-	}
-
-	public static ScriptFieldMap GetScriptFieldMap(Entity entity)
-	{
-		Log.EngineLogger.AssertDebug(entity.IsValid);
-
-		let uuid = entity.UUID;
-
-		// TODO: Entites bekommen noch kein Eintrag hier!!
-		Log.EngineLogger.AssertDebug(_entityFields.ContainsKey(uuid));
-
-		return _entityFields[uuid];
-	}
-
 	/// Returns the script instance or null.
 	public static MonoObject* GetManagedInstance(UUID entityId)
 	{
@@ -955,11 +853,10 @@ static class ScriptEngine
 	/// Serializes all script instances
 	public static void SerializeScriptInstances(Dictionary<UUID, SerializedObject> allObjects)
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		for (let (id, script) in _entityScriptInstances)
 		{
-			if (script.ScriptClass.ClassName != "SerializationTest")
-				continue;
-
 			SerializedObject object = new SerializedObject(allObjects, script.EntityId);
 			object.Serialize(script);
 		}
@@ -968,11 +865,10 @@ static class ScriptEngine
 	/// Deserializes the given data into the script instances
 	public static void DeserializeScriptInstances(Dictionary<UUID, SerializedObject> allObjects)
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		for (let (id, script) in _entityScriptInstances)
 		{
-			if (script.ScriptClass.ClassName != "SerializationTest")
-				continue;
-
 			if (allObjects.TryGetValue(id, let object))
 			{
 				object.Deserialize(script);
