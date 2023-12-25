@@ -93,11 +93,11 @@ public static class EntitySerializer
             _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
         }
 
-        private void AddField(string fieldName, SerializationType serializationType, object value)
+        private void AddField(string fieldName, SerializationType serializationType, object value, string fullTypeName = null)
         {
             string completeFieldName = $"{_structScopeName}{fieldName}";
 
-            ScriptGlue.Serialization_SerializeField(_internalContext, serializationType, completeFieldName, value);
+            ScriptGlue.Serialization_SerializeField(_internalContext, serializationType, completeFieldName, value, fullTypeName);
         }
 
         public void Serialize(Entity entity)
@@ -228,11 +228,11 @@ public static class EntitySerializer
         {
             if (typeof(Entity).IsAssignableFrom(fieldType))
             {
-                AddField(fieldName, SerializationType.EntityReference, ((Entity)fieldValue)?.UUID ?? UUID.Zero);
+                AddField(fieldName, SerializationType.EntityReference, ((Entity)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
             }
             else if (typeof(Component).IsAssignableFrom(fieldType))
             {
-                AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero);
+                AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
             }
             else
             {
@@ -363,6 +363,20 @@ public static class EntitySerializer
             _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
         }
 
+        [StructLayout(LayoutKind.Explicit)]
+        private struct DataHelper
+        {
+            [StructLayout(LayoutKind.Sequential)]
+            public struct EngineObjectReferenceHelper
+            {
+                public IntPtr FullTypeName;
+                public UUID Id;
+            }
+
+            [FieldOffset(0)]
+            public EngineObjectReferenceHelper EngineObjectReference;
+        }
+
         private unsafe object GetFieldValue(string fieldName, SerializationType serializationType)
         {
             string completeFieldName = $"{_structScopeName}{fieldName}";
@@ -371,6 +385,8 @@ public static class EntitySerializer
             //decimal backingFieldOnStack = 0.0m;
             byte* rawData = stackalloc byte[16];
             //byte* rawData = (byte*)&backingFieldOnStack;
+
+            ref DataHelper dataHelper = ref Unsafe.AsRef<DataHelper>(rawData);
 
             ScriptGlue.Serialization_DeserializeField(_internalContext, serializationType, completeFieldName, rawData);
 
@@ -423,12 +439,10 @@ public static class EntitySerializer
                     return *(decimal*)rawData;
 
                 case SerializationType.Enum:
-                    string value = GetString();
-                    // TODO!
-                    return null;
-	
+                    return GetString();
                 case SerializationType.EntityReference:
                 case SerializationType.ComponentReference:
+                    return dataHelper.EngineObjectReference;
                 case SerializationType.ObjectReference:
                     return *(UUID*)rawData;
                 default:
@@ -476,7 +490,7 @@ public static class EntitySerializer
             }
             else if (fieldType.IsEnum)
             {
-            //    SerializeEnum(fieldName, fieldValue, fieldType);
+                newFieldValue = DeserializeEnum(field.Name, fieldType);
             }
             else if (fieldType.IsArray)
             {
@@ -563,9 +577,21 @@ public static class EntitySerializer
             return GetFieldValue(fieldName, expectedType);
         }
 
-        private void DeserializeEnum(string fieldName, object fieldValue, Type fieldType)
+        private object DeserializeEnum(string fieldName, Type enumType)
         {
-            //AddField(fieldName, SerializationType.Enum, fieldValue.ToString());
+            if (GetFieldValue(fieldName, SerializationType.Enum) is not string valueName)
+                return null;
+
+            try
+            {
+                return Enum.Parse(enumType, valueName);
+            }
+            catch
+            {
+                Log.Error($"Failed to parse \"{valueName}\" as enum-type \"{enumType}\"");
+            }
+
+            return null;
         }
 
         private object DeserializeStruct(string fieldName, object targetInstance)
@@ -581,36 +607,40 @@ public static class EntitySerializer
 
         private object DeserializeClass(string fieldName, Type fieldType)
         {
-            if (typeof(Entity).IsAssignableFrom(fieldType))
+            bool isEntity = typeof(Entity).IsAssignableFrom(fieldType);
+            bool isComponent = fieldType.IsSubclassOf(typeof(Component));
+
+            if (isEntity || isComponent)
             {
-                UUID id = (UUID)GetFieldValue(fieldName, SerializationType.EntityReference);
-                
+                var data = (DataHelper.EngineObjectReferenceHelper)GetFieldValue(fieldName, SerializationType.EntityReference);
+
+                UUID id = data.Id;
+
                 if (id == UUID.Zero)
                     return null;
 
-                Entity reference = new Entity(id);
+                string fullTypeName = Marshal.PtrToStringUni(data.FullTypeName);
 
-                if (fieldType.IsSubclassOf(typeof(Entity)))
-                    return reference.As<Entity>();
-                
-                return reference;
-            }
-            else if (typeof(Component).IsAssignableFrom(fieldType))
-            {
-                UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ComponentReference);
-                
-                if (id == UUID.Zero)
+                Type type = GetTypeFromName(fullTypeName);
+
+                if (type == null)
                     return null;
 
-                // TODO: Get class
+                if (isEntity)
+                {
+                    // We have to differentiate between simple Entity references and script instances
+                    // (because we decided to use the same type for both, so we could have a field Entity which contains a script instance instead of an Entity reference)
+                    if (type == typeof(Entity))
+                        return new Entity(id);
 
-                //Entity reference = new Entity(id);
+                    return Entity.GetScriptReference(id, type);
+                }
+                else
+                {
+                    Entity entity = new Entity(id);
 
-                //if (fieldType.IsSubclassOf(typeof(Entity)))
-                //    return reference.As<Entity>();
-                
-                //return reference;
-                return null;
+                    return entity.GetComponent(type);
+                }
             }
             else
             {

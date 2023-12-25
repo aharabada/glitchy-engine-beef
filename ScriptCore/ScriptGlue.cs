@@ -140,7 +140,7 @@ internal static class ScriptGlue
     #region Serialization
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string name, object value);
+    internal static extern void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string name, object value, string fullTypeName = null);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Serialization_CreateObject(IntPtr currentContext, string fullTypeName, out IntPtr context, out UUID id);

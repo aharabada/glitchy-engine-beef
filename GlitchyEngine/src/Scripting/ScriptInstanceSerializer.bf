@@ -70,6 +70,20 @@ public enum SerializationType : int32
 
 class SerializedObject
 {
+	[Union]
+	public struct FieldData
+	{
+		public uint8[16] RawData;
+		public StringView StringView;
+		public (String Type, UUID ID) EngineObject;
+		
+		static this()
+		{
+			// This is important, because we expect 16 Bytes on the C# side
+			Compiler.Assert(sizeof(Self) == 16);
+		}
+	}
+
 	/// ID used to identify the object represented by this SerializedObject. In case that the represented object is a
 	/// Script Instance, the ID is the UUID of the Entity, random otherwise.
 	/// Todo: This sucks because we don't know all UUIDs beforehand and might accidentally assign the ID of an Entity to some class
@@ -81,7 +95,7 @@ class SerializedObject
 
 	private List<String> _ownedString = new List<String>() ~ DeleteContainerAndItems!(_);
 
-	public append Dictionary<StringView, (SerializationType PrimitiveType, uint8[16] Data)> Fields = .();
+	public append Dictionary<StringView, (SerializationType PrimitiveType, FieldData Data)> Fields = .();
 
 	[AllowAppend]
 	public this(Dictionary<UUID, SerializedObject> allObjects, StringView? typeName, UUID? id = null)
@@ -109,12 +123,13 @@ class SerializedObject
 		TypeName = typeNameCopy;
 	}
 
-	public void AddField(StringView name, SerializationType primitiveType, MonoObject* value)
+	public void AddField(StringView name, SerializationType primitiveType, MonoObject* value, MonoString* fullTypeName)
 	{
-		uint8[16] data = .();
+		FieldData data = .();
 
-		if (primitiveType == .String)
+		switch (primitiveType)
 		{
+		case .String, .Enum:
 			// If the string is null, we store a nullptr and 0-length
 			StringView valueView = StringView(null, 0);
 
@@ -132,29 +147,25 @@ class SerializedObject
 				valueView = stringValue;
 			}
 
-			Internal.MemCpy(&data, &valueView, sizeof(StringView));
-		}
-		else if (primitiveType == .Enum)
-		{
-			MonoString* string = (.)value;
-			
-			char8* rawEnumValue = Mono.mono_string_to_utf8(string);
+			data.StringView = valueView;
+		case .EntityReference | .ComponentReference:
+			String typeName = null;
 
-			String enumValue = new String(rawEnumValue);
+			if (fullTypeName != null)
+			{
+				char8* rawTypeName = Mono.mono_string_to_utf8(fullTypeName);
+				typeName = new String(rawTypeName);
 
-			_ownedString.Add(enumValue);
+				_ownedString.Add(typeName);
 
-			Mono.mono_free(rawEnumValue);
-			
-			StringView valueView = enumValue;
+				Mono.mono_free(rawTypeName);
+			}
 
-			Internal.MemCpy(&data, &valueView, sizeof(StringView));
-		}
-		else
-		{
+			data.EngineObject = (Type: typeName, ID: *(UUID*)Mono.mono_object_unbox(value));
+		default:
 			void* rawValue = Mono.mono_object_unbox(value);
 
-			Internal.MemCpy(&data, rawValue, primitiveType.GetSize());
+			Internal.MemCpy(&data.RawData, rawValue, primitiveType.GetSize());
 
 			String nameCopy = new String(name);
 			_ownedString.Add(nameCopy);
@@ -177,19 +188,16 @@ class SerializedObject
 		switch (field.PrimitiveType)
 		{
 		case .String, .Enum:
-#unwarn
-			StringView view = *(StringView*)&field.Data;
+			*(StringView*)target = field.Data.StringView;
+		case .EntityReference | .ComponentReference:
+			char8* typeNamePtr = field.Data.EngineObject.Type.Ptr;
 
-			char8* stringPtr = view.Ptr;
-			int stringLen = view.Length;
-
-			// We just pass the raw utf8-Pointer and length to C#
-			Internal.MemCpy(target, &stringPtr, sizeof(void*));
-			Internal.MemCpy(target + 8, &stringLen, sizeof(int));
+			*(UUID*)target = field.Data.EngineObject.ID;
+			*(char8**)(target + sizeof(UUID)) = typeNamePtr;
 		default:
-		// Most values can simply be copied, the conversion will be done in C#
+			// Most values can simply be copied, the conversion will be done in C#
 #unwarn
-		Internal.MemCpy(target, &field.Data, 16);
+			Internal.MemCpy(target, &field.Data.RawData, sizeof(FieldData));
 		}
 	}
 	

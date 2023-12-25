@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
@@ -101,7 +102,7 @@ public class Entity : EngineObject
         
         if (HasComponent(componentType))
         {
-            return Activator.CreateInstance(componentType) as Component;
+            return Activator.CreateInstance(componentType, true, _uuid) as Component;
         }
 
         return null;
@@ -289,6 +290,35 @@ public class Entity : EngineObject
         ScriptGlue.Entity_GetScriptInstance(_uuid, out object scriptInstance);
 
         return scriptInstance as T;
+    }
+
+    /// <summary>
+    /// Returns the script of the given type, or null, if the entity has no script of the given type.
+    /// </summary>
+    /// <param name="type">The type of the script.</param>
+    /// <returns>The script instance or null.</returns>
+    public object As(Type type)
+    {
+        Debug.Assert(type.IsSubclassOf(typeof(Entity)));
+
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out object scriptInstance);
+
+        return scriptInstance;
+    }
+
+    /// <summary>
+    /// Returns the script of the given type, or null, if the entity has no script of the given type.
+    /// </summary>
+    /// <param name="id">The id of the entity whose script instance shall be returned.</param>
+    /// <param name="type">The type of the script.</param>
+    /// <returns>The script instance or null.</returns>
+    internal static object GetScriptReference(UUID id, Type type)
+    {
+        Debug.Assert(type.IsSubclassOf(typeof(Entity)));
+
+        ScriptGlue.Entity_GetScriptInstance(id, out object scriptInstance);
+
+        return scriptInstance;
     }
 
     /// <summary>

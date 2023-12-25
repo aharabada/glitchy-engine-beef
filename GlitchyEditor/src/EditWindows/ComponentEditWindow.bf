@@ -568,32 +568,6 @@ namespace GlitchyEditor.EditWindows
 			ScriptEngine.ShowScriptEditor(entity, scriptComponent);
 		}
 
-		private static void ShowEnumSelector(ScriptFieldInstance* field, StringView fieldName, ScriptClass scriptClass)
-		{
-			ScriptField scriptField = scriptClass.Fields[fieldName];
-			SharpEnum enumType = scriptField.SharpType as SharpEnum;
-	
-			Log.EngineLogger.Assert(enumType != null, "Enum must have a SharpEnum!");
-	
-			// Simply get Enum as a uint64
-			var fieldValue = field.GetData<uint64>();
-	
-			StringView valueName = "<Invalid Value>";
-	
-			if (enumType.Values.TryGetValue(fieldValue, let enumValue))
-				valueName = enumValue.Name;
-	
-			if (ImGui.BeginCombo(fieldName.Ptr, valueName.Ptr))
-			{
-				for (let (entryValue, enumEntry) in enumType.Values)
-				{
-					if (ImGui.Selectable(enumEntry.Name.Ptr, fieldValue == entryValue))
-						field.SetData(entryValue);
-				}
-	
-				ImGui.EndCombo();
-			}
-		}
 
 		private static Entity? ShowEntitySelector()
 		{

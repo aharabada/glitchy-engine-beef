@@ -536,7 +536,7 @@ static class ScriptGlue
 #region Serialization
 
 	[RegisterCall("ScriptGlue::Serialization_SerializeField")]
-	static void Serialization_SerializeField(void* serializationContext, SerializationType type, MonoString* nameObject, MonoObject* valueObject)
+	static void Serialization_SerializeField(void* serializationContext, SerializationType type, MonoString* nameObject, MonoObject* valueObject, MonoString* fullTypeName)
 	{
 		SerializedObject context = Internal.UnsafeCastToObject(serializationContext) as SerializedObject;
 
@@ -544,7 +544,7 @@ static class ScriptGlue
 
 		char8* name = Mono.mono_string_to_utf8(nameObject);
 
-		context.AddField(StringView(name), type, valueObject);
+		context.AddField(StringView(name), type, valueObject, fullTypeName);
 		
 		Mono.mono_free(name);
 	}
