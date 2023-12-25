@@ -673,14 +673,12 @@ class AssetHierarchy
 		// Directories have no AssetFile?
 		if (node->AssetFile != null)
 		{
-			// TODO: Somehow this leaks memory
 			node->AssetFile.[Friend]_path.Set(node->Path);
 
 			node->AssetFile.[Friend]_identifier.Set(newFilePath);
 			AssetIdentifier.Fixup(node->AssetFile.[Friend]_identifier);
 
 			node->AssetFile.[Friend]_assetConfigPath.Set(node->Path);
-			// TODO: Somehow this leaks memory
 			node->AssetFile.[Friend]_assetConfigPath.Append(AssetFile.ConfigFileExtension);
 		}
 

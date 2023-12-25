@@ -26,9 +26,9 @@ class AssetFile
 {
 	private EditorContentManager _contentManager;
 
-	private String _path;
-	private String _identifier;
-	private String _assetConfigPath ~ delete _;
+	private String _path ~ delete:append _;
+	private String _identifier ~ delete:append _;
+	private String _assetConfigPath ~ delete:append _;
 
 	private AssetConfig _assetConfig ~ delete _;
 
@@ -53,7 +53,7 @@ class AssetFile
 	{
 		String identifierBuffer = append String(identifier);
 		String pathBuffer = append String(path);
-		String configPathBuffer = new String(path.Length + ConfigFileExtension.Length);
+		String configPathBuffer = append String(path.Length + ConfigFileExtension.Length);
 
 		_identifier = identifierBuffer;
 		_path = pathBuffer;
