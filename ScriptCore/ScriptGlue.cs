@@ -143,10 +143,16 @@ internal static class ScriptGlue
     internal static extern void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string name, object value);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Serialization_CreateObject(IntPtr currentContext, out IntPtr context, out UUID id);
+    internal static extern void Serialization_CreateObject(IntPtr currentContext, string fullTypeName, out IntPtr context, out UUID id);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern unsafe void Serialization_DeserializeField(IntPtr internalContext, SerializationType expectedType, string fieldName, byte* value);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void Serialization_GetObject(IntPtr internalContext, UUID id, out IntPtr objectContext);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void Serialization_GetObjectTypeName(IntPtr internalContext, out string fullTypeName);
 
     #endregion
 }

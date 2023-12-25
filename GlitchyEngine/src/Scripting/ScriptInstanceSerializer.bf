@@ -70,7 +70,12 @@ public enum SerializationType : int32
 
 class SerializedObject
 {
+	/// ID used to identify the object represented by this SerializedObject. In case that the represented object is a
+	/// Script Instance, the ID is the UUID of the Entity, random otherwise.
+	/// Todo: This sucks because we don't know all UUIDs beforehand and might accidentally assign the ID of an Entity to some class
 	public UUID Id;
+
+	public String TypeName ~ delete:append _;
 
 	public Dictionary<UUID, SerializedObject> AllObjects;
 
@@ -78,8 +83,11 @@ class SerializedObject
 
 	public append Dictionary<StringView, (SerializationType PrimitiveType, uint8[16] Data)> Fields = .();
 
-	public this(Dictionary<UUID, SerializedObject> allObjects, UUID? id = null)
+	[AllowAppend]
+	public this(Dictionary<UUID, SerializedObject> allObjects, StringView? typeName, UUID? id = null)
 	{
+		String typeNameCopy = append String(typeName.Value);
+
 		AllObjects = allObjects;
 
 		if (id == null)
@@ -97,6 +105,8 @@ class SerializedObject
 		}
 
 		AllObjects.Add(Id, this);
+
+		TypeName = typeNameCopy;
 	}
 
 	public void AddField(StringView name, SerializationType primitiveType, MonoObject* value)

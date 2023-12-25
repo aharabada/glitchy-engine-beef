@@ -857,7 +857,7 @@ static class ScriptEngine
 
 		for (let (id, script) in _entityScriptInstances)
 		{
-			SerializedObject object = new SerializedObject(allObjects, script.EntityId);
+			SerializedObject object = new SerializedObject(allObjects, script.ScriptClass.FullName, script.EntityId);
 			object.Serialize(script);
 		}
 	}

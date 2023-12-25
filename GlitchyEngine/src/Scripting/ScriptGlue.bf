@@ -550,13 +550,17 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall("ScriptGlue::Serialization_CreateObject")]
-	static void Serialization_CreateObject(void* currentContext, out void* newContext, out UUID newId)
+	static void Serialization_CreateObject(void* currentContext, MonoString* typeName, out void* newContext, out UUID newId)
 	{
 		SerializedObject context = Internal.UnsafeCastToObject(currentContext) as SerializedObject;
 
 		Log.EngineLogger.AssertDebug(context != null);
+		
+		char8* rawTypeName = Mono.mono_string_to_utf8(typeName);
+		
+		SerializedObject newObject = new SerializedObject(context.AllObjects, StringView(rawTypeName));
 
-		SerializedObject newObject = new SerializedObject(context.AllObjects);
+		Mono.mono_free(rawTypeName);
 
 		newContext = Internal.UnsafeCastToPtr(newObject);
 		newId = newObject.Id;
@@ -574,6 +578,31 @@ static class ScriptGlue
 		context.GetField(StringView(name), expectedType, target);
 
 		Mono.mono_free(name);
+	}
+	
+	[RegisterCall("ScriptGlue::Serialization_GetObject")]
+	public static void Serialization_GetObject(void* internalContext, UUID id, out void* objectContext)
+	{
+		SerializedObject context = Internal.UnsafeCastToObject(internalContext) as SerializedObject;
+
+		Log.EngineLogger.AssertDebug(context != null);
+		
+		objectContext = null;
+
+		if (!context.AllObjects.TryGetValue(id, let foundObject))
+			return;
+
+		objectContext = Internal.UnsafeCastToPtr(foundObject);
+	}
+	
+	[RegisterCall("ScriptGlue::Serialization_GetObjectTypeName")]
+	public static void Serialization_GetObjectTypeName(void* internalContext, out MonoString* fullTypeName)
+	{
+		SerializedObject context = Internal.UnsafeCastToObject(internalContext) as SerializedObject;
+
+		Log.EngineLogger.AssertDebug(context != null);
+
+		fullTypeName = Mono.mono_string_new(ScriptEngine.[Friend]s_AppDomain, context.TypeName);
 	}
 
 #endregion

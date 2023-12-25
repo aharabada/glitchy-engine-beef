@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
@@ -70,7 +71,7 @@ public static class EntitySerializer
             if (SerializedClasses.TryGetValue(o, out context))
                 return (context, false);
             
-            ScriptGlue.Serialization_CreateObject(_internalContext, out IntPtr contextPtr, out UUID id);
+            ScriptGlue.Serialization_CreateObject(_internalContext, o.GetType().FullName, out IntPtr contextPtr, out UUID id);
 
             context = new SerializedObject(contextPtr, id, SerializedClasses);
 
@@ -231,7 +232,7 @@ public static class EntitySerializer
             }
             else if (typeof(Component).IsAssignableFrom(fieldType))
             {
-                    AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero);
+                AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero);
             }
             else
             {
@@ -264,29 +265,72 @@ public static class EntitySerializer
 
         private string _structScopeName;
 
-        public Dictionary<object, SerializedObject> SerializedClasses;
+        public Dictionary<UUID, DeserializationObject> DeserializedClasses;
 
-        public DeserializationObject(IntPtr internalContext, UUID id, Dictionary<object, SerializedObject> serializedClasses)
+        private object _instance;
+
+        public DeserializationObject(IntPtr internalContext, UUID id, Dictionary<UUID, DeserializationObject> deserializedClasses)
         {
             _internalContext = internalContext;
             _id = id;
-            SerializedClasses = serializedClasses;
+            DeserializedClasses = deserializedClasses;
         }
-        
-        private (SerializedObject context, bool newContext) GetSerializedObject(object o)
+
+        private Dictionary<string, Type> _fullNameToType = new();
+
+        private Type FindType(string fullName)
         {
-            SerializedObject context;
+            foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies().Reverse())
+            {
+                Type type = assembly.GetType(fullName);
 
-            if (SerializedClasses.TryGetValue(o, out context))
-                return (context, false);
+                if (type != null)
+                    return type;
+            }
+
+            return null;
+        }
+
+        private Type GetTypeFromName(string fullName)
+        {
+            if (_fullNameToType.TryGetValue(fullName, out Type storedType))
+                return storedType;
+
+            Type type = FindType(fullName);
+
+            _fullNameToType.Add(fullName, type);
+
+            return type;
+        }
+
+        private DeserializationObject GetDeserializedObject(UUID id)
+        {
+            DeserializationObject context;
             
-            ScriptGlue.Serialization_CreateObject(_internalContext, out IntPtr contextPtr, out UUID id);
+            if (DeserializedClasses.TryGetValue(id, out context))
+                return context;
+            
+            ScriptGlue.Serialization_GetObject(_internalContext, id, out IntPtr contextPtr);
+            
+            context = new DeserializationObject(contextPtr, id, DeserializedClasses);
+            
+            DeserializedClasses.Add(id, context);
+            
+            ScriptGlue.Serialization_GetObjectTypeName(context._internalContext, out string fullTypeName);
+                
+            Type type = GetTypeFromName(fullTypeName);
 
-            context = new SerializedObject(contextPtr, id, SerializedClasses);
+            if (type == null)
+                return context;
 
-            SerializedClasses.Add(o, context);
+            context._instance = Activator.CreateInstance(type);
 
-            return (context, true);
+            if (context._instance == null)
+                return context;
+
+            context.DeserializeFields(context._instance);
+
+            return context;
         }
 
         private void PushScope(string name)
@@ -377,6 +421,8 @@ public static class EntitySerializer
 
         public void Deserialize(Entity entity)
         {
+            _instance = entity;
+
             DeserializeFields(entity);
         }
         
@@ -401,25 +447,15 @@ public static class EntitySerializer
         {
             Type fieldType = field.FieldType;
 
+            object newFieldValue = null;
+
             if (fieldType.IsPrimitive)
             {
-                object value = DeserializePrimitive(field.Name, fieldType);
-
-                if (value != null)
-                {
-                    field.SetValue(targetInstance, value);
-                    return true;
-                }
+                newFieldValue = DeserializePrimitive(field.Name, fieldType);
             }
             else if (fieldType == typeof(string))
             {
-                object value = GetFieldValue(field.Name, SerializationType.String);
-
-                if (value != null)
-                {
-                    field.SetValue(targetInstance, value);
-                    return true;
-                }
+                newFieldValue = GetFieldValue(field.Name, SerializationType.String);
             }
             else if (fieldType.IsEnum)
             {
@@ -450,22 +486,21 @@ public static class EntitySerializer
             {
                 object structValue = field.GetValue(targetInstance);
 
-                bool changed = DeserializeStruct(field.Name, structValue);
-
-                if (changed)
-                {
-                    field.SetValue(targetInstance, structValue);
-                    return true;
-                }
+                newFieldValue = DeserializeStruct(field.Name, structValue);
             }
             else if (fieldType.IsClass)
             {
-                //DeserializeClass(fieldName, fieldValue, fieldType);
-                Log.Error("Class is not yet implemented.");
+                newFieldValue = DeserializeClass(field.Name, fieldType);
             }
             else
             {
                 Log.Error($"Encountered unhandled type \"{fieldType}\" while serializing.");
+            }
+
+            if (newFieldValue != null)
+            {
+                field.SetValue(targetInstance, newFieldValue);
+                return true;
             }
 
             return false;
@@ -511,50 +546,66 @@ public static class EntitySerializer
             return GetFieldValue(fieldName, expectedType);
         }
 
-        private void SerializeEnum(string fieldName, object fieldValue, Type fieldType)
+        private void DeserializeEnum(string fieldName, object fieldValue, Type fieldType)
         {
             //AddField(fieldName, SerializationType.Enum, fieldValue.ToString());
         }
 
-        private bool DeserializeStruct(string fieldName, object targetInstance)
+        private object DeserializeStruct(string fieldName, object targetInstance)
         {
             PushScope(fieldName);
 
             bool changed = DeserializeFields(targetInstance);
-
+            
             PopScope();
 
-            return changed;
+            return changed ? targetInstance : null;
         }
 
-        private void SerializeClass(string fieldName, object fieldValue, Type fieldType)
+        private object DeserializeClass(string fieldName, Type fieldType)
         {
-            //if (typeof(Entity).IsAssignableFrom(fieldType))
-            //{
-            //    AddField(fieldName, SerializationType.EntityReference, ((Entity)fieldValue)?.UUID ?? UUID.Zero);
-            //}
-            //else if (typeof(Component).IsAssignableFrom(fieldType))
-            //{
-            //        AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero);
-            //}
-            //else
-            //{
-            //    if (fieldValue == null)
-            //    {
-            //        AddField(fieldName, SerializationType.ObjectReference, UUID.Zero);
-            //    }
-            //    else
-            //    {
-            //        var (context, newContext) = GetSerializedObject(fieldValue);
+            if (typeof(Entity).IsAssignableFrom(fieldType))
+            {
+                UUID id = (UUID)GetFieldValue(fieldName, SerializationType.EntityReference);
+                
+                if (id == UUID.Zero)
+                    return null;
 
-            //        if (newContext)
-            //        {
-            //            context.SerializeFields(fieldValue);
-            //        }
+                Entity reference = new Entity(id);
 
-            //        AddField(fieldName, SerializationType.ObjectReference, context._id);   
-            //    }
-            //}
+                if (fieldType.IsSubclassOf(typeof(Entity)))
+                    return reference.As<Entity>();
+                
+                return reference;
+            }
+            else if (typeof(Component).IsAssignableFrom(fieldType))
+            {
+                UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ComponentReference);
+                
+                if (id == UUID.Zero)
+                    return null;
+
+                // TODO: Get class
+
+                //Entity reference = new Entity(id);
+
+                //if (fieldType.IsSubclassOf(typeof(Entity)))
+                //    return reference.As<Entity>();
+                
+                //return reference;
+                return null;
+            }
+            else
+            {
+                UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ObjectReference);
+
+                if (id == UUID.Zero)
+                    return null;
+
+                DeserializationObject deserializedObject = GetDeserializedObject(id);
+
+                return deserializedObject._instance;
+            }
         }
     }
 
@@ -567,7 +618,7 @@ public static class EntitySerializer
     
     public static void Deserialize(Entity entity, IntPtr internalContext)
     {
-        DeserializationObject obj = new DeserializationObject(internalContext, UUID.Zero, new Dictionary<object, SerializedObject>());
+        DeserializationObject obj = new DeserializationObject(internalContext, UUID.Zero, new Dictionary<UUID, DeserializationObject>());
         obj.Deserialize(entity);
     }
 
