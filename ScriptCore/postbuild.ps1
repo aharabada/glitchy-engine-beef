@@ -1,4 +1,3 @@
-# Definiere die Parameter $sourceDir und $destinationDir
 param
 (
     [string]$sourceDir,
@@ -16,9 +15,20 @@ if (-not (Test-Path -Path $destinationDir))
 {
     New-Item -ItemType Directory -Force -Path $destinationDir
 }
-    
-# Gebe die Pfadinformationen aus
-Write-Host "Kopiere Dateien von $sourceDir nach $destinationDir"
+
+Write-Host "Copying Files from $sourceDir to $destinationDir"
 
 # Copy all files from source folder to the destination folder
-Copy-Item -Path "$sourceDir\*" -Destination $destinationDir -Recurse
+Get-ChildItem -Path $sourceDir -Recurse | ForEach-Object {
+    $relativePath = $_.FullName.Substring((Get-Item $sourceDir).FullName.Length).TrimStart('\')
+    $destPath = Join-Path $destinationDir $relativePath
+    if (-not (Test-Path -Path (Split-Path -Path $destPath -Parent)))
+    {
+        New-Item -ItemType Directory -Force -Path (Split-Path -Path $destPath -Parent)
+    }
+    try {
+        Copy-Item -Path $_.FullName -Destination $destPath -ErrorAction Stop
+    } catch {
+        Write-Warning "Konnte die Datei $_.FullName nicht kopieren: $_.Exception.Message"
+    }
+}
