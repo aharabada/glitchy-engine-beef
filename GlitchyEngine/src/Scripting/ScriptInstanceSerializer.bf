@@ -105,17 +105,22 @@ class SerializedObject
 
 		if (primitiveType == .String)
 		{
-			MonoString* string = (.)value;
-			
-			char8* rawStringValue = Mono.mono_string_to_utf8(string);
+			// If the string is null, we store a nullptr and 0-length
+			StringView valueView = StringView(null, 0);
 
-			String stringValue = new String(rawStringValue);
+			if (value != null)
+			{
+				MonoString* string = (.)value;
+				char8* rawStringValue = Mono.mono_string_to_utf8(string);
 
-			_ownedString.Add(stringValue);
+				String stringValue = new String(rawStringValue);
 
-			Mono.mono_free(rawStringValue);
-			
-			StringView valueView = stringValue;
+				_ownedString.Add(stringValue);
+
+				Mono.mono_free(rawStringValue);
+
+				valueView = stringValue;
+			}
 
 			Internal.MemCpy(&data, &valueView, sizeof(StringView));
 		}

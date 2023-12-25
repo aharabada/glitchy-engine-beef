@@ -128,7 +128,7 @@ public static class EntitySerializer
             }
             else if (fieldType == typeof(string))
             {
-                AddField(fieldName, SerializationType.String, fieldValue.ToString());
+                AddField(fieldName, SerializationType.String, fieldValue);
             }
             else if (fieldType.IsEnum)
             {
@@ -317,7 +317,14 @@ public static class EntitySerializer
             {
                 // rawData contains a Pointer and a string length!
                 byte* utf8Ptr = *(byte**)rawData;
+
+                if (utf8Ptr == null)
+                    return null;
+                
                 ulong length = *(ulong*)(rawData + 8);
+
+                if (length == 0)
+                    return string.Empty;
 
                 return Encoding.UTF8.GetString(utf8Ptr, (int)length);
             }
