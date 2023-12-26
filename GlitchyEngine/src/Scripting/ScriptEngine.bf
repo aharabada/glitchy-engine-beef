@@ -214,7 +214,6 @@ static class ScriptEngine
 	public static void Init()
 	{
 		InitMono();
-		ScriptGlue.Init();
 
 		LoadScriptAssemblies();
 	}
@@ -303,6 +302,8 @@ static class ScriptEngine
 	static void LoadScriptAssemblies()
 	{
 		Debug.Profiler.ProfileFunction!();
+
+		ScriptGlue.Init();
 
 		CreateAppDomain("GlitchyEngineScriptRuntime");
 		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
@@ -844,7 +845,7 @@ static class ScriptEngine
 
 #unwarn
 		void*[2] args = .(&entityId, monoReflectionType);
-		
+
 		let method = Classes.EntityEditor.GetMethod("ShowDefaultEntityEditor", 2);
 
 		Classes.EntityEditor.Invoke(method, null, &args);
