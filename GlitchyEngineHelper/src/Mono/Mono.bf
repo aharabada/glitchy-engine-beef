@@ -77,6 +77,9 @@ static class Mono
 	public static extern MonoString* mono_string_new(MonoDomain* domain, char8* text);
 	
 	[LinkName(.C)]
+	public static extern MonoString* mono_string_new_len(MonoDomain* domain, char8* text, uint32 length);
+
+	[LinkName(.C)]
 	public static extern MonoDomain* mono_domain_get();
 
 	[LinkName(.C)]

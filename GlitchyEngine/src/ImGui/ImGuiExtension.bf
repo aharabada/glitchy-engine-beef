@@ -16,6 +16,15 @@ namespace ImGui
 {
 	using internal GlitchyEngine.Math;
 
+	struct Payload<T> where T : struct
+	{
+		public ImGui.Payload* Payload;
+
+		public T Data => *(T*)Payload.Data;
+
+		public static ImGui.Payload* operator ->(Payload<T> self) => self.Payload;
+	}
+
 	extension ImGui
 	{
 		extension Vec2
@@ -28,6 +37,21 @@ namespace ImGui
 		{
 			public static explicit operator float4(Vec4 v) => .(v.x, v.y, v.z, v.w);
 			public static explicit operator Vec4(float4 v) => .(v.X, v.Y, v.Z, v.W);
+		}
+
+		public static Payload<T>? AcceptDragDropPayload<T>(char8* type, DragDropFlags flags = .None) where T : struct
+		{
+			ImGui.Payload* payload = ImGui.AcceptDragDropPayload(type, flags);
+
+			if (payload == null)
+				return null;
+
+			Log.ClientLogger.AssertDebug(payload.DataSize >= sizeof(T));
+
+			var typedPayload = Payload<T>();
+			typedPayload.Payload = payload;
+
+			return typedPayload;
 		}
 
 		/*public static bool IsItemJustDeactivated()

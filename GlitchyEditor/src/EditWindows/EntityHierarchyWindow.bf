@@ -415,7 +415,8 @@ namespace GlitchyEditor.EditWindows
 			{
 				isDragged = true;
 
-				ImGui.SetDragDropPayload(.Entity, &tree.Value, sizeof(Entity));
+				UUID id = tree.Value.UUID;
+				ImGui.SetDragDropPayload(.Entity, &id, sizeof(UUID));
 
 				ImGui.Text(name);
 
@@ -464,13 +465,13 @@ namespace GlitchyEditor.EditWindows
 		{
 			if(ImGui.BeginDragDropTarget())
 			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.Entity);
+				Payload<UUID>? payload = ImGui.AcceptDragDropPayload<UUID>(.Entity);
 
 				if(payload != null)
 				{
-					Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(Entity));
+					UUID movedEntityId = payload->Data;
 
-					Entity movedEntity = *(Entity*)payload.Data;
+					Entity movedEntity = _editor.CurrentScene.GetEntityByID(movedEntityId);
 
 					bool dropLegal = true;
 
@@ -556,13 +557,13 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.BeginDragDropTarget())
 					{
-						ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.Entity);
+						Payload<UUID>? payload = ImGui.AcceptDragDropPayload<UUID>(.Entity);
 
 						if(payload != null)
 						{
-							Log.ClientLogger.AssertDebug(payload.DataSize == sizeof(Entity));
-
-							Entity movedEntity = *(Entity*)payload.Data;
+							UUID movedEntityId = payload->Data;
+							
+							Entity movedEntity = _editor.CurrentScene.GetEntityByID(movedEntityId);
 
 							// Also mark transform as dirty
 							var transformComponent = movedEntity.GetComponent<TransformComponent>();

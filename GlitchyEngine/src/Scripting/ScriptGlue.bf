@@ -300,6 +300,28 @@ static class ScriptGlue
 			entity.RemoveComponent<ScriptComponent>();
 		}
 	}
+	
+	[RegisterCall("ScriptGlue::Entity_GetName")]
+    static MonoString* Entity_GetName(UUID entityId)
+	{
+		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		MonoString* name = Mono.mono_string_new_len(ScriptEngine.[Friend]s_AppDomain, entity.Name.Ptr, (.)entity.Name.Length);
+
+		return name;
+	}
+    
+	[RegisterCall("ScriptGlue::Entity_SetName")]
+    static void Entity_SetName(UUID entityId, MonoString* name)
+	{		
+		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		char8* rawName = Mono.mono_string_to_utf8(name);
+
+		entity.Name = StringView(rawName);
+
+		Mono.mono_free(rawName);
+	}
 
 #endregion
 

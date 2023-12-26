@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Reflection;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
@@ -11,6 +12,15 @@ namespace GlitchyEngine;
 /// </summary>
 public class Entity : EngineObject
 {
+    /// <summary>
+    /// Gets or sets the name of the entity.
+    /// </summary>
+    public string Name
+    {
+        get => ScriptGlue.Entity_GetName(_uuid);
+        set => ScriptGlue.Entity_SetName(_uuid, value);
+    }
+
     /// <summary>
     /// Only to be called by the engine. Don't call this constructor yourself, it will not result in a valid entity.
     /// If you want to create a new entity use <see cref="Entity(string)"/> or <see cref="Entity(string, Type[])"/>
@@ -102,7 +112,12 @@ public class Entity : EngineObject
         
         if (HasComponent(componentType))
         {
-            return Activator.CreateInstance(componentType, true, _uuid) as Component;
+            Component component = Activator.CreateInstance(componentType, true) as Component;
+
+            if (component != null)
+                component._uuid = _uuid;
+
+            return component;
         }
 
         return null;
@@ -312,13 +327,13 @@ public class Entity : EngineObject
     /// <param name="id">The id of the entity whose script instance shall be returned.</param>
     /// <param name="type">The type of the script.</param>
     /// <returns>The script instance or null.</returns>
-    internal static object GetScriptReference(UUID id, Type type)
+    internal static Entity GetScriptReference(UUID id, Type type)
     {
-        Debug.Assert(type.IsSubclassOf(typeof(Entity)));
+        Debug.Assert(typeof(Entity).IsAssignableFrom(type));
 
         ScriptGlue.Entity_GetScriptInstance(id, out object scriptInstance);
 
-        return scriptInstance;
+        return scriptInstance as Entity;
     }
 
     /// <summary>

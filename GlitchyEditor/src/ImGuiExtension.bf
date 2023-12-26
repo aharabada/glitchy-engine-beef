@@ -21,6 +21,11 @@ enum DragDropPayloadType
 
 extension ImGui
 {
+	public static Payload<T>? AcceptDragDropPayload<T>(ImGui.DragDropPayloadType type, DragDropFlags flags = .None) where T : struct
+	{
+		return AcceptDragDropPayload<T>(type.GetName(), flags);
+	}
+
 	public static Payload* AcceptDragDropPayload(DragDropPayloadType type, DragDropFlags flags = .None)
 	{
 		return AcceptDragDropPayload(type.GetName(), flags);

@@ -46,6 +46,12 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_RemoveScript(UUID entityId);
     
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern string Entity_GetName(UUID entityId);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern string Entity_SetName(UUID entityId, string name);
+    
 #endregion Entity
 
 #region TransformComponent

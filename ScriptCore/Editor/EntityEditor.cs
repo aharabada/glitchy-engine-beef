@@ -272,13 +272,11 @@ internal class EntityEditor
         }
         else if (fieldType.IsSubclassOf(typeof(Entity)) || fieldType == typeof(Entity))
         {
-            // TODO: Show entity drop target
-            ImGui.Text($"{fieldName} Entity ({fieldType.Name})");
+            newValue = ShowEntityDropTarget(fieldName, fieldType, reference);
         }
         else if (fieldType.IsSubclassOf(typeof(Component)))
         {
-            // TODO: Show component drop target
-            ImGui.Text($"{fieldName} Component ({fieldType.Name})");
+            newValue = ShowComponentDropTarget(fieldName, fieldType, reference);
         }
         else if (fieldType == typeof(string))
         {
@@ -334,6 +332,171 @@ internal class EntityEditor
         }
 
         ImGui.EndDisabled();
+
+        return newValue;
+    }
+
+    private static object ShowComponentDropTarget(string fieldName, Type fieldType, object currentValue)
+    {
+        object newValue = DidNotChange;
+        
+        ImGui.Text($"{fieldName}: ");
+        ImGui.SameLine();
+
+        Component component = currentValue as Component;
+
+        string entityName = "None";
+
+        if (component != null)
+        {
+            entityName = component.Entity.Name;
+        }
+        
+        Type actualType = component?.GetType();
+
+        entityName += $" ({(actualType ?? fieldType).Name})";
+        
+        if (ImGui.Button(entityName))
+        {
+            if (component?.Entity != null)
+            {
+                // TODO: Hightlight Entity in hierarchy
+                // TODO: Highlight Component in editor
+            }
+        }
+
+        if (ImGui.BeginDragDropTarget())
+        {
+            ImGuiPayloadPtr peekPayload = ImGui.AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags.AcceptPeekOnly);
+
+            bool allowDrop = false;
+            
+            unsafe
+            {
+                if (peekPayload.NativePtr != null)
+                {
+                    UUID draggedId = *(UUID*)peekPayload.Data;
+
+                    Entity draggedEntity = new Entity(draggedId);
+
+                    allowDrop = draggedEntity.HasComponent(fieldType);
+                }
+
+                if (allowDrop)
+                {
+                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("ENTITY");
+                    
+                    if (payload.NativePtr != null)
+                    {
+                        UUID droppedId = *(UUID*)payload.Data;
+                        
+                        Entity draggedEntity = new Entity(droppedId);
+
+                        try
+                        {
+                            newValue = draggedEntity.GetComponent(fieldType);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(e);
+                        }
+                    }
+                }
+            }
+
+            ImGui.EndDragDropTarget();
+        }
+
+        return newValue;
+    }
+
+    private static object ShowEntityDropTarget(string fieldName, Type fieldType, object currentValue)
+    {
+        object newValue = DidNotChange;
+
+        ImGui.Text($"{fieldName}: ");
+        ImGui.SameLine();
+
+        string entityName = "None";
+        
+        Entity entity = currentValue as Entity;
+
+        if (entity != null)
+        {
+            entityName = entity.Name;
+        }
+
+        Type actualType = entity?.GetType();
+
+        entityName += $" ({(actualType ?? fieldType).Name})";
+
+        if (ImGui.Button(entityName))
+        {
+            if (entity != null)
+            {
+                // TODO: Hightlight Entity in hierarchy
+            }
+        }
+
+        if (ImGui.BeginDragDropTarget())
+        {
+            ImGuiPayloadPtr peekPayload = ImGui.AcceptDragDropPayload("ENTITY", ImGuiDragDropFlags.AcceptPeekOnly);
+
+            bool allowDrop = false;
+            
+            unsafe
+            {
+                if (peekPayload.NativePtr != null)
+                {
+                    UUID draggedId = *(UUID*)peekPayload.Data;
+
+                    Entity draggedEntity = new Entity(draggedId);
+
+                    // TODO: Check if entity is valid?
+
+                    if (fieldType == typeof(Entity))
+                    {
+                        allowDrop = true;
+                    }
+                    else
+                    {
+                        Entity scriptInstance = Entity.GetScriptReference(draggedId, typeof(Entity));
+
+                        allowDrop = fieldType.IsInstanceOfType(scriptInstance);
+                    }
+                }
+
+                if (allowDrop)
+                {
+                    ImGuiPayloadPtr payload = ImGui.AcceptDragDropPayload("ENTITY");
+                    
+                    if (payload.NativePtr != null)
+                    {
+                        UUID droppedId = *(UUID*)payload.Data;
+                        
+                        if (fieldType == typeof(Entity))
+                        {
+                            newValue = new Entity(droppedId);
+                        }
+                        else
+                        {
+                            newValue = Entity.GetScriptReference(droppedId, typeof(Entity));
+                        }
+                    }
+                }
+            }
+
+            ImGui.EndDragDropTarget();
+        }
+
+        ImGui.SameLine();
+
+        if (ImGui.Button("..."))
+        {
+            // TODO: Show entity selector
+        }
+
+        ImGuiExtension.AttachTooltip("Search entity...");
 
         return newValue;
     }
