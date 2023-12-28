@@ -75,7 +75,7 @@ class SerializedObject
 	{
 		public uint8[16] RawData;
 		public StringView StringView;
-		public (String Type, UUID ID) EngineObject;
+		public (String FullTypeName, UUID ID) EngineObject;
 		
 		static this()
 		{
@@ -148,7 +148,7 @@ class SerializedObject
 			}
 
 			data.StringView = valueView;
-		case .EntityReference | .ComponentReference:
+		case .EntityReference, .ComponentReference:
 			String typeName = null;
 
 			if (fullTypeName != null)
@@ -161,7 +161,7 @@ class SerializedObject
 				Mono.mono_free(rawTypeName);
 			}
 
-			data.EngineObject = (Type: typeName, ID: *(UUID*)Mono.mono_object_unbox(value));
+			data.EngineObject = (FullTypeName: typeName, ID: *(UUID*)Mono.mono_object_unbox(value));
 		default:
 			void* rawValue = Mono.mono_object_unbox(value);
 
@@ -189,11 +189,12 @@ class SerializedObject
 		{
 		case .String, .Enum:
 			*(StringView*)target = field.Data.StringView;
-		case .EntityReference | .ComponentReference:
-			char8* typeNamePtr = field.Data.EngineObject.Type.Ptr;
-
-			*(UUID*)target = field.Data.EngineObject.ID;
-			*(char8**)(target + sizeof(UUID)) = typeNamePtr;
+		case .EntityReference, .ComponentReference:
+			let engineObjectData = field.Data.EngineObject;
+			
+			*(char8**)target = engineObjectData.FullTypeName?.CStr();
+			*(int*)(target + sizeof(char8*)) = engineObjectData.FullTypeName?.Length ?? 0;
+			*(UUID*)(target + sizeof(char8*) + sizeof(int)) = engineObjectData.ID;
 		default:
 			// Most values can simply be copied, the conversion will be done in C#
 #unwarn

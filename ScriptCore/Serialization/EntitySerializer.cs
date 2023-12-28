@@ -90,7 +90,7 @@ public static class EntitySerializer
         private void PopScope()
         {
             string scopeToRemove = _structScope.Pop();
-            _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
+            _structScopeName = _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
         }
 
         private void AddField(string fieldName, SerializationType serializationType, object value, string fullTypeName = null)
@@ -230,7 +230,7 @@ public static class EntitySerializer
             {
                 AddField(fieldName, SerializationType.EntityReference, ((Entity)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
             }
-            else if (typeof(Component).IsAssignableFrom(fieldType))
+            else if (fieldType.IsSubclassOf(typeof(Component)))
             {
                 AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
             }
@@ -349,7 +349,7 @@ public static class EntitySerializer
 
             return context;
         }
-
+        
         private void PushScope(string name)
         {
             _structScope.Push(name);
@@ -360,19 +360,20 @@ public static class EntitySerializer
         private void PopScope()
         {
             string scopeToRemove = _structScope.Pop();
-            _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
+            _structScopeName = _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        private struct DataHelper
+        private unsafe struct DataHelper
         {
             [StructLayout(LayoutKind.Sequential)]
             public struct EngineObjectReferenceHelper
             {
-                public IntPtr FullTypeName;
+                public byte* FullTypeName;
+                public long FullTypeNameLength;
                 public UUID Id;
             }
-
+            
             [FieldOffset(0)]
             public EngineObjectReferenceHelper EngineObjectReference;
         }
@@ -383,7 +384,7 @@ public static class EntitySerializer
 
             // Decimal is the larges primitive we store so we use a decimal as stack allocated memory (because stackalloc doesn't seem to work :(
             //decimal backingFieldOnStack = 0.0m;
-            byte* rawData = stackalloc byte[16];
+            byte* rawData = stackalloc byte[sizeof(DataHelper)];
             //byte* rawData = (byte*)&backingFieldOnStack;
 
             ref DataHelper dataHelper = ref Unsafe.AsRef<DataHelper>(rawData);
@@ -605,21 +606,21 @@ public static class EntitySerializer
             return changed ? targetInstance : null;
         }
 
-        private object DeserializeClass(string fieldName, Type fieldType)
+        private unsafe object DeserializeClass(string fieldName, Type fieldType)
         {
             bool isEntity = typeof(Entity).IsAssignableFrom(fieldType);
             bool isComponent = fieldType.IsSubclassOf(typeof(Component));
 
             if (isEntity || isComponent)
             {
-                var data = (DataHelper.EngineObjectReferenceHelper)GetFieldValue(fieldName, SerializationType.EntityReference);
+                var data = (DataHelper.EngineObjectReferenceHelper)GetFieldValue(fieldName, isEntity ? SerializationType.EntityReference : SerializationType.ComponentReference);
 
                 UUID id = data.Id;
 
                 if (id == UUID.Zero)
                     return null;
-
-                string fullTypeName = Marshal.PtrToStringUni(data.FullTypeName);
+                
+                string fullTypeName = Encoding.UTF8.GetString(data.FullTypeName, (int)data.FullTypeNameLength);
 
                 Type type = GetTypeFromName(fullTypeName);
 
