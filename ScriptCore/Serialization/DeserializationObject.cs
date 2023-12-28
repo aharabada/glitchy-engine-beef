@@ -12,6 +12,16 @@ namespace GlitchyEngine.Serialization;
 
 internal class DeserializationObject
 {
+    private class NoObject
+    {
+
+    }
+
+    /// <summary>
+    /// Object used to specify, that no particular value was deserialized for the field and thus the value currently stored shall not be changed.
+    /// </summary>
+    private static readonly NoObject NoValueDeserialized = new ();
+
     private IntPtr _internalContext;
 
     private UUID _id;
@@ -202,7 +212,7 @@ internal class DeserializationObject
             case SerializationType.ObjectReference:
                 return *(UUID*)rawData;
             default:
-                return null;
+                return NoValueDeserialized;
         }
     }
 
@@ -234,7 +244,7 @@ internal class DeserializationObject
     {
         Type fieldType = field.FieldType;
 
-        object newFieldValue = null;
+        object newFieldValue = NoValueDeserialized;
 
         if (fieldType.IsPrimitive)
         {
@@ -284,7 +294,7 @@ internal class DeserializationObject
             Log.Error($"Encountered unhandled type \"{fieldType}\" while serializing.");
         }
 
-        if (newFieldValue != null)
+        if (newFieldValue != NoValueDeserialized)
         {
             field.SetValue(targetInstance, newFieldValue);
             return true;
@@ -336,7 +346,7 @@ internal class DeserializationObject
     private object DeserializeEnum(string fieldName, Type enumType)
     {
         if (GetFieldValue(fieldName, SerializationType.Enum) is not string valueName)
-            return null;
+            return NoValueDeserialized;
 
         try
         {
@@ -347,7 +357,7 @@ internal class DeserializationObject
             Log.Error($"Failed to parse \"{valueName}\" as enum-type \"{enumType}\"");
         }
 
-        return null;
+        return NoValueDeserialized;
     }
 
     private object DeserializeStruct(string fieldName, object targetInstance)
@@ -358,7 +368,7 @@ internal class DeserializationObject
         
         PopScope();
 
-        return changed ? targetInstance : null;
+        return changed ? targetInstance : NoValueDeserialized;
     }
 
     private unsafe object DeserializeClass(string fieldName, Type fieldType)
@@ -380,7 +390,7 @@ internal class DeserializationObject
             Type type = GetTypeFromName(fullTypeName);
 
             if (type == null)
-                return null;
+                return NoValueDeserialized;
 
             if (isEntity)
             {
