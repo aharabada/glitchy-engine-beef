@@ -597,8 +597,8 @@ internal class EntityEditor
 
         // The buttons should always be visible -> save whether the node is open
         // If we have no instance, the user shouldn't be able to open the list
-        bool listOpen = ImGui.TreeNodeEx(fieldName,
-            myList == null ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen : ImGuiTreeNodeFlags.Framed);
+        bool listOpen = ImGui.TreeNodeEx(fieldName,  ImGuiTreeNodeFlags.AllowOverlap | ImGuiTreeNodeFlags.SpanFullWidth |
+            (myList == null ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen : ImGuiTreeNodeFlags.Framed));
 
         if (myList == null)
             listOpen = false;
