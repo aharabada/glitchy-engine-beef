@@ -223,7 +223,7 @@ internal class EntityEditor
         }
         else if (fieldType.IsArray)
         {
-            ImGui.Text($"{fieldName} Array");
+            newValue = ShowArrayEditor(fieldType, reference, fieldName);
         }
         else if (fieldType.IsEnum)
         {
@@ -587,12 +587,89 @@ internal class EntityEditor
         public int Element;
     }
 
-    private static object ShowListEditor(Type fieldType, object list, string fieldName)
+    private static object ShowListEditor(Type fieldType, object fieldValue, string fieldName)
+    {
+        Type elementType = fieldType.GenericTypeArguments[0];
+
+        void AddElement(IList list, ref object newList)
+        {
+            if (list == null)
+            {
+                newList = Activator.CreateInstance(fieldType);
+                list = newList as IList;
+
+                Debug.Assert(list != null);
+            }
+
+            object newElement = ActivatorExtension.CreateInstanceSafe(elementType);
+            list.Add(newElement);
+        }
+
+        void RemoveElement(IList list, ref object newList)
+        {
+            list.RemoveAt(list.Count - 1);
+        }
+
+        return ShowGenericListEditor(fieldType, elementType, (IEnumerable)fieldValue, fieldName, 
+            AddElement, RemoveElement);
+    }
+
+    private static object ShowArrayEditor(Type fieldType, object fieldValue, string fieldName)
+    {
+        Debug.Assert(fieldType.IsArray);
+
+        Type elementType = fieldType.GetElementType();
+
+        Debug.Assert(elementType != null);
+
+        Array myArray = fieldValue as Array;
+        
+        if (myArray?.Rank > 1)
+        {
+            throw new NotImplementedException("Multidimensional arrays are not yet supported.");
+        }
+
+        void AddElement(IList list, ref object newList)
+        {
+            int newIndex = 0;
+
+            if (list == null)
+            {
+                newList = Array.CreateInstance(elementType, 1);
+            }
+            else
+            {
+                newIndex = list.Count;
+
+                Array newArray = Array.CreateInstance(elementType, list.Count + 1);
+                Array.Copy((Array)list, newArray, newArray.Length);
+
+                newList = newArray;
+            }
+
+            object newElement = Activator.CreateInstance(elementType);
+            ((IList)newList)[newIndex] = newElement;
+        }
+
+        void RemoveElement(IList list, ref object newList)
+        {
+            Array newArray = Array.CreateInstance(elementType, list.Count - 1);
+            Array.Copy((Array)list, newArray, newArray.Length);
+
+            newList = newArray;
+        }
+
+        return ShowGenericListEditor(fieldType, elementType, (IEnumerable)fieldValue, fieldName, 
+            AddElement, RemoveElement);
+    }
+
+    public delegate void ModifyList(IList currentList, ref object oldList);
+
+    private static object ShowGenericListEditor(Type listType, Type elementType, IEnumerable list, string fieldName, 
+        ModifyList addElement, ModifyList removeElement)
     {
         object newList = DidNotChange;
         IList myList = list as IList;
-
-        Type elementType = fieldType.GenericTypeArguments[0];
 
         // The buttons should always be visible -> save whether the node is open
         // If we have no instance, the user shouldn't be able to open the list
@@ -609,16 +686,7 @@ internal class EntityEditor
 
         if (ImGui.SmallButton("+"))
         {
-            if (myList == null)
-            {
-                newList = Activator.CreateInstance(fieldType);
-                myList = newList as IList;
-
-                Debug.Assert(myList != null);
-            }
-
-            object newElement = Activator.CreateInstance(elementType);
-            myList.Add(newElement);
+            addElement(myList, ref newList);
         }
 
         ImGuiExtension.AttachTooltip("Add a new Element at the end of the list.");
@@ -629,7 +697,7 @@ internal class EntityEditor
 
         if (ImGui.SmallButton("-"))
         {
-            myList!.RemoveAt(myList.Count - 1);
+            removeElement(myList, ref newList);
         }
 
         ImGuiExtension.AttachTooltip("Remove the last Element from the list.");
@@ -728,7 +796,7 @@ internal class EntityEditor
                 
                 ImGui.SameLine();
 
-                object newValue = ShowFieldEditor(element, element.GetType(), $"Element {i}");
+                object newValue = ShowFieldEditor(element, element?.GetType() ?? elementType, $"Element {i}");
 
                 // Don't apply changes, when the order changed
                 if (newValue != DidNotChange && !orderChanged)
