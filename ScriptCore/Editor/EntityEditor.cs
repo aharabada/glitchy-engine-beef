@@ -300,8 +300,7 @@ internal class EntityEditor
                         {
                             if (ImGui.Selectable(t.Name))
                             {
-                                object instance = Activator.CreateInstance(t);
-                                newValue = instance;
+                                newValue = ActivatorExtension.CreateInstanceSafe(t);
                             }
                         }
 

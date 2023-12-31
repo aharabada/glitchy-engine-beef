@@ -1,4 +1,5 @@
 ﻿using GlitchyEngine.Core;
+using GlitchyEngine.Extensions;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -88,24 +89,7 @@ internal class DeserializationObject
         if (type == null)
             return context;
 
-        try
-        {
-            context._instance = Activator.CreateInstance(type, true);
-        }
-        catch (MissingMethodException e)
-        {
-            Log.Error($"Failed to create instance of type \"{type}\": The type doesn't contain a constructor with zero parameters.\nMake sure the type has a constructor that takes no arguments (It can be private!).\n{e}");
-        }
-        catch (MethodAccessException e)
-        {
-            Log.Error($"Failed to create instance of type \"{type}\": The default constructor is not accessible.\n{e}");
-        }
-        catch (Exception e)
-        {
-            Log.Error(e);
-
-            return context;
-        }
+        context._instance = ActivatorExtension.CreateInstanceSafe(type);
 
         if (context._instance == null)
             return context;
