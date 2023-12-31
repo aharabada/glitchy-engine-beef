@@ -642,7 +642,7 @@ internal class EntityEditor
                 newIndex = list.Count;
 
                 Array newArray = Array.CreateInstance(elementType, list.Count + 1);
-                Array.Copy((Array)list, newArray, newArray.Length);
+                Array.Copy((Array)list, newArray, list.Count);
 
                 newList = newArray;
             }
