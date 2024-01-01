@@ -1,8 +1,11 @@
+using System.Diagnostics;
+
 namespace GlitchyEngine.Core;
 
 /// <summary>
 /// Represents a universally unique identifier (UUID).
 /// </summary>
+[DebuggerDisplay("{ToString()}")]
 public struct UUID
 {
     private ulong _uuid;
