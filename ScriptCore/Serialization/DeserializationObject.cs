@@ -1,8 +1,10 @@
 ﻿using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Tracing;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -82,20 +84,6 @@ internal class DeserializationObject
         
         DeserializedClasses.Add(id, context);
         
-        ScriptGlue.Serialization_GetObjectTypeName(context._internalContext, out string fullTypeName);
-            
-        Type type = GetTypeFromName(fullTypeName);
-
-        if (type == null)
-            return context;
-
-        context._instance = ActivatorExtension.CreateInstanceSafe(type);
-
-        if (context._instance == null)
-            return context;
-
-        context.DeserializeFields(context._instance);
-
         return context;
     }
     
@@ -125,6 +113,11 @@ internal class DeserializationObject
         
         [FieldOffset(0)]
         public EngineObjectReferenceHelper EngineObjectReference;
+    }
+
+    private T GetFieldValue<T>(string fieldName, SerializationType serializationType)
+    {
+        return (T)GetFieldValue(fieldName, serializationType);
     }
 
     private unsafe object GetFieldValue(string fieldName, SerializationType serializationType)
@@ -218,40 +211,43 @@ internal class DeserializationObject
             if (!EntitySerializer.SerializeField(field))
                 continue;
 
-            changed |= DeserializeField(obj, field);
+            object currentValue = field.GetValue(obj);
+
+            object deserializeValue = DeserializeField(currentValue, field.FieldType, field.Name);
+            
+            if (deserializeValue != NoValueDeserialized)
+            {
+                field.SetValue(obj, deserializeValue);
+                changed = true;
+            }
         }
 
         return changed;
     }
 
-    private bool DeserializeField(object targetInstance, FieldInfo field)
+    private object DeserializeField(object fieldValue, Type fieldType, string fieldName)
     {
-        Type fieldType = field.FieldType;
-
-        object newFieldValue = NoValueDeserialized;
-
         if (fieldType.IsPrimitive)
         {
-            newFieldValue = DeserializePrimitive(field.Name, fieldType);
+            return DeserializePrimitive(fieldName, fieldType);
         }
         else if (fieldType == typeof(string))
         {
-            newFieldValue = GetFieldValue(field.Name, SerializationType.String);
+            return GetFieldValue(fieldName, SerializationType.String);
         }
         else if (fieldType.IsEnum)
         {
-            newFieldValue = DeserializeEnum(field.Name, fieldType);
+            return DeserializeEnum(fieldName, fieldType);
         }
         else if (fieldType.IsArray)
         {
-        //    Log.Error($"Array serialization not yet implemented");
+            return DeserializeList(fieldName, fieldType, fieldType.GetElementType());
         }
         else if (fieldType.IsGenericType)
         {
             if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
             {
-                //SerializeList(fieldName, type, o);
-                Log.Error($"List serialization not yet implemented");
+                return DeserializeList(fieldName, fieldType, fieldType.GetGenericArguments()[0]);
             }
              //else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
             //{
@@ -265,26 +261,18 @@ internal class DeserializationObject
         }
         else if (fieldType.IsValueType)
         {
-            object structValue = field.GetValue(targetInstance);
-
-            newFieldValue = DeserializeStruct(field.Name, structValue);
+            return DeserializeStruct(fieldName, fieldValue);
         }
         else if (fieldType.IsClass)
-        {
-            newFieldValue = DeserializeClass(field.Name, fieldType);
+        { 
+            return DeserializeClass(fieldName, fieldType);
         }
         else
         {
             Log.Error($"Encountered unhandled type \"{fieldType}\" while serializing.");
         }
 
-        if (newFieldValue != NoValueDeserialized)
-        {
-            field.SetValue(targetInstance, newFieldValue);
-            return true;
-        }
-
-        return false;
+        return NoValueDeserialized;
     }
 
     private object DeserializePrimitive(string fieldName, Type fieldType)
@@ -325,6 +313,89 @@ internal class DeserializationObject
         }
 
         return GetFieldValue(fieldName, expectedType);
+    }
+
+    /// <summary>
+    /// Gets the type that was originally stored in the container, or null, if the type doesn't exist.
+    /// </summary>
+    public Type StoredType
+    {
+        get
+        {
+            ScriptGlue.Serialization_GetObjectTypeName(_internalContext, out string fullTypeName);
+
+            return GetTypeFromName(fullTypeName);
+        }
+    }
+
+    private object DeserializeList(string fieldName, Type fieldType, Type elementType)
+    {
+        UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ObjectReference);
+
+        if (id == UUID.Zero)
+            return null;
+        
+        // Get serialization container for the instance
+        DeserializationObject deserializedObject = GetDeserializedObject(id);
+
+        Type type = deserializedObject.StoredType;
+
+        if (type == null || !type.IsAssignableTo(fieldType))
+            return null;
+        
+        int count = deserializedObject.GetFieldValue<int>("Count", SerializationType.Int32);
+
+        Array array = null;
+        IList list = null;
+
+        if (type.IsArray)
+        {
+            array = Array.CreateInstance(elementType, count);
+
+            deserializedObject._instance = array;
+        }
+        else
+        {
+            Debug.Assert(fieldType.IsAssignableTo(typeof(IList)));
+
+            if (type.GetGenericTypeDefinition() == typeof(List<>))
+            {
+                list = (IList)ActivatorExtension.CreateInstanceSafe(type, count);
+            }
+            else
+            {
+                list = (IList)ActivatorExtension.CreateInstanceSafe(type);
+            }
+
+            if (list == null)
+                return null;
+            
+            if (list.IsFixedSize)
+            {
+                Log.Error("Cannot deserialize fixed length lists.");
+
+                return null;
+            }
+
+            deserializedObject._instance = list;
+        }
+
+        for (int i = 0; i < count; i++)
+        {
+            object elementValue = ActivatorExtension.CreateInstanceSafe(elementType);
+
+            object newValue = deserializedObject.DeserializeField(elementValue, elementType, $"{i}");
+
+            if (newValue == NoValueDeserialized)
+                newValue = elementValue;
+
+            if (array != null)
+                array.SetValue(newValue, i);
+            else
+                list.Add(newValue);
+        }
+
+        return deserializedObject._instance;
     }
 
     private object DeserializeEnum(string fieldName, Type enumType)
@@ -399,7 +470,17 @@ internal class DeserializationObject
             if (id == UUID.Zero)
                 return null;
 
+            // Get serialization container for the instance
             DeserializationObject deserializedObject = GetDeserializedObject(id);
+            
+            Type type = deserializedObject.StoredType;
+
+            if (type == null)
+                return null;
+
+            deserializedObject._instance = ActivatorExtension.CreateInstanceSafe(type);
+            
+            deserializedObject.DeserializeFields(deserializedObject._instance);
 
             return deserializedObject._instance;
         }

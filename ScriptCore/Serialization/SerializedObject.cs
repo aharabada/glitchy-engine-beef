@@ -1,5 +1,6 @@
 ﻿using GlitchyEngine.Core;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -12,31 +13,31 @@ internal class SerializedObject
 
     private UUID _id;
 
+    private Dictionary<object, SerializedObject> _serializedClasses;
+
     private Stack<string> _structScope = new();
 
     private string _structScopeName;
-
-    public Dictionary<object, SerializedObject> SerializedClasses;
-
+    
     public SerializedObject(IntPtr internalContext, UUID id, Dictionary<object, SerializedObject> serializedClasses)
     {
         _internalContext = internalContext;
         _id = id;
-        SerializedClasses = serializedClasses;
+        _serializedClasses = serializedClasses;
     }
-    
+
     private (SerializedObject context, bool newContext) GetSerializedObject(object o)
     {
         SerializedObject context;
 
-        if (SerializedClasses.TryGetValue(o, out context))
+        if (_serializedClasses.TryGetValue(o, out context))
             return (context, false);
         
         ScriptGlue.Serialization_CreateObject(_internalContext, o.GetType().FullName, out IntPtr contextPtr, out UUID id);
 
-        context = new SerializedObject(contextPtr, id, SerializedClasses);
+        context = new SerializedObject(contextPtr, id, _serializedClasses);
 
-        SerializedClasses.Add(o, context);
+        _serializedClasses.Add(o, context);
 
         return (context, true);
     }
@@ -98,14 +99,20 @@ internal class SerializedObject
         }
         else if (fieldType.IsArray)
         {
-            Log.Error($"Array serialization not yet implemented");
+            Array myArray = fieldValue as Array;
+        
+            if (myArray?.Rank > 1)
+            {
+                throw new NotImplementedException("Serializing multidimensional arrays is not yet supported.");
+            }
+
+            SerializeList(fieldName, fieldValue, fieldType, fieldType.GetElementType());
         }
         else if (fieldType.IsGenericType)
         {
             if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
             {
-                //SerializeList(fieldName, type, o);
-                Log.Error($"List serialization not yet implemented");
+                SerializeList(fieldName, fieldValue, fieldType, fieldType.GetGenericArguments()[0]);
             }
             //else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
             //{
@@ -128,6 +135,36 @@ internal class SerializedObject
         else
         {
             Log.Error($"Encountered unhandled type \"{fieldType}\" while serializing.");
+        }
+    }
+
+    private void SerializeList(string fieldName, object listObject, Type fieldType, Type elementType)
+    {
+        if (listObject == null)
+        {
+            AddField(fieldName, SerializationType.ObjectReference, UUID.Zero);
+        }
+        else
+        {
+            Debug.Assert(listObject is IList);
+
+            var (context, newContext) = GetSerializedObject(listObject);
+
+            if (newContext)
+            {
+                IList list = (IList)listObject;
+
+                context.AddField("Count", SerializationType.Int32, list.Count);
+
+                for (int i = 0; i < list.Count; i++)
+                {
+                    object element = list[i];
+
+                    context.SerializeField($"{i}", element, element?.GetType() ?? elementType);
+                }
+            }
+
+            AddField(fieldName, SerializationType.ObjectReference, context._id);   
         }
     }
 
