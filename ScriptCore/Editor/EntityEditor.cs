@@ -10,6 +10,7 @@ using System.Text;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using GlitchyEngine.Math;
+using GlitchyEngine.Serialization;
 using ImGuiNET;
 
 namespace GlitchyEngine.Editor;
@@ -20,7 +21,63 @@ class DidNotChange
 
 internal class EntityEditor
 {
-    private static readonly DidNotChange DidNotChange = new DidNotChange();
+    public static readonly DidNotChange DidNotChange = new DidNotChange();
+    
+    private delegate object? ShowCustomEditorMethod(object reference, Type fieldType, string fieldName);
+
+    private static Dictionary<Type, ShowCustomEditorMethod> _customEditors = new();
+
+    static EntityEditor()
+    {
+        foreach (Type type in TypeExtension.EnumerateAllTypes())
+        {
+            if (type.TryGetCustomAttribute<CustomEditorAttribute>(out var attribute))
+            {
+                MethodInfo? showEditorMethod = type.GetMethod("ShowEditor", BindingFlags.Static | BindingFlags.Public,
+                    null,
+                    new []{ typeof(object), typeof(Type), typeof(string) }, null);
+
+                if (showEditorMethod == null)
+                {
+                    Log.Error($"No ShowEditor-method found for type {type}");
+                }
+                else
+                {
+                    ShowCustomEditorMethod method = showEditorMethod.GetDelegate<ShowCustomEditorMethod>();
+
+                    _customEditors.Add(attribute.Type, method);
+                }
+            }
+        }
+    }
+    
+    private static bool TryShowCustomEditor(object reference, Type fieldType, string fieldName, out object? editedValue)
+    {
+        editedValue = DidNotChange;
+
+        try
+        {
+            // Try to match the concrete type first (e.g. Foo -> Foo and Foo<Bar> -> List<Bar>)
+            // Note: Foo<Bar> wont match a serializer for Foo<>
+            if (_customEditors.TryGetValue(fieldType, out ShowCustomEditorMethod customEditorMethod))
+            {
+                editedValue = customEditorMethod(reference, fieldType, fieldName);
+                return true;
+            }
+            
+            if (fieldType.IsGenericType && _customEditors.TryGetValue(fieldType.GetGenericTypeDefinition(), out customEditorMethod))
+            {
+                editedValue = customEditorMethod(reference, fieldType, fieldName);
+                return true;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        return false;
+    }
 
     public static bool ShowFieldInEditor(FieldInfo fieldInfo)
     {
@@ -49,12 +106,12 @@ internal class EntityEditor
         ShowEditor(entityType, instance);
     }
 
-    private static T GetAttribute<T>(IEnumerable<Attribute> attributes) where T : Attribute
+    private static T? GetAttribute<T>(IEnumerable<Attribute>? attributes) where T : Attribute
     {
-        return (T)attributes?.FirstOrDefault(a => a is T);
+        return (T?)attributes?.FirstOrDefault(a => a is T);
     }
 
-    private static object ShowPrimitiveEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes)
+    private static object ShowPrimitiveEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
         object newValue = DidNotChange;
 
@@ -75,7 +132,7 @@ internal class EntityEditor
                 }
             }
 
-            RangeAttribute range = GetAttribute<RangeAttribute>(attributes);
+            RangeAttribute? range = GetAttribute<RangeAttribute>(attributes);
 
             // Get Min and Max Values from Type T
             T min = ReadStaticField<T>("MinValue");
@@ -91,8 +148,8 @@ internal class EntityEditor
             }
             else
             {
-                MinimumAttribute minimum = GetAttribute<MinimumAttribute>(attributes);
-                MaximumAttribute maximum = GetAttribute<MaximumAttribute>(attributes);
+                MinimumAttribute? minimum = GetAttribute<MinimumAttribute>(attributes);
+                MaximumAttribute? maximum = GetAttribute<MaximumAttribute>(attributes);
                 
                 // Don't use range, if it is invalid
                 if (minimum != null && maximum != null && minimum.Min > maximum.Max)
@@ -197,23 +254,23 @@ internal class EntityEditor
         return newValue;
     }
 
-    public static object ShowFieldEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes = null)
+    public static object ShowFieldEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes = null)
     {
         ReadonlyAttribute readonlyAttribute = GetAttribute<ReadonlyAttribute>(attributes);
         
         ImGui.BeginDisabled(readonlyAttribute != null);
 
-        object newValue = DidNotChange;
+        object? newValue = DidNotChange;
+        
+        if (TryShowCustomEditor(reference, fieldType, fieldName, out newValue))
+        {
 
-        if (fieldType.IsGenericType)
+        }
+        else if (fieldType.IsGenericType)
         {
             if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 newValue = ShowListEditor(fieldType, reference, fieldName);
-            }
-            else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            {
-                ImGui.Text($"{fieldName} Dictionary");
             }
             else
             {
