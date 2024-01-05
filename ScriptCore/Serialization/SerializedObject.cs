@@ -19,8 +19,10 @@ public class SerializedObject
     private Stack<string> _structScope = new();
 
     private string _structScopeName;
+    
+    private delegate void SerializeMethod(SerializedObject container, string fieldName, object? fieldValue, Type fieldType);
 
-    private static Dictionary<Type, MethodInfo> _customSerializers = new();
+    private static Dictionary<Type, SerializeMethod> _customSerializers = new();
 
     public UUID Id => _id;
     
@@ -53,7 +55,7 @@ public class SerializedObject
         {
             if (type.TryGetCustomAttribute<CustomSerializerAttribute>(out var attribute))
             {
-                MethodInfo serializeMethod = type.GetMethod("Serialize", BindingFlags.Static | BindingFlags.Public,
+                MethodInfo? serializeMethod = type.GetMethod("Serialize", BindingFlags.Static | BindingFlags.Public,
                     null,
                     new[] { typeof(SerializedObject), typeof(string), typeof(object), typeof(Type) }, null);
 
@@ -63,7 +65,9 @@ public class SerializedObject
                 }
                 else
                 {
-                    _customSerializers.Add(attribute.Type, serializeMethod);
+                    SerializeMethod method = serializeMethod.GetDelegate<SerializeMethod>();
+
+                    _customSerializers.Add(attribute.Type, method);
                 }
             }
         }
@@ -116,15 +120,15 @@ public class SerializedObject
         {
             // Try to match the concrete type first (e.g. Foo -> Foo and Foo<Bar> -> List<Bar>)
             // Note: Foo<Bar> wont match a serializer for Foo<>
-            if (_customSerializers.TryGetValue(fieldType, out MethodInfo serializeMethod))
+            if (_customSerializers.TryGetValue(fieldType, out SerializeMethod serializeMethod))
             {
-                serializeMethod.Invoke(null, new[] { this, fieldName, fieldValue, fieldType });
+                serializeMethod(this, fieldName, fieldValue, fieldType);
                 return true;
             }
-            
+
             if (fieldType.IsGenericType && _customSerializers.TryGetValue(fieldType.GetGenericTypeDefinition(), out serializeMethod))
             {
-                serializeMethod.Invoke(null, new[] { this, fieldName, fieldValue, fieldType });
+                serializeMethod(this, fieldName, fieldValue, fieldType);
                 return true;
             }
         }

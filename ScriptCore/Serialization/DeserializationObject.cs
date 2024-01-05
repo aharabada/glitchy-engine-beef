@@ -39,9 +39,10 @@ public class DeserializationObject
     private object _instance;
     
     private Dictionary<string, Type> _fullNameToType = new();
-    
-    private static Dictionary<Type, MethodInfo> _customDeserializers = new();
 
+    private delegate object? DeserializeMethod(DeserializationObject container, string fieldName, Type fieldType);
+
+    private static Dictionary<Type, DeserializeMethod> _customDeserializers = new();
 
     /// <summary>
     /// Gets the type that was originally stored in the container, or null, if the type doesn't exist.
@@ -69,7 +70,7 @@ public class DeserializationObject
         {
             if (type.TryGetCustomAttribute<CustomSerializerAttribute>(out var attribute))
             {
-                MethodInfo deserializeMethod = type.GetMethod("Deserialize", BindingFlags.Static | BindingFlags.Public,
+                MethodInfo? deserializeMethod = type.GetMethod("Deserialize", BindingFlags.Static | BindingFlags.Public,
                     null,
                     new []{ typeof(DeserializationObject), typeof(string), typeof(Type) }, null);
 
@@ -79,7 +80,9 @@ public class DeserializationObject
                 }
                 else
                 {
-                    _customDeserializers.Add(attribute.Type, deserializeMethod);
+                    DeserializeMethod method = deserializeMethod.GetDelegate<DeserializeMethod>();
+
+                    _customDeserializers.Add(attribute.Type, method);
                 }
             }
         }
@@ -264,7 +267,7 @@ public class DeserializationObject
         return changed;
     }
     
-    private bool TryCustomDeserializer(string fieldName, Type fieldType, out object deserializedValue)
+    private bool TryCustomDeserializer(string fieldName, Type fieldType, out object? deserializedValue)
     {
         deserializedValue = NoValueDeserialized;
 
@@ -272,15 +275,15 @@ public class DeserializationObject
         {
             // Try to match the concrete type first (e.g. Foo -> Foo and Foo<Bar> -> List<Bar>)
             // Note: Foo<Bar> wont match a serializer for Foo<>
-            if (_customDeserializers.TryGetValue(fieldType, out MethodInfo deserializeMethod))
+            if (_customDeserializers.TryGetValue(fieldType, out DeserializeMethod deserializeMethod))
             {
-                deserializedValue = deserializeMethod.Invoke(null, new object[] { this, fieldName, fieldType });
+                deserializedValue = deserializeMethod(this, fieldName, fieldType);
                 return true;
             }
             
             if (fieldType.IsGenericType && _customDeserializers.TryGetValue(fieldType.GetGenericTypeDefinition(), out deserializeMethod))
             {
-                deserializedValue = deserializeMethod.Invoke(null, new object[] { this, fieldName, fieldType });
+                deserializedValue = deserializeMethod(this, fieldName, fieldType);
             }   return true;
         }
         catch (Exception e)
