@@ -4,10 +4,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
+using GlitchyEngine.Extensions;
 
 namespace GlitchyEngine.Serialization;
 
-internal class SerializedObject
+public class SerializedObject
 {
     private IntPtr _internalContext;
 
@@ -18,6 +19,10 @@ internal class SerializedObject
     private Stack<string> _structScope = new();
 
     private string _structScopeName;
+
+    private static Dictionary<Type, MethodInfo> _customSerializers = new();
+
+    public UUID Id => _id;
     
     public SerializedObject(IntPtr internalContext, UUID id, Dictionary<object, SerializedObject> serializedClasses)
     {
@@ -25,8 +30,8 @@ internal class SerializedObject
         _id = id;
         _serializedClasses = serializedClasses;
     }
-
-    private (SerializedObject context, bool newContext) GetSerializedObject(object o)
+    
+    public (SerializedObject context, bool newContext) GetSerializedObject(object o)
     {
         SerializedObject context;
 
@@ -42,20 +47,42 @@ internal class SerializedObject
         return (context, true);
     }
 
-    private void PushScope(string name)
+    static SerializedObject()
+    {
+        foreach (Type type in TypeExtension.EnumerateAllTypes())
+        {
+            if (type.TryGetCustomAttribute<CustomSerializerAttribute>(out var attribute))
+            {
+                MethodInfo serializeMethod = type.GetMethod("Serialize", BindingFlags.Static | BindingFlags.Public,
+                    null,
+                    new[] { typeof(SerializedObject), typeof(string), typeof(object), typeof(Type) }, null);
+
+                if (serializeMethod == null)
+                {
+                    Log.Error($"No Serialize-method found for type {type}");
+                }
+                else
+                {
+                    _customSerializers.Add(attribute.Type, serializeMethod);
+                }
+            }
+        }
+    }
+
+    public void PushScope(string name)
     {
         _structScope.Push(name);
 
         _structScopeName += $"{name}.";
     }
 
-    private void PopScope()
+    public void PopScope()
     {
         string scopeToRemove = _structScope.Pop();
         _structScopeName = _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
     }
 
-    private void AddField(string fieldName, SerializationType serializationType, object value, string fullTypeName = null)
+    public void AddField(string fieldName, SerializationType serializationType, object value, string fullTypeName = null)
     {
         string completeFieldName = $"{_structScopeName}{fieldName}";
 
@@ -67,7 +94,7 @@ internal class SerializedObject
         SerializeFields(entity);
     }
     
-    private void SerializeFields(object obj)
+    public void SerializeFields(object obj)
     {
         Type type = obj.GetType();
 
@@ -83,7 +110,35 @@ internal class SerializedObject
         }
     }
 
-    private void SerializeField(string fieldName, object fieldValue, Type fieldType)
+    private bool TryCustomSerializer(string fieldName, object fieldValue, Type fieldType)
+    {
+        try
+        {
+            // Try to match the concrete type first (e.g. Foo -> Foo and Foo<Bar> -> List<Bar>)
+            // Note: Foo<Bar> wont match a serializer for Foo<>
+            if (_customSerializers.TryGetValue(fieldType, out MethodInfo serializeMethod))
+            {
+                serializeMethod.Invoke(null, new[] { this, fieldName, fieldValue, fieldType });
+                return true;
+            }
+            
+            if (fieldType.IsGenericType && _customSerializers.TryGetValue(fieldType.GetGenericTypeDefinition(), out serializeMethod))
+            {
+                serializeMethod.Invoke(null, new[] { this, fieldName, fieldValue, fieldType });
+                return true;
+            }
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+            // Don't attempt to use any other serializer after this error...
+            return true;
+        }
+
+        return false;
+    }
+
+    public void SerializeField(string fieldName, object fieldValue, Type fieldType)
     {
         if (fieldType.IsPrimitive)
         {
@@ -110,6 +165,9 @@ internal class SerializedObject
         }
         else if (fieldType.IsGenericType)
         {
+            if (TryCustomSerializer(fieldName, fieldValue, fieldType))
+                return;
+
             if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 SerializeList(fieldName, fieldValue, fieldType, fieldType.GetGenericArguments()[0]);
@@ -126,10 +184,16 @@ internal class SerializedObject
         }
         else if (fieldType.IsValueType)
         {
+            if (TryCustomSerializer(fieldName, fieldValue, fieldType))
+                return;
+
             SerializeStruct(fieldName, fieldValue, fieldType);
         }
         else if (fieldType.IsClass)
         {
+            if (TryCustomSerializer(fieldName, fieldValue, fieldType))
+                return;
+
             SerializeClass(fieldName, fieldValue, fieldType);
         }
         else
@@ -138,7 +202,7 @@ internal class SerializedObject
         }
     }
 
-    private void SerializeList(string fieldName, object listObject, Type fieldType, Type elementType)
+    public void SerializeList(string fieldName, object listObject, Type fieldType, Type elementType)
     {
         if (listObject == null)
         {
@@ -168,7 +232,7 @@ internal class SerializedObject
         }
     }
 
-    private void SerializePrimitive(string fieldName, object fieldValue, Type fieldType)
+    public void SerializePrimitive(string fieldName, object fieldValue, Type fieldType)
     {
         Debug.Assert(fieldType.IsPrimitive, $"{fieldType} is not a primitive type.");
 
@@ -208,12 +272,12 @@ internal class SerializedObject
         AddField(fieldName, type, fieldValue);
     }
 
-    private void SerializeEnum(string fieldName, object fieldValue, Type fieldType)
+    public void SerializeEnum(string fieldName, object fieldValue, Type fieldType)
     {
         AddField(fieldName, SerializationType.Enum, fieldValue.ToString());
     }
 
-    private void SerializeStruct(string fieldName, object fieldValue, Type fieldType)
+    public void SerializeStruct(string fieldName, object fieldValue, Type fieldType)
     {
         PushScope(fieldName);
 
@@ -222,7 +286,7 @@ internal class SerializedObject
         PopScope();
     }
 
-    private void SerializeClass(string fieldName, object fieldValue, Type fieldType)
+    public void SerializeClass(string fieldName, object fieldValue, Type fieldType)
     {
         if (typeof(Entity).IsAssignableFrom(fieldType))
         {

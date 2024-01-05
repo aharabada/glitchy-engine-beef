@@ -10,12 +10,13 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using GlitchyEngine.Editor;
 
 namespace GlitchyEngine.Serialization;
 
-internal class DeserializationObject
+public class DeserializationObject
 {
-    private class NoObject
+    public class NoObject
     {
 
     }
@@ -23,7 +24,7 @@ internal class DeserializationObject
     /// <summary>
     /// Object used to specify, that no particular value was deserialized for the field and thus the value currently stored shall not be changed.
     /// </summary>
-    private static readonly NoObject NoValueDeserialized = new ();
+    public static readonly NoObject NoValueDeserialized = new ();
 
     private IntPtr _internalContext;
 
@@ -36,6 +37,24 @@ internal class DeserializationObject
     public Dictionary<UUID, DeserializationObject> DeserializedClasses;
 
     private object _instance;
+    
+    private Dictionary<string, Type> _fullNameToType = new();
+    
+    private static Dictionary<Type, MethodInfo> _customDeserializers = new();
+
+
+    /// <summary>
+    /// Gets the type that was originally stored in the container, or null, if the type doesn't exist.
+    /// </summary>
+    public Type StoredType
+    {
+        get
+        {
+            ScriptGlue.Serialization_GetObjectTypeName(_internalContext, out string fullTypeName);
+
+            return GetTypeFromName(fullTypeName);
+        }
+    }
 
     public DeserializationObject(IntPtr internalContext, UUID id, Dictionary<UUID, DeserializationObject> deserializedClasses)
     {
@@ -43,10 +62,30 @@ internal class DeserializationObject
         _id = id;
         DeserializedClasses = deserializedClasses;
     }
+    
+    static DeserializationObject()
+    {
+        foreach (Type type in TypeExtension.EnumerateAllTypes())
+        {
+            if (type.TryGetCustomAttribute<CustomSerializerAttribute>(out var attribute))
+            {
+                MethodInfo deserializeMethod = type.GetMethod("Deserialize", BindingFlags.Static | BindingFlags.Public,
+                    null,
+                    new []{ typeof(DeserializationObject), typeof(string), typeof(Type) }, null);
 
-    private Dictionary<string, Type> _fullNameToType = new();
+                if (deserializeMethod == null)
+                {
+                    Log.Error($"No Deserialize-method found for type {type}");
+                }
+                else
+                {
+                    _customDeserializers.Add(attribute.Type, deserializeMethod);
+                }
+            }
+        }
+    }
 
-    private Type FindType(string fullName)
+    public Type FindType(string fullName)
     {
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies().Reverse())
         {
@@ -59,7 +98,7 @@ internal class DeserializationObject
         return null;
     }
 
-    private Type GetTypeFromName(string fullName)
+    public Type GetTypeFromName(string fullName)
     {
         if (_fullNameToType.TryGetValue(fullName, out Type storedType))
             return storedType;
@@ -71,7 +110,7 @@ internal class DeserializationObject
         return type;
     }
 
-    private DeserializationObject GetDeserializedObject(UUID id)
+    public DeserializationObject GetDeserializedObject(UUID id)
     {
         DeserializationObject context;
         
@@ -87,14 +126,14 @@ internal class DeserializationObject
         return context;
     }
     
-    private void PushScope(string name)
+    public void PushScope(string name)
     {
         _structScope.Push(name);
 
         _structScopeName += $"{name}.";
     }
 
-    private void PopScope()
+    public void PopScope()
     {
         string scopeToRemove = _structScope.Pop();
         _structScopeName = _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
@@ -115,12 +154,12 @@ internal class DeserializationObject
         public EngineObjectReferenceHelper EngineObjectReference;
     }
 
-    private T GetFieldValue<T>(string fieldName, SerializationType serializationType)
+    public T GetFieldValue<T>(string fieldName, SerializationType serializationType)
     {
         return (T)GetFieldValue(fieldName, serializationType);
     }
 
-    private unsafe object GetFieldValue(string fieldName, SerializationType serializationType)
+    public unsafe object GetFieldValue(string fieldName, SerializationType serializationType)
     {
         string completeFieldName = $"{_structScopeName}{fieldName}";
 
@@ -200,7 +239,7 @@ internal class DeserializationObject
         DeserializeFields(entity);
     }
     
-    private bool DeserializeFields(object obj)
+    public bool DeserializeFields(object obj)
     {
         Type type = obj.GetType();
 
@@ -224,8 +263,35 @@ internal class DeserializationObject
 
         return changed;
     }
+    
+    private bool TryCustomDeserializer(string fieldName, Type fieldType, out object deserializedValue)
+    {
+        deserializedValue = NoValueDeserialized;
 
-    private object DeserializeField(object fieldValue, Type fieldType, string fieldName)
+        try
+        {
+            // Try to match the concrete type first (e.g. Foo -> Foo and Foo<Bar> -> List<Bar>)
+            // Note: Foo<Bar> wont match a serializer for Foo<>
+            if (_customDeserializers.TryGetValue(fieldType, out MethodInfo deserializeMethod))
+            {
+                deserializedValue = deserializeMethod.Invoke(null, new object[] { this, fieldName, fieldType });
+                return true;
+            }
+            
+            if (fieldType.IsGenericType && _customDeserializers.TryGetValue(fieldType.GetGenericTypeDefinition(), out deserializeMethod))
+            {
+                deserializedValue = deserializeMethod.Invoke(null, new object[] { this, fieldName, fieldType });
+            }   return true;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+
+        return false;
+    }
+
+    public object DeserializeField(object fieldValue, Type fieldType, string fieldName)
     {
         if (fieldType.IsPrimitive)
         {
@@ -245,6 +311,11 @@ internal class DeserializationObject
         }
         else if (fieldType.IsGenericType)
         {
+            if (TryCustomDeserializer(fieldName, fieldType, out object deserializedValue))
+            {
+                return deserializedValue;
+            }
+            
             if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
             {
                 return DeserializeList(fieldName, fieldType, fieldType.GetGenericArguments()[0]);
@@ -261,10 +332,20 @@ internal class DeserializationObject
         }
         else if (fieldType.IsValueType)
         {
+            if (TryCustomDeserializer(fieldName, fieldType, out object deserializedValue))
+            {
+                return deserializedValue;
+            }
+
             return DeserializeStruct(fieldName, fieldValue);
         }
         else if (fieldType.IsClass)
         { 
+            if (TryCustomDeserializer(fieldName, fieldType, out object deserializedValue))
+            {
+                return deserializedValue;
+            }
+
             return DeserializeClass(fieldName, fieldType);
         }
         else
@@ -275,7 +356,7 @@ internal class DeserializationObject
         return NoValueDeserialized;
     }
 
-    private object DeserializePrimitive(string fieldName, Type fieldType)
+    public object DeserializePrimitive(string fieldName, Type fieldType)
     {
         Debug.Assert(fieldType.IsPrimitive, $"{fieldType} is not a primitive type.");
 
@@ -315,20 +396,7 @@ internal class DeserializationObject
         return GetFieldValue(fieldName, expectedType);
     }
 
-    /// <summary>
-    /// Gets the type that was originally stored in the container, or null, if the type doesn't exist.
-    /// </summary>
-    public Type StoredType
-    {
-        get
-        {
-            ScriptGlue.Serialization_GetObjectTypeName(_internalContext, out string fullTypeName);
-
-            return GetTypeFromName(fullTypeName);
-        }
-    }
-
-    private object DeserializeList(string fieldName, Type fieldType, Type elementType)
+    public object DeserializeList(string fieldName, Type fieldType, Type elementType)
     {
         UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ObjectReference);
 
@@ -398,7 +466,7 @@ internal class DeserializationObject
         return deserializedObject._instance;
     }
 
-    private object DeserializeEnum(string fieldName, Type enumType)
+    public object DeserializeEnum(string fieldName, Type enumType)
     {
         if (GetFieldValue(fieldName, SerializationType.Enum) is not string valueName)
             return NoValueDeserialized;
@@ -415,7 +483,7 @@ internal class DeserializationObject
         return NoValueDeserialized;
     }
 
-    private object DeserializeStruct(string fieldName, object targetInstance)
+    public object DeserializeStruct(string fieldName, object targetInstance)
     {
         PushScope(fieldName);
 
@@ -426,7 +494,7 @@ internal class DeserializationObject
         return changed ? targetInstance : NoValueDeserialized;
     }
 
-    private unsafe object DeserializeClass(string fieldName, Type fieldType)
+    public unsafe object DeserializeClass(string fieldName, Type fieldType)
     {
         bool isEntity = typeof(Entity).IsAssignableFrom(fieldType);
         bool isComponent = fieldType.IsSubclassOf(typeof(Component));

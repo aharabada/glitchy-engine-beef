@@ -7,7 +7,7 @@ using GlitchyEngine.Extensions;
 
 namespace GlitchyEngine.Serialization;
 
-internal enum SerializationType : int
+public enum SerializationType : int
 {
     None,
 

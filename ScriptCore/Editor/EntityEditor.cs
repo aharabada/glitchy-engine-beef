@@ -296,7 +296,7 @@ internal class EntityEditor
 
                     if (ImGui.BeginCombo("Create", "Create", ImGuiComboFlags.HeightSmall | ImGuiComboFlags.NoArrowButton))
                     {
-                        foreach (Type t in FindDerivedTypes(fieldType))
+                        foreach (Type t in TypeExtension.FindDerivedTypes(fieldType))
                         {
                             if (ImGui.Selectable(t.Name))
                             {
@@ -816,20 +816,6 @@ internal class EntityEditor
         }
 
         return newList;
-    }
-
-    /// <summary>
-    /// Enumerates all types that derive from the given type.
-    /// </summary>
-    /// <param name="baseType"></param>
-    /// <returns></returns>
-    public static IEnumerable<Type> FindDerivedTypes(Type baseType)
-    {
-        foreach (Assembly domainAssembly in AppDomain.CurrentDomain.GetAssemblies())
-        foreach (Type type in domainAssembly.GetTypes())
-        {
-            if (baseType.IsAssignableFrom(type) && !type.IsAbstract) yield return type;
-        }
     }
 
     private static T ReadStaticField<T>(string name)
