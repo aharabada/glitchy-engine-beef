@@ -10,7 +10,6 @@ using System.Text;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using GlitchyEngine.Math;
-using GlitchyEngine.Serialization;
 using ImGuiNET;
 
 namespace GlitchyEngine.Editor;
@@ -198,11 +197,77 @@ internal class EntityEditor
             {
                 unsafe
                 {
-                    char value = (char)reference;
+                    // TODO: Allow escaped unicode chars \u XXXX
+                    // TODO: Add text input validation, so that it isn't possible to type invalid chars
 
-                    // TODO: Allow entering chars like '\0', '\n', etc...
-                    if (ImGui.InputText(fieldName, (IntPtr)(&value), 2))
-                        newValue = value;
+                    char* value = stackalloc char[4];
+                    switch((char)reference)
+                    {
+                        case '\a':
+                            value[0] = '\\';
+                            value[1] = 'a';
+                            break;
+                        case '\b':
+                            value[0] = '\\';
+                            value[1] = 'b';
+                            break;
+                        case '\f':
+                            value[0] = '\\';
+                            value[1] = 'f';
+                            break;
+                        case '\n':
+                            value[0] = '\\';
+                            value[1] = 'n';
+                            break;
+                        case '\r':
+                            value[0] = '\\';
+                            value[1] = 'r';
+                            break;
+                        case '\t':
+                            value[0] = '\\';
+                            value[1] = 't';
+                            break;
+                        case '\v':
+                            value[0] = '\\';
+                            value[1] = 'v';
+                            break;
+                        default:
+                            value[0] = (char)reference;
+                            value[1] = '\0';
+                            break;
+                    };
+
+                    // Enough space to store two code points
+                    byte* buffer = stackalloc byte[8];
+                    int encodedBytes = Encoding.UTF8.GetBytes(value, 2, buffer, 8);
+
+                    // Place string delimiter after encoded UTF8 sequence.
+                    buffer[encodedBytes] = (byte)'\0';
+
+                    if (ImGui.InputText(fieldName, (IntPtr)buffer, 8))
+                    {
+                        if (buffer[0] == '\\' && buffer[1] != '\0')
+                        {
+                            newValue = (char)buffer[1] switch
+                            {
+                                'a' => newValue = '\a',
+                                'b' => newValue = '\b',
+                                'f' => newValue = '\f',
+                                'n' => newValue = '\n',
+                                'r' => newValue = '\r',
+                                't' => newValue = '\t',
+                                'v' => newValue = '\v',
+                                _ => newValue = '\\'
+                            };
+                        }
+                        else
+                        {
+                            // Only decode first codepoint
+                            Encoding.UTF8.GetChars(buffer, 4, value, 4);
+
+                            newValue = value[0];
+                        }
+                    }   
                 }
             }
             else if (fieldType == typeof(byte))
