@@ -10,6 +10,7 @@ using GlitchyEngine.World;
 using GlitchyEngine.Content;
 using System.Collections;
 using GlitchyEngine.Renderer.Animation;
+using GlitchyEngine.Serialization;
 using System.IO;
 using GlitchyEngine.Core;
 using GlitchyEditor.Assets;

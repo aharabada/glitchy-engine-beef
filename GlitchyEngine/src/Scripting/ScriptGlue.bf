@@ -9,6 +9,7 @@ using GlitchyEngine.Core;
 using System.Collections;
 using Box2D;
 using GlitchyEngine.Scripting;
+using GlitchyEngine.Serialization;
 
 namespace GlitchyEngine.Scripting;
 
