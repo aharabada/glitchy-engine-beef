@@ -13,6 +13,7 @@ public class DictionaryEditor
 {
     private static object? dictionaryForNewValue = null;
     private static DictionaryEntry newDictionaryValue = new();
+    private static object? keyLastCreated = null;
 
     public static object? ShowEditor(object? reference, Type fieldType, string fieldName)
     {
@@ -47,14 +48,6 @@ public class DictionaryEditor
 
             dictionaryForNewValue = dictionary;
 
-            // TODO: show fake entry!
-
-            //object? newKey = ActivatorExtension.CreateInstanceSafe(keyType);
-            //object? newValue = ActivatorExtension.CreateInstanceSafe(valueType);
-
-            //if (newKey != null)
-            //    dictionary!.Add(newKey, newValue);
-
             newDictionaryValue = new DictionaryEntry();
         }
 
@@ -73,6 +66,13 @@ public class DictionaryEditor
             {
                 id++;
                 ImGui.PushID(id);
+
+                if (entry.Key == keyLastCreated)
+                {
+                    // The current key is the one that was last created. Open the tree node.
+                    ImGui.SetNextItemOpen(true);
+                    keyLastCreated = null;
+                }
 
                 bool isEntryOpen = ImGui.TreeNode("");
 
@@ -136,6 +136,7 @@ public class DictionaryEditor
                         newEntries.Add(new DictionaryEntry(newKey, newDictionaryValue.Value));
                         dictionaryForNewValue = null;
                         newDictionaryValue = new();
+                        keyLastCreated = newKey;
                     }
 
                     object newValue = EntityEditor.ShowFieldEditor(newDictionaryValue.Value, newDictionaryValue.Value?.GetType() ?? valueType, "Value");
