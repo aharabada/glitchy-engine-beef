@@ -111,7 +111,7 @@ internal class EntityEditor
         return (T?)attributes?.FirstOrDefault(a => a is T);
     }
 
-    private static object ShowPrimitiveEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
+    private static object? ShowPrimitiveEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
         object newValue = DidNotChange;
 
@@ -229,6 +229,10 @@ internal class EntityEditor
             {
                 ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{fieldName}: Type {fieldType} is not implemented.");
             }
+        }
+        else
+        {
+            return ActivatorExtension.CreateInstanceSafe(fieldType);
         }
 
         return newValue;

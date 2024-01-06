@@ -12,6 +12,7 @@ namespace GlitchyEngine.Editor;
 public class DictionaryEditor
 {
     private static object? dictionaryForNewValue = null;
+    private static DictionaryEntry newDictionaryValue = new();
 
     public static object? ShowEditor(object? reference, Type fieldType, string fieldName)
     {
@@ -53,9 +54,11 @@ public class DictionaryEditor
 
             //if (newKey != null)
             //    dictionary!.Add(newKey, newValue);
+
+            newDictionaryValue = new DictionaryEntry();
         }
 
-        ImGuiExtension.AttachTooltip("Add a new Element to the dictionary.");
+        ImGuiExtension.AttachTooltip("Add a new Entry to the dictionary.");
         
         if (listOpen)
         {
@@ -102,7 +105,49 @@ public class DictionaryEditor
 
                     ImGui.TreePop();
                 }
-                
+
+                ImGui.PopID();
+            }
+
+
+            if (ReferenceEquals(dictionaryForNewValue, dictionary))
+            {
+                ImGui.PushID("NewEntry");
+
+                ImGui.SetNextItemOpen(true);
+                bool isEntryOpen = ImGui.TreeNode("");
+
+                ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
+
+                if (ImGui.SmallButton("-"))
+                {
+                    dictionaryForNewValue = null;
+                    newDictionaryValue = new();
+                }
+
+                ImGuiExtension.AttachTooltip("Remove the Entry from the dictionary");
+
+                if (isEntryOpen)
+                {
+                    object newKey = EntityEditor.ShowFieldEditor(newDictionaryValue.Key, keyType, "Key");
+
+                    if (newKey != EntityEditor.DidNotChange)
+                    {
+                        newEntries.Add(new DictionaryEntry(newKey, newDictionaryValue.Value));
+                        dictionaryForNewValue = null;
+                        newDictionaryValue = new();
+                    }
+
+                    object newValue = EntityEditor.ShowFieldEditor(newDictionaryValue.Value, newDictionaryValue.Value?.GetType() ?? valueType, "Value");
+
+                    if (newValue != EntityEditor.DidNotChange)
+                    {
+                        newDictionaryValue.Value = newValue;
+                    }
+
+                    ImGui.TreePop();
+                }
+
                 ImGui.PopID();
             }
 
