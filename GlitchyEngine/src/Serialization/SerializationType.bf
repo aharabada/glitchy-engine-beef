@@ -1,36 +1,45 @@
 using GlitchyEngine.Core;
 using System;
+using Bon;
 
 namespace GlitchyEngine.Serialization;
 
-public enum SerializationType : int32
+[BonTarget]
+public enum SerializationType : uint32
 {
-	case None;
+	case None = 0;
 
-	case Bool;
-	
-	case Char;
-	case String;
-	
-	case Int8;
-	case Int16;
-	case Int32;
-	case Int64;
-	case UInt8;
-	case UInt16;
-	case UInt32;
-	case UInt64;
-	
-	case Float;
-	case Double;
-	case Decimal;
+	case Bool = 1 << 31;
 
-	case Enum;
+	case TextTypes = 1 << 30;
+
+	case Char = TextTypes | 1;
+	case String = TextTypes | 2;
+
+	case Number = 1 << 29;
+	case Integer = Number | 1 << 28;
+
+	case Int8 = Integer | 1;
+	case Int16 = Integer | 2;
+	case Int32 = Integer | 3;
+	case Int64 = Integer | 4;
+	case UInt8 = Integer | 5;
+	case UInt16 = Integer | 6;
+	case UInt32 = Integer | 7;
+	case UInt64 = Integer | 8;
 	
-	case EntityReference;
-	case ComponentReference;
+	case FloatingPoint = Number | 1 << 27;
+
+	case Float = FloatingPoint | 1;
+	case Double = FloatingPoint | 2;
+	case Decimal = FloatingPoint | 3;
+
+	case Enum = 1 << 26;
 	
-	case ObjectReference;
+	case EntityReference = 1 << 25;
+	case ComponentReference = 1 << 24;
+	
+	case ObjectReference = 1 << 23;
 
 	public int GetSize()
 	{
@@ -39,7 +48,7 @@ public enum SerializationType : int32
 		case .Bool:
 			return 1;
 		case .Char:
-			return 1;
+			return 2;
 		case .Int8, .UInt8:
 			return 1;
 		case .Int16, .UInt16:
@@ -63,5 +72,17 @@ public enum SerializationType : int32
 		default:
 			return 0;
 		}
+	}
+
+	public bool IsNumber => this.HasFlag(.Number);
+	public bool IsInteger => this.HasFlag(.Integer);
+	public bool IsFloatpoint => this.HasFlag(.FloatingPoint);
+
+	public bool CanConvertTo(SerializationType destinationType)
+	{
+		if (this.IsNumber && destinationType.IsNumber)
+			return true;
+
+		return false;
 	}
 }

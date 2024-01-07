@@ -1023,7 +1023,7 @@ namespace GlitchyEditor
 		}
 
 		/// Sets the current editor scene
-		private void SetEditorScene(Scene scene)
+		private void SetEditorScene(Scene scene, Dictionary<UUID, SerializedObject> serializedObjects = null)
 		{
 			if (_editorScene != null)
 			{
@@ -1037,6 +1037,12 @@ namespace GlitchyEditor
 			if (_editorScene != null)
 			{
 				_editorScene.StartRuntime();
+
+				if (serializedObjects != null)
+				{
+					// Reconstruct state
+					ScriptEngine.DeserializeScriptInstances(serializedObjects);
+				}
 			}
 		}
 
@@ -1139,7 +1145,7 @@ namespace GlitchyEditor
 				// Make sure we actually loaded something!
 				if (result case .Ok)
 				{
-					SetEditorScene(newScene);
+					SetEditorScene(newScene, serializer.SerializedObjects);
 
 					String relativePath = scope .();
 					Path.GetRelativePath(filename, _currentProject.WorkspacePath, relativePath);

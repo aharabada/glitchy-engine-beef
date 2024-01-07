@@ -38,7 +38,7 @@ public class DeserializationObject
 
     private object _instance;
     
-    private Dictionary<string, Type> _fullNameToType = new();
+    private Dictionary<string, Type?> _fullNameToType = new();
 
     private delegate object? DeserializeMethod(DeserializationObject container, string fieldName, Type fieldType);
 
@@ -47,7 +47,7 @@ public class DeserializationObject
     /// <summary>
     /// Gets the type that was originally stored in the container, or null, if the type doesn't exist.
     /// </summary>
-    public Type StoredType
+    public Type? StoredType
     {
         get
         {
@@ -88,7 +88,7 @@ public class DeserializationObject
         }
     }
 
-    public Type FindType(string fullName)
+    public Type? FindType(string fullName)
     {
         foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies().Reverse())
         {
@@ -101,19 +101,19 @@ public class DeserializationObject
         return null;
     }
 
-    public Type GetTypeFromName(string fullName)
+    public Type? GetTypeFromName(string fullName)
     {
-        if (_fullNameToType.TryGetValue(fullName, out Type storedType))
+        if (_fullNameToType.TryGetValue(fullName, out Type? storedType))
             return storedType;
 
-        Type type = FindType(fullName);
-
+        Type? type = FindType(fullName);
+        
         _fullNameToType.Add(fullName, type);
 
         return type;
     }
 
-    public DeserializationObject GetDeserializedObject(UUID id)
+    public DeserializationObject? GetDeserializedObject(UUID id)
     {
         DeserializationObject context;
         
@@ -121,7 +121,12 @@ public class DeserializationObject
             return context;
         
         ScriptGlue.Serialization_GetObject(_internalContext, id, out IntPtr contextPtr);
-        
+
+        if (contextPtr == IntPtr.Zero)
+        {
+            return null;
+        }
+
         context = new DeserializationObject(contextPtr, id, DeserializedClasses);
         
         DeserializedClasses.Add(id, context);
@@ -155,27 +160,42 @@ public class DeserializationObject
         
         [FieldOffset(0)]
         public EngineObjectReferenceHelper EngineObjectReference;
+
+        [FieldOffset(0)]
+        public ulong UInt;
+
+        [FieldOffset(0)]
+        public long Int;
+
+        [FieldOffset(0)]
+        public UUID UUID;
     }
 
-    public T GetFieldValue<T>(string fieldName, SerializationType serializationType)
+    public T? GetFieldValue<T>(string fieldName, SerializationType expectedType)
     {
-        return (T)GetFieldValue(fieldName, serializationType);
+        return (T?)GetFieldValue(fieldName, expectedType);
     }
 
-    public unsafe object GetFieldValue(string fieldName, SerializationType serializationType)
+    public unsafe object? GetFieldValue(string fieldName, SerializationType expectedType)
     {
         string completeFieldName = $"{_structScopeName}{fieldName}";
 
         // Decimal is the larges primitive we store so we use a decimal as stack allocated memory (because stackalloc doesn't seem to work :(
         //decimal backingFieldOnStack = 0.0m;
-        byte* rawData = stackalloc byte[sizeof(DataHelper)];
         //byte* rawData = (byte*)&backingFieldOnStack;
+        
+        //byte* rawData = stackalloc byte[sizeof(DataHelper)];
+        //ref DataHelper dataHelper = ref Unsafe.AsRef<DataHelper>(rawData);
 
-        ref DataHelper dataHelper = ref Unsafe.AsRef<DataHelper>(rawData);
+        DataHelper dataHelper = new();
+        byte* rawData = (byte*)Unsafe.AsPointer(ref dataHelper);
 
-        ScriptGlue.Serialization_DeserializeField(_internalContext, serializationType, completeFieldName, rawData);
+        // //byte* rawData = stackalloc byte[sizeof(DataHelper)];
+        // //ref DataHelper dataHelper = ref Unsafe.AsRef<DataHelper>(rawData);
 
-        string GetString()
+        ScriptGlue.Serialization_DeserializeField(_internalContext, expectedType, completeFieldName, rawData, out SerializationType actualType);
+
+        string? GetString()
         {
             // rawData contains a Pointer and a string length!
             byte* utf8Ptr = *(byte**)rawData;
@@ -191,48 +211,50 @@ public class DeserializationObject
             return Encoding.UTF8.GetString(utf8Ptr, (int)length);
         }
 
-        switch (serializationType)
+        object? value = actualType switch
         {
-            case SerializationType.Bool:
-                return *(bool*)rawData;
-            case SerializationType.Char:
-                return *(char*)rawData;
-            case SerializationType.String:
-                return GetString();
-            case SerializationType.Int8:
-                return *(sbyte*)rawData;
-            case SerializationType.Int16:
-                return *(short*)rawData;
-            case SerializationType.Int32:
-                return *(int*)rawData;
-            case SerializationType.Int64:
-                return *(long*)rawData;
-            case SerializationType.UInt8:
-                return *(byte*)rawData;
-            case SerializationType.UInt16:
-                return *(ushort*)rawData;
-            case SerializationType.UInt32:
-                return *(uint*)rawData;
-            case SerializationType.UInt64:
-                return *(ulong*)rawData;
+            SerializationType.Bool => *(bool*)rawData,
+            SerializationType.Char => *(char*)rawData,
+            SerializationType.String => GetString(),
+            SerializationType.Int8 => *(sbyte*)rawData,
+            SerializationType.Int16 => *(short*)rawData,
+            SerializationType.Int32 => *(int*)rawData,
+            SerializationType.Int64 => *(long*)rawData,
+            SerializationType.UInt8 => *(byte*)rawData,
+            SerializationType.UInt16 => *(ushort*)rawData,
+            SerializationType.UInt32 => *(uint*)rawData,
+            SerializationType.UInt64 => *(ulong*)rawData,
+            SerializationType.Float => *(float*)rawData,
+            SerializationType.Double => *(double*)rawData,
+            SerializationType.Decimal => *(decimal*)rawData,
+            SerializationType.Enum => GetString(),
+            SerializationType.EntityReference => dataHelper.EngineObjectReference,
+            SerializationType.ComponentReference => dataHelper.EngineObjectReference,
+            SerializationType.ObjectReference => dataHelper.UUID,
+            _ => NoValueDeserialized
+        };
 
-            case SerializationType.Float:
-                return *(float*)rawData;
-            case SerializationType.Double:
-                return *(double*)rawData;
-            case SerializationType.Decimal:
-                return *(decimal*)rawData;
-
-            case SerializationType.Enum:
-                return GetString();
-            case SerializationType.EntityReference:
-            case SerializationType.ComponentReference:
-                return dataHelper.EngineObjectReference;
-            case SerializationType.ObjectReference:
-                return *(UUID*)rawData;
-            default:
+        if (actualType != expectedType)
+        {
+            if (!actualType.CanConvertTo(expectedType))
+            {
                 return NoValueDeserialized;
+            }
+
+            try
+            {
+                Type? targetType = expectedType.GetTypeInstance();
+
+                return targetType != null ? Convert.ChangeType(value, targetType) : NoValueDeserialized;
+            }
+            catch (Exception e)
+            {
+                Log.Error($"Failed to convert type {actualType} to {expectedType}: {e}");
+                return NoValueDeserialized;
+            }
         }
+
+        return value;
     }
 
     public void Deserialize(Entity entity)
@@ -284,7 +306,8 @@ public class DeserializationObject
             if (fieldType.IsGenericType && _customDeserializers.TryGetValue(fieldType.GetGenericTypeDefinition(), out deserializeMethod))
             {
                 deserializedValue = deserializeMethod(this, fieldName, fieldType);
-            }   return true;
+                return true;
+            }
         }
         catch (Exception e)
         {
@@ -407,9 +430,12 @@ public class DeserializationObject
             return null;
         
         // Get serialization container for the instance
-        DeserializationObject deserializedObject = GetDeserializedObject(id);
+        DeserializationObject? deserializedObject = GetDeserializedObject(id);
 
-        Type type = deserializedObject.StoredType;
+        if (deserializedObject == null)
+            return NoValueDeserialized;
+
+        Type? type = deserializedObject.StoredType;
 
         if (type == null || !type.IsAssignableTo(fieldType))
             return null;

@@ -528,6 +528,27 @@ static class ScriptGlue
 		id = UUID.Create();
 	}
 
+	[RegisterCall("ScriptGlue::Print_Decimal")]
+	static void Print_Decimal(MonoDecimal monoDecimal)
+	{
+		Log.ClientLogger.Info(scope $"{monoDecimal}");
+	}
+
+	[RegisterCall("ScriptGlue::Get_Decimal")]
+	static void Get_Decimal(MonoString* string, out MonoDecimal monoDecimal)
+	{
+		char8* str = Mono.mono_string_to_utf8(string);
+
+		Result<MonoDecimal> decimalo = MonoDecimal.Parse(StringView(str));
+
+		if (!(decimalo case .Ok(out monoDecimal)))
+		{
+			monoDecimal = default;
+		}
+
+		Mono.mono_free(str);
+	}
+
 #region Application
 	
 	[RegisterCall("ScriptGlue::Application_IsEditor")]
@@ -590,7 +611,7 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall("ScriptGlue::Serialization_DeserializeField")]
-	public static void Serialization_DeserializeField(void* internalContext, SerializationType expectedType, MonoString* fieldName, uint8* target)
+	public static void Serialization_DeserializeField(void* internalContext, SerializationType expectedType, MonoString* fieldName, uint8* target, out SerializationType actualType)
 	{
 		SerializedObject context = Internal.UnsafeCastToObject(internalContext) as SerializedObject;
 
@@ -598,7 +619,7 @@ static class ScriptGlue
 		
 		char8* name = Mono.mono_string_to_utf8(fieldName);
 
-		context.GetField(StringView(name), expectedType, target);
+		context.GetField(StringView(name), expectedType, target, out actualType);
 
 		Mono.mono_free(name);
 	}
@@ -611,6 +632,8 @@ static class ScriptGlue
 		Log.EngineLogger.AssertDebug(context != null);
 		
 		objectContext = null;
+
+		Log.EngineLogger.AssertDebug(context.AllObjects.ContainsKey(context.Id));
 
 		if (!context.AllObjects.TryGetValue(id, let foundObject))
 			return;

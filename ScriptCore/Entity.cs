@@ -51,6 +51,17 @@ public class Entity : EngineObject
         Create(name, components);
     }
 
+    protected void PrintDecimal(decimal value)
+    {
+        ScriptGlue.Print_Decimal(value);
+    }
+    
+    protected decimal GetDecimal(string value)
+    {
+        ScriptGlue.Get_Decimal(value, out var dec);
+        return dec;
+    }
+
     private void Create(string name, Type[] components)
     {
         ScriptGlue.Entity_Create(this, name, components, out _uuid);

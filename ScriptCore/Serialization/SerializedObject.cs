@@ -40,7 +40,7 @@ public class SerializedObject
         if (_serializedClasses.TryGetValue(o, out context))
             return (context, false);
         
-        ScriptGlue.Serialization_CreateObject(_internalContext, o.GetType().FullName, out IntPtr contextPtr, out UUID id);
+        ScriptGlue.Serialization_CreateObject(_internalContext, o.GetType().ToString(), out IntPtr contextPtr, out UUID id);
 
         context = new SerializedObject(contextPtr, id, _serializedClasses);
 
@@ -102,7 +102,7 @@ public class SerializedObject
     {
         Type type = obj.GetType();
 
-        foreach (FieldInfo field in type.GetFields())
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
         {
             if (!EntitySerializer.SerializeField(field))
                 continue;
@@ -144,7 +144,7 @@ public class SerializedObject
 
     public void SerializeField(string fieldName, object fieldValue, Type fieldType)
     {
-        if (fieldType.IsPrimitive)
+        if (fieldType.IsPrimitive || fieldType == typeof(decimal))
         {
             SerializePrimitive(fieldName, fieldValue, fieldType);
         }
@@ -238,8 +238,6 @@ public class SerializedObject
 
     public void SerializePrimitive(string fieldName, object fieldValue, Type fieldType)
     {
-        Debug.Assert(fieldType.IsPrimitive, $"{fieldType} is not a primitive type.");
-
         SerializationType type = SerializationType.None;
         
         if (fieldType == typeof(bool))

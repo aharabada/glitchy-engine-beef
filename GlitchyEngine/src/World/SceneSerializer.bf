@@ -9,6 +9,7 @@ using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
+using GlitchyEngine.Serialization;
 
 namespace GlitchyEngine.World;
 
@@ -26,6 +27,12 @@ class SceneSerializer
 	// Maps from ID in the prefab file to the actual ID in the scene.
 	private Dictionary<UUID, UUID> _fileToSceneId;
 
+	private Dictionary<UUID, SerializedObject> _serializedObjects ~ DeleteDictionaryAndValues!(_);
+
+	private HashSet<UUID> _objectsNotWritten;
+
+	public Dictionary<UUID, SerializedObject> SerializedObjects => _serializedObjects;
+
 	public this(Scene scene)
 	{
 		_scene = scene;
@@ -34,6 +41,17 @@ class SceneSerializer
 	public void Serialize(StringView filePath)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
+
+		_serializedObjects = new .();
+
+		ScriptEngine.SerializeScriptInstances(_serializedObjects);
+
+		_objectsNotWritten = new .(_serializedObjects.Count);
+
+		for (UUID key in _serializedObjects.Keys)
+		{
+			_objectsNotWritten.Add(key);
+		}
 
 		String buffer = scope String();
 		let writer = scope BonWriter(buffer, true);
@@ -63,9 +81,23 @@ class SceneSerializer
 			}
 
 			writer.EntryEnd();
+
+			writer.Identifier("ReferencedObjects");
+
+			using (writer.ArrayBlock())
+			{
+				for (UUID id in _objectsNotWritten)
+				{
+					Serialize.Value(writer, _serializedObjects[id]);
+				}
+			}
+
+			writer.EntryEnd();
 		}
-		
+
 		Serialize.End(writer, length);
+
+		delete _objectsNotWritten;
 
 		String targetDirectory = Path.GetDirectoryPath(filePath, .. scope String());
 		Directory.CreateDirectory(targetDirectory);
@@ -205,10 +237,19 @@ class SceneSerializer
 			{
 				Serialize.Value(writer, "ScriptClass", component.ScriptClassName);
 
+				if (_serializedObjects.TryGetValue(entity.UUID, let value))
+				{
+					Serialize.Value(writer, "Fields", value);
+
+					_objectsNotWritten.Remove(entity.UUID);
+				}
+
 				//if (component.HasScript)
 				// TODO: Thats not a good check, I think. At least we know the script class is valid
-				if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
-				{
+				//if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
+				//{
+					//Serialize.Value(writer, "Fields", );
+
 					// TODO: Serialize Script Instance!
 					/*let fields = ScriptEngine.GetScriptFieldMap(entity);
 					
@@ -236,7 +277,7 @@ class SceneSerializer
 							}
 						}
 					}*/
-				}
+				//}
 			});
 		}
 
@@ -267,6 +308,8 @@ class SceneSerializer
 	public Result<void> Deserialize(StringView filePath, bool loadAsPrefab = false)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
+
+		_serializedObjects = new .();
 
 		_parentIdToChild = scope Dictionary<UUID, Entity>();
 		_entitiesMissingParent = scope List<(Entity Entity, UUID ParentId)>();
@@ -302,6 +345,28 @@ class SceneSerializer
 			}
 			
 			Try!(DeserializeEntity(reader, loadAsPrefab));
+
+			first = false;
+		}
+
+		Try!(reader.ArrayBlockEnd());
+
+		Try!(reader.EntryEnd());
+
+		if (Try!(reader.Identifier()) != "ReferencedObjects")
+			return .Err;
+
+		Try!(reader.ArrayBlock());
+
+		first = true;
+		while (reader.ArrayHasMore())
+		{
+			if (!first)
+			{
+				Try!(reader.EntryEnd());
+			}
+
+			Try!(SerializedObject.BonDeserialize(reader, _serializedObjects, gBonEnv));
 
 			first = false;
 		}
@@ -605,112 +670,18 @@ class SceneSerializer
 
 					if (scriptClassName != null)
 					{
-						//if (ScriptEngine.EntityClasses.TryGetValue(scriptClassName, let scriptClass))
-						/*{
-							component.ScriptClass = scriptClass;
-						}*/
-						
 						component.ScriptClassName = scriptClassName;
 
 						delete scriptClassName;
 					}
 
-					//if (component.HasScript)
-					if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
+
+					if (reader.ObjectHasMore())
 					{
-						// This whole operation is technically a bit junk, because we are not guaranteed to successfully deserialize the scene,
-						// however we are editing the ScriptEngine because it doesn't care about which scene is active right now.
-						// The UUID should be unique enough, however if they do overlap (e.g. loading the current scene or simply because we are unlucky)
-						// we will replace the fields of the active scene, even if deserialization fails...
-						// But that is a bug for me to rediscover in the distant future, so in case this bug occurred and it took ages for you to
-						// figure out what happened: You are welcome :)
-
-						// TODO: We need a new way to Serialize/Deserialize these fields!
-						/*ScriptEngine.CreateScriptFieldMap(entity);
-
-						var fields = ScriptEngine.GetScriptFieldMap(entity);
-						
 						Try!(reader.EntryEnd());
-						
+
 						if (Try!(reader.Identifier()) == "Fields")
-						{
-							Try!(reader.ArrayBlock());
-	
-							bool dontRemoveComma = true;
-
-							// Remove whitespace before the check
-							while (reader..ConsumeEmpty().ArrayHasMore())
-							{
-								if (dontRemoveComma)
-									dontRemoveComma = false;
-								else
-								{
-									if (reader.[Friend]Check(',', false))
-										reader.EntryEnd();
-									else
-										reader..FileEntrySkip(1).ConsumeEmpty();
-								}
-	
-								// TODO: We could think about doing the Try! a little smarter...
-								// However we always might just fail to deserialize, so it doesn't really matter.
-								// It does matter... in case of an error we should try to skip to the next entry.
-	
-								StringView fieldName = Try!(reader.Identifier());
-
-								// Allocate a string on the stack, because the dictionary uses a string as key
-								String fieldNameString = scope .(fieldName);
-
-								Result<StringView> fieldTypeName = reader.Type();
-
-								if (fieldTypeName case .Err)
-								{
-									Log.EngineLogger.Error($"Failed to read field type for field \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
-									reader.FileEntrySkip(1);
-									dontRemoveComma = true;
-									continue;
-								}
-
-								Result<ScriptFieldType> fieldType = Enum.Parse<ScriptFieldType>(fieldTypeName, true);
-
-								if ((fieldType case .Err))
-								{
-									Log.EngineLogger.Error($"Error deserializing field type (Raw string: \"{fieldTypeName}\" of field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
-									reader.FileEntrySkip(1);
-									dontRemoveComma = true;
-									continue;
-								}
-
-								uint8[sizeof(Matrix)] data = .();
-
-								if (Deserialize.Value(reader, ValueView(fieldType.Value.GetBeefType(), &data), gBonEnv) case .Err)
-								{
-									Log.EngineLogger.Error($"Failed to deserialize data for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
-									reader.FileEntrySkip(1);
-									dontRemoveComma = true;
-									continue;
-								}
-
-								if (fields.ContainsKey(fieldNameString))
-								{
-									var field = ref fields[fieldNameString];
-
-									// Make sure the type we deserialized actually is correct.
-									if (fieldType != field.Type)
-									{
-										Log.EngineLogger.Error($"Unexpected field type (\"{fieldTypeName}\" instead of \"{field.Type}\" for field: \"{fieldName}\" in script \"{component.ScriptClassName}\" of entity {entity.UUID} (\"{entity.Name}\")");
-										continue;
-									}
-
-									field.SetData(data);
-								}
-								else
-								{
-									Log.EngineLogger.Error($"Script \"{component.ScriptClassName}\" doesn't have a field with name \"{fieldName}\". (Entity {entity.UUID} (\"{entity.Name}\"))");
-								}
-							}
-	
-							Try!(reader.ArrayBlockEnd());
-						}*/
+							SerializedObject.BonDeserialize(reader, _serializedObjects, gBonEnv);
 					}
 
 					return .Ok;

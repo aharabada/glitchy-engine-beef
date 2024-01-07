@@ -33,5 +33,67 @@ namespace Bon.Integrated
 			value = ?;
 			return Deserialize.Value(reader, ValueView(typeof(T), &value), env);
 		}
+
+		public static bool IsBool(BonReader reader, BonEnvironment env = gBonEnv)
+		{
+			return reader.inStr.StartsWith(bool.TrueString, StringComparison.OrdinalIgnoreCase) || reader.inStr.StartsWith(bool.FalseString, StringComparison.OrdinalIgnoreCase);
+		}
+
+		public enum NumberType
+		{
+			None,
+			Integer,
+			Float,
+			Double,
+			Decimal
+		}
+
+		/*public static bool IsNumber(BonReader reader, out NumberType numberType)
+		{
+			numberType = .None;
+
+			StringView tmpView = reader.inStr;
+
+			if (tmpView.StartsWith('-') || tmpView.StartsWith('+'))
+				tmpView.RemoveFromStart(1);
+
+			if (tmpView.StartsWith('NaN', StringComparison.OrdinalIgnoreCase) || tmpView.StartsWith('infinity', StringComparison.OrdinalIgnoreCase))
+			{
+				numberType = .Double;
+				return true;
+			}
+
+			bool isNumber = false;
+
+			while (true)
+			{
+				if (tmpView[0].IsNumber)
+				{
+					isNumber = true;
+					tmpView.RemoveFromStart(1);
+				}
+				else if (tmpView.StartsWith('.'))
+				{
+					// We also don't allow floats like .5f
+					if (!isNumber)
+						return false;
+
+					tmpView.RemoveFromStart(1);
+
+					// Err on the side of caution and assume double for precision
+					numberType = .Double;
+				}
+			}
+			
+			
+			if (tmpView.StartsWith('f'))
+				numberType = .Float;
+			else if (tmpView.StartsWith('m'))
+				numberType = .Decimal;
+			else if (numberType != .Double)
+				numberType = .Integer;
+
+			return isNumber;
+		}*/
 	}
 }

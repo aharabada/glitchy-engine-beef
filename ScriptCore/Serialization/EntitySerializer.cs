@@ -7,34 +7,79 @@ using GlitchyEngine.Extensions;
 
 namespace GlitchyEngine.Serialization;
 
-public enum SerializationType : int
+[Flags]
+public enum SerializationType : uint
 {
-    None,
+    None = 0,
 
-    Bool,
+    Bool = 1u << 31,
 
-    Char,
-    String,
+    TextTypes = 1 << 30,
 
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
+    Char = TextTypes | 1,
+    String = TextTypes | 2,
 
-    Float,
-    Double,
-    Decimal,
+    Number = 1 << 29,
+    Integer = Number | 1 << 28,
 
-    Enum,
+    Int8 = Integer | 1,
+    Int16 = Integer | 2,
+    Int32 = Integer | 3,
+    Int64 = Integer | 4,
+    UInt8 = Integer | 5,
+    UInt16 = Integer | 6,
+    UInt32 = Integer | 7,
+    UInt64 = Integer | 8,
 
-    EntityReference,
-    ComponentReference,
+    FloatingPoint = Number | 1 << 27,
 
-    ObjectReference
+    Float = FloatingPoint | 1,
+    Double = FloatingPoint | 2,
+    Decimal = FloatingPoint | 3,
+
+    Enum = 1 << 26,
+
+    EntityReference = 1 << 25,
+    ComponentReference = 1 << 24,
+
+    ObjectReference = 1 << 23,
+}
+
+public static class SerializationTypeExtension
+{
+    public static bool CanConvertTo(this SerializationType currentType, SerializationType targetType)
+    {
+        if (currentType.HasFlag(SerializationType.Number) && targetType.HasFlag(SerializationType.Number))
+            return true;
+
+        return false;
+    }
+
+    public static Type? GetTypeInstance(this SerializationType currentType)
+    {
+        return currentType switch
+        {
+            SerializationType.Bool => typeof(bool),
+            SerializationType.Char => typeof(char),
+            SerializationType.String => typeof(string),
+            SerializationType.Int8 => typeof(sbyte),
+            SerializationType.Int16 => typeof(short),
+            SerializationType.Int32 => typeof(int),
+            SerializationType.Int64 => typeof(long),
+            SerializationType.UInt8 => typeof(byte),
+            SerializationType.UInt16 => typeof(ushort),
+            SerializationType.UInt32 => typeof(uint),
+            SerializationType.UInt64 => typeof(ulong),
+            SerializationType.Float => typeof(float),
+            SerializationType.Double => typeof(double),
+            SerializationType.Decimal => typeof(decimal),
+            SerializationType.Enum => typeof(Enum),
+            SerializationType.EntityReference => typeof(UUID),
+            SerializationType.ComponentReference => typeof(UUID),
+            SerializationType.ObjectReference => typeof(UUID),
+            _ => null
+        };
+    }
 }
 
 internal static class EntitySerializer

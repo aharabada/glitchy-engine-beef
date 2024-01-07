@@ -121,6 +121,12 @@ internal static class ScriptGlue
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern float4 modf_float4(float4 x, out float4 integerPart);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Print_Decimal(decimal value);
+        
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Get_Decimal(string str, out decimal value);
 
 #endregion
     
@@ -152,7 +158,7 @@ internal static class ScriptGlue
     internal static extern void Serialization_CreateObject(IntPtr currentContext, string fullTypeName, out IntPtr context, out UUID id);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern unsafe void Serialization_DeserializeField(IntPtr internalContext, SerializationType expectedType, string fieldName, byte* value);
+    public static extern unsafe void Serialization_DeserializeField(IntPtr internalContext, SerializationType expectedType, string fieldName, byte* value, out SerializationType actualType);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern void Serialization_GetObject(IntPtr internalContext, UUID id, out IntPtr objectContext);
