@@ -196,7 +196,9 @@ static class ScriptGlue
 		for (uint i < length)
 		{
 			MonoReflectionType* reflectionType = Mono.mono_array_get<MonoReflectionType*>(componentTypes, i);
-			Entity_AddComponent(entityId, reflectionType);
+
+			if (reflectionType != null)
+				Entity_AddComponent(entityId, reflectionType);
 		}
 	}
 
@@ -285,6 +287,8 @@ static class ScriptGlue
 
 			return scriptComponent.Instance.MonoInstance;
 		}
+
+		Log.EngineLogger.AssertDebug(false, "Failed to set script.");
 
 		return null;
 	}
@@ -526,27 +530,6 @@ static class ScriptGlue
 	static void UUID_Create(out UUID id)
 	{
 		id = UUID.Create();
-	}
-
-	[RegisterCall("ScriptGlue::Print_Decimal")]
-	static void Print_Decimal(MonoDecimal monoDecimal)
-	{
-		Log.ClientLogger.Info(scope $"{monoDecimal}");
-	}
-
-	[RegisterCall("ScriptGlue::Get_Decimal")]
-	static void Get_Decimal(MonoString* string, out MonoDecimal monoDecimal)
-	{
-		char8* str = Mono.mono_string_to_utf8(string);
-
-		Result<MonoDecimal> decimalo = MonoDecimal.Parse(StringView(str));
-
-		if (!(decimalo case .Ok(out monoDecimal)))
-		{
-			monoDecimal = default;
-		}
-
-		Mono.mono_free(str);
 	}
 
 #region Application

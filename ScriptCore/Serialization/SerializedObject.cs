@@ -86,7 +86,7 @@ public class SerializedObject
         _structScopeName = _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
     }
 
-    public void AddField(string fieldName, SerializationType serializationType, object value, string fullTypeName = null)
+    public void AddField(string fieldName, SerializationType serializationType, object value, string? fullTypeName = null)
     {
         string completeFieldName = $"{_structScopeName}{fieldName}";
 

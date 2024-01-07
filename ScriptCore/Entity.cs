@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
+using GlitchyEngine.Physics;
 
 namespace GlitchyEngine;
 
@@ -13,7 +14,7 @@ namespace GlitchyEngine;
 public class Entity : EngineObject
 {
     /// <summary>
-    /// Gets or sets the name of the entity.
+    /// Gets or sets the name of the <see cref="Entity"/>.
     /// </summary>
     public string Name
     {
@@ -22,8 +23,8 @@ public class Entity : EngineObject
     }
 
     /// <summary>
-    /// Only to be called by the engine. Don't call this constructor yourself, it will not result in a valid entity.
-    /// If you want to create a new entity use <see cref="Entity(string)"/> or <see cref="Entity(string, Type[])"/>
+    /// Only to be called by the engine. Don't call this constructor yourself, it will not result in a valid <see cref="Entity"/>.
+    /// If you want to create a new <see cref="Entity"/> use <see cref="Entity(string)"/> or <see cref="Entity(string, Type[])"/>
     /// </summary>
     protected Entity()
     {
@@ -35,34 +36,23 @@ public class Entity : EngineObject
     /// <summary>
     /// Creates a new Entity.
     /// </summary>
-    /// <param name="name">The name of the new entity.</param>
-    public Entity(string name = null)
+    /// <param name="name">The name of the new <see cref="Entity"/>.</param>
+    public Entity(string? name = null)
     {
         Create(name, null);
     }
     
     /// <summary>
-    /// Creates a new Entity with the specified components attached to it.
+    /// Creates a new <see cref="Entity"/> with the specified components attached to it.
     /// </summary>
-    /// <param name="name">The name of the new entity.</param>
-    /// <param name="components">The components that the entity shall have.</param>
-    public Entity(string name, params Type[] components)
+    /// <param name="name">The name of the new <see cref="Entity"/>.</param>
+    /// <param name="components">The components that the <see cref="Entity"/> will be created with.</param>
+    public Entity(string? name, params Type[] components)
     {
         Create(name, components);
     }
 
-    protected void PrintDecimal(decimal value)
-    {
-        ScriptGlue.Print_Decimal(value);
-    }
-    
-    protected decimal GetDecimal(string value)
-    {
-        ScriptGlue.Get_Decimal(value, out var dec);
-        return dec;
-    }
-
-    private void Create(string name, Type[] components)
+    private void Create(string? name, Type[]? components)
     {
         ScriptGlue.Entity_Create(this, name, components, out _uuid);
         
@@ -73,20 +63,22 @@ public class Entity : EngineObject
     }
 
     /// <summary>
-    /// Creates an instance that represents the Entity with the given id.
+    /// Creates an instance that represents the <see cref="Entity"/> with the given id.
     /// </summary>
-    /// <param name="uuid">The ID of the entity that belongs to this instance.</param>
+    /// <param name="uuid">The ID of the <see cref="Entity"/> that belongs to this instance.</param>
     internal Entity(UUID uuid) : base(uuid) { }
+    
+    #region Components
 
     /// <summary>
-    /// Returns <see langword="true"/> if a component of the given type is attached to this entity.
+    /// Returns <see langword="true"/> if a component of the given type is attached to this <see cref="Entity"/>.
     /// </summary>
     /// <typeparam name="T">The type of the component.</typeparam>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool HasComponent<T>() => HasComponent(typeof(T));
     
     /// <summary>
-    /// Returns <see langword="true"/> if a component of the given type is attached to this entity.
+    /// Returns <see langword="true"/> if a component of the given type is attached to this <see cref="Entity"/>.
     /// </summary>
     /// <param name="type">The type of the component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,8 +88,8 @@ public class Entity : EngineObject
     /// Gets the component with the specified type.
     /// </summary>
     /// <typeparam name="T">The type of the component to get.</typeparam>
-    /// <returns>The component or null, if the entity doesn't have a component of the specified type.</returns>
-    public T GetComponent<T>() where T : Component, new()
+    /// <returns>The component or null, if the <see cref="Entity"/> doesn't have a component of the specified type.</returns>
+    public T? GetComponent<T>() where T : Component, new()
     {
         if (HasComponent<T>())
         {
@@ -114,32 +106,28 @@ public class Entity : EngineObject
     /// Gets the component with the given type.
     /// </summary>
     /// <param name="componentType">The type of the component to get.</param>
-    /// <returns>The component or null, if the entity doesn't have a component of the given type.</returns>
-    /// <remarks>For performance reasons it is recommended to use <see cref="GetComponent{T}"/> if possible.</remarks>
-    public Component GetComponent(Type componentType)
+    /// <returns>The component; or <see langword="null"/>, if the <see cref="Entity"/> doesn't have a component of the specified type or if <see cref="componentType"/> doesn't inherit from <see cref="Component"/>.</returns>
+    /// <remarks>For performance reasons it is recommended to use <see cref="GetComponent{T}"/> if possible as it might be slightly faster.</remarks>
+    public Component? GetComponent(Type componentType)
     {
-        // TODO: probably throw!
-        if (!componentType.IsSubclassOf(typeof(Component))) return null;
+        if (!componentType.IsSubclassOf(typeof(Component)))
+        {
+            Log.Error($"{nameof(GetComponent)}: Invalid component type \"{componentType}\". Must be a subclass of \"{nameof(Component)}\".");
+            return null;
+        }
         
         if (HasComponent(componentType))
         {
-            Component component = Activator.CreateInstance(componentType, true) as Component;
-
-            if (component != null)
-                component._uuid = _uuid;
-
-            return component;
+            return ActivatorExtension.CreateComponent(componentType, _uuid);
         }
 
         return null;
     }
 
-    #region Add Components
-
     /// <summary>
-    /// Adds the component with the specified type.
+    /// Attaches a component of the specified type to the <see cref="Entity"/>.
     /// </summary>
-    /// <typeparam name="T">The type of the component to add.</typeparam>
+    /// <typeparam name="T">The type of the component to attach.</typeparam>
     /// <returns>The component.</returns>
     public T AddComponent<T>() where T : Component, new()
     {
@@ -152,60 +140,63 @@ public class Entity : EngineObject
     }
 
     /// <summary>
-    /// Adds the component with the given type.
+    /// Attaches a component of the specified type to the <see cref="Entity"/>.
     /// </summary>
-    /// <param name="componentType">The type of the component to add.</param>
-    /// <returns>The component or null, if the given type is not a valid component type.</returns>
-    /// <remarks>For performance reasons it is recommended to use <see cref="AddComponent{T}"/> if possible.</remarks>
-    public Component AddComponent(Type componentType)
+    /// <param name="componentType">The type of the component to attach.</param>
+    /// <returns>The component that was attached to the <see cref="Entity"/>; or <see langword="null"/> if <see cref="componentType"/> doesn't inherit from <see cref="Component"/>.</returns>
+    /// <remarks>For performance reasons it is recommended to use <see cref="AddComponent{T}"/> if possible as it might be slightly faster.</remarks>
+    public Component? AddComponent(Type componentType)
     {
         if (!componentType.IsSubclassOf(typeof(Component)))
         {
-            throw new ArgumentException($"Invalid component type \"{componentType}\". Must be a subclass of \"Component\".", nameof(componentType));
+            Log.Error($"{nameof(AddComponent)}: Invalid component type \"{componentType}\". Must be a subclass of \"{nameof(Component)}\".");
+            return null;
         }
 
         ScriptGlue.Entity_AddComponent(_uuid, componentType);
-
-        Component component = Activator.CreateInstance(componentType) as Component;
-        if (component != null)
-        {
-            component._uuid = _uuid;
-        }
-
-        return component;
+        
+        return ActivatorExtension.CreateComponent(componentType, _uuid);
     }
 
 
     /// <summary>
-    /// Adds components with the specified types to the entity.
+    /// Attaches components with the specified types to the <see cref="Entity"/>.
     /// </summary>
-    /// <param name="componentTypes">The types of the components to add.</param>
-    /// <returns>An array containing the components.</returns>
-    public Component[] AddComponents(params Type[] componentTypes)
+    /// <param name="componentTypes">The types of the components to attach.</param>
+    /// <returns>An array containing the components that were attached. A component is <see langword="null"/>, if it's type doesn't inherit from <see cref="Component"/>.</returns>
+    public Component?[] AddComponents(params Type[] componentTypes)
     {
+        // Note: The elements in componentTypes are non-nullable externally, but internally we rely on nullability.
+
         foreach ((Type componentType, int index) in componentTypes.WithIndex())
         {
             if (!componentType.IsSubclassOf(typeof(Component)))
             {
-                throw new ArgumentException($"Invalid component type \"{componentType}\" at index {index}. Must be a subclass of \"Component\".", nameof(componentTypes));
+                Log.Error($"{nameof(AddComponents)}: Invalid component type \"{componentType}\" at index {index}. Must be a subclass of \"{nameof(Component)}\".");
+
+                // Setting null here is fine, the engine can handle it!
+                componentTypes[index] = null!;
             }
         }
-
+        
         ScriptGlue.Entity_AddComponents(_uuid, componentTypes);
 
-        Component[] components = new Component[componentTypes.Length];
+        Component?[] components = new Component[componentTypes.Length];
         
         foreach ((Type componentType, int index) in componentTypes.WithIndex())
         {
-            components[index] = Activator.CreateInstance(componentType) as Component;
-            components[index]._uuid = _uuid;
+            // componentType is null, if it's type is invalid!
+            if (componentType == null!)
+                continue;
+
+            components[index] = ActivatorExtension.CreateComponent(componentType, _uuid);
         }
 
         return components;
     }
 
     /// <summary>
-    /// Adds the specified components to the entity.
+    /// Attaches the specified components to the <see cref="Entity"/>.
     /// </summary>
     /// <returns>A tuple containing the added components.</returns>
     public (T1, T2) AddComponents<T1, T2>()
@@ -218,7 +209,7 @@ public class Entity : EngineObject
     }
 
     /// <summary>
-    /// Adds the specified components to the entity.
+    /// Attaches the specified components to the <see cref="Entity"/>.
     /// </summary>
     /// <returns>A tuple containing the added components.</returns>
     public (T1, T2, T3) AddComponents<T1, T2, T3>()
@@ -231,10 +222,8 @@ public class Entity : EngineObject
         return (new T1 { _uuid = _uuid }, new T2 { _uuid = _uuid }, new T3 { _uuid = _uuid });
     }
 
-    #endregion Add Components
-
     /// <summary>
-    /// Removes the component with the specified component type.
+    /// Removes the component with the specified component type from the <see cref="Entity"/>.
     /// </summary>
     /// <typeparam name="T">The type of the component to remove.</typeparam>
     public void RemoveComponent<T>() where T : Component, new()
@@ -243,32 +232,35 @@ public class Entity : EngineObject
     }
     
     /// <summary>
-    /// Removes the component with the given component type.
+    /// Removes the component with the given component type from the <see cref="Entity"/>.
     /// </summary>
     /// <param name="componentType">The type of the component to remove.</param>
-    /// <remarks>For performance reasons it is recommended to use <see cref="RemoveComponent{T}"/> if possible.</remarks>
     public void RemoveComponent(Type componentType)
     {
         if (!componentType.IsSubclassOf(typeof(Component)))
         {
-            throw new ArgumentException($"Invalid component type \"{componentType}\". Must be a subclass of \"Component\".", nameof(componentType));
+            Log.Error($"{nameof(RemoveComponent)}: Invalid component type \"{componentType}\". Must be a subclass of \"{nameof(Component)}\".");
+            return;
         }
 
         ScriptGlue.Entity_RemoveComponent(_uuid, componentType);
     }
 
+    #endregion Components
+
     /// <summary>
-    /// Sets the script of the entity to the specified type.
+    /// Sets the script of the <see cref="Entity"/> to the specified type.
     /// If necessary removes the existing script.
     /// </summary>
     /// <typeparam name="T">The type of the script.</typeparam>
-    public T SetScript<T>() where T : Entity
+    /// <returns>A reference to the new script or <see langword="null"/>, if the operation failed.</returns>
+    public T? SetScript<T>() where T : Entity
     {
         return ScriptGlue.Entity_SetScript(_uuid, typeof(T)) as T;
     }
     
     /// <summary>
-    /// Removes the script from the entity.
+    /// Removes the script from the <see cref="Entity"/>.
     /// </summary>
     public void RemoveScript()
     {
@@ -278,14 +270,14 @@ public class Entity : EngineObject
     /// <summary>
     /// Gets the <see cref="Core.Transform"/> <see cref="Component"/> of this <see cref="Entity"/>.
     /// </summary>
-    public Transform Transform => GetComponent<Transform>();
+    public Transform Transform => GetComponent<Transform>()!; // Transform always exists!
 
     /// <summary>
-    /// Returns the first entity with the given name.
+    /// Returns the first <see cref="Entity"/> with the given name.
     /// </summary>
-    /// <param name="name">The name of the entity.</param>
-    /// <returns>The first entity with the given name, or null.</returns>
-    public static Entity FindEntityWithName(string name)
+    /// <param name="name">The name of the <see cref="Entity"/>.</param>
+    /// <returns>The first <see cref="Entity"/> with the given name, or <see langword="null"/> if no such entity exists.</returns>
+    public static Entity? FindEntityWithName(string name)
     {
         ScriptGlue.Entity_FindEntityWithName(name, out UUID entityId);
         
@@ -296,59 +288,82 @@ public class Entity : EngineObject
     }
     
     /// <summary>
-    /// Returns true if the entity has a script component of the given type; false if the entity either has no script or the script is not of the specified type.
+    /// Returns whether or not the <see cref="Entity"/> has a script of the specified type.
     /// </summary>
     /// <typeparam name="T">The type of the script.</typeparam>
+    /// <returns><see langword="true"/> if the <see cref="Entity"/> has a script component of the given type; or <see langword="false"/> if the <see cref="Entity"/> either has no script or the script is not of the specified type.</returns>
     public bool Is<T>() where T : Entity
     {
-        ScriptGlue.Entity_GetScriptInstance(_uuid, out object scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
 
         return scriptInstance is T;
     }
 
     /// <summary>
-    /// Returns the script of the given type, or null, if the entity has no script of the given type.
+    /// Returns whether or not the <see cref="Entity"/> has a script of the specified type.
+    /// </summary>
+    /// <param name="type">The type of the script.</param>
+    /// <returns><see langword="true"/> if the <see cref="Entity"/> has a script component of the given type; or <see langword="false"/> if the <see cref="Entity"/> either has no script or the script is not of the specified type.</returns>
+    public bool Is(Type type)
+    {
+        if (!type.IsSubclassOf(typeof(Entity)))
+        {
+            Log.Warning($"{nameof(Is)}: Invalid script type \"{type}\". Must be a subclass of \"{nameof(Entity)}\".");
+            return false;
+        }
+
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
+
+        return type.IsInstanceOfType(scriptInstance);
+    }
+
+    /// <summary>
+    /// Returns the script instance of the given type that is attached to the <see cref="Entity"/>.
     /// </summary>
     /// <typeparam name="T">The type of the script.</typeparam>
-    /// <returns>The script instance or null.</returns>
-    public T As<T>() where T : Entity
+    /// <returns>The script instance of the given type; or <see langword="null"/> if the <see cref="Entity"/> has no script of the given type.</returns>
+    public T? As<T>() where T : Entity
     {
-        ScriptGlue.Entity_GetScriptInstance(_uuid, out object scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
 
         return scriptInstance as T;
     }
 
     /// <summary>
-    /// Returns the script of the given type, or null, if the entity has no script of the given type.
+    /// Returns the script instance of the given type that is attached to the <see cref="Entity"/>.
     /// </summary>
     /// <param name="type">The type of the script.</param>
-    /// <returns>The script instance or null.</returns>
-    public object As(Type type)
+    /// <returns>The script instance of the given type; or <see langword="null"/> if the <see cref="Entity"/> has no script of the given type.</returns>
+    public object? As(Type type)
     {
-        Debug.Assert(type.IsSubclassOf(typeof(Entity)));
+        if (!type.IsSubclassOf(typeof(Entity)))
+        {
+            Log.Error($"{nameof(As)}: Invalid script type \"{type}\". Must be a subclass of \"{nameof(Entity)}\".");
+            return null;
+        }
 
-        ScriptGlue.Entity_GetScriptInstance(_uuid, out object scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
 
         return scriptInstance;
     }
 
     /// <summary>
-    /// Returns the script of the given type, or null, if the entity has no script of the given type.
+    /// Returns the script instance of the given type that is attached to the <see cref="Entity"/> with the given <see cref="id"/>.
     /// </summary>
-    /// <param name="id">The id of the entity whose script instance shall be returned.</param>
+    /// <param name="id">The id of the <see cref="Entity"/> whose script instance shall be returned.</param>
     /// <param name="type">The type of the script.</param>
-    /// <returns>The script instance or null.</returns>
-    internal static Entity GetScriptReference(UUID id, Type type)
+    /// <returns>The script instance of the given type; or <see langword="null"/> if the <see cref="Entity"/> with the given <see cref="id"/> has no script of the given type.</returns>
+    internal static Entity? GetScriptReference(UUID id, Type type)
     {
         Debug.Assert(typeof(Entity).IsAssignableFrom(type));
 
-        ScriptGlue.Entity_GetScriptInstance(id, out object scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(id, out object? scriptInstance);
 
         return scriptInstance as Entity;
     }
 
     /// <summary>
-    /// Destroys the entity and all it's children.
+    /// Destroys the <see cref="Entity"/> and all it's children.
     /// </summary>
     /// <remarks>
     /// The destruction will not take place immediately. It will happen at the end of the current frame.
@@ -359,10 +374,10 @@ public class Entity : EngineObject
     }
 
     /// <summary>
-    /// Instantiates a copy of the given entity and it's children.
+    /// Instantiates a copy of the given <see cref="Entity"/> and all of it's children.
     /// </summary>
-    /// <param name="entity">The entity to copy.</param>
-    /// <returns>The new entity.</returns>
+    /// <param name="entity">The <see cref="Entity"/> to copy.</param>
+    /// <returns>The new <see cref="Entity"/>.</returns>
     public static Entity CreateInstance(Entity entity)
     {
         ScriptGlue.Entity_CreateInstance(entity.UUID, out UUID newEntityId);

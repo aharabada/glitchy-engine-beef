@@ -11,9 +11,9 @@ namespace GlitchyEngine.Editor;
 [CustomEditor(typeof(Dictionary<,>))]
 public class DictionaryEditor
 {
-    private static object? dictionaryForNewValue = null;
-    private static DictionaryEntry newDictionaryValue = new();
-    private static object? keyLastCreated = null;
+    private static object? _dictionaryForNewValue = null;
+    private static DictionaryEntry _newDictionaryValue = new();
+    private static object? _keyLastCreated = null;
 
     public static object? ShowEditor(object? reference, Type fieldType, string fieldName)
     {
@@ -46,9 +46,9 @@ public class DictionaryEditor
                 Debug.Assert(dictionary != null);
             }
 
-            dictionaryForNewValue = dictionary;
+            _dictionaryForNewValue = dictionary;
 
-            newDictionaryValue = new DictionaryEntry();
+            _newDictionaryValue = new DictionaryEntry();
         }
 
         ImGuiExtension.AttachTooltip("Add a new Entry to the dictionary.");
@@ -67,11 +67,11 @@ public class DictionaryEditor
                 id++;
                 ImGui.PushID(id);
 
-                if (entry.Key == keyLastCreated)
+                if (entry.Key == _keyLastCreated)
                 {
                     // The current key is the one that was last created. Open the tree node.
                     ImGui.SetNextItemOpen(true);
-                    keyLastCreated = null;
+                    _keyLastCreated = null;
                 }
 
                 bool isEntryOpen = ImGui.TreeNode("");
@@ -110,7 +110,7 @@ public class DictionaryEditor
             }
 
 
-            if (ReferenceEquals(dictionaryForNewValue, dictionary))
+            if (ReferenceEquals(_dictionaryForNewValue, dictionary))
             {
                 ImGui.PushID("NewEntry");
 
@@ -121,29 +121,29 @@ public class DictionaryEditor
 
                 if (ImGui.SmallButton("-"))
                 {
-                    dictionaryForNewValue = null;
-                    newDictionaryValue = new();
+                    _dictionaryForNewValue = null;
+                    _newDictionaryValue = new();
                 }
 
                 ImGuiExtension.AttachTooltip("Remove the Entry from the dictionary");
 
                 if (isEntryOpen)
                 {
-                    object newKey = EntityEditor.ShowFieldEditor(newDictionaryValue.Key, keyType, "Key");
+                    object newKey = EntityEditor.ShowFieldEditor(_newDictionaryValue.Key, keyType, "Key");
 
                     if (newKey != EntityEditor.DidNotChange)
                     {
-                        newEntries.Add(new DictionaryEntry(newKey, newDictionaryValue.Value));
-                        dictionaryForNewValue = null;
-                        newDictionaryValue = new();
-                        keyLastCreated = newKey;
+                        newEntries.Add(new DictionaryEntry(newKey, _newDictionaryValue.Value));
+                        _dictionaryForNewValue = null;
+                        _newDictionaryValue = new();
+                        _keyLastCreated = newKey;
                     }
 
-                    object newValue = EntityEditor.ShowFieldEditor(newDictionaryValue.Value, newDictionaryValue.Value?.GetType() ?? valueType, "Value");
+                    object newValue = EntityEditor.ShowFieldEditor(_newDictionaryValue.Value, _newDictionaryValue.Value?.GetType() ?? valueType, "Value");
 
                     if (newValue != EntityEditor.DidNotChange)
                     {
-                        newDictionaryValue.Value = newValue;
+                        _newDictionaryValue.Value = newValue;
                     }
 
                     ImGui.TreePop();

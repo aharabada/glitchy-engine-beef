@@ -32,11 +32,11 @@ public class DeserializationObject
 
     private Stack<string> _structScope = new();
 
-    private string _structScopeName;
+    private string _structScopeName = "";
 
     public Dictionary<UUID, DeserializationObject> DeserializedClasses;
 
-    private object _instance;
+    private object? _instance;
     
     private Dictionary<string, Type?> _fullNameToType = new();
 
@@ -317,72 +317,49 @@ public class DeserializationObject
         return false;
     }
 
-    public object DeserializeField(object fieldValue, Type fieldType, string fieldName)
+    public object? DeserializeField(object? fieldValue, Type fieldType, string fieldName)
     {
+        if (TryCustomDeserializer(fieldName, fieldType, out object? deserializedValue))
+        {
+            return deserializedValue;
+        }
+
         if (fieldType.IsPrimitive)
         {
             return DeserializePrimitive(fieldName, fieldType);
         }
-        else if (fieldType == typeof(string))
+        if (fieldType == typeof(string))
         {
             return GetFieldValue(fieldName, SerializationType.String);
         }
-        else if (fieldType.IsEnum)
+        if (fieldType.IsEnum)
         {
             return DeserializeEnum(fieldName, fieldType);
         }
-        else if (fieldType.IsArray)
+        if (fieldType.IsArray)
         {
-            return DeserializeList(fieldName, fieldType, fieldType.GetElementType());
-        }
-        else if (fieldType.IsGenericType)
-        {
-            if (TryCustomDeserializer(fieldName, fieldType, out object deserializedValue))
-            {
-                return deserializedValue;
-            }
-            
-            if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
-            {
-                return DeserializeList(fieldName, fieldType, fieldType.GetGenericArguments()[0]);
-            }
-             //else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            //{
-            //    ImGui.Text($"{fieldName} Dictionary");
-            //}
-            else
-            {
-                // TODO: what to do?
-                Log.Error($"Generic class serialization not yet implemented");
-            }
-        }
-        else if (fieldType.IsValueType)
-        {
-            if (TryCustomDeserializer(fieldName, fieldType, out object deserializedValue))
-            {
-                return deserializedValue;
-            }
+            Type? elementType = fieldType.GetElementType();
 
+            if (elementType == null)
+                return NoValueDeserialized;
+
+            return DeserializeList(fieldName, fieldType, elementType);
+        }
+        if (fieldType.IsValueType)
+        {
             return DeserializeStruct(fieldName, fieldValue);
         }
-        else if (fieldType.IsClass)
-        { 
-            if (TryCustomDeserializer(fieldName, fieldType, out object deserializedValue))
-            {
-                return deserializedValue;
-            }
-
+        if (fieldType.IsClass)
+        {
             return DeserializeClass(fieldName, fieldType);
         }
-        else
-        {
-            Log.Error($"Encountered unhandled type \"{fieldType}\" while serializing.");
-        }
+
+        Log.Error($"Encountered unhandled type \"{fieldType}\" while serializing.");
 
         return NoValueDeserialized;
     }
 
-    public object DeserializePrimitive(string fieldName, Type fieldType)
+    public object? DeserializePrimitive(string fieldName, Type fieldType)
     {
         Debug.Assert(fieldType.IsPrimitive, $"{fieldType} is not a primitive type.");
 
@@ -422,9 +399,9 @@ public class DeserializationObject
         return GetFieldValue(fieldName, expectedType);
     }
 
-    public object DeserializeList(string fieldName, Type fieldType, Type elementType)
+    public object? DeserializeList(string fieldName, Type fieldType, Type elementType)
     {
-        UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ObjectReference);
+        UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ObjectReference)!;
 
         if (id == UUID.Zero)
             return null;
@@ -442,8 +419,8 @@ public class DeserializationObject
         
         int count = deserializedObject.GetFieldValue<int>("Count", SerializationType.Int32);
 
-        Array array = null;
-        IList list = null;
+        Array? array = null;
+        IList? list = null;
 
         if (type.IsArray)
         {
@@ -457,11 +434,11 @@ public class DeserializationObject
 
             if (type.GetGenericTypeDefinition() == typeof(List<>))
             {
-                list = (IList)ActivatorExtension.CreateInstanceSafe(type, count);
+                list = (IList?)ActivatorExtension.CreateInstanceSafe(type, count);
             }
             else
             {
-                list = (IList)ActivatorExtension.CreateInstanceSafe(type);
+                list = (IList?)ActivatorExtension.CreateInstanceSafe(type);
             }
 
             if (list == null)
@@ -479,17 +456,19 @@ public class DeserializationObject
 
         for (int i = 0; i < count; i++)
         {
-            object elementValue = ActivatorExtension.CreateInstanceSafe(elementType);
+            object? elementValue = ActivatorExtension.CreateInstanceSafe(elementType);
 
-            object newValue = deserializedObject.DeserializeField(elementValue, elementType, $"{i}");
+            object? newValue = deserializedObject.DeserializeField(elementValue, elementType, $"{i}");
 
             if (newValue == NoValueDeserialized)
                 newValue = elementValue;
 
             if (array != null)
                 array.SetValue(newValue, i);
-            else
+            else if (list != null)
                 list.Add(newValue);
+            else
+                Log.Error($"Deserialized element for field {fieldName}, but has no array or list to add it to.");
         }
 
         return deserializedObject._instance;
@@ -523,8 +502,13 @@ public class DeserializationObject
         return changed ? targetInstance : NoValueDeserialized;
     }
 
-    public unsafe object DeserializeClass(string fieldName, Type fieldType)
+    public unsafe object? DeserializeClass(string fieldName, Type fieldType)
     {
+        if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
+        {
+            return DeserializeList(fieldName, fieldType, fieldType.GetGenericArguments()[0]);
+        }
+
         bool isEntity = typeof(Entity).IsAssignableFrom(fieldType);
         bool isComponent = fieldType.IsSubclassOf(typeof(Component));
 
@@ -539,7 +523,7 @@ public class DeserializationObject
             
             string fullTypeName = Encoding.UTF8.GetString(data.FullTypeName, (int)data.FullTypeNameLength);
 
-            Type type = GetTypeFromName(fullTypeName);
+            Type? type = GetTypeFromName(fullTypeName);
 
             if (type == null)
                 return NoValueDeserialized;
@@ -562,21 +546,30 @@ public class DeserializationObject
         }
         else
         {
-            UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ObjectReference);
+            UUID id = (UUID)GetFieldValue(fieldName, SerializationType.ObjectReference)!;
 
             if (id == UUID.Zero)
                 return null;
 
             // Get serialization container for the instance
-            DeserializationObject deserializedObject = GetDeserializedObject(id);
-            
-            Type type = deserializedObject.StoredType;
+            DeserializationObject? deserializedObject = GetDeserializedObject(id);
+
+            if (deserializedObject == null)
+                return NoValueDeserialized;
+
+            Type? type = deserializedObject.StoredType;
 
             if (type == null)
-                return null;
+                return NoValueDeserialized;
 
             deserializedObject._instance = ActivatorExtension.CreateInstanceSafe(type);
-            
+
+            if (deserializedObject._instance == null)
+            {
+                Log.Error($"Failed to create instance of type {type} for field {fieldName}");
+                return NoValueDeserialized;
+            }
+
             deserializedObject.DeserializeFields(deserializedObject._instance);
 
             return deserializedObject._instance;

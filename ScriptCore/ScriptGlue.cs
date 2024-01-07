@@ -14,7 +14,7 @@ internal static class ScriptGlue
 #region Entity
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Entity_Create(object scriptInstance, string entityName, Type[] componentTypes, out UUID entityId);
+    internal static extern void Entity_Create(object scriptInstance, string? entityName, Type[]? componentTypes, out UUID entityId);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_Destroy(UUID entityId);
@@ -38,7 +38,7 @@ internal static class ScriptGlue
     internal static extern void Entity_FindEntityWithName(string name, out UUID uuid);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Entity_GetScriptInstance(UUID entityId, out object instance);
+    internal static extern void Entity_GetScriptInstance(UUID entityId, out object? instance);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern object Entity_SetScript(UUID entityId, Type scriptType);
@@ -121,12 +121,6 @@ internal static class ScriptGlue
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern float4 modf_float4(float4 x, out float4 integerPart);
-    
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Print_Decimal(decimal value);
-        
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Get_Decimal(string str, out decimal value);
 
 #endregion
     
@@ -152,7 +146,7 @@ internal static class ScriptGlue
     #region Serialization
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string name, object value, string fullTypeName = null);
+    internal static extern void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string name, object? value, string? fullTypeName = null);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Serialization_CreateObject(IntPtr currentContext, string fullTypeName, out IntPtr context, out UUID id);

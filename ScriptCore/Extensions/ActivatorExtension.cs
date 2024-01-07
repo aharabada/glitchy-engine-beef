@@ -2,6 +2,7 @@
 
 using System;
 using System.Reflection;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Extensions;
 
@@ -48,5 +49,21 @@ public static class ActivatorExtension
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Creates an instance of the given component type and sets it's entities id.
+    /// </summary>
+    /// <param name="componentType">The type of the component.</param>
+    /// <param name="entityId">The entities id.</param>
+    /// <returns>An instance of the component type; or <see langword="null"/> if the creation failed.</returns>
+    internal static Component? CreateComponent(Type componentType, UUID entityId)
+    {
+        Component? component = (Component?)CreateInstanceSafe(componentType);
+            
+        if (component != null)
+            component._uuid = entityId;
+
+        return component;
     }
 }
