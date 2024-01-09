@@ -504,7 +504,7 @@ public class DeserializationObject
 
     public unsafe object? DeserializeClass(string fieldName, Type fieldType)
     {
-        if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
+        if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
         {
             return DeserializeList(fieldName, fieldType, fieldType.GetGenericArguments()[0]);
         }
@@ -514,7 +514,10 @@ public class DeserializationObject
 
         if (isEntity || isComponent)
         {
-            var data = (DataHelper.EngineObjectReferenceHelper)GetFieldValue(fieldName, isEntity ? SerializationType.EntityReference : SerializationType.ComponentReference);
+            object? fieldData = GetFieldValue(fieldName, isEntity ? SerializationType.EntityReference : SerializationType.ComponentReference);
+
+            if (fieldData is not DataHelper.EngineObjectReferenceHelper data)
+                return NoValueDeserialized;
 
             UUID id = data.Id;
 

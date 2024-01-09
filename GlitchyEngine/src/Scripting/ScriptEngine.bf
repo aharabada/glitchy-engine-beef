@@ -859,9 +859,15 @@ static class ScriptEngine
 
 		for (let (id, script) in _entityScriptInstances)
 		{
-			SerializedObject object = new SerializedObject(allObjects, script.ScriptClass.FullName, script.EntityId);
-			object.Serialize(script);
+			SerializeScriptInstance(script, allObjects);
 		}
+	}
+
+	/// Serializes the given script instance
+	public static void SerializeScriptInstance(ScriptInstance script, Dictionary<UUID, SerializedObject> allObjects)
+	{
+		SerializedObject object = new SerializedObject(allObjects, script.ScriptClass.FullName, script.EntityId);
+		object.Serialize(script);
 	}
 
 	/// Deserializes the given data into the script instances
@@ -871,9 +877,36 @@ static class ScriptEngine
 
 		for (let (id, script) in _entityScriptInstances)
 		{
-			if (allObjects.TryGetValue(id, let object))
+			DeserializeScriptInstance(id, script, allObjects);
+		}
+	}
+	
+	/// Deserializes the given script instance.
+	/// @returns true if the script had serialized data; false otherwise.
+	public static bool DeserializeScriptInstance(UUID id, ScriptInstance script, Dictionary<UUID, SerializedObject> allObjects)
+	{
+		if (allObjects.TryGetValue(id, let object))
+		{
+			object.Deserialize(script);
+
+			return true;
+		}
+
+		return false;
+	}
+
+	/// Replaces Entity references in the given serialized data using the specified translation table.
+	public static void FixupSerializedIds(Dictionary<UUID, UUID> originalToCopyIds, Dictionary<UUID, SerializedObject> allObjects)
+	{
+		for (let (id, object) in allObjects)
+		{
+			for (var fieldData in ref object.Fields.Values)
 			{
-				object.Deserialize(script);
+				if (fieldData.PrimitiveType != .EntityReference && fieldData.PrimitiveType != .ComponentReference)
+					continue;
+
+				if (originalToCopyIds.TryGetValue(fieldData.Data.EngineObject.ID, let copyId))
+					fieldData.Data.EngineObject.ID = copyId;
 			}
 		}
 	}

@@ -8,6 +8,7 @@ using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Math;
 using GlitchyEngine.Scripting.Classes;
+using GlitchyEngine.Serialization;
 
 namespace GlitchyEngine.World
 {
@@ -773,10 +774,14 @@ namespace GlitchyEngine.World
 		 */
 		public Entity CreateInstance(Entity entity)
 		{
+			Dictionary<UUID, SerializedObject> serializedData = scope .();
+			defer { ClearDictionaryAndDeleteValues!(serializedData); }
+
 			List<Entity> newEntities = scope .();
 			Dictionary<EcsEntity, EcsEntity> sourceToTargetEntity = scope .();
 			Dictionary<UUID, UUID> sourceIdToTargetId = scope .();
 			Dictionary<UUID, Entity> targetIdToSourceEntity = scope .();
+			List<(UUID oldId, ScriptInstance scriptInstance)> newScripts = scope .();
 			
 			Entity CopyEntityAndChildren(Entity original, Entity? copyParent)
 			{
@@ -801,7 +806,7 @@ namespace GlitchyEngine.World
 				CopyComponent<BoxCollider2DComponent>(original, copy);
 				CopyComponent<CircleCollider2DComponent>(original, copy);
 				CopyComponent<PolygonCollider2DComponent>(original, copy);
-				
+
 				// Copy ScriptComponent... needs extra handling for the script instances
 				if (original.TryGetComponent<ScriptComponent>(let sourceScript))
 				{
@@ -809,15 +814,16 @@ namespace GlitchyEngine.World
 					
 					targetScript.ScriptClassName = sourceScript.ScriptClassName;
 
-					// Initializes the created instance
-					// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
-					ScriptEngine.InitializeInstance(copy, targetScript);
-
-					// TODO: Copy Data from one instance to another
-					//ScriptEngine.CopyFieldsToInstance(targetScript, sourceScript);
-
-					// TODO: Only if we are in Runtime
-					targetScript.Instance.InvokeOnCreate();
+					if (sourceScript.Instance != null)
+					{
+						ScriptEngine.SerializeScriptInstance(sourceScript.Instance, serializedData);
+						
+						// Initializes the created instance
+						// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
+						ScriptEngine.InitializeInstance(copy, targetScript);
+						
+						newScripts.Add((original.UUID, targetScript.Instance));
+					}
 				}
 
 				// This is kinda slow because it's in O(n*m) where n is the tree depth and m is the total number of entities in the scene...
@@ -830,22 +836,22 @@ namespace GlitchyEngine.World
 			}
 
 			Entity newEntity = CopyEntityAndChildren(entity, null);
-			
-			for (let copy in newEntities)
+
+			// Replace old IDs with new ones
+			ScriptEngine.FixupSerializedIds(sourceIdToTargetId, serializedData);
+
+			// Use separate loops for deserialization and OnCreate to ensure complete entities and references in OnCreate
+
+			for (let (originalId, newScriptInstance) in newScripts)
 			{
-				if (copy.TryGetComponent<ScriptComponent>(let targetScript))
-				{
-					Entity originalEntity = targetIdToSourceEntity[copy.UUID];
-
-					if (!originalEntity.TryGetComponent<ScriptComponent>(let sourceScript))
-						continue;
-
-					ScriptEngine.CopyFieldsToInstance(targetScript, sourceScript, sourceIdToTargetId);
-
-					//targetScript.Instance.InvokeOnCreate();
-				}
+				ScriptEngine.DeserializeScriptInstance(originalId, newScriptInstance, serializedData);
 			}
 
+			for (let (_, newScriptInstance) in newScripts)
+			{
+				if (ScriptEngine.ApplicationInfo.IsInPlayMode || newScriptInstance.ScriptClass.RunInEditMode)
+					newScriptInstance.InvokeOnCreate();
+			}
 
 			return newEntity;
 		}
