@@ -18,5 +18,5 @@ public sealed class ShowInEditorAttribute : Attribute
     /// The label with which the field will be shown in the editor.
     /// If not specified, the fields name will be used.
     /// </summary>
-    public string DisplayName { get; set; } = null;
+    public string? DisplayName { get; set; } = null;
 }

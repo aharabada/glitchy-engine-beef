@@ -87,15 +87,15 @@ public class DictionaryEditor
 
                 if (isEntryOpen)
                 {
-                    object newKey = EntityEditor.ShowFieldEditor(entry.Key, entry.Key?.GetType() ?? keyType, "Key");
+                    object? newKey = EntityEditor.ShowFieldEditor(entry.Key, entry.Key?.GetType() ?? keyType, "Key");
 
-                    if (newKey != EntityEditor.DidNotChange)
+                    if (newKey != EntityEditor.DidNotChange && newKey != null)
                     {
                         keysToDelete.Add(entry.Key!);
                         newEntries.Add(new DictionaryEntry(newKey, entry.Value));
                     }
 
-                    object newValue = EntityEditor.ShowFieldEditor(entry.Value, entry.Value?.GetType() ?? valueType, "Value");
+                    object? newValue = EntityEditor.ShowFieldEditor(entry.Value, entry.Value?.GetType() ?? valueType, "Value");
 
                     if (newValue != EntityEditor.DidNotChange)
                     {
@@ -129,9 +129,9 @@ public class DictionaryEditor
 
                 if (isEntryOpen)
                 {
-                    object newKey = EntityEditor.ShowFieldEditor(_newDictionaryValue.Key, keyType, "Key");
+                    object? newKey = EntityEditor.ShowFieldEditor(_newDictionaryValue.Key, keyType, "Key");
 
-                    if (newKey != EntityEditor.DidNotChange)
+                    if (newKey != EntityEditor.DidNotChange && newKey != null)
                     {
                         newEntries.Add(new DictionaryEntry(newKey, _newDictionaryValue.Value));
                         _dictionaryForNewValue = null;
@@ -139,7 +139,7 @@ public class DictionaryEditor
                         _keyLastCreated = newKey;
                     }
 
-                    object newValue = EntityEditor.ShowFieldEditor(_newDictionaryValue.Value, _newDictionaryValue.Value?.GetType() ?? valueType, "Value");
+                    object? newValue = EntityEditor.ShowFieldEditor(_newDictionaryValue.Value, _newDictionaryValue.Value?.GetType() ?? valueType, "Value");
 
                     if (newValue != EntityEditor.DidNotChange)
                     {

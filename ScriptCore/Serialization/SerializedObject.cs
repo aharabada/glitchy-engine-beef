@@ -18,7 +18,7 @@ public class SerializedObject
 
     private Stack<string> _structScope = new();
 
-    private string _structScopeName;
+    private string _structScopeName = "";
     
     private delegate void SerializeMethod(SerializedObject container, string fieldName, object? fieldValue, Type fieldType);
 
@@ -86,7 +86,7 @@ public class SerializedObject
         _structScopeName = _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
     }
 
-    public void AddField(string fieldName, SerializationType serializationType, object value, string? fullTypeName = null)
+    public void AddField(string fieldName, SerializationType serializationType, object? value, string? fullTypeName = null)
     {
         string completeFieldName = $"{_structScopeName}{fieldName}";
 
@@ -107,14 +107,14 @@ public class SerializedObject
             if (!EntitySerializer.SerializeField(field))
                 continue;
 
-            object fieldValue = field.GetValue(obj);
+            object? fieldValue = field.GetValue(obj);
             Type fieldType = fieldValue?.GetType() ?? field.FieldType;
 
             SerializeField(field.Name, fieldValue, fieldType);
         }
     }
 
-    private bool TryCustomSerializer(string fieldName, object fieldValue, Type fieldType)
+    private bool TryCustomSerializer(string fieldName, object? fieldValue, Type fieldType)
     {
         try
         {
@@ -142,11 +142,12 @@ public class SerializedObject
         return false;
     }
 
-    public void SerializeField(string fieldName, object fieldValue, Type fieldType)
+    public void SerializeField(string fieldName, object? fieldValue, Type fieldType)
     {
         if (fieldType.IsPrimitive || fieldType == typeof(decimal))
         {
-            SerializePrimitive(fieldName, fieldValue, fieldType);
+            // Primitives can't be null
+            SerializePrimitive(fieldName, fieldValue!, fieldType);
         }
         else if (fieldType == typeof(string))
         {
@@ -158,14 +159,14 @@ public class SerializedObject
         }
         else if (fieldType.IsArray)
         {
-            Array myArray = fieldValue as Array;
+            Array? myArray = fieldValue as Array;
         
             if (myArray?.Rank > 1)
             {
                 throw new NotImplementedException("Serializing multidimensional arrays is not yet supported.");
             }
 
-            SerializeList(fieldName, fieldValue, fieldType, fieldType.GetElementType());
+            SerializeList(fieldName, fieldValue, fieldType, fieldType.GetElementType()!);
         }
         else if (fieldType.IsGenericType)
         {
@@ -191,7 +192,8 @@ public class SerializedObject
             if (TryCustomSerializer(fieldName, fieldValue, fieldType))
                 return;
 
-            SerializeStruct(fieldName, fieldValue, fieldType);
+            // Value Types cant be null
+            SerializeStruct(fieldName, fieldValue!, fieldType);
         }
         else if (fieldType.IsClass)
         {
@@ -206,7 +208,7 @@ public class SerializedObject
         }
     }
 
-    public void SerializeList(string fieldName, object listObject, Type fieldType, Type elementType)
+    public void SerializeList(string fieldName, object? listObject, Type fieldType, Type elementType)
     {
         if (listObject == null)
         {
@@ -274,9 +276,9 @@ public class SerializedObject
         AddField(fieldName, type, fieldValue);
     }
 
-    public void SerializeEnum(string fieldName, object fieldValue, Type fieldType)
+    public void SerializeEnum(string fieldName, object? fieldValue, Type fieldType)
     {
-        AddField(fieldName, SerializationType.Enum, fieldValue.ToString());
+        AddField(fieldName, SerializationType.Enum, fieldValue?.ToString());
     }
 
     public void SerializeStruct(string fieldName, object fieldValue, Type fieldType)
@@ -288,15 +290,15 @@ public class SerializedObject
         PopScope();
     }
 
-    public void SerializeClass(string fieldName, object fieldValue, Type fieldType)
+    public void SerializeClass(string fieldName, object? fieldValue, Type fieldType)
     {
         if (typeof(Entity).IsAssignableFrom(fieldType))
         {
-            AddField(fieldName, SerializationType.EntityReference, ((Entity)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
+            AddField(fieldName, SerializationType.EntityReference, ((Entity?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
         }
         else if (fieldType.IsSubclassOf(typeof(Component)))
         {
-            AddField(fieldName, SerializationType.ComponentReference, ((Component)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
+            AddField(fieldName, SerializationType.ComponentReference, ((Component?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
         }
         else
         {

@@ -23,7 +23,7 @@ internal class EntityEditor
 {
     public static readonly DidNotChange DidNotChange = new DidNotChange();
     
-    private delegate object? ShowCustomEditorMethod(object reference, Type fieldType, string fieldName);
+    private delegate object? ShowCustomEditorMethod(object? reference, Type fieldType, string fieldName);
 
     private static Dictionary<Type, ShowCustomEditorMethod> _customEditors = new();
 
@@ -51,7 +51,7 @@ internal class EntityEditor
         }
     }
     
-    private static bool TryShowCustomEditor(object reference, Type fieldType, string fieldName, out object? editedValue)
+    private static bool TryShowCustomEditor(object? reference, Type fieldType, string fieldName, out object? editedValue)
     {
         editedValue = DidNotChange;
 
@@ -332,11 +332,11 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object ShowEnumEditor(object reference, Type fieldType, string fieldName)
+    private static object ShowEnumEditor(object? reference, Type fieldType, string fieldName)
     {
         object newValue = DidNotChange;
 
-        if (ImGui.BeginCombo(fieldName, reference.ToString()))
+        if (ImGui.BeginCombo(fieldName, reference?.ToString()))
         {
             foreach (object enumValue in Enum.GetValues(fieldType))
             {
@@ -352,13 +352,13 @@ internal class EntityEditor
         return newValue;
     }
 
-    public static object ShowFieldEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes = null)
+    public static object? ShowFieldEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes = null)
     {
-        ReadonlyAttribute readonlyAttribute = GetAttribute<ReadonlyAttribute>(attributes);
+        ReadonlyAttribute? readonlyAttribute = GetAttribute<ReadonlyAttribute>(attributes);
         
         ImGui.BeginDisabled(readonlyAttribute != null);
 
-        object? newValue = DidNotChange;
+        object? newValue;
         
         if (TryShowCustomEditor(reference, fieldType, fieldName, out newValue))
         {
@@ -396,7 +396,7 @@ internal class EntityEditor
             }
             else if (fieldType == typeof(bool2))
             {
-                bool2 value = (bool2)reference;
+                bool2 value = (bool2)reference!;
                     
                 ImGui.TextUnformatted(fieldName);
 
@@ -496,14 +496,14 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object ShowComponentDropTarget(string fieldName, Type fieldType, object currentValue)
+    private static object? ShowComponentDropTarget(string fieldName, Type fieldType, object? currentValue)
     {
-        object newValue = DidNotChange;
+        object? newValue = DidNotChange;
         
         ImGui.Text($"{fieldName}: ");
         ImGui.SameLine();
 
-        Component component = currentValue as Component;
+        Component? component = currentValue as Component;
 
         string entityName = "None";
 
@@ -512,7 +512,7 @@ internal class EntityEditor
             entityName = component.Entity.Name;
         }
         
-        Type actualType = component?.GetType();
+        Type? actualType = component?.GetType();
 
         entityName += $" ({(actualType ?? fieldType).Name})";
         
@@ -570,23 +570,23 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object ShowEntityDropTarget(string fieldName, Type fieldType, object currentValue)
+    private static object? ShowEntityDropTarget(string fieldName, Type fieldType, object? currentValue)
     {
-        object newValue = DidNotChange;
+        object? newValue = DidNotChange;
 
         ImGui.Text($"{fieldName}: ");
         ImGui.SameLine();
 
         string entityName = "None";
         
-        Entity entity = currentValue as Entity;
+        Entity? entity = currentValue as Entity;
 
         if (entity != null)
         {
             entityName = entity.Name;
         }
 
-        Type actualType = entity?.GetType();
+        Type? actualType = entity?.GetType();
 
         entityName += $" ({(actualType ?? fieldType).Name})";
 
@@ -620,7 +620,7 @@ internal class EntityEditor
                     }
                     else
                     {
-                        Entity scriptInstance = Entity.GetScriptReference(draggedId, typeof(Entity));
+                        Entity? scriptInstance = Entity.GetScriptReference(draggedId, typeof(Entity));
 
                         allowDrop = fieldType.IsInstanceOfType(scriptInstance);
                     }
@@ -661,11 +661,11 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object ShowStringEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes)
+    private static object ShowStringEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
         object newValue = DidNotChange;
 
-        TextFieldAttribute textField = GetAttribute<TextFieldAttribute>(attributes);
+        TextFieldAttribute? textField = GetAttribute<TextFieldAttribute>(attributes);
 
         string value = reference as string ?? $"{float.MinValue}";
 
@@ -684,7 +684,7 @@ internal class EntityEditor
         return newValue;
     }
 
-    public static void ShowEditor(Type type, object reference)
+    public static void ShowEditor(Type type, object? reference)
     {
         int i = 0;
 
@@ -700,7 +700,7 @@ internal class EntityEditor
 
                 IEnumerable<Attribute> attributes = field.GetCustomAttributes();
 
-                object newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, field.Name, attributes);
+                object? newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, field.Name, attributes);
 
                 if (newValue != DidNotChange)
                 {
@@ -748,12 +748,14 @@ internal class EntityEditor
         public int Element;
     }
 
-    private static object ShowListEditor(Type fieldType, object fieldValue, string fieldName)
+    private static object? ShowListEditor(Type fieldType, object? fieldValue, string fieldName)
     {
         Type elementType = fieldType.GenericTypeArguments[0];
 
-        void AddElement(IList list, ref object newList)
+        void AddElement(IList? list, out object? newList)
         {
+            newList = DidNotChange;
+
             if (list == null)
             {
                 newList = Activator.CreateInstance(fieldType);
@@ -762,36 +764,50 @@ internal class EntityEditor
                 Debug.Assert(list != null);
             }
 
-            object newElement = ActivatorExtension.CreateInstanceSafe(elementType);
-            list.Add(newElement);
+            object? newElement = ActivatorExtension.CreateInstanceSafe(elementType);
+            list?.Add(newElement);
         }
 
-        void RemoveElement(IList list, ref object newList)
+        void RemoveElement(IList? list, out object? newList)
         {
-            list.RemoveAt(list.Count - 1);
+            newList = DidNotChange;
+
+            if (list == null)
+                return;
+
+            if (list.Count == 0)
+            {
+                newList = null;
+            }
+            else
+            {
+                list.RemoveAt(list.Count - 1);
+            }
         }
 
-        return ShowGenericListEditor(fieldType, elementType, (IEnumerable)fieldValue, fieldName, 
+        return ShowGenericListEditor(fieldType, elementType, (IEnumerable?)fieldValue, fieldName, 
             AddElement, RemoveElement);
     }
 
-    private static object ShowArrayEditor(Type fieldType, object fieldValue, string fieldName)
+    private static object? ShowArrayEditor(Type fieldType, object? fieldValue, string fieldName)
     {
         Debug.Assert(fieldType.IsArray);
 
-        Type elementType = fieldType.GetElementType();
+        Type? elementType = fieldType.GetElementType();
 
         Debug.Assert(elementType != null);
 
-        Array myArray = fieldValue as Array;
+        Array? myArray = fieldValue as Array;
         
         if (myArray?.Rank > 1)
         {
             throw new NotImplementedException("Multidimensional arrays are not yet supported.");
         }
 
-        void AddElement(IList list, ref object newList)
+        void AddElement(IList? list, out object? newList)
         {
+            newList = DidNotChange;
+
             int newIndex = 0;
 
             if (list == null)
@@ -812,25 +828,37 @@ internal class EntityEditor
             ((IList)newList)[newIndex] = newElement;
         }
 
-        void RemoveElement(IList list, ref object newList)
+        void RemoveElement(IList? list, out object? newList)
         {
-            Array newArray = Array.CreateInstance(elementType, list.Count - 1);
-            Array.Copy((Array)list, newArray, newArray.Length);
+            newList = DidNotChange;
 
-            newList = newArray;
+            if (list == null)
+                return;
+
+            if (list.Count == 0)
+            {
+                newList = null;
+            }
+            else
+            {
+                Array newArray = Array.CreateInstance(elementType, list.Count - 1);
+                Array.Copy((Array)list, newArray, newArray.Length);
+
+                newList = newArray;
+            }
         }
 
-        return ShowGenericListEditor(fieldType, elementType, (IEnumerable)fieldValue, fieldName, 
+        return ShowGenericListEditor(fieldType, elementType!, (IEnumerable?)fieldValue, fieldName, 
             AddElement, RemoveElement);
     }
 
-    public delegate void ModifyList(IList currentList, ref object oldList);
+    public delegate void ModifyList(IList? currentList, out object? oldList);
 
-    private static object ShowGenericListEditor(Type listType, Type elementType, IEnumerable list, string fieldName, 
+    private static object? ShowGenericListEditor(Type listType, Type elementType, IEnumerable? list, string fieldName, 
         ModifyList addElement, ModifyList removeElement)
     {
-        object newList = DidNotChange;
-        IList myList = list as IList;
+        object? newList = DidNotChange;
+        IList? myList = list as IList;
 
         // The buttons should always be visible -> save whether the node is open
         // If we have no instance, the user shouldn't be able to open the list
@@ -847,7 +875,7 @@ internal class EntityEditor
 
         if (ImGui.SmallButton("+"))
         {
-            addElement(myList, ref newList);
+            addElement(myList, out newList);
         }
 
         ImGuiExtension.AttachTooltip("Add a new Element at the end of the list.");
@@ -858,7 +886,7 @@ internal class EntityEditor
 
         if (ImGui.SmallButton("-"))
         {
-            removeElement(myList, ref newList);
+            removeElement(myList, out newList);
         }
 
         ImGuiExtension.AttachTooltip("Remove the last Element from the list.");
@@ -869,7 +897,7 @@ internal class EntityEditor
         {
             Debug.Assert(myList != null, "Opened tree node even though it should have been a leaf!");
 
-            /// Returns true if something was dropped into the droptarget
+            // Returns true if something was dropped into the droptarget
             bool DropTarget(int insertIndex, string tooltip)
             {
                 bool dropped = false;
@@ -887,7 +915,7 @@ internal class EntityEditor
                             ref ListPayload payload = ref Unsafe.AsRef<ListPayload>((void*)payloadPtr.Data);
 
                             // Make sure the index is still correct
-                            if (payload.Element < myList.Count)
+                            if (payload.Element < myList!.Count)
                             {
                                 object item = myList[payload.Element];
 
@@ -917,7 +945,7 @@ internal class EntityEditor
 
             bool orderChanged = false;
 
-            for (int i = 0, id = 0; i < myList.Count; i++, id++)
+            for (int i = 0, id = 0; i < myList!.Count; i++, id++)
             {
                 ImGui.PushID(id);
 
@@ -957,7 +985,7 @@ internal class EntityEditor
                 
                 ImGui.SameLine();
 
-                object newValue = ShowFieldEditor(element, element?.GetType() ?? elementType, $"Element {i}");
+                object? newValue = ShowFieldEditor(element, element?.GetType() ?? elementType, $"Element {i}");
 
                 // Don't apply changes, when the order changed
                 if (newValue != DidNotChange && !orderChanged)
@@ -981,7 +1009,7 @@ internal class EntityEditor
 
     private static T ReadStaticField<T>(string name)
     {
-        FieldInfo field = typeof(T).GetField(name, BindingFlags.Public | BindingFlags.Static);
+        FieldInfo? field = typeof(T).GetField(name, BindingFlags.Public | BindingFlags.Static);
         
         if (field == null)
         {

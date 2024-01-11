@@ -79,9 +79,9 @@ public static class DictionarySerializer
             return null;
         
         // Get serialization container for the instance
-        DeserializationObject deserializedObject = container.GetDeserializedObject(id);
+        DeserializationObject? deserializedObject = container.GetDeserializedObject(id);
 
-        Type type = deserializedObject.StoredType;
+        Type? type = deserializedObject?.StoredType;
 
         if (type?.IsAssignableTo(fieldType) != true)
             return DeserializationObject.NoValueDeserialized;
@@ -89,7 +89,7 @@ public static class DictionarySerializer
         Type keyType = fieldType.GetGenericArguments()[0];
         Type valueType = fieldType.GetGenericArguments()[1];
 
-        int count = deserializedObject.GetFieldValue<int>("Count", SerializationType.Int32);
+        int count = deserializedObject!.GetFieldValue<int>("Count", SerializationType.Int32);
         
         // Create instance, pass in capacity
         object? instance = ActivatorExtension.CreateInstanceSafe(type, count);
@@ -103,7 +103,7 @@ public static class DictionarySerializer
             deserializedObject.PushScope(i.ToString());
 
             object? key = deserializedObject.DeserializeField(null, keyType, "Key");
-            object value = deserializedObject.DeserializeField(null, valueType, "Value");
+            object? value = deserializedObject.DeserializeField(null, valueType, "Value");
 
             if (key != null)
             {

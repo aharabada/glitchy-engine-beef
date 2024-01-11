@@ -277,7 +277,7 @@ public class DeserializationObject
 
             object currentValue = field.GetValue(obj);
 
-            object deserializeValue = DeserializeField(currentValue, field.FieldType, field.Name);
+            object? deserializeValue = DeserializeField(currentValue, field.FieldType, field.Name);
             
             if (deserializeValue != NoValueDeserialized)
             {
@@ -347,7 +347,10 @@ public class DeserializationObject
         }
         if (fieldType.IsValueType)
         {
-            return DeserializeStruct(fieldName, fieldValue);
+            // Null Value doesn't make any sense, because we need a value to deserialize into!
+            Debug.Assert(fieldValue != null);
+
+            return DeserializeStruct(fieldName, fieldValue!);
         }
         if (fieldType.IsClass)
         {
