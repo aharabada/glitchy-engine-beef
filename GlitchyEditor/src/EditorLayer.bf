@@ -105,6 +105,9 @@ namespace GlitchyEditor
 		public Project CurrentProject => _currentProject;
 
 		public bool IsProjectLoaded => _currentProject != null;
+		
+		/// Returns whether or not the current scene can be saved.
+		public bool CanSaveScene => _sceneState == .Edit;
 
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
@@ -1083,6 +1086,12 @@ namespace GlitchyEditor
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
 		private void SaveCurrentScene()
 		{
+			if (!CanSaveScene)
+			{
+				Log.ClientLogger.Error("Scene can't be saved while playing the game!");
+				return;
+			}
+
 			if (SceneFilePath.IsWhiteSpace)
 			{
 				SaveCurrentSceneAs();
@@ -1108,6 +1117,12 @@ namespace GlitchyEditor
 		/// Opens a save file dialog and saves the scene at the user specified location.
 		private void SaveCurrentSceneAs()
 		{
+			if (!CanSaveScene)
+			{
+				Log.ClientLogger.Error("Scene can't be saved while playing the game!");
+				return;
+			}
+
 			SaveFileDialog sfd = scope .();
 			sfd.InitialDirectory = _currentProject.AssetsFolder;
 
@@ -1415,6 +1430,8 @@ namespace GlitchyEditor
 
 				ImGui.Separator();
 
+				ImGui.BeginDisabled(!CanSaveScene);
+
 				if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
 					SaveCurrentScene();
 				
@@ -1424,6 +1441,8 @@ namespace GlitchyEditor
 					SaveCurrentSceneAs();
 				
 				ImGui.AttachTooltip("Saves the scene under the given file name.");
+
+				ImGui.EndDisabled();
 
 				ImGui.Separator();
 				
