@@ -51,6 +51,10 @@ namespace GlitchyEditor.EditWindows
 				Entity entity = _entityHierarchyWindow.GetSelectedEntity(0);
 				ShowComponents(entity);
 			}
+			else
+			{
+				_editVerticesPolygonCollider2D = false;
+			}
 
 			ImGui.PopStyleVar();
 			ImGui.End();
@@ -83,16 +87,19 @@ namespace GlitchyEditor.EditWindows
 
 		static void ShowPolygonColliderSceneGUI(Entity entity, PolygonCollider2DComponent* collider)
 		{
-			for (int i < collider.VertexCount)
+			if (_editVerticesPolygonCollider2D)
 			{
-				Matrix localToWorld = entity.Transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0);
-				Matrix transform = Matrix.Translation(float3(collider.Vertices[i], 0)) * localToWorld;
-
-				if (Handles.ShowGizmo(ref transform, .TRANSLATE_X | .TRANSLATE_Y, true, id: (int32)i))
+				for (int i < collider.VertexCount)
 				{
-					transform = localToWorld.Invert() * transform;
-
-					collider.Vertices[i] = transform.Translation.XY;
+					Matrix localToWorld = entity.Transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0);
+					Matrix transform = Matrix.Translation(float3(collider.Vertices[i], 0)) * localToWorld;
+	
+					if (Handles.ShowGizmo(ref transform, .TRANSLATE_X | .TRANSLATE_Y, true, id: (int32)i))
+					{
+						transform = localToWorld.Invert() * transform;
+	
+						collider.Vertices[i] = transform.Translation.XY;
+					}
 				}
 			}
 		}
@@ -488,7 +495,10 @@ namespace GlitchyEditor.EditWindows
 			if (ImGui.DragFloat("RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, textWidth))
 				circleCollider.RestitutionThreshold = restitutionThreshold;
 		}
-		
+
+		/// If true handles for editing the vertices of the PolygonCollider2DComponent will be visible 
+		private static bool _editVerticesPolygonCollider2D = false;
+
 		private static void ShowPolygonCollider2DComponentEditor(Entity entity, PolygonCollider2DComponent* polygonCollider)
 		{
 			float textWidth = ImGui.CalcTextSize("Offset".CStr()).x;
@@ -498,9 +508,10 @@ namespace GlitchyEditor.EditWindows
 			if (ImGui.EditFloat2("Offset", ref offset, .Zero, 0.1f, textWidth))
 				polygonCollider.Offset = offset;
 
-			// TODO: Handles in editor, etc...
 			if (ImGui.CollapsingHeader("Vertices"))
 			{
+				ImGui.Checkbox("Show Vertex gizmos", &_editVerticesPolygonCollider2D);
+
 				for (int i < polygonCollider.VertexCount)
 				{
 					ImGui.EditFloat2(scope $"{i}", ref polygonCollider.Vertices[i]);
