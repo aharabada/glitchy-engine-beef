@@ -121,6 +121,20 @@ namespace GlitchyEditor.EditWindows
 			return _selectedEntityIds.Contains(entity.UUID);
 		}
 
+		/// Shows the context menu for the selected entities
+		// @param deletedEntity Returns true if the entity was deleted.
+		private void ShowEntityContextMenu(out bool deletedEntity)
+		{
+			deletedEntity = false;
+
+			bool isAnyEntitySelected = SelectedEntityIds.Count > 0;
+
+			Show_ContextMenu_Create(true, SelectedEntityIds.Count == 1, isAnyEntitySelected);
+
+			if (isAnyEntitySelected)
+				deletedEntity = Show_ContextMenu_Delete();
+		}
+
 		protected override void InternalShow()
 		{
 			if(!ImGui.Begin(s_WindowTitle, &_open, .MenuBar))
@@ -133,7 +147,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginPopupContextWindow(s_WindowTitle))
 			{
-				Show_ContextMenu_Create(true, false, false);
+				ShowEntityContextMenu(let _);
 
 				ImGui.EndPopup();
 			}
@@ -156,8 +170,10 @@ namespace GlitchyEditor.EditWindows
 
 			ShowEntityHierarchy();
 			
-			if ((ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right)) && !ImGui.IsAnyItemHovered() && !ImGui.GetIO().KeyCtrl && ImGui.IsWindowHovered(.AllowWhenBlockedByPopup))
+			if ((ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right)) && !ImGui.GetIO().KeyCtrl && ImGui.IsWindowHovered(.AllowWhenBlockedByPopup))
+			{
 				ClearEntitySelection();
+			}
 
 			ImGui.End();
 		}
@@ -219,7 +235,6 @@ namespace GlitchyEditor.EditWindows
 			{
 				Show_ContextMenu_Create(true, true, true);
 
-				Show_ContextMenu_Delete();
 
 				if(ImGui.MenuItem("Delete", null, false, SelectionSize != 0) ||
 					(Input.IsKeyPressed(.Delete) && ImGui.IsWindowHovered()))
@@ -393,8 +408,13 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginPopupContextItem("treeNodePopup"))
 			{
-				Show_ContextMenu_Create(true, true, true);
-				deleted = Show_ContextMenu_Delete();
+				// Only select if it isn't already selected, because it otherwise clears the selection when ctrl is released
+				if (!IsEntitySelected(tree.Value))
+				{
+					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl);
+				}
+
+				ShowEntityContextMenu(out deleted);
 
 				ImGui.EndPopup();
 			}
@@ -444,20 +464,13 @@ namespace GlitchyEditor.EditWindows
 				lastClickedEntity = tree.Value;
 			}
 
-			if (!isDragged && (!ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right) && hovered) && tree.Value == lastClickedEntity)
+			if (!isDragged && (hovered) && tree.Value == lastClickedEntity)
 			{
-				if (inSelectedList && !clickedRight)
+				if (!inSelectedList)
 				{
-					DeselectEntity(tree.Value);
-					inSelectedList = false;
-				}
-				else
-				{
-					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl && !clickedRight);
+					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl);
 					inSelectedList = true;
 				}
-
-				lastClickedEntity = .();
 			}
 		}
 
