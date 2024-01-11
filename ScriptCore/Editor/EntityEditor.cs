@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -100,14 +101,43 @@ internal class EntityEditor
     {
         // TODO: Call custom editors here!
 
-        ScriptGlue.Entity_GetScriptInstance(entityId, out object instance);
+        ScriptGlue.Entity_GetScriptInstance(entityId, out object? instance);
 
-        ShowEditor(entityType, instance);
+        if (instance != null)
+            ShowEditor(entityType, instance);
     }
 
     private static T? GetAttribute<T>(IEnumerable<Attribute>? attributes) where T : Attribute
     {
         return (T?)attributes?.FirstOrDefault(a => a is T);
+    }
+
+    private static object ShowDecimalEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
+    {
+        if (reference is not decimal value)
+            return DidNotChange;
+
+        string stringValue = value.ToString(CultureInfo.InvariantCulture);
+
+        byte[] bytes = new byte[30 * 4];
+
+        Encoding.UTF8.GetBytes(stringValue, 0, stringValue.Length, bytes, 0);
+
+        ImGui.PushID("Decimal");
+
+        if (ImGui.InputText(fieldName, bytes, (uint)bytes.Length, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsDecimal))
+        {
+            string text = Encoding.UTF8.GetString(bytes);
+
+            if (decimal.TryParse(text, NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out decimal newValue))
+            {
+                ImGui.PopID();
+                return newValue;
+            }
+        }
+        ImGui.PopID();
+
+        return DidNotChange;
     }
 
     private static object? ShowPrimitiveEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
@@ -184,7 +214,6 @@ internal class EntityEditor
             }
         }
 
-        // TODO: allow editing in edit-mode
         if (reference != null)
         {
             if (fieldType == typeof(bool))
@@ -361,7 +390,11 @@ internal class EntityEditor
         }
         else if (fieldType.IsValueType)
         {
-            if (fieldType == typeof(bool2))
+            if (fieldType == typeof(decimal))
+            {
+                newValue = ShowDecimalEditor(reference, fieldType, fieldName, attributes);
+            }
+            else if (fieldType == typeof(bool2))
             {
                 bool2 value = (bool2)reference;
                     
@@ -377,23 +410,25 @@ internal class EntityEditor
                 if (ImGui.Checkbox($"##{fieldName}Y", ref value.Y))
                     newValue = value;
             }
-            
-            ImGui.EndDisabled();
-
-            // Struct
-            if (ImGui.TreeNode(fieldName))
-            {
-                ImGui.BeginDisabled(readonlyAttribute != null);
-
-                ShowEditor(fieldType, reference);
-                
-                ImGui.TreePop();
-
-                newValue = reference;
-            }
             else
             {
-                ImGui.BeginDisabled(readonlyAttribute != null);
+                ImGui.EndDisabled();
+
+                // Struct
+                if (ImGui.TreeNode(fieldName))
+                {
+                    ImGui.BeginDisabled(readonlyAttribute != null);
+
+                    ShowEditor(fieldType, reference);
+                
+                    ImGui.TreePop();
+
+                    newValue = reference;
+                }
+                else
+                {
+                    ImGui.BeginDisabled(readonlyAttribute != null);
+                }
             }
         }
         else if (fieldType.IsSubclassOf(typeof(Entity)) || fieldType == typeof(Entity))
