@@ -464,7 +464,7 @@ namespace GlitchyEditor.EditWindows
 				lastClickedEntity = tree.Value;
 			}
 
-			if (!isDragged && (hovered) && tree.Value == lastClickedEntity)
+			if (!isDragged && (hovered && !ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right)) && tree.Value == lastClickedEntity)
 			{
 				if (!inSelectedList)
 				{
