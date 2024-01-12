@@ -323,7 +323,9 @@ class SceneSerializer
 		Try!(Deserialize.Start(reader));
 
 		Try!(reader.ObjectBlock());
-		
+
+		_scene.Name = Path.GetFileName(filePath, .. scope .());
+
 		// TODO: Scene name goes here!
 		String testName;
 		Deserialize.Value(reader, "Name", out testName);

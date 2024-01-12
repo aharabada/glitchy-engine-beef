@@ -563,7 +563,19 @@ namespace GlitchyEditor
 		/// Updates the title of the window.
 		private void UpdateWindowTitle()
 		{
-			Application.Instance.Window.Title = scope $"Glitchy Engine - {_currentProject.Name}";
+			String title = scope String("Glitchy Engine");
+
+			if (_currentProject != null)
+			{
+				title.AppendF($" - {_currentProject.Name}");
+			}
+
+			if (_editorScene != null)
+			{
+				title.AppendF($" | {_editorScene.Name}");
+			}
+
+			Application.Instance.Window.Title = title;
 		}
 
 #region Project Management
@@ -1047,6 +1059,8 @@ namespace GlitchyEditor
 					ScriptEngine.DeserializeScriptInstances(serializedObjects);
 				}
 			}
+
+			UpdateWindowTitle();
 		}
 
 		/// Creates a new default scene.

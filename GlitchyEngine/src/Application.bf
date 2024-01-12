@@ -106,12 +106,13 @@ namespace GlitchyEngine
 			Renderer.Deinit();
 
 			delete _contentManager;
+			
+			delete _layerStack;
 
 			delete _rendererApi;
 			delete _window;
 			
 			delete _gameTime;
-			delete _layerStack;
 
 			ScriptEngine.Shutdown();
 		}

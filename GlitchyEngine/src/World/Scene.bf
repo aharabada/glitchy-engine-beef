@@ -17,6 +17,8 @@ namespace GlitchyEngine.World
 
 	class Scene : RefCounter
 	{
+		private String _name = new String("New Scene") ~ delete _;
+
 		internal EcsWorld _ecsWorld = new .() ~ delete _;
 
 		internal b2World* _physicsWorld2D;
@@ -45,6 +47,16 @@ namespace GlitchyEngine.World
 
 			cameraEntity
 		};
+
+		/// Gets or sets the name of the scene.
+		public StringView Name
+		{
+			get => _name;
+			set
+			{
+				_name.Set(value);
+			}
+		}
 
 		public this()
 		{
