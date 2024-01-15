@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using System;
 
 namespace GlitchyEngine;
 
@@ -10,7 +10,7 @@ public class Log
     /// <summary>
     /// The severity of the log message.
     /// </summary>
-    private enum LogLevel
+    internal enum LogLevel
     {
         Trace = 0,
         Debug,
@@ -27,7 +27,7 @@ public class Log
     /// <param name="message">The message to log.</param>
     public static void Trace(string message)
     {
-        LogMessage_Impl(LogLevel.Trace, message);
+        ScriptGlue.Log_LogMessage(LogLevel.Trace, message);
     }
     
     /// <summary>
@@ -36,7 +36,7 @@ public class Log
     /// <param name="message">The message to log.</param>
     public static void Info(string message)
     {
-        LogMessage_Impl(LogLevel.Info, message);
+        ScriptGlue.Log_LogMessage(LogLevel.Info, message);
     }
     
     /// <summary>
@@ -45,7 +45,7 @@ public class Log
     /// <param name="message">The message to log.</param>
     public static void Warning(string message)
     {
-        LogMessage_Impl(LogLevel.Warning, message);
+        ScriptGlue.Log_LogMessage(LogLevel.Warning, message);
     }
     
     /// <summary>
@@ -54,7 +54,7 @@ public class Log
     /// <param name="message">The message to log.</param>
     public static void Error(string message)
     {
-        LogMessage_Impl(LogLevel.Error, message);
+        ScriptGlue.Log_LogMessage(LogLevel.Error, message);
     }
     
     /// <summary>
@@ -63,7 +63,7 @@ public class Log
     /// <param name="message">The message to log.</param>
     public static void Critical(string message)
     {
-        LogMessage_Impl(LogLevel.Critical, message);
+        ScriptGlue.Log_LogMessage(LogLevel.Critical, message);
     }
     
     /// <summary>
@@ -72,7 +72,7 @@ public class Log
     /// <param name="obj">The object to serialize.</param>
     public static void Trace(object obj)
     {
-        LogMessage_Impl(LogLevel.Trace, obj.ToString());
+        ScriptGlue.Log_LogMessage(LogLevel.Trace, obj.ToString());
     }
     
     /// <summary>
@@ -81,7 +81,7 @@ public class Log
     /// <param name="obj">The object to serialize.</param>
     public static void Info(object obj)
     {
-        LogMessage_Impl(LogLevel.Info, obj.ToString());
+        ScriptGlue.Log_LogMessage(LogLevel.Info, obj.ToString());
     }
 
     /// <summary>
@@ -90,7 +90,7 @@ public class Log
     /// <param name="obj">The object to serialize.</param>
     public static void Warning(object obj)
     {
-        LogMessage_Impl(LogLevel.Warning, obj.ToString());
+        ScriptGlue.Log_LogMessage(LogLevel.Warning, obj.ToString());
     }
 
     /// <summary>
@@ -99,7 +99,7 @@ public class Log
     /// <param name="obj">The object to serialize.</param>
     public static void Error(object obj)
     {
-        LogMessage_Impl(LogLevel.Error, obj.ToString());
+        ScriptGlue.Log_LogMessage(LogLevel.Error, obj.ToString());
     }
     
     /// <summary>
@@ -108,9 +108,15 @@ public class Log
     /// <param name="obj">The object to serialize.</param>
     public static void Critical(object obj)
     {
-        LogMessage_Impl(LogLevel.Critical, obj.ToString());
+        ScriptGlue.Log_LogMessage(LogLevel.Critical, obj.ToString());
     }
 
-    [MethodImpl(MethodImplOptions.InternalCall)]
-    private static extern string LogMessage_Impl(LogLevel logLevel, string message);
+    /// <summary>
+    /// Logs the give exception.
+    /// </summary>
+    /// <param name="exception">The exception to log.</param>
+    public static void Exception(Exception exception)
+    {
+        ScriptGlue.Log_LogException(exception);
+    }
 }

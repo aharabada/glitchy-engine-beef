@@ -134,7 +134,7 @@ public class SerializedObject
         }
         catch (Exception e)
         {
-            Log.Error(e);
+            Log.Exception(e);
             // Don't attempt to use any other serializer after this error...
             return true;
         }

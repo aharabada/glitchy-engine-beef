@@ -107,8 +107,10 @@ static class ScriptGlue
 		}
 	}
 
-	[RegisterCall("Log::LogMessage_Impl")]
-	static void Log(int32 logLevel, MonoString* message)
+#region Log
+
+	[RegisterCall("ScriptGlue::Log_LogMessage")]
+	static void Log_LogMessage(int32 logLevel, MonoString* message)
 	{
 		char8* utfMessage = Mono.mono_string_to_utf8(message);
 
@@ -116,6 +118,14 @@ static class ScriptGlue
 
 		Mono.mono_free(utfMessage);
 	}
+
+	[RegisterCall("ScriptGlue::Log_LogException")]
+	static void Log_LogException(MonoException* exception, UUID entityId)
+	{
+		ScriptEngine.HandleMonoException(exception, entityId);
+	}
+
+#endregion
 
 #region Input
 

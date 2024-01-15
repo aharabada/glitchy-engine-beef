@@ -73,7 +73,7 @@ internal class EntityEditor
         }
         catch (Exception e)
         {
-            Log.Error(e);
+            Log.Exception(e);
         }
 
         return false;
@@ -558,7 +558,7 @@ internal class EntityEditor
                         }
                         catch (Exception e)
                         {
-                            Log.Error(e);
+                            Log.Exception(e);
                         }
                     }
                 }
@@ -711,7 +711,19 @@ internal class EntityEditor
             
             ImGui.PopID();
         }
-        
+
+        ShowButtons(type, reference);
+    }
+
+    /// <summary>
+    /// Shows all buttons in the UI.
+    /// </summary>
+    private static void ShowButtons(Type type, object? reference)
+    {
+        ImGui.PushID("Buttons");
+
+        int i = 0;
+
         // Iterate all methods
         foreach (MethodInfo method in type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
         {
@@ -735,11 +747,24 @@ internal class EntityEditor
             }
             else if (ImGui.Button(showButton.ButtonText))
             {
-                method.Invoke(reference, null);
+                try
+                {
+                    method.Invoke(reference, null);
+                }
+                catch (TargetInvocationException ex)
+                {
+                    Log.Exception(ex.InnerException ?? ex);
+                }
+                catch (Exception ex)
+                {
+                    Log.Exception(ex);
+                }                
             }
     
             ImGui.PopID();
         }
+
+        ImGui.PopID();
     }
 
     struct ListPayload
@@ -763,9 +788,18 @@ internal class EntityEditor
 
                 Debug.Assert(list != null);
             }
+            
+            try
+            {
+                // Reference values can be null
+                object? newElement = elementType.IsByRef ? null : ActivatorExtension.CreateInstanceSafe(elementType);
 
-            object? newElement = ActivatorExtension.CreateInstanceSafe(elementType);
-            list?.Add(newElement);
+                list?.Add(newElement);
+            }
+            catch (Exception ex)
+            {
+                Log.Error($"Failed to add new element to list: {ex}");
+            }
         }
 
         void RemoveElement(IList? list, out object? newList)
@@ -882,7 +916,7 @@ internal class EntityEditor
 
         ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
 
-        ImGui.BeginDisabled(myList == null || myList.Count == 0);
+        ImGui.BeginDisabled(myList == null);
 
         if (ImGui.SmallButton("-"))
         {

@@ -11,6 +11,17 @@ namespace GlitchyEngine;
 /// </summary>
 internal static class ScriptGlue
 {
+#region Log
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Log_LogMessage(Log.LogLevel logLevel, string message);
+    
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void Log_LogException(Exception exception);
+
+#endregion
+
 #region Entity
 
     [MethodImpl(MethodImplOptions.InternalCall)]
