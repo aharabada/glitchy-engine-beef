@@ -69,6 +69,7 @@ static class ScriptGlue
 
 		RegisterComponent<TransformComponent>("GlitchyEngine.Core.Transform");
 		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Physics.Rigidbody2D");
+		RegisterComponent<CameraComponent>("GlitchyEngine.Core.Camera");
 	}
 
 	[RegisterMethod]
@@ -106,7 +107,66 @@ static class ScriptGlue
 			Log.EngineLogger.AssertDebug(managedType != null, scope $"No C# component with name \"{className}\" found for Beef type \"{typeof(T)}\"");
 		}
 	}
+	
+	/// Gets the component of the specified type that is attached to the given entity. Or null, if the entity doesn't exist or doesn't have the specified component.
+	static T* GetComponentSafe<T>(UUID entityId) where T: struct, new
+	{
+		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
 
+		if (foundEntity case .Ok(let entity))
+		{
+			if (entity.TryGetComponent<T>(let component))
+			{
+				return component;
+			}
+			else
+			{
+				ThrowArgumentException(null, scope $"The entity has no component of type {typeof(T)} or it was deleted.");
+			}
+		}
+		else
+		{
+			ThrowArgumentException(null, "The entity doesn't exist or was deleted.");
+		}
+	}
+
+	/// Gets the component of the specified type that is attached to the given entity. Or null, if the entity doesn't exist or doesn't have the specified component.
+	static bool TryGetComponentSafe<T>(UUID entityId, out T* component) where T: struct, new
+	{
+		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		if (foundEntity case .Ok(let entity))
+		{
+			if (entity.TryGetComponent<T>(out component))
+			{
+				return true;
+			}
+			else
+			{
+				Log.ClientLogger.Error($"Entity {entityId} has no {nameof(T)}.");
+			}
+		}
+		else
+		{
+			Log.ClientLogger.Error($"No entity with ID {entityId} found.");
+		}
+
+		component = null;
+		return false;
+	}
+
+#region Exception Helpers
+
+	/// Throws an argument exception.
+	[NoReturn]
+	static void ThrowArgumentException(char8* argument, char8* message)
+	{
+		MonoException* exception = Mono.mono_get_exception_argument(argument, message);
+		Mono.mono_raise_exception(exception);
+	}
+
+#endregion
+	
 #region Log
 
 	[RegisterCall("ScriptGlue::Log_LogMessage")]
@@ -229,9 +289,19 @@ static class ScriptGlue
 	{
 		MonoType* type = Mono.mono_reflection_type_get_type(componentType);
 
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
-		if (s_HasComponentMethods.TryGetValue(type, let hasMethod))
-			return hasMethod(entity);
+		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		if (foundEntity case .Ok(let entity))
+		{
+			if (s_HasComponentMethods.TryGetValue(type, let hasMethod))
+				return hasMethod(entity);
+		}
+		else
+		{
+			Log.ClientLogger.Warning($"No entity found with the given id \"{entityId}\".");
+
+			return false;
+		}
 
 		Log.EngineLogger.AssertDebug(false, "No managed component with the given type registered.");
 
@@ -319,11 +389,16 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Entity_GetName")]
     static MonoString* Entity_GetName(UUID entityId)
 	{
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
 
-		MonoString* name = Mono.mono_string_new_len(ScriptEngine.[Friend]s_AppDomain, entity.Name.Ptr, (.)entity.Name.Length);
+		if (foundEntity case .Ok(let entity))
+		{
+			MonoString* name = Mono.mono_string_new_len(ScriptEngine.[Friend]s_AppDomain, entity.Name.Ptr, (.)entity.Name.Length);
 
-		return name;
+			return name;
+		}
+
+		return null;
 	}
     
 	[RegisterCall("ScriptGlue::Entity_SetName")]
@@ -471,6 +546,138 @@ static class ScriptGlue
 	}
 
 #endregion Rigidbody2D
+
+#region Camera
+
+	[RegisterCall("ScriptGlue::Camera_GetProjectionType")]
+	static void Camera_GetProjectionType(UUID entityId, out SceneCamera.ProjectionType projectionType)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		projectionType = camera.Camera.ProjectionType;
+	}
+	
+	[RegisterCall("ScriptGlue::Camera_SetProjectionType")]
+	static void Camera_SetProjectionType(UUID entityId, in SceneCamera.ProjectionType projectionType)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.ProjectionType = projectionType;
+	}
+
+	// Native Implementierungen in Beef für die Kamera-Properties
+
+	[RegisterCall("ScriptGlue::Camera_GetPerspectiveFovY")]
+	static void Camera_GetPerspectiveFovY(UUID entityId, out float fovY)
+	{
+	    CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		fovY = camera.Camera.PerspectiveFovY;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetPerspectiveFovY")]
+	static void Camera_SetPerspectiveFovY(UUID entityId, float fovY)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.PerspectiveFovY = fovY;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_GetPerspectiveNearPlane")]
+	static void Camera_GetPerspectiveNearPlane(UUID entityId, out float nearPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		nearPlane = camera.Camera.PerspectiveNearPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetPerspectiveNearPlane")]
+	static void Camera_SetPerspectiveNearPlane(UUID entityId, float nearPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.PerspectiveNearPlane = nearPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_GetPerspectiveFarPlane")]
+	static void Camera_GetPerspectiveFarPlane(UUID entityId, out float farPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		farPlane = camera.Camera.PerspectiveFarPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetPerspectiveFarPlane")]
+	static void Camera_SetPerspectiveFarPlane(UUID entityId, float farPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.PerspectiveFarPlane = farPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_GetOrthographicHeight")]
+	static void Camera_GetOrthographicHeight(UUID entityId, out float height)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		height = camera.Camera.OrthographicHeight;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetOrthographicHeight")]
+	static void Camera_SetOrthographicHeight(UUID entityId, float height)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.OrthographicHeight = height;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetOrthographicNearPlane")]
+	static void Camera_SetOrthographicNearPlane(UUID entityId, float nearPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.OrthographicNearPlane = nearPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_GetOrthographicNearPlane")]
+	static void Camera_GetOrthographicNearPlane(UUID entityId, out float nearPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		nearPlane = camera.Camera.OrthographicNearPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetOrthographicFarPlane")]
+	static void Camera_SetOrthographicFarPlane(UUID entityId, float farPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.OrthographicFarPlane = farPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_GetOrthographicFarPlane")]
+	static void Camera_GetOrthographicFarPlane(UUID entityId, out float farPlane)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		farPlane = camera.Camera.OrthographicFarPlane;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetAspectRatio")]
+	static void Camera_SetAspectRatio(UUID entityId, float aspectRatio)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.AspectRatio = aspectRatio;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_GetAspectRatio")]
+	static void Camera_GetAspectRatio(UUID entityId, out float aspectRatio)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		aspectRatio = camera.Camera.AspectRatio;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_SetFixedAspectRatio")]
+	static void Camera_SetFixedAspectRatio(UUID entityId, bool fixedAspectRatio)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		camera.Camera.FixedAspectRatio = fixedAspectRatio;
+	}
+
+	[RegisterCall("ScriptGlue::Camera_GetFixedAspectRatio")]
+	static void Camera_GetFixedAspectRatio(UUID entityId, out bool fixedAspectRatio)
+	{
+		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
+		fixedAspectRatio = camera.Camera.FixedAspectRatio;
+	}
+
+#endregion
 
 #region Physics2D
 

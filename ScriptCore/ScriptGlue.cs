@@ -109,6 +109,57 @@ internal static class ScriptGlue
 
 #endregion RigidBody2D
 
+#region Camera
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetProjectionType(UUID entityId, out ProjectionType projectionType);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetProjectionType(UUID entityId, in ProjectionType projectionType);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetPerspectiveFovY(UUID entityId, out float fovY);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetPerspectiveFovY(UUID entityId, float fovY);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetPerspectiveNearPlane(UUID entityId, out float nearPlane);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetPerspectiveNearPlane(UUID entityId, float nearPlane);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetPerspectiveFarPlane(UUID entityId, out float farPlane);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetPerspectiveFarPlane(UUID entityId, float farPlane);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetOrthographicHeight(UUID entityId, out float height);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetOrthographicHeight(UUID entityId, float height);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetOrthographicNearPlane(UUID entityId, out float nearPlane);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetOrthographicNearPlane(UUID entityId, float nearPlane);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetOrthographicFarPlane(UUID entityId, out float farPlane);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetOrthographicFarPlane(UUID entityId, float farPlane);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetAspectRatio(UUID entityId, out float aspectRatio);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetAspectRatio(UUID entityId, float aspectRatio);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_GetFixedAspectRatio(UUID entityId, out bool fixedAspectRatio);
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Camera_SetFixedAspectRatio(UUID entityId, bool fixedAspectRatio);
+
+
+#endregion
+
 #region Physics2D
     
     [MethodImpl(MethodImplOptions.InternalCall)]

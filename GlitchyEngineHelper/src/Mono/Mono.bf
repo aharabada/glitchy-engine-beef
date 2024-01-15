@@ -279,8 +279,21 @@ static class Mono
 
 #endregion
 
+#region Exception
+	
+	[LinkName(.C), NoReturn]
+	public static extern void mono_raise_exception(MonoException *ex);
+
 	[LinkName(.C)]
 	public static extern char8* mono_exception_get_managed_backtrace(MonoException* exc);
+	
+	[LinkName(.C)]
+	public static extern MonoException* mono_exception_from_name_msg(MonoImage *image, char8* name_space, char8* name, char8* msg);
+
+	[LinkName(.C)]
+	public static extern MonoException* mono_get_exception_argument(char8* arg, char8* msg);
+
+#endregion
 
 	[LinkName(.C)]
 	public static extern MonoClass* mono_object_get_class(MonoObject* obj);
