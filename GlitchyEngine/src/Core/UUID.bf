@@ -13,6 +13,8 @@ namespace GlitchyEngine.Core
 
 		private static Random s_Random = new .() ~ delete _;
 
+		public const UUID Zero = .(0);
+
 		static this()
 		{
 			gBonEnv.typeHandlers.Add(typeof(UUID),
