@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 
@@ -64,5 +66,96 @@ public static class TypeExtension
         attribute = type.GetCustomAttribute<T>();
 
         return attribute != null;
+    }
+
+    private static ReadOnlySpan<char> ReadTypeName(ReadOnlySpan<char> fullName)
+    {
+        for (int i = 0; i < fullName.Length; i++)
+        {
+            if (!char.IsLetterOrDigit(fullName[i]) && fullName[i] != '.' && fullName[i] != '+' && fullName[i] != '_')
+            {
+                return fullName.Slice(0, i);
+            }
+        }
+
+        return fullName;
+    }
+    
+    public static Type? FindType(string fullName)
+    {
+        ReadOnlySpan<char> rest = new ReadOnlySpan<char>();
+
+        return FindType(fullName.AsSpan(), ref rest);
+    }
+
+    private static Type? FindType(ReadOnlySpan<char> fullName, ref ReadOnlySpan<char> rest)
+    {
+        rest = fullName;
+
+        ReadOnlySpan<char> typeName = ReadTypeName(fullName);
+        rest = rest.Slice(typeName.Length);
+        
+        if (rest.IsEmpty || rest[0] != '`')
+        {
+            // Non generic type, easy!
+            return GetType(typeName);
+        }
+
+        // Handle generic type
+
+        int brackedIndex = fullName.IndexOf('[');
+
+        typeName = fullName.Slice(0, brackedIndex);
+        rest = fullName.Slice(brackedIndex + 1).Trim();
+
+        Type? genericType = GetType(typeName);
+
+        Console.WriteLine($"Generic Type: {genericType}");
+        
+        List<Type> arguments = new List<Type>();
+
+        while (true)
+        {
+            Type? argument = FindType(rest, ref rest);
+            Console.WriteLine($"Argument:  {argument}");
+
+            Debug.Assert(argument != null);
+
+            arguments.Add(argument!);
+
+            rest = rest.TrimStart();
+
+            if (rest.TrimStart()[0] == ',')
+            {
+                rest = rest.Slice(1);
+            }
+            else if (rest.TrimStart()[0] == ']')
+            {
+                rest = rest.Slice(1);
+                break;
+            }
+            else
+            {
+                break;
+            }
+        }
+        
+        return genericType?.MakeGenericType(arguments.ToArray());
+    }
+
+    private static Type? GetType(ReadOnlySpan<char> fullName)
+    {
+        string name = fullName.TrimEnd(']').ToString();
+
+        // Non generic type, easy!
+        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies().Reverse())
+        {
+            Type? type = assembly.GetType(name);
+
+            if (type != null)
+                return type;
+        }
+
+        return null;
     }
 }

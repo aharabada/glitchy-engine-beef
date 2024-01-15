@@ -16,6 +16,10 @@
   </Target>
 
   <ItemGroup>
+    <PackageReference Include="System.Memory" Version="4.5.5" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\ScriptCoreGenerator\ScriptCoreGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\vendor\ImGui.NET\src\ImGui.NET\ImGui.NET.csproj" />
   </ItemGroup>

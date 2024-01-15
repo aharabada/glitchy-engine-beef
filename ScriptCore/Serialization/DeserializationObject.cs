@@ -87,26 +87,13 @@ public class DeserializationObject
             }
         }
     }
-
-    public Type? FindType(string fullName)
-    {
-        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies().Reverse())
-        {
-            Type type = assembly.GetType(fullName);
-
-            if (type != null)
-                return type;
-        }
-
-        return null;
-    }
-
+    
     public Type? GetTypeFromName(string fullName)
     {
         if (_fullNameToType.TryGetValue(fullName, out Type? storedType))
             return storedType;
 
-        Type? type = FindType(fullName);
+        Type? type = TypeExtension.FindType(fullName);
         
         _fullNameToType.Add(fullName, type);
 
@@ -270,7 +257,7 @@ public class DeserializationObject
 
         bool changed = false;
 
-        foreach (FieldInfo field in type.GetFields())
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
         {
             if (!EntitySerializer.SerializeField(field))
                 continue;
@@ -311,7 +298,7 @@ public class DeserializationObject
         }
         catch (Exception e)
         {
-            Log.Error(e);
+            Log.Exception(e);
         }
 
         return false;
