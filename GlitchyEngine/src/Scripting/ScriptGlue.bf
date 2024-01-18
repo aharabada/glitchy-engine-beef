@@ -107,7 +107,22 @@ static class ScriptGlue
 			Log.EngineLogger.AssertDebug(managedType != null, scope $"No C# component with name \"{className}\" found for Beef type \"{typeof(T)}\"");
 		}
 	}
-	
+
+	/// Gets the entity with the given id. Throws a mono exception, if the entity doesn't exist.
+	static Entity GetEntitySafe(UUID entityId)
+	{
+		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		if (foundEntity case .Ok(let entity))
+		{
+			return foundEntity;
+		}
+		else
+		{
+			ThrowArgumentException(null, "The entity doesn't exist or was deleted.");
+		}
+	}
+
 	/// Gets the component of the specified type that is attached to the given entity. Or null, if the entity doesn't exist or doesn't have the specified component.
 	static T* GetComponentSafe<T>(UUID entityId) where T: struct, new
 	{
@@ -346,44 +361,41 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Entity_SetScript")]
 	static MonoObject* Entity_SetScript(UUID entityId, MonoReflectionType* scriptType)
 	{
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
+
+		ScriptComponent* scriptComponent = null;
 
 		if (!entity.HasComponent<ScriptComponent>())
 		{
-			entity.AddComponent<ScriptComponent>();
+			scriptComponent = entity.AddComponent<ScriptComponent>();
 		}
-
-		if (entity.TryGetComponent<ScriptComponent>(let scriptComponent))
+		else
 		{
-			scriptComponent.Instance = null;
-
-			MonoType* type = Mono.mono_reflection_type_get_type(scriptType);
-
-			scriptComponent.ScriptClassName = StringView(Mono.mono_type_full_name(type));
-			
-			// Initializes the created instance
-			// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
-			ScriptEngine.InitializeInstance(entity, scriptComponent);
-
-			return scriptComponent.Instance.MonoInstance;
+			scriptComponent = entity.GetComponent<ScriptComponent>();
 		}
 
-		Log.EngineLogger.AssertDebug(false, "Failed to set script.");
+		if (scriptComponent.Instance != null)
+			ScriptEngine.Context.DestroyScriptDeferred(scriptComponent.Instance, false);
 
-		return null;
+		scriptComponent.Instance = null;
+
+		MonoType* type = Mono.mono_reflection_type_get_type(scriptType);
+
+		scriptComponent.ScriptClassName = StringView(Mono.mono_type_full_name(type));
+		
+		// Initializes the created instance
+		// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
+		ScriptEngine.InitializeInstance(entity, scriptComponent);
+
+		return scriptComponent.Instance.MonoInstance;
 	}
 	
 	[RegisterCall("ScriptGlue::Entity_RemoveScript")]
 	static void Entity_RemoveScript(UUID entityId)
 	{
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		ScriptComponent* scriptComponent = GetComponentSafe<ScriptComponent>(entityId);
 
-		if (entity.TryGetComponent<ScriptComponent>(let scriptComponent))
-		{
-			ScriptEngine.DestroyInstance(entity, scriptComponent);
-			
-			entity.RemoveComponent<ScriptComponent>();
-		}
+		ScriptEngine.Context.DestroyScriptDeferred(scriptComponent.Instance, true);
 	}
 	
 	[RegisterCall("ScriptGlue::Entity_GetName")]
@@ -403,7 +415,7 @@ static class ScriptGlue
     
 	[RegisterCall("ScriptGlue::Entity_SetName")]
     static void Entity_SetName(UUID entityId, MonoString* name)
-	{		
+	{
 		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
 
 		char8* rawName = Mono.mono_string_to_utf8(name);
@@ -739,10 +751,12 @@ static class ScriptGlue
 		RegisterCall<function bool(half)>("Math.Half::IsInfinity_Impl", (value) => value.IsInfinity);
 		RegisterCall<function bool(half)>("Math.Half::IsNan_Impl", (value) => value.IsNaN);
 		RegisterCall<function bool(half)>("Math.Half::IsSubnormal_Impl", (value) => value.IsSubnormal);
+
+		RegisterCall<function float(float, float)>("Math.Math::Atan2", (y, x) => Math.Atan2(y, x));
 	}
 
 #endregion
-	
+
 	[RegisterCall("ScriptGlue::UUID_CreateNew")]
 	static void UUID_Create(out UUID id)
 	{

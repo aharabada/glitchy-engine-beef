@@ -340,6 +340,8 @@ static class ScriptEngine
 
 		Debug.Assert(s_Context == null, "StartRuntime was called twice without StopRuntime in between!");
 		Context = context;
+
+		ReloadAssemblies();
 	}
 
 	/// Stopts the script runtime and disposes of all script instances.
@@ -400,10 +402,18 @@ static class ScriptEngine
 
 		script.ScriptClassName = null;
 
+		DestroyInstance(entityId);
+	}
+
+	public static void DestroyInstance(UUID entityId)
+	{
 		if (_entityScriptInstances.TryGetValue(entityId, let currentInstance))
 			currentInstance.ReleaseRef();
+	}
 
-		_entityScriptInstances[entityId] = null;
+	internal static void UnregisterScriptInstance(UUID entityId)
+	{
+		_entityScriptInstances.Remove(entityId);
 	}
 
 	/// Returns an instance that can be used as a reference to the entity with the given ID in Scripts
@@ -806,7 +816,6 @@ static class ScriptEngine
 		return scriptClass;
 	}
 
-	
 	internal static void HandleMonoException(MonoException* exception, UUID entityId)
 	{
 		MonoExceptionHelper wrappedException = new MonoExceptionHelper(exception);

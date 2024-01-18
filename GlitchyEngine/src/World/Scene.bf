@@ -621,6 +621,8 @@ namespace GlitchyEngine.World
 
 		private append List<Entity> _destroyQueue = .();
 
+		private append List<ScriptInstance> _destroyScriptQueue = .();
+
 		public void Update(GameTime gameTime, UpdateMode mode)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -634,29 +636,71 @@ namespace GlitchyEngine.World
 				// Run scripts
 				for (let (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
 				{
+					ScriptInstance scriptInstance = null;
+
 					if (!script.IsCreated)
 					{
 						if (!script.IsInitialized)
 							ScriptEngine.InitializeInstance(Entity(entity, this), script);
+						
+						scriptInstance = script.Instance;
 
 						// Skip OnCreate and OnUpdate invocation if we didn't create an instance
 						// (happens, if script component has no script class associated)
 						// Also skip if we are in edit mode and the class doesn't have the RunInEditMode-Attribute
-						if (script.Instance == null || (mode.HasFlag(.EditMode) && !script.Instance.ScriptClass.RunInEditMode))
+						if (scriptInstance == null || (mode.HasFlag(.EditMode) && !scriptInstance.ScriptClass.RunInEditMode))
 							continue;
 
-						script.Instance.InvokeOnCreate();
+						// OnCreate can remove the script, so we have to make sure that we have a reference and it survives.
+						// Todo: Technically we can rely on scriptInstance surviving a delete because we always defer deletion (unless we might not?)
+						scriptInstance.AddRef();
+
+						scriptInstance.InvokeOnCreate();
+					}
+					else
+					{
+						scriptInstance = script.Instance..AddRef();
 					}
 
+					// TODO: When the entity is destroyed in OnCreate it's OnUpdate will still be called. Is this fine?
+					// It would require that we somehow track whether the entity is to be deleted. We technically have this info but would probably need
+					// some faster way. If we for some reason ever happen to implement such a fast way we can check for planned deletion here (or after on Create and just continue;).
+
 					// Update the script, if we aren't in editor or it has RunInEditMode-Attribute
-					if (!mode.HasFlag(.EditMode) || script.Instance.ScriptClass.RunInEditMode)
+					if (!mode.HasFlag(.EditMode) || scriptInstance.ScriptClass.RunInEditMode)
 					{
 						if (_updateBlockList.Contains(entity))
 							_updateBlockList.Remove(entity);
 						else
-							script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
+							scriptInstance.InvokeOnUpdate(gameTime.DeltaTime);
 					}
+
+					scriptInstance?.ReleaseRef();
 				}
+			}
+
+			if (!_destroyScriptQueue.IsEmpty)
+			{
+				for (let scriptInstance in _destroyScriptQueue)
+				{
+					scriptInstance.ReleaseRef();
+
+					Log.EngineLogger.AssertDebug(scriptInstance.RefCount == 1, "Too many references to script instance. Did we leak it?");
+
+					ScriptEngine.DestroyInstance(scriptInstance.EntityId);
+				}
+
+				_destroyScriptQueue.Clear();
+			}
+
+			if (!_destroyQueue.IsEmpty)
+			{
+				for (let entity in _destroyQueue)
+				{
+					DestroyEntity(entity);
+				}
+
+				_destroyQueue.Clear();
 			}
 
 			if (mode.HasFlag(.Physics))
@@ -716,17 +760,6 @@ namespace GlitchyEngine.World
 					}
 				}
 			}
-
-			if (!_destroyQueue.IsEmpty)
-			{
-				for (let entity in _destroyQueue)
-				{
-					DestroyEntity(entity);
-				}
-
-				_destroyQueue.Clear();
-
-			}
 		}
 
 		/// Creates a new Entity with the given name.
@@ -755,6 +788,8 @@ namespace GlitchyEngine.World
 		public void DestroyEntity(Entity entity, bool destroyChildren = false)
 		{
 			_idToEntity.Remove(entity.UUID);
+			
+			ScriptEngine.DestroyInstance(entity.UUID);
 
 			if (destroyChildren)
 			{
@@ -777,6 +812,28 @@ namespace GlitchyEngine.World
 			for (Entity child in entity.EnumerateChildren)
 			{
 				DestroyEntityDeferred(child);
+			}
+		}
+
+		/**
+		 * Marks the given scriptInstance so that it will be deleted at the end of the update-loop. 
+		 * @param scriptInstance The script instance to destroy.
+		 * @param removeComponent If set to true the ScriptComponent will be removed from the entity.
+		 */
+		public void DestroyScriptDeferred(ScriptInstance scriptInstance, bool removeComponent)
+		{
+			_destroyScriptQueue.Add(scriptInstance..AddRef());
+
+			if (removeComponent)
+			{
+				Result<Entity> foundEntity = GetEntityByID(scriptInstance.EntityId);
+
+				Log.EngineLogger.AssertDebug(foundEntity case .Ok, "DestroyScriptDeferred: Could not find entity.");
+
+				if (foundEntity case .Ok(let entity))
+				{
+					entity.RemoveComponent<ScriptComponent>();
+				}
 			}
 		}
 

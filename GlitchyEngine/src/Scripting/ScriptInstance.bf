@@ -40,12 +40,24 @@ class ScriptInstance : RefCounter
 
 	private ~this()
 	{
+		Destroy();
+		_scriptClass?.ReleaseRef();
+	}
+
+	public void Destroy()
+	{
 		if (_instance != null)
 		{
-			InvokeOnDestroy();
+			if (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode)
+			{
+				InvokeOnDestroy();
+			}
+
 			Mono.mono_gchandle_free(_gcHandle);
+			_instance = null;
+
+			ScriptEngine.UnregisterScriptInstance(_entityId);
 		}
-		_scriptClass?.ReleaseRef();
 	}
 
 	public void Instantiate(UUID uuid)
