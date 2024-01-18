@@ -893,11 +893,9 @@ namespace GlitchyEditor
 
 			using (Scene runtimeScene = new Scene())
 			{
-				ScriptEngine.ApplicationInfo.IsInPlayMode = true;
-
 				_editorScene.CopyTo(runtimeScene, true);
 
-				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true);
+				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true, newPlayMode: .Play);
 				
 				ScriptEngine.DeserializeScriptInstances(_prePlaySerializedData);
 			}
@@ -908,14 +906,36 @@ namespace GlitchyEditor
 				SwitchToPlayWindow();
 		}
 
+		enum PlayMode
+		{
+			Play,
+			Editor,
+			Simulation
+		}
+
 		/// Activates the given scene.
 		/// @param scene The scene to be activated.
 		/// @param startRuntime If set to true, the script runtime will be initialized for the given scene.
 		/// @param startSimulation If set to true, the physics simulation will be initialized for the given scene.
-		private void SetActiveScene(Scene scene, bool startRuntime, bool startSimulation)
+		private void SetActiveScene(Scene scene, bool startRuntime, bool startSimulation, PlayMode? newPlayMode = null)
 		{
 			_activeScene?.StopRuntime();
 			_activeScene?.StopSimulation();
+
+			if (newPlayMode != null)
+			{
+				switch (newPlayMode.Value)
+				{
+				case .Play:
+					ScriptEngine.ApplicationInfo.IsInPlayMode = true;
+				case .Editor:
+					ScriptEngine.ApplicationInfo.IsInEditMode = true;
+				case .Simulation:
+					// No scripts in Simulation
+					ScriptEngine.ApplicationInfo.IsInEditMode = false;
+					ScriptEngine.ApplicationInfo.IsInPlayMode = false;
+				}
+			}
 
 			if (scene != null)
 			{
@@ -939,7 +959,7 @@ namespace GlitchyEditor
 			{
 				_editorScene.CopyTo(simulationScene, false);
 
-				SetActiveScene(simulationScene, startRuntime: false, startSimulation: true);
+				SetActiveScene(simulationScene, startRuntime: false, startSimulation: true, newPlayMode: .Simulation);
 			}
 
 			_editor.CurrentScene = _activeScene;
@@ -975,9 +995,7 @@ namespace GlitchyEditor
 		/// Stops the simulation or game and returns to edit mode.
 		private void OnSceneStop()
 		{
-			ScriptEngine.ApplicationInfo.IsInEditMode = true;
-
-			SetActiveScene(_editorScene, startRuntime: true, startSimulation: false);
+			SetActiveScene(_editorScene, startRuntime: true, startSimulation: false, newPlayMode: .Editor);
 
 			// TODO: _editorScene.DeserializeScripts(scriptData);
 
