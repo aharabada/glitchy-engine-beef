@@ -206,17 +206,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Open C# Project..."))
 			{
-				String solutionPath = scope .();
-				Editor.Instance.CurrentProject.PathInProject(solutionPath, scope $"{Editor.Instance.CurrentProject.Name}.sln");
-
-				ProcessStartInfo psi = scope .();
-				psi.SetFileName("devenv");
-				psi.SetArguments(solutionPath);
-
-				scope SpawnedProcess().Start(psi);
-
-				/*if (Path.OpenFolder(solutionPath) case .Err)
-					Log.EngineLogger.Error("Failed to open file.");*/
+				VisualStudioUtility.OpenScriptProject();
 			}
 		}
 
@@ -814,7 +804,13 @@ namespace GlitchyEditor.EditWindows
 			}
 			else
 			{
-				if (Path.OpenFolder(entry->Path) case .Err)
+				// Special treatment for scripts, open them in Visual Studio.
+				if (entry->Path.EndsWith(".cs"))
+				{
+					// Obviously windows only
+					VisualStudioUtility.OpenScript(entry->Path);
+				}
+				else if (Path.OpenFolder(entry->Path) case .Err)
 					Log.EngineLogger.Error("Failed to open file.");
 			}
 		}
