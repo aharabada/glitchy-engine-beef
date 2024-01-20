@@ -782,8 +782,6 @@ static class ScriptGlue
 		RegisterCall<function bool(half)>("Math.Half::IsInfinity_Impl", (value) => value.IsInfinity);
 		RegisterCall<function bool(half)>("Math.Half::IsNan_Impl", (value) => value.IsNaN);
 		RegisterCall<function bool(half)>("Math.Half::IsSubnormal_Impl", (value) => value.IsSubnormal);
-
-		RegisterCall<function float(float, float)>("Math.Math::Atan2", (y, x) => Math.Atan2(y, x));
 	}
 
 #endregion
