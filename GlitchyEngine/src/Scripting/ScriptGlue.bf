@@ -15,6 +15,24 @@ namespace GlitchyEngine.Scripting;
 
 using internal GlitchyEngine.Scripting;
 
+class MessageOrigin
+{
+	private String _fileName;
+	private int _lineNumber;
+
+	public StringView FileName => _fileName;
+	public int LineNumber => _lineNumber;
+
+	[AllowAppend]
+	public this(StringView fileName, int lineNumber)
+	{
+		String file = append String(fileName);
+
+		_fileName = file;
+		_lineNumber = lineNumber;
+	}
+}
+
 static class ScriptGlue
 {
 	private static Dictionary<MonoType*, function void(Entity entityId)> s_AddComponentMethods = new .() ~ delete _;
@@ -185,11 +203,24 @@ static class ScriptGlue
 #region Log
 
 	[RegisterCall("ScriptGlue::Log_LogMessage")]
-	static void Log_LogMessage(int32 logLevel, MonoString* message)
+	static void Log_LogMessage(int32 logLevel, MonoString* message, MonoString* fileName, int lineNumber)
 	{
 		char8* utfMessage = Mono.mono_string_to_utf8(message);
 
-		Log.ClientLogger.Log((LogLevel)logLevel, StringView(utfMessage));
+		if (fileName != null)
+		{
+			char8* utfFileName = Mono.mono_string_to_utf8(fileName);
+
+			MessageOrigin messageOrigin = new MessageOrigin(StringView(utfFileName), lineNumber);
+
+			Log.ClientLogger.Log((LogLevel)logLevel, StringView(utfMessage), messageOrigin);
+
+			Mono.mono_free(utfFileName);
+		}
+		else
+		{
+			Log.ClientLogger.Log((LogLevel)logLevel, StringView(utfMessage));
+		}
 
 		Mono.mono_free(utfMessage);
 	}

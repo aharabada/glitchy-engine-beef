@@ -6,6 +6,7 @@ using GlitchyEngine.World;
 using GlitchLog;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Renderer;
+using GlitchyEngine;
 
 namespace GlitchyEditor.EditWindows;
 
@@ -38,8 +39,7 @@ enum MessageType
 class MessageSource
 {
 	public UUID? Entity = null;
-	public StringView? ScriptName = null;
-	public int? Line = null;
+	public MessageOrigin MessageOrigin = null ~ delete _;
 
 	/// If true, the message is only meant for engine developers... so only me :(
 	public bool IsEngineMessage = false;
@@ -258,52 +258,65 @@ class LogWindow : EditorWindow
 
 				ImGui.TableNextColumn();
 
-				// Timestamp
-				ImGui.TextWrapped($"[{message.Timestamp:HH:mm:ss.fff}]");
-				
-				if (message.Source.IsEngineMessage)
+				if (ImGui.BeginChild("Message", .Zero, .None, .None))
 				{
-					ImGui.SameLine();
-					ImGui.TextUnformatted("Engine");
-				}
+					// Timestamp
+					ImGui.TextWrapped($"[{message.Timestamp:HH:mm:ss.fff}]");
 
-				// Show entity
-				if (message.Source?.Entity != null)
-				{
-					ImGui.SameLine();
-
-					Result<Entity> entity = Editor.Instance.CurrentScene.GetEntityByID(message.Source.Entity.Value);
-
-					if (entity case .Ok(let e))
+					if (message.Source.IsEngineMessage)
 					{
-						ImGui.Text($"Entity: \"{e.Name}\" (ID: {message.Source.Entity})");
+						ImGui.SameLine();
+						ImGui.TextUnformatted("Engine");
+					}
 
-						if (ImGui.IsItemClicked())
-							Editor.Instance.EntityHierarchyWindow.HighlightEntity(entity);
+					// Show entity
+					if (message.Source?.Entity != null)
+					{
+						ImGui.SameLine();
+
+						Result<Entity> entity = Editor.Instance.CurrentScene.GetEntityByID(message.Source.Entity.Value);
+
+						if (entity case .Ok(let e))
+						{
+							ImGui.Text($"Entity: \"{e.Name}\" (ID: {message.Source.Entity})");
+
+							if (ImGui.IsItemClicked())
+								Editor.Instance.EntityHierarchyWindow.HighlightEntity(entity);
+						}
+						else
+						{
+							ImGui.Text($"Entity: (ID: {message.Source.Entity})");
+						}
+					}
+
+					if (message.Source.Exception != null)
+					{
+						if (ImGui.CollapsingHeader(message.Message.Ptr))
+						{
+							// Show the native to managed entry point only if we show engine messages
+
+							if (_showEngineMessages)
+								ImGui.TextUnformatted(message.Source.Exception.StackTrace);
+							else
+								ImGui.TextUnformatted(message.Source.Exception.CleanStackTrace);
+
+							ImGui.NewLine();
+						}
 					}
 					else
 					{
-						ImGui.Text($"Entity: (ID: {message.Source.Entity})");
+						ImGui.TextUnformatted(message.Message);
 					}
 				}
 
-				if (message.Source.Exception != null)
+				ImGui.EndChild();
+
+				if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
 				{
-					if (ImGui.CollapsingHeader(message.Message.Ptr))
+					if (message.Source.MessageOrigin != null)
 					{
-						// Show the native to managed entry point only if we show engine messages
-
-						if (_showEngineMessages)
-							ImGui.TextUnformatted(message.Source.Exception.StackTrace);
-						else
-							ImGui.TextUnformatted(message.Source.Exception.CleanStackTrace);
-
-						ImGui.NewLine();
+						VisualStudioUtility.OpenScript(message.Source.MessageOrigin.FileName);
 					}
-				}
-				else
-				{
-					ImGui.TextUnformatted(message.Message);
 				}
 				
 				// Dont show the counter if we only have one message.

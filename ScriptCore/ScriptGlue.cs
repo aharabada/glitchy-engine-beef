@@ -14,7 +14,7 @@ internal static class ScriptGlue
 #region Log
     
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern void Log_LogMessage(Log.LogLevel logLevel, string message);
+    internal static extern void Log_LogMessage(Log.LogLevel logLevel, string message, string filePath, int line);
     
 
     [MethodImpl(MethodImplOptions.InternalCall)]

@@ -120,6 +120,10 @@ public class EditorLogger : Logger
 		{
 			Editor.Instance.LogWindow.LogException(timestamp, ex);
 		}
+		else if (args.Count > 0 && (var messageOrigin = args[^1] as MessageOrigin))
+		{
+			Editor.Instance.LogWindow.Log(timestamp, level, message, new .() {IsEngineMessage = IsEngineLogger, MessageOrigin = messageOrigin});
+		}
 		else
 		{
 			Editor.Instance.LogWindow.Log(timestamp, level, message, new .() {IsEngineMessage = IsEngineLogger});
