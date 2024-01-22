@@ -919,8 +919,7 @@ namespace GlitchyEditor
 		/// @param startSimulation If set to true, the physics simulation will be initialized for the given scene.
 		private void SetActiveScene(Scene scene, bool startRuntime, bool startSimulation, PlayMode? newPlayMode = null)
 		{
-			_activeScene?.StopRuntime();
-			_activeScene?.StopSimulation();
+			_activeScene?.Stop();
 
 			if (newPlayMode != null)
 			{
@@ -939,11 +938,7 @@ namespace GlitchyEditor
 
 			if (scene != null)
 			{
-				if (startRuntime)
-					scene.StartRuntime();
-	
-				if (startSimulation)
-					scene.StartSimulation();
+				scene.Start(startRuntime, startSimulation);
 			}
 
 			SetReference!(_activeScene, scene);
@@ -1058,10 +1053,7 @@ namespace GlitchyEditor
 		/// Sets the current editor scene
 		private void SetEditorScene(Scene scene, Dictionary<UUID, SerializedObject> serializedObjects = null)
 		{
-			if (_editorScene != null)
-			{
-				_editorScene.StopRuntime();
-			}
+			_editorScene?.Stop();
 
 			SetReference!(_editorScene, scene);
 			_editor.CurrentScene = _editorScene;
@@ -1069,7 +1061,7 @@ namespace GlitchyEditor
 
 			if (_editorScene != null)
 			{
-				_editorScene.StartRuntime();
+				_editorScene.Start(startRuntime: true, startSimulation: false);
 
 				if (serializedObjects != null)
 				{

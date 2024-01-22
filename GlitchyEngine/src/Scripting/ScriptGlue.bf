@@ -731,8 +731,7 @@ static class ScriptGlue
 	{
 		Scene scene = ScriptEngine.Context;
 
-		var box2DGravity = Box2D.World.GetGravity(scene.[Friend]_physicsWorld2D);
-		gravity = *(float2*)&box2DGravity;
+		gravity = scene.Physics2DSettings.Gravity;
 	}
 
 	[RegisterCall("ScriptGlue::Physics2D_SetGravity")]
@@ -740,8 +739,7 @@ static class ScriptGlue
 	{
 		Scene scene = ScriptEngine.Context;
 
-#unwarn
-		Box2D.World.SetGravity(scene.[Friend]_physicsWorld2D, gravity);
+		scene.Physics2DSettings.Gravity = gravity;
 	}
 
 #endregion Physics2D

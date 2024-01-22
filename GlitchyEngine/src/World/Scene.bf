@@ -25,6 +25,13 @@ namespace GlitchyEngine.World
 		b2ContactListener _contactListener;
 		b2Draw draw = .();
 
+		private float _fixedDeltaTime = 1.0f / 60.0f;
+
+		private Physics2DSettings _physics2dSettings = .(this);
+
+		[Inline]
+		public ref Physics2DSettings Physics2DSettings => ref _physics2dSettings;
+
 		private Dictionary<Type, function void(Entity entity, Type componentType, void* component)> _onComponentAddedHandlers = new .() ~ delete _;
 
 		private uint32 _viewportWidth, _viewportHeight;
@@ -196,8 +203,6 @@ namespace GlitchyEngine.World
 				target.AddComponent<TComponent>(*component);
 			}
 		}
-		
-		b2Vec2 _gravity2D = .(0.0f, -9.8f);
 
 		static b2BodyType GetBox2DBodyType(Rigidbody2DComponent.BodyType bodyType)
 		{
@@ -215,7 +220,37 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public void StartRuntime()
+		/**
+		 * Starts the scene.
+		 * @param startRuntime If true, the script runtime will be started.
+		 * @param startSimulation If true, the physics engine will be started.
+		 */
+		public void Start(bool startRuntime, bool startSimulation)
+		{
+			if (startSimulation)
+				StartSimulation();
+
+			if (startRuntime)
+			{
+				StartRuntime();
+				
+				if (startSimulation)
+				{
+					SetupPhysicsCallbacks();
+				}
+			}
+		}
+		
+		/**
+		 * Stops the scene by shutting down the script runtime and physics simulation.
+		 */
+		public void Stop()
+		{
+			StopRuntime();
+			StopSimulation();
+		}
+
+		private void StartRuntime()
 		{
 			ScriptEngine.StartRuntime(this);
 
@@ -228,16 +263,16 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public void StopRuntime()
+		private void StopRuntime()
 		{
 			ScriptEngine.StopRuntime();
 		}
 
-		public void StartSimulation()
+		private void StartSimulation()
 		{
 			// TODO: Add Setting for the user to define whether Physics will be initialized or not?
 			
-			_physicsWorld2D = World.Create(_gravity2D);
+			_physicsWorld2D = World.Create(_physics2dSettings.Gravity);
 
 			draw.drawPolygonCallback = (vertices, vertexCount, color, userData) =>
 				{
@@ -290,8 +325,6 @@ namespace GlitchyEngine.World
 			World.SetDebugDrawFlags(_physicsWorld2D, .e_shapeBit);
 
 			InitPhysics2D();
-			
-			SetupPhysicsCallbacks();
 		}
 
 		private void SetupPhysicsCallbacks()
@@ -593,7 +626,7 @@ namespace GlitchyEngine.World
 			polygonCollider.RuntimeFixture = fixture;
 		}
 
-		public void StopSimulation()
+		private void StopSimulation()
 		{
 			if (_physicsWorld2D == null)
 				return;
@@ -623,6 +656,114 @@ namespace GlitchyEngine.World
 
 		private append List<ScriptInstance> _destroyScriptQueue = .();
 
+		float physicsDelta = 0;
+
+		private void UpdatePhysics(GameTime gameTime)
+		{
+			physicsDelta += gameTime.DeltaTime;
+			
+			while (physicsDelta > _fixedDeltaTime)
+			{
+				physicsDelta -= _fixedDeltaTime;
+
+				Debug.Profiler.ProfileScope!("2D Physics Iteration");
+
+				Box2D.World.Step(_physicsWorld2D, _fixedDeltaTime, Physics2DSettings.VelocityIterations, Physics2DSettings.PositionIterations, Physics2DSettings.ParticleIterations);
+	
+				// Retrieve transform from Box2D
+				for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
+				{
+					Entity entity = .(entry.Entity, this);
+	
+					var transform = entity.Transform;
+					var rigidbody = entry.Component;
+	
+					b2Body* body = rigidbody.RuntimeBody;
+					b2Vec2 position = Box2D.Body.GetPosition(body);
+					float angle = Box2D.Body.GetAngle(body);
+					b2Transform bodyTransform = Box2D.Body.GetTransform(body);
+	
+					float cos = sqrt((1 + bodyTransform.q.c) / 2);
+					float sin = sqrt((1 - bodyTransform.q.c) / 2) * sign(bodyTransform.q.s);
+	
+					Quaternion rotation = .(0, 0, sin, cos)..Normalize();
+					
+					if (entity.Parent != null)
+					{
+						Matrix worldToParent = entity.Parent.Value.Transform.WorldTransform.Invert();
+	
+						float4 newLocalPosition = worldToParent * float4(position, 0, 1);
+						transform.Position = float3(newLocalPosition.XY, transform.Position.Z);
+	
+						// TODO: when the parent of the rigidbody-entity is rotated, the rotation is applied wrong...
+						Matrix.Decompose(worldToParent, let p, var worldToParentRotation, let s);
+						//Quaternion newLocalRotation = (worldToParentRotation..Normalize() * rotation..Normalize())..Normalize();
+						//Quaternion newLocalRotation = (rotation * worldToParentRotation..Normalize())..Normalize();
+						//Quaternion newLocalRotation = (worldToParentRotation * rotation)..Normalize();
+						Quaternion newLocalRotation = rotation..Normalize();
+						//Quaternion newLocalRotation = Quaternion.FromEulerAngles(0, 0, angle)..Normalize();
+						// TODO: when the parent has rotation on X or Y everything breaks even more...
+						//transform.Rotation = (Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0)..Normalize() * newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
+						//transform.Rotation = ((transform.Rotation..Normalize() * Quaternion.FromEulerAngles(0, 0, transform.RotationEuler.Z)..Normalize())..Normalize() * newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
+						transform.Rotation = (newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
+					}
+					else
+					{
+						transform.Position = .(position.x, position.y, transform.Position.Z);
+						transform.Rotation = rotation;
+					}
+				}
+
+				// TODO: Execute Fixed-Updates
+			}
+		}
+
+		private void UpdateScripts(GameTime gameTime, UpdateMode mode)
+		{
+			Debug.Profiler.ProfileScope!("Update scripts");
+
+			// all OnCreates have to be executed before the first OnUpdate!
+
+			// TODO: This could also be handled with a queue!
+			// Init and OnCreate
+			for (let (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
+			{
+				if (script.IsCreated)
+					continue;
+
+				if (!script.IsInitialized)
+					ScriptEngine.InitializeInstance(Entity(entity, this), script);
+				
+				// Skip OnCreate and OnUpdate invocation if we didn't create an instance
+				// (happens, if script component has no script class associated)
+				// Also skip if we are in edit mode and the class doesn't have the RunInEditMode-Attribute
+				if (script.Instance == null || (mode.HasFlag(.EditMode) && !script.Instance.ScriptClass.RunInEditMode))
+					continue;
+
+				script.Instance.InvokeOnCreate();
+			}
+
+			// OnUpdate
+			for (let (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
+			{
+				if (script.Instance == null)
+					continue;
+
+				// TODO: When the entity is destroyed in OnCreate it's OnUpdate will still be called. Is this fine?
+				// It would require that we somehow track whether the entity is to be deleted. We technically have this info but would probably need
+				// some faster way. If we for some reason ever happen to implement such a fast way we can check for planned deletion here (or after on Create and just continue;).
+
+				// Update the script, if we aren't in editor or it has RunInEditMode-Attribute
+				if (!mode.HasFlag(.EditMode) || script.Instance.ScriptClass.RunInEditMode)
+				{
+					if (_updateBlockList.Contains(entity))
+						_updateBlockList.Remove(entity);
+					else
+						script.Instance.InvokeOnUpdate(gameTime.DeltaTime);
+				}
+			}
+		}
+
 		public void Update(GameTime gameTime, UpdateMode mode)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -631,52 +772,7 @@ namespace GlitchyEngine.World
 
 			if (mode.HasFlag(.Scripts))
 			{
-				Debug.Profiler.ProfileScope!("Update scripts");
-
-				// Run scripts
-				for (let (entity, script) in _ecsWorld.Enumerate<ScriptComponent>())
-				{
-					ScriptInstance scriptInstance = null;
-
-					if (!script.IsCreated)
-					{
-						if (!script.IsInitialized)
-							ScriptEngine.InitializeInstance(Entity(entity, this), script);
-						
-						scriptInstance = script.Instance;
-
-						// Skip OnCreate and OnUpdate invocation if we didn't create an instance
-						// (happens, if script component has no script class associated)
-						// Also skip if we are in edit mode and the class doesn't have the RunInEditMode-Attribute
-						if (scriptInstance == null || (mode.HasFlag(.EditMode) && !scriptInstance.ScriptClass.RunInEditMode))
-							continue;
-
-						// OnCreate can remove the script, so we have to make sure that we have a reference and it survives.
-						// Todo: Technically we can rely on scriptInstance surviving a delete because we always defer deletion (unless we might not?)
-						scriptInstance.AddRef();
-
-						scriptInstance.InvokeOnCreate();
-					}
-					else
-					{
-						scriptInstance = script.Instance..AddRef();
-					}
-
-					// TODO: When the entity is destroyed in OnCreate it's OnUpdate will still be called. Is this fine?
-					// It would require that we somehow track whether the entity is to be deleted. We technically have this info but would probably need
-					// some faster way. If we for some reason ever happen to implement such a fast way we can check for planned deletion here (or after on Create and just continue;).
-
-					// Update the script, if we aren't in editor or it has RunInEditMode-Attribute
-					if (!mode.HasFlag(.EditMode) || scriptInstance.ScriptClass.RunInEditMode)
-					{
-						if (_updateBlockList.Contains(entity))
-							_updateBlockList.Remove(entity);
-						else
-							scriptInstance.InvokeOnUpdate(gameTime.DeltaTime);
-					}
-
-					scriptInstance?.ReleaseRef();
-				}
+				UpdateScripts(gameTime, mode);
 			}
 
 			if (!_destroyScriptQueue.IsEmpty)
@@ -705,60 +801,7 @@ namespace GlitchyEngine.World
 
 			if (mode.HasFlag(.Physics))
 			{
-				// Update 2D physics
-				{
-					const int32 velocityIterations = 6;
-					const int32 positionIterations = 2;
-					const int32 particleIterations = 2;
-
-					Box2D.World.Step(_physicsWorld2D, gameTime.DeltaTime, velocityIterations, positionIterations, particleIterations);
-
-					// Retrieve transform from Box2D
-					for (var entry in _ecsWorld.Enumerate<Rigidbody2DComponent>())
-					{
-						Entity entity = .(entry.Entity, this);
-
-						var transform = entity.Transform;
-						var rigidbody = entry.Component;
-
-						b2Body* body = rigidbody.RuntimeBody;
-						b2Vec2 position = Box2D.Body.GetPosition(body);
-						float angle = Box2D.Body.GetAngle(body);
-						b2Transform bodyTransform = Box2D.Body.GetTransform(body);
-
-						float cos = sqrt((1 + bodyTransform.q.c) / 2);
-						float sin = sqrt((1 - bodyTransform.q.c) / 2) * sign(bodyTransform.q.s);
-
-						Quaternion rotation = .(0, 0, sin, cos)..Normalize();
-						
-						if (entity.Parent != null)
-						{
-							Matrix worldToParent = entity.Parent.Value.Transform.WorldTransform.Invert();
-
-							float4 newLocalPosition = worldToParent * float4(position, 0, 1);
-							transform.Position = float3(newLocalPosition.XY, transform.Position.Z);
-
-							// TODO: when the parent of the rigidbody-entity is rotated, the rotation is applied wrong...
-							Matrix.Decompose(worldToParent, let p, var worldToParentRotation, let s);
-							//Quaternion newLocalRotation = (worldToParentRotation..Normalize() * rotation..Normalize())..Normalize();
-							//Quaternion newLocalRotation = (rotation * worldToParentRotation..Normalize())..Normalize();
-							//Quaternion newLocalRotation = (worldToParentRotation * rotation)..Normalize();
-							Quaternion newLocalRotation = rotation..Normalize();
-							//Quaternion newLocalRotation = Quaternion.FromEulerAngles(0, 0, angle)..Normalize();
-							// TODO: when the parent has rotation on X or Y everything breaks even more...
-							//transform.Rotation = (Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0)..Normalize() * newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
-							//transform.Rotation = ((transform.Rotation..Normalize() * Quaternion.FromEulerAngles(0, 0, transform.RotationEuler.Z)..Normalize())..Normalize() * newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
-							transform.Rotation = (newLocalRotation)..Normalize();//(newLocalRotation * Quaternion.FromEulerAngles(transform.RotationEuler.Y, transform.RotationEuler.X, 0))..Normalize();
-						}
-						else
-						{
-							transform.Position = .(position.x, position.y, transform.Position.Z);
-							//transform.RotationEuler = .(transform.RotationEuler.XY, angle);
-							//transform.RotationEuler = .(0, 0, angle);
-							transform.Rotation = normalize(rotation * normalize(Quaternion.FromEulerAngles(transform.RotationEuler.X, transform.RotationEuler.Y, 0)));
-						}
-					}
-				}
+				UpdatePhysics(gameTime);
 			}
 		}
 
