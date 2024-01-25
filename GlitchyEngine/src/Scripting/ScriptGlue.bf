@@ -289,14 +289,14 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Entity_Destroy")]
 	static void Entity_Destroy(UUID entityId)
 	{
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 		ScriptEngine.Context.DestroyEntityDeferred(entity);
 	}
 
 	[RegisterCall("ScriptGlue::Entity_CreateInstance")]
 	static void Entity_CreateInstance(UUID entityId, out UUID newEntityId)
 	{
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 		Entity newEntity = ScriptEngine.Context.CreateInstance(entity);
 
 		newEntityId = newEntity.UUID;
@@ -323,7 +323,7 @@ static class ScriptGlue
 	{
 		MonoType* type = Mono.mono_reflection_type_get_type(componentType);
 
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 		if (s_AddComponentMethods.TryGetValue(type, let addMethod))
 			addMethod(entity);
 		else
@@ -359,7 +359,7 @@ static class ScriptGlue
 	{
 		MonoType* type = Mono.mono_reflection_type_get_type(componentType);
 
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 		if (s_RemoveComponentMethods.TryGetValue(type, let removeMethod))
 			removeMethod(entity);
 		else
@@ -463,8 +463,7 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Transform_GetParent")]
 	static void Transform_GetParent(UUID entityId, out UUID parentId)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 
 		parentId = entity.Parent?.UUID ?? .Zero;
 	}
@@ -472,8 +471,7 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Transform_SetParent")]
 	static void Transform_SetParent(UUID entityId, in UUID parentId)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 
 		Entity? parent = GetEntitySafe(parentId);
 
@@ -483,8 +481,7 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Transform_GetTranslation")]
 	static void Transform_GetTranslation(UUID entityId, out float3 translation)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 
 		translation = entity.Transform.Position;
 	}
@@ -492,8 +489,7 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Transform_SetTranslation")]
 	static void Transform_SetTranslation(UUID entityId, in float3 translation)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
+		Entity entity = GetEntitySafe(entityId);
 
 		entity.Transform.Position = translation;
 
@@ -511,100 +507,70 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::Rigidbody2D_ApplyForce")]
 	static void Rigidbody2D_ApplyForce(UUID entityId, in float2 force, in float2 point, bool wakeUp)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		Box2D.Body.ApplyForce(rigidBody.[Friend]RuntimeBody, force, point, wakeUp);
 	}
 	
 	[RegisterCall("ScriptGlue::Rigidbody2D_ApplyForceToCenter")]
 	static void Rigidbody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		Box2D.Body.ApplyForceToCenter(rigidBody.[Friend]RuntimeBody, force, wakeUp);
 	}
 
 	[RegisterCall("ScriptGlue::Rigidbody2D_SetPosition")]
 	static void Rigidbody2D_SetPosition(UUID entityId, in float2 position)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rigidBody.SetPosition(position);
 	}
 
 	[RegisterCall("ScriptGlue::Rigidbody2D_GetPosition")]
 	static void Rigidbody2D_GetPosition(UUID entityId, out float2 position)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		position = rigidBody.GetPosition();
 	}
 	
 	[RegisterCall("ScriptGlue::Rigidbody2D_SetRotation")]
 	static void Rigidbody2D_SetRotation(UUID entityId, in float rotation)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rigidBody.SetAngle(rotation);
 	}
 
 	[RegisterCall("ScriptGlue::Rigidbody2D_GetRotation")]
 	static void Rigidbody2D_GetRotation(UUID entityId, out float rotation)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rotation = rigidBody.GetAngle();
 	}
 
 	[RegisterCall("ScriptGlue::Rigidbody2D_GetLinearVelocity")]
 	static void Rigidbody2D_GetLinearVelocity(UUID entityId, out float2 velocity)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		velocity = rigidBody.GetLinearVelocity();
 	}
 	
 	[RegisterCall("ScriptGlue::Rigidbody2D_SetLinearVelocity")]
 	static void Rigidbody2D_SetLinearVelocity(UUID entityId, in float2 velocity)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-		
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rigidBody.SetLinearVelocity(velocity);
 	}
 
 	[RegisterCall("ScriptGlue::Rigidbody2D_GetAngularVelocity")]
 	static void Rigidbody2D_GetAngularVelocity(UUID entityId, out float velocity)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		velocity = rigidBody.GetAngularVelocity();
 	}
 	
 	[RegisterCall("ScriptGlue::Rigidbody2D_SetAngularVelocity")]
 	static void Rigidbody2D_SetAngularVelocity(UUID entityId, in float velocity)
 	{
-		Scene scene = ScriptEngine.Context;
-		Entity entity = scene.GetEntityByID(entityId);
-		
-		var rigidBody = entity.GetComponent<Rigidbody2DComponent>();
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rigidBody.SetAngularVelocity(velocity);
 	}
 
@@ -625,8 +591,6 @@ static class ScriptGlue
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.ProjectionType = projectionType;
 	}
-
-	// Native Implementierungen in Beef für die Kamera-Properties
 
 	[RegisterCall("ScriptGlue::Camera_GetPerspectiveFovY")]
 	static void Camera_GetPerspectiveFovY(UUID entityId, out float fovY)
