@@ -459,6 +459,26 @@ static class ScriptGlue
 #endregion
 
 #region TransformComponent
+
+	[RegisterCall("ScriptGlue::Transform_GetParent")]
+	static void Transform_GetParent(UUID entityId, out UUID parentId)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+
+		parentId = entity.Parent?.UUID ?? .Zero;
+	}
+
+	[RegisterCall("ScriptGlue::Transform_SetParent")]
+	static void Transform_SetParent(UUID entityId, in UUID parentId)
+	{
+		Scene scene = ScriptEngine.Context;
+		Entity entity = scene.GetEntityByID(entityId);
+
+		Entity? parent = GetEntitySafe(parentId);
+
+		entity.Parent = parent;
+	}
 	
 	[RegisterCall("ScriptGlue::Transform_GetTranslation")]
 	static void Transform_GetTranslation(UUID entityId, out float3 translation)

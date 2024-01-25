@@ -9,6 +9,20 @@ namespace GlitchyEngine.Core;
 /// </summary>
 public class Transform : Component
 {
+    public Entity? Parent
+    {
+        get
+        {
+            ScriptGlue.Transform_GetParent(Entity.UUID, out UUID parentId);
+
+            if (parentId == UUID.Zero)
+                return null;
+
+            return new Entity(parentId);
+        }
+        set => ScriptGlue.Transform_SetParent(Entity.UUID, value?._uuid ?? UUID.Zero);
+    }
+
     /// <summary>
     /// Gets or sets the translation (position) of the entity.
     /// </summary>

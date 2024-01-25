@@ -68,6 +68,12 @@ internal static class ScriptGlue
 #region TransformComponent
 
     [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_GetParent(UUID entityId, out UUID parentId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_SetParent(UUID entityId, in UUID parentId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_GetTranslation(UUID entityId, out float3 translation);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
