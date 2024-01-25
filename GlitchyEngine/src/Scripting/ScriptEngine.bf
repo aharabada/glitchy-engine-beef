@@ -12,45 +12,10 @@ namespace GlitchyEngine.Scripting;
 
 using internal GlitchyEngine.Scripting;
 
-static sealed class ScriptEngineHelper
-{
-	private static Dictionary<StringView, ScriptFieldType> _scriptFieldTypes = new Dictionary<StringView, ScriptFieldType>()
-	{
-		("System.String", .String),
-
-		("System.Boolean", .Bool),
-		("System.Char", .Char),
-
-		("System.SByte", .SByte),
-		("System.Int16", .Short),
-		("System.Int32", .Int),
-		("System.Int64", .Long),
-		
-		("System.Byte", .Byte),
-		("System.UInt16", .UShort),
-		("System.UInt32", .UInt),
-		("System.UInt64", .ULong),
-
-		("System.Single", .Float),
-		("GlitchyEngine.Math.float2", .float2),
-		("GlitchyEngine.Math.float3", .float3),
-		("GlitchyEngine.Math.float4", .float4),
-
-		("System.Double", .Double),
-
-		("GlitchyEngine.Entity", .Entity),
-	} ~ delete _;
-
-	public static ScriptFieldType GetScriptFieldType(MonoType* monoType)
-	{
-		StringView typeName = StringView(Mono.mono_type_get_name(monoType));
-
-		return _scriptFieldTypes.TryGetValue(typeName, .. let scriptFieldType);
-	}
-}
-
 class EngineClasses
 {
+	// TODO: Not all of there are actually ScriptClasses (actually none of them are...)
+
 	private ScriptClass s_ComponentRoot ~ _?.ReleaseRef();
 	private ScriptClass s_EntityRoot ~ _?.ReleaseRef();
 	private ScriptClass s_EngineObject ~ _?.ReleaseRef();
@@ -60,6 +25,8 @@ class EngineClasses
 	private ScriptClass s_EntitySerializer ~ _?.ReleaseRef();
 	private ScriptClass s_SerializationContext ~ _?.ReleaseRef();
 
+	private ScriptClass s_Collision2D ~ _?.ReleaseRef();
+
 	public ScriptClass ComponentRoot => s_ComponentRoot;
 	public ScriptClass EntityRoot => s_EntityRoot;
 	public ScriptClass EngineObject => s_EngineObject;
@@ -67,7 +34,8 @@ class EngineClasses
 	public ScriptClass EntityEditor => s_EntityEditor;
 
 	public ScriptClass EntitySerializer => s_EntitySerializer;
-	//public ScriptClass SerializationContext => s_SerializationContext;
+
+	public ScriptClass Collision2D => s_Collision2D;
 
 	internal void ReleaseAndNullify()
 	{
@@ -79,6 +47,8 @@ class EngineClasses
 
 		ReleaseRefAndNullify!(s_EntitySerializer);
 		ReleaseRefAndNullify!(s_SerializationContext);
+
+		ReleaseRefAndNullify!(s_Collision2D);
 	}
 
 	internal void LoadClasses(MonoImage* image)
@@ -93,7 +63,8 @@ class EngineClasses
 		s_EntityEditor = new ScriptClass("GlitchyEngine.Editor", "EntityEditor", image, .Class);
 
 		s_EntitySerializer = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer", image, .Class);
-		//s_SerializationContext = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer.SerializationContext", image, .Class);
+
+		s_Collision2D = new ScriptClass("GlitchyEngine.Physics", "Collision2D", image, .Struct);
 	}
 }
 
@@ -264,11 +235,6 @@ static class ScriptEngine
 		String directory = scope .();
 		Path.GetDirectoryPath(_appAssemblyPath, directory);
 
-		/*if (_userAssemblyWatcher != null) // _userAssemblyWatcher.Directory != directory
-		{
-			delete _userAssemblyWatcher;
-		}*/
-
 		String fileName = scope .("*/");
 		Path.GetFileName(_appAssemblyPath, fileName);
 
@@ -336,8 +302,6 @@ static class ScriptEngine
 	/// Starts the script runtime and sets the context scene.
 	public static void StartRuntime(Scene context)
 	{
-		/// At the moment only set the context.
-
 		Debug.Assert(s_Context == null, "StartRuntime was called twice without StopRuntime in between!");
 		Context = context;
 
@@ -414,117 +378,6 @@ static class ScriptEngine
 	internal static void UnregisterScriptInstance(UUID entityId)
 	{
 		_entityScriptInstances.Remove(entityId);
-	}
-
-	/// Returns an instance that can be used as a reference to the entity with the given ID in Scripts
-	private static MonoObject* GetOrCreateScriptReferenceInstance(UUID entityId)
-	{
-		MonoObject* referencedEntity = GetManagedInstance(entityId);
-
-		if (referencedEntity == null)
-		{	 
-			referencedEntity = Classes.EntityRoot.CreateInstance(entityId, let exception);
-			
-			if (exception != null)
-				ScriptEngine.HandleMonoException(exception, null);
-		}
-
-		return referencedEntity;
-	}
-
-	/// Creates an instance of the given component class referencing the specified entity instance.
-	private static MonoObject* CreateComponentReferenceInstance(ScriptClass componentClass, UUID id)//MonoObject* entityReferenceInstance)
-	{
-		MonoObject* componentInstance = componentClass.CreateInstance();
-
-		MonoClassField* idField = Mono.mono_class_get_field_from_name(componentClass.[Friend]_monoClass, "_uuid");
-
-		Classes.ComponentRoot.SetFieldValue<UUID>(componentInstance, idField, id);
-
-		/*// TODO: We could cache the property, but this might be fine
-		MonoProperty* entityProperty = Mono.mono_class_get_property_from_name(componentClass.[Friend]_monoClass, "Entity");
-
-		MonoObject* exception = null;
-		
-//#unwarn
-		//Mono.mono_property_set_value(entityProperty, componentInstance, (void**)&entityReferenceInstance, &exception);
-#unwarn
-		Mono.mono_property_set_value(entityProperty, componentInstance, (void**)&id, &exception);
-
-		if (exception != null)
-			ScriptEngine.HandleMonoException((MonoException*)exception, null);*/
-
-		return componentInstance;
-	}
-
-	public static void CopyFieldsToInstance(ScriptComponent* targetScript, ScriptComponent* sourceScript, Dictionary<UUID, UUID> sourceIdToTargetId)
-	{
-		Debug.Profiler.ProfileFunction!();
-
-		Log.EngineLogger.AssertDebug(targetScript.Instance.ScriptClass == sourceScript.Instance.ScriptClass);
-
-		for (let (name, scriptField) in sourceScript.Instance.ScriptClass.Fields)
-		{
-			Debug.Profiler.ProfileScope!("Copy Field");
-
-			targetScript.Instance.CopyFieldValue(scriptField, sourceScript.Instance);
-			switch (scriptField.FieldType)
-			{
-			case .Entity:
-				let sourceEntityReference = sourceScript.Instance.GetFieldValue<MonoObject*>(scriptField);
-
-				MonoObject* referencedEntity = sourceEntityReference;
-
-				if (sourceEntityReference != null)
-				{
-					let idField = Mono.mono_class_get_field_from_name(Classes.EntityRoot._monoClass, "_uuid");
-					UUID sourceId = Classes.EntityRoot.GetFieldValue<UUID>(sourceEntityReference, idField);
-
-					// Check if we need to translate, copy otherwise
-					if (sourceIdToTargetId.TryGetValue(sourceId, let referencedId))
-					{
-						// On the C# side we actually differentiate between an Entity and the Script
-						// in the sense that getting an entity and a script yields two different results (one creates a new Entity-Class instance, the other returns the actual instance).
-						// But here its just easier to always use the script instance.
-						// Obviously breaks once we support multiple scripts per entity.
-						referencedEntity = GetOrCreateScriptReferenceInstance(referencedId);
-					}
-				}
-
-				targetScript.Instance.SetFieldValue(scriptField, referencedEntity);
-			case .Component:
-				
-				let sourceComponentReference = sourceScript.Instance.GetFieldValue<MonoObject*>(scriptField);
-				
-				MonoObject* componentInstance = sourceComponentReference;
-				
-				// Get or create entity reference
-				if (sourceComponentReference != null)
-				{
-					let idField = Mono.mono_class_get_field_from_name(Classes.EngineObject._monoClass, "_uuid");
-					UUID sourceId = Classes.EntityRoot.GetFieldValue<UUID>(sourceComponentReference, idField);
-					
-					MonoType* fieldMonoType = scriptField.GetMonoType();
-
-					SharpType componentType = ScriptEngine.GetSharpType(fieldMonoType);
-
-					var componentClass = ComponentClasses[componentType.FullName];
-
-					if (sourceIdToTargetId.TryGetValue(sourceId, let targetId))
-					{
-						// Create reference for translated id
-						componentInstance = CreateComponentReferenceInstance(componentClass, targetId);
-					}
-					
-					componentType.ReleaseRef();
-				}
-				
-				targetScript.Instance.SetFieldValue(scriptField, componentInstance);
-
-			default:
-				targetScript.Instance.CopyFieldValue(scriptField, sourceScript.Instance);
-			}
-		}
 	}
 
 	private static MonoAssembly* LoadCSharpAssembly(StringView assemblyPath, bool loadPDB = false)
@@ -726,78 +579,6 @@ static class ScriptEngine
 	internal static void RegisterSharpType(SharpType sharpType)
 	{
 		_sharpClasses.Add(sharpType.FullName, sharpType..AddRef());
-	}
-
-	internal static SharpType GetSharpType(MonoType* monoType)
-	{
-		StringView typeName = StringView(Mono.mono_type_get_name(monoType));
-
-		if (_sharpClasses.TryGetValue(typeName, let sharpType))
-			return sharpType..AddRef();
-
-		Mono.MonoTypeEnum fieldType = Mono.Mono.mono_type_get_type(monoType);
-
-		MonoClass* monoClass = Mono.mono_class_from_mono_type(monoType);
-
-		if (monoClass == null)
-			return null;
-
-		StringView className = StringView(Mono.mono_class_get_name(monoClass));
-		StringView classNamespace = StringView(Mono.mono_class_get_namespace(monoClass));
-
-		// TODO: at the moment only allow user-structs
-		//if (classNamespace.StartsWith("GlitchyEngine"))
-		//	return null;
-		
-		ScriptFieldType scriptType = .None;
-
-		if (Mono.mono_class_is_enum(monoClass))
-		{
-			scriptType = .Enum;
-
-			return new SharpEnum(classNamespace, className, Mono.mono_class_get_image(monoClass));
-		}
-		else if (fieldType == .Class)
-		{
-			if (Mono.mono_class_is_subclass_of(monoClass, Classes.EntityRoot._monoClass, false))
-			{
-				scriptType = .Entity;
-			}
-			else if (Mono.mono_class_is_subclass_of(monoClass, Classes.ComponentRoot._monoClass, false))
-			{
-				scriptType = .Component;
-			}
-			else
-			{
-				scriptType = .Class;
-			}
-		}
-		else if (fieldType == .Valuetype)
-		{
-			scriptType = .Struct;
-		}
-		// TODO! ?!
-		else if (fieldType == .Genericinst)
-		{
-			scriptType = .GenericClass;
-
-			return null;
-			//return new SharpClass(monoClass, scriptType);
-		}
-		else if (fieldType == .SzArray)
-		{
-			scriptType = .Array;
-			return null;
-		}
-		else if (fieldType == .Object)
-		{
-			// TODO: Help
-			return null;
-		}
-
-		Log.EngineLogger.AssertDebug(scriptType != .None);
-
-		return new SharpClass(classNamespace, className, Mono.mono_class_get_image(monoClass), scriptType);
 	}
 
 	/// Returns the script instance or null.

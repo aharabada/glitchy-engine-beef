@@ -116,23 +116,6 @@ class ScriptInstance : RefCounter
 			ScriptEngine.HandleMonoException(exception, this);
 	}
 
-	public T GetFieldValue<T>(ScriptField field)
-	{
-		return _scriptClass.GetFieldValue<T>(_instance, field.[Friend]_monoField);
-	}
-
-	public void SetFieldValue<T>(ScriptField field, in T value)
-	{
-		_scriptClass.SetFieldValue<T>(_instance, field.[Friend]_monoField, value);
-	}
-
-	public void CopyFieldValue(ScriptField field, ScriptInstance sourceInstance)
-	{
-		// TODO: I hate this!
-		var data = sourceInstance.GetFieldValue<uint8[sizeof(GlitchyEngine.Math.Matrix)]>(field);
-		SetFieldValue(field, data);
-	}
-
 	/// Creates a new instance of the given component class and initializes it for the current entity.
 	public MonoObject* CreateComponentInstance(ScriptClass componentClassType)
 	{

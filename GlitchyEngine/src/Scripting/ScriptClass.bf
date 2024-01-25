@@ -8,77 +8,6 @@ namespace GlitchyEngine.Scripting;
 
 using internal GlitchyEngine.Scripting;
 
-public struct ScriptField
-{
-	public StringView Name;
-	internal MonoClassField* _monoField;
-	public bool IsStatic;
-	public ScriptFieldType FieldType;
-	public SharpType SharpType;
-	public int SizeInBytes;
-
-	internal this(StringView name, MonoClassField* monoField, bool isStatic, ScriptFieldType fieldType, int sizeInBytes, SharpType sharpType)
-	{
-		Name = name;
-		_monoField = monoField;
-		IsStatic = isStatic;
-		FieldType = fieldType;
-		SharpType = sharpType;
-		SizeInBytes = sizeInBytes;
-	}
-
-	public bool IsType(SharpClass otherClass, bool checkIfSubtype)
-	{
-		return IsType(otherClass.GetMonoType(), checkIfSubtype);
-	}
-
-	public bool IsType(MonoType* otherType, bool checkIfSubtype)
-	{
-		MonoType* myType = GetMonoType();
-
-		if (checkIfSubtype)
-		{
-			MonoClass* myClass = Mono.mono_type_get_class(myType);
-			MonoClass* otherClass = Mono.mono_type_get_class(otherType);
-
-			return Mono.mono_class_is_subclass_of(myClass, otherClass, false);
-		}
-		else
-		{
-			return myType == otherType;
-		}
-	}
-
-	public MonoType* GetMonoType()
-	{
-		return Mono.mono_field_get_type(_monoField);
-	}
-}
-
-public struct ScriptFieldInstance
-{
-	public ScriptFieldType Type;
-	// TODO: I hate this, but we need to be able to store an entire matrix
-	internal uint8[sizeof(GlitchyEngine.Math.Matrix)] _data;
-
-	public this(ScriptFieldType type)
-	{
-		Type = type;
-		_data = default;
-	}
-
-	public T GetData<T>()
-	{
-#unwarn
-		return *(T*)&_data;
-	}
-	
-	public void SetData<T>(T value) mut
-	{
-		*(T*)&_data = value;
-	}
-}
-
 abstract class SharpType : RefCounter
 {
 	protected String _namespace ~ delete _;
@@ -86,14 +15,10 @@ abstract class SharpType : RefCounter
 	protected String _fullName ~ delete _;
 	protected ScriptFieldType _scriptType;
 	
-	protected Dictionary<StringView, ScriptField> _monoFields ~ delete _;
-
 	public StringView Namespace => _namespace;
 	public StringView ClassName => _className;
 	public StringView FullName => _fullName;
 	public ScriptFieldType ScriptType => _scriptType;
-	
-	public Dictionary<StringView, ScriptField> Fields => _monoFields;
 	
 	public this(StringView classNamespace, StringView className, ScriptFieldType scriptType)
 	{
@@ -116,8 +41,6 @@ class SharpClass : SharpType
 		_monoClass = Mono.mono_class_from_name(image, _namespace, _className);
 
 		Log.EngineLogger.AssertDebug(_monoClass != null);
-
-		ExtractFields();
 	}
 	
 	internal this(MonoClass* monoClass, ScriptFieldType fieldType = .Class) :
@@ -126,8 +49,6 @@ class SharpClass : SharpType
 		_monoClass = monoClass;
 
 		Log.EngineLogger.AssertDebug(_monoClass != null);
-
-		ExtractFields();
 	}
 
 	internal MonoType* GetMonoType()
@@ -143,135 +64,6 @@ class SharpClass : SharpType
 	internal bool IsSubclass(MonoClass* @class)
 	{
 		return Mono.mono_class_is_subclass_of(_monoClass, @class, false);
-	}
-
-	private void ExtractFields()
-	{
-		//_monoFields = new List<MonoClassField*>();´
-		_monoFields = new Dictionary<StringView, ScriptField>();
-		
-		void* iterator = null;
-		MonoClassField* currentField = null;
-		while ((currentField = Mono.mono_class_get_fields(_monoClass, &iterator)) != null)
-		{
-			StringView name = StringView(Mono.mono_field_get_name(currentField));
-
-			MonoType* type = Mono.mono_field_get_type(currentField);
-
-			ScriptFieldType fieldType = ScriptEngineHelper.GetScriptFieldType(type);
-
-			SharpType sharpType = null;
-
-			// If field type is none the field might be a struct, class or enum
-			if (fieldType == .None)
-			{
-				sharpType = ScriptEngine.GetSharpType(type);
-				fieldType = sharpType?.ScriptType ?? .None;
-				
-				if (sharpType == null)
-					continue;
-
-				sharpType.ReleaseRef();
-			}
-
-			//Mono.MonoTypeEnum fieldType = Mono.Mono.mono_type_get_type(type);
-
-			FieldAttribute flags = (.)Mono.mono_field_get_flags(currentField);
-
-			MonoCustomAttrInfo* attributes = Mono.mono_custom_attrs_from_field(_monoClass, currentField);
-
-			if (flags.HasFlag(.Public) ||
-				(attributes != null &&
-				Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Attributes.s_ShowInEditorAttribute)))
-			{
-				MonoClass* fieldClass = Mono.mono_type_get_class(type);
-
-				int sizeInBytes = 8;
-
-				if (fieldClass != null)
-				{
-					sizeInBytes = Mono.mono_class_instance_size(fieldClass);
-				}
-				else
-				{
-
-				}
-
-				_monoFields[name] = .(name, currentField, flags.HasFlag(.Static), fieldType, sizeInBytes, sharpType);
-			}
-		}
-	}
-}
-
-struct EnumValue
-{
-	public StringView Name;
-
-	public uint64 Value;
-
-	public this(StringView name, uint64 value)
-	{
-		Name = name;
-		Value = value;
-	}
-}
-
-class SharpEnum : SharpClass
-{
-	private append Dictionary<uint64, EnumValue> _values = .();
-
-	public Dictionary<uint64, EnumValue> Values => _values;
-
-	private int _underlyingSize = 0;
-
-	public this(StringView classNamespace, StringView className, MonoImage* image)
-		: base(classNamespace, className, image, .Enum)
-	{
-		ExtractEnumValues();
-	}
-
-	private void ExtractEnumValues()
-	{
-		_underlyingSize = Mono.mono_class_instance_size(_monoClass);
-		Log.EngineLogger.Assert(_underlyingSize != 0);
-
-		var vtable = Mono.mono_class_vtable(ScriptEngine.[Friend]s_AppDomain, _monoClass);
-
-		void* iterator = null;
-		MonoClassField* currentField = null;
-		while ((currentField = Mono.mono_class_get_fields(_monoClass, &iterator)) != null)
-		{
-			MonoType* fieldType = Mono.mono_field_get_type(currentField);
-			MonoClass* fieldClass = Mono.mono_type_get_class(fieldType);
-
-			FieldAttribute fieldFlags = (.)Mono.mono_field_get_flags(currentField);
-
-			if (fieldFlags.HasFlag(.Public) && fieldFlags.HasFlag(.Static) &&
-				fieldClass != null && Mono.mono_class_is_subclass_of(fieldClass, _monoClass, false))
-			{
-				StringView fieldName = StringView(Mono.mono_field_get_name(currentField));
-
-				uint64 value = 0;
-				Mono.mono_field_static_get_value(vtable, currentField, &value);
-
-				EnumValue enumValue = .(fieldName, value);
-	
-				_values.Add(value, enumValue);
-			}
-		}
-	}
-}
-
-class SharpStruct : SharpClass
-{
-	protected int _size;
-
-	public int Size => _size;
-
-	public this(StringView classNamespace, StringView className, MonoImage* image)
-		: base(classNamespace, className, image)
-	{
-
 	}
 }
 
@@ -289,16 +81,11 @@ class ScriptClass : SharpClass
 	private OnUpdateMethod _onUpdate;
 	private OnDestroyMethod _onDestroy;
 	
-	private function [CallingConvention(.Cdecl)] MonoObject*(MonoObject* instance, Collision2D collision, MonoException** exception) _onCollisionEnter2D;
-	private function [CallingConvention(.Cdecl)] MonoObject*(MonoObject* instance, Collision2D collision, MonoException** exception) _onCollisionLeave2D;
+	private function [CallingConvention(.Cdecl)] MonoObject*(MonoObject* instance, MonoObject* collision2d, MonoException** exception) _onCollisionEnter2D;
+	private function [CallingConvention(.Cdecl)] MonoObject*(MonoObject* instance, MonoObject* collision2d, MonoException** exception) _onCollisionLeave2D;
 
-	//private OnCollisionEnter2DMethod _onCollisionEnter2D;
-	//private OnDestroyMethod _onCollisionLeave2D;
-	private MonoMethod* _onCollisionEnter2DMethod;
-	private MonoMethod* _onCollisionLeave2DMethod;
-
-	public bool HasCollisionEnter2D => _onCollisionEnter2DMethod != null;
-	public bool HasCollisionLeave2D => _onCollisionLeave2DMethod != null;
+	public bool HasCollisionEnter2D => _onCollisionEnter2D != null;
+	public bool HasCollisionLeave2D => _onCollisionLeave2D != null;
 
 	public bool RunInEditMode => _runInEditMode;
 
@@ -310,9 +97,6 @@ class ScriptClass : SharpClass
 		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");
 		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
-
-		_onCollisionEnter2D = (.)GetMethodThunk("OnCollisionEnter2D", 1);
-		_onCollisionLeave2D = (.)GetMethodThunk("OnCollisionLeave2D", 1);
 
 		_onCollisionEnter2DMethod = GetMethod("OnCollisionEnter2D", 1);
 		_onCollisionLeave2DMethod = GetMethod("OnCollisionLeave2D", 1);
@@ -392,32 +176,22 @@ class ScriptClass : SharpClass
 	{
 		exception = null;
 
-		// TODO: use method thunk
-		if (_onCollisionEnter2DMethod != null)
+		if (_onCollisionEnter2D != null)
 		{
-#unwarn
-			void*[1] args = .(&collision);
-
-			Invoke(_onCollisionEnter2DMethod, instance, (.)&args);
+			MonoObject* monoObject = ScriptEngine.Classes.Collision2D.BoxValue(collision);
+			_onCollisionEnter2D(instance, monoObject, &exception);
 		}
-		// if (_onCollisionEnter2D != null)
-		//	_onCollisionEnter2D(instance, collision, &exception);
 	}
 	
 	public void OnCollisionLeave2D(MonoObject* instance, Collision2D collision, out MonoException* exception)
 	{
 		exception = null;
-
-		// TODO: use method thunk
-		if (_onCollisionLeave2DMethod != null)
+		
+		if (_onCollisionEnter2D != null)
 		{
-#unwarn
-			void*[1] args = .(&collision);
-
-			Invoke(_onCollisionLeave2DMethod, instance, (.)&args);
+			MonoObject* monoObject = ScriptEngine.Classes.Collision2D.BoxValue(collision);
+			_onCollisionLeave2D(instance, monoObject, &exception);
 		}
-		// if (_onCollisionEnter2D != null)
-		//	_onCollisionEnter2D(instance, collision, &exception);
 	}
 
 	public MonoObject* CreateInstance(UUID uuid, out MonoException* exception)
@@ -504,5 +278,15 @@ class ScriptClass : SharpClass
 	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value) where T : struct*
 	{
 		Mono.mono_field_set_value(instance, field, value);
+	}
+	
+	public MonoObject* BoxValue<T>(in T value)
+	{
+		return Mono.mono_value_box(ScriptEngine.[Friend]s_AppDomain, _monoClass, &value);
+	}
+
+	public MonoObject* BoxValue(void* value)
+	{
+		return Mono.mono_value_box(ScriptEngine.[Friend]s_AppDomain, _monoClass, value);
 	}
 }
