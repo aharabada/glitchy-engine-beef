@@ -197,6 +197,32 @@ namespace GlitchyEditor.EditWindows
 				if (Path.OpenFolder(_currentDirectory) case .Err)
 					Log.EngineLogger.Error("Failed to open directory in file browser.");
 			}
+			
+			ImGui.AttachTooltip("Opens the current folder in the systems file browser.");
+
+			if (ImGui.BeginMenu("Copy path"))
+			{
+				if (ImGui.MenuItem("Full path"))
+				{
+					ImGui.SetClipboardText(_currentDirectory);
+				}
+				
+				ImGui.AttachTooltip("Copies the full file path of the current folder.");
+
+				if (ImGui.MenuItem("Asset identifier"))
+				{
+					Result<TreeNode<AssetNode>> assetNode = _manager.AssetHierarchy.GetNodeFromPath(_currentDirectory);
+
+					if (assetNode case .Ok(let treeNode))
+					{
+						ImGui.SetClipboardText(treeNode->Identifier);
+					}
+				}
+
+				ImGui.AttachTooltip("Copies the asset identifier of the current folder.");
+
+				ImGui.EndMenu();
+			}
 
 			ImGui.Separator();
 
@@ -208,6 +234,8 @@ namespace GlitchyEditor.EditWindows
 			{
 				VisualStudioUtility.OpenScriptProject();
 			}
+
+			ImGui.AttachTooltip("Opens the C# Solution of this project.");
 		}
 
 		/// Shows the menu for the given asset creator tree.
@@ -778,6 +806,25 @@ namespace GlitchyEditor.EditWindows
 				{
 					Log.EngineLogger.Error("Failed to show \"Open with...\" dialog.");
 				}
+			}
+			
+			if (ImGui.BeginMenu("Copy path"))
+			{
+				if (ImGui.MenuItem("Full path"))
+				{
+					ImGui.SetClipboardText(fileOrFolder->Path);
+				}
+				
+				ImGui.AttachTooltip("Copies the full file path of this asset.");
+				
+				if (ImGui.MenuItem("Asset identifier"))
+				{
+					ImGui.SetClipboardText(fileOrFolder->Identifier);
+				}
+
+				ImGui.AttachTooltip("Copies the identifier of this asset.");
+
+				ImGui.EndMenu();
 			}
 
 			ImGui.Separator();
