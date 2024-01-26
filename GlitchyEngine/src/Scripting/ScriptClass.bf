@@ -98,8 +98,8 @@ class ScriptClass : SharpClass
 		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
 
-		_onCollisionEnter2DMethod = GetMethod("OnCollisionEnter2D", 1);
-		_onCollisionLeave2DMethod = GetMethod("OnCollisionLeave2D", 1);
+		_onCollisionEnter2D = (.)GetMethodThunk("OnCollisionEnter2D", 1);
+		_onCollisionLeave2D = (.)GetMethodThunk("OnCollisionLeave2D", 1);
 
 		DetermineRunInEditMode();
 	}
