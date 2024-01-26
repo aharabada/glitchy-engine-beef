@@ -431,8 +431,11 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndCombo();
 			}
 
-
-			ImGui.Checkbox("Fixed Rotation", &rigidBodyComponent.FixedRotation);
+			bool isFixedRotation = rigidBodyComponent.FixedRotation;
+			if (ImGui.Checkbox("Fixed Rotation", &isFixedRotation))
+			{
+				rigidBodyComponent.FixedRotation = isFixedRotation;
+			}
 		}
 
 		private static void ShowBoxCollider2DComponentEditor(Entity entity, BoxCollider2DComponent* boxCollider)

@@ -587,7 +587,9 @@ class SceneSerializer
 					Deserialize.Value(reader, "BodyType", out component.BodyType);
 					reader.EntryEnd();
 
-					Deserialize.Value(reader, "FixedRotation", out component.FixedRotation);
+					bool fixedRotation = false;
+					Deserialize.Value(reader, "FixedRotation", out fixedRotation);
+					component.FixedRotation = fixedRotation;
 
 					return .Ok;
 				}));

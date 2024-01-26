@@ -353,7 +353,7 @@ namespace GlitchyEngine.World
 
 		public BodyType BodyType = .Static;
 
-		public bool FixedRotation = false;
+		public bool _fixedRotation = false;
 
 		private int _runtimeBody = 0;
 
@@ -366,6 +366,20 @@ namespace GlitchyEngine.World
 			get => (b2Body*)(void*)_runtimeBody;
 			[Inline]
 			set mut => _runtimeBody = (int)(void*)value;
+		}
+		
+		public bool FixedRotation
+		{
+			get => _fixedRotation;
+			set mut
+			{
+				_fixedRotation = value;
+
+				if (RuntimeBody != null)
+				{
+					Box2D.Body.SetFixedRotation(RuntimeBody, _fixedRotation);
+				}
+			}
 		}
 
 		/*public float LinearDamping

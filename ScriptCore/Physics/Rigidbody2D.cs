@@ -75,7 +75,7 @@ public class Rigidbody2D : Component
     }
     
     /// <summary>
-    /// Gets or sets the angulara velocity of the rigidbody.
+    /// Gets or sets the angular velocity of the rigidbody.
     /// </summary>
     public float AngularVelocity
     {
@@ -86,5 +86,19 @@ public class Rigidbody2D : Component
             return velocity;
         }
         set => ScriptGlue.Rigidbody2D_SetAngularVelocity(_uuid, value);
+    }
+    
+    /// <summary>
+    /// Gets or sets whether the rigidbody can rotate or not.
+    /// </summary>
+    public bool FixedRotation
+    {
+        get
+        {
+            ScriptGlue.Rigidbody2D_IsFixedRotation(_uuid, out bool isFixedRotation);
+
+            return isFixedRotation;
+        }
+        set => ScriptGlue.Rigidbody2D_SetFixedRotation(_uuid, value);
     }
 }

@@ -574,6 +574,20 @@ static class ScriptGlue
 		rigidBody.SetAngularVelocity(velocity);
 	}
 
+	[RegisterCall("ScriptGlue::Rigidbody2D_IsFixedRotation")]
+	static void Rigidbody2D_IsFixedRotation(UUID entityId, out bool isFixedRotation)
+	{
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
+		isFixedRotation = rigidBody.FixedRotation;
+	}
+	
+	[RegisterCall("ScriptGlue::Rigidbody2D_SetFixedRotation")]
+	static void Rigidbody2D_SetFixedRotation(UUID entityId, in bool isFixedRotation)
+	{
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
+		rigidBody.FixedRotation = isFixedRotation;
+	}
+
 #endregion Rigidbody2D
 
 #region Camera

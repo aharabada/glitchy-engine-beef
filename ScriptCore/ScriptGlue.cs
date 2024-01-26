@@ -112,7 +112,13 @@ internal static class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetAngularVelocity(UUID entityId, out float velocity);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_IsFixedRotation(UUID entityId, out bool isFixedRotation);
 
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_SetFixedRotation(UUID entityId, in bool isFixedRotation);
+    
 #endregion RigidBody2D
 
 #region Camera
