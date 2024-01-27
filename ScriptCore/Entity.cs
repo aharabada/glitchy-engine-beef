@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using GlitchyEngine.Physics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace GlitchyEngine;
 
@@ -102,6 +104,19 @@ public class Entity : EngineObject
         return null;
     }
     
+    /// <summary>
+    /// Gets the component with the specified type.
+    /// </summary>
+    /// <typeparam name="T">The type of the component to get.</typeparam>
+    /// <param name="component">If the entity has a <see cref="Component"/> of type <see cref="T"/> then <see cref="Component"/> contains a reference to this component; otherwise it will contain <see langword="null"/> after the method returned.</param>
+    /// <returns><see langword="true"/>, if a component was retrieved; otherwise <see langword="false"/>.</returns>
+    public bool TryGetComponent<T>([MaybeNullWhen(false)] out T component) where T : Component, new()
+    {
+        component = GetComponent<T>();
+        
+        return component != null;
+    }
+
     /// <summary>
     /// Gets the component with the given type.
     /// </summary>
