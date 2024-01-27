@@ -101,4 +101,34 @@ public class Rigidbody2D : Component
         }
         set => ScriptGlue.Rigidbody2D_SetFixedRotation(_uuid, value);
     }
+
+    /// <summary>
+    /// Gets or sets the body type of the rigidbody.
+    /// </summary>
+    public BodyType BodyType
+    {
+        get
+        {
+            ScriptGlue.Rigidbody2D_GetBodyType(_uuid, out BodyType bodyType);
+
+            return bodyType;
+        }
+        set => ScriptGlue.Rigidbody2D_SetBodyType(_uuid, value);
+    }
+    
+
+    /// <summary>
+    /// Gets or sets the gravity scale of this rigidbody.
+    /// E.g. a value of 0.0 means, that the rigidbody is not affected by gravity and a value of -1.0 means, that it gravity is inverted.
+    /// </summary>
+    public float GravityScale
+    {
+        get
+        {
+            ScriptGlue.Rigidbody2D_GetGravityScale(_uuid, out float gravityScale);
+
+            return gravityScale;
+        }
+        set => ScriptGlue.Rigidbody2D_SetGravityScale(_uuid, value);
+    }
 }

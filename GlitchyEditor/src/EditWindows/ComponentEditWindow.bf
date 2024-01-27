@@ -436,6 +436,12 @@ namespace GlitchyEditor.EditWindows
 			{
 				rigidBodyComponent.FixedRotation = isFixedRotation;
 			}
+
+			float gravityScale = rigidBodyComponent.GravityScale;
+			if (ImGui.DragFloat("Gravity Scale", &gravityScale))
+			{
+				rigidBodyComponent.GravityScale = gravityScale;
+			}
 		}
 
 		private static void ShowBoxCollider2DComponentEditor(Entity entity, BoxCollider2DComponent* boxCollider)

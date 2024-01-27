@@ -186,6 +186,8 @@ class SceneSerializer
 				Serialize.Value(writer, "BodyType", component.BodyType);
 
 				Serialize.Value(writer, "FixedRotation", component.FixedRotation);
+
+				Serialize.Value(writer, "GravityScale", component.GravityScale);
 			});
 
 			SerializeComponent<BoxCollider2DComponent>(writer, entity, "BoxCollider2D", scope (component) =>
@@ -584,12 +586,20 @@ class SceneSerializer
 			case "Rigidbody2D":
 				Try!(DeserializeComponent<Rigidbody2DComponent>(reader, entity, scope (component) =>
 				{
-					Deserialize.Value(reader, "BodyType", out component.BodyType);
+					Rigidbody2DComponent.BodyType bodyType = .Static;
+					Deserialize.Value(reader, "BodyType", out bodyType);
+					component.BodyType = bodyType;
+
 					reader.EntryEnd();
 
 					bool fixedRotation = false;
 					Deserialize.Value(reader, "FixedRotation", out fixedRotation);
 					component.FixedRotation = fixedRotation;
+
+					reader.EntryEnd();
+
+					Deserialize.Value<float>(reader, "GravityScale", let gravityScale);
+					component.GravityScale = gravityScale;
 
 					return .Ok;
 				}));

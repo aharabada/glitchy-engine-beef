@@ -88,12 +88,12 @@ static class ScriptGlue
 		RegisterComponent<TransformComponent>("GlitchyEngine.Core.Transform");
 		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Physics.Rigidbody2D");
 		RegisterComponent<CameraComponent>("GlitchyEngine.Core.Camera");
+		RegisterComponent<CircleRendererComponent>("GlitchyEngine.Graphics.CircleRenderer");
 	}
 
 	[RegisterMethod]
 	private static void RegisterCalls()
 	{
-		// Generated at CompTime
 	}
 
 	private static void RegisterComponent<T>(StringView cSharpClassName = "") where T : struct, new
@@ -498,6 +498,105 @@ static class ScriptGlue
 		{
 			rigidbody2D.SetPosition(translation.XY);
 		}
+		// TODO: we need to handle repositioning of colliders that are children of the entity with rigidbody...
+	}
+	
+	[RegisterCall("ScriptGlue::Transform_GetRotation")]
+	static void Transform_GetRotation(UUID entityId, out Quaternion rotation)
+	{
+		Entity entity = GetEntitySafe(entityId);
+
+		rotation = entity.Transform.Rotation;
+	}
+
+	[RegisterCall("ScriptGlue::Transform_SetRotation")]
+	static void Transform_SetRotation(UUID entityId, in Quaternion rotation)
+	{
+		Entity entity = GetEntitySafe(entityId);
+		
+		entity.Transform.Rotation = rotation;
+
+		if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+		{
+			rigidbody2D.SetAngle(entity.Transform.RotationEuler.Z);
+		}
+		// TODO: When rotating around the X- or Y-axis we need to deform and reposition the colliders accordingly...
+	}
+	
+	[RegisterCall("ScriptGlue::Transform_GetRotationEuler")]
+	static void Transform_GetRotationEuler(UUID entityId, out float3 rotationEuler)
+	{
+		Entity entity = GetEntitySafe(entityId);
+
+		rotationEuler = entity.Transform.RotationEuler;
+	}
+
+	[RegisterCall("ScriptGlue::Transform_SetRotationEuler")]
+	static void Transform_SetRotationEuler(UUID entityId, in float3 rotationEuler)
+	{
+		Entity entity = GetEntitySafe(entityId);
+		
+		entity.Transform.RotationEuler = rotationEuler;
+
+		if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+		{
+			rigidbody2D.SetAngle(rotationEuler.Z);
+		}
+	}
+
+	[Packed]
+	struct AxisAngle
+	{
+		public float3 Axis;
+		public float Angle;
+
+		public this((float3 Axis, float Angle) axisAngle)
+		{
+			Axis = axisAngle.Axis;
+			Angle = axisAngle.Angle;
+		}
+	}
+
+	[RegisterCall("ScriptGlue::Transform_GetRotationAxisAngle")]
+	static void Transform_GetRotationAxisAngle(UUID entityId, out AxisAngle rotationAxisAngle)
+	{
+		Entity entity = GetEntitySafe(entityId);
+
+		rotationAxisAngle = AxisAngle(entity.Transform.RotationAxisAngle);
+	}
+
+	[RegisterCall("ScriptGlue::Transform_SetRotationAxisAngle")]
+	static void Transform_SetRotationAxisAngle(UUID entityId, AxisAngle rotationAxisAngle)
+	{
+		Entity entity = GetEntitySafe(entityId);
+		
+		entity.Transform.RotationAxisAngle = (rotationAxisAngle.Axis, rotationAxisAngle.Angle);
+
+		if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+		{
+			rigidbody2D.SetAngle(entity.Transform.RotationEuler.Z);
+		}
+	}
+
+	[RegisterCall("ScriptGlue::Transform_GetScale")]
+	static void Transform_GetScale(UUID entityId, out float3 scale)
+	{
+		Entity entity = GetEntitySafe(entityId);
+
+		scale = entity.Transform.Scale;
+	}
+
+	[RegisterCall("ScriptGlue::Transform_SetScale")]
+	static void Transform_SetScale(UUID entityId, float3 scale)
+	{
+		Entity entity = GetEntitySafe(entityId);
+		
+		entity.Transform.Scale = scale;
+
+		if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+		{
+			// TODO: we need to scale and reposition the colliders, this is a mess...
+		}
 	}
 
 #endregion TransformComponent
@@ -574,6 +673,20 @@ static class ScriptGlue
 		rigidBody.SetAngularVelocity(velocity);
 	}
 
+	[RegisterCall("ScriptGlue::Rigidbody2D_GetBodyType")]
+	static void Rigidbody2D_GetBodyType(UUID entityId, out Rigidbody2DComponent.BodyType bodyType)
+	{
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
+		bodyType = rigidBody.BodyType;
+	}
+	
+	[RegisterCall("ScriptGlue::Rigidbody2D_SetBodyType")]
+	static void Rigidbody2D_SetBodyType(UUID entityId, in Rigidbody2DComponent.BodyType bodyType)
+	{
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
+		rigidBody.BodyType = bodyType;
+	}
+
 	[RegisterCall("ScriptGlue::Rigidbody2D_IsFixedRotation")]
 	static void Rigidbody2D_IsFixedRotation(UUID entityId, out bool isFixedRotation)
 	{
@@ -586,6 +699,20 @@ static class ScriptGlue
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rigidBody.FixedRotation = isFixedRotation;
+	}
+
+	[RegisterCall("ScriptGlue::Rigidbody2D_GetGravityScale")]
+	static void Rigidbody2D_GetGravityScale(UUID entityId, out float gravityScale)
+	{
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
+		gravityScale = rigidBody.GravityScale;
+	}
+	
+	[RegisterCall("ScriptGlue::Rigidbody2D_SetGravityScale")]
+	static void Rigidbody2D_SetGravityScale(UUID entityId, in float gravityScale)
+	{
+		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
+		rigidBody.GravityScale = gravityScale;
 	}
 
 #endregion Rigidbody2D
@@ -741,6 +868,52 @@ static class ScriptGlue
 	}
 
 #endregion Physics2D
+
+#region CircleRenderer
+	
+	[RegisterCall("ScriptGlue::CircleRenderer_GetColor")]
+	static void CircleRenderer_GetColor(UUID entityId, out ColorRGBA color)
+	{
+		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
+		color = circleRenderer.Color;
+	}
+
+	[RegisterCall("ScriptGlue::CircleRenderer_SetColor")]
+	static void CircleRenderer_SetColor(UUID entityId, ColorRGBA color)
+	{
+		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
+		circleRenderer.Color = color;
+	}
+	
+	[RegisterCall("ScriptGlue::CircleRenderer_GetUvTransform")]
+	static void CircleRenderer_GetUvTransform(UUID entityId, out float4 uvTransform)
+	{
+		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
+		uvTransform = circleRenderer.UvTransform;
+	}
+
+	[RegisterCall("ScriptGlue::CircleRenderer_SetUvTransform")]
+	static void CircleRenderer_SetUvTransform(UUID entityId, float4 uvTransform)
+	{
+		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
+		circleRenderer.UvTransform = uvTransform;
+	}
+	
+	[RegisterCall("ScriptGlue::CircleRenderer_GetInnerRadius")]
+	static void CircleRenderer_GetInnerRadius(UUID entityId, out float innerRadius)
+	{
+		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
+		innerRadius = circleRenderer.InnerRadius;
+	}
+
+	[RegisterCall("ScriptGlue::CircleRenderer_GetInnerRadius")]
+	static void CircleRenderer_GetInnerRadius(UUID entityId, float innerRadius)
+	{
+		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
+		circleRenderer.InnerRadius = innerRadius;
+	}
+
+#endregion
 
 #region Math
 

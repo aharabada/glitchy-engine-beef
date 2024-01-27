@@ -349,11 +349,31 @@ namespace GlitchyEngine.World
 
 	struct Rigidbody2DComponent : IDisposableComponent
 	{
-		public enum BodyType { Static = 0, Dynamic = 1, Kinematic = 2 }
+		public enum BodyType
+		{
+			case Static = 0; case Dynamic = 1; case Kinematic = 2;
 
-		public BodyType BodyType = .Static;
+			public b2BodyType GetBox2DBodyType()
+			{
+				switch (this)
+				{
+				case .Static:
+					return .b2_staticBody;
+				case .Dynamic:
+					return .b2_dynamicBody;
+				case .Kinematic:
+					return .b2_kinematicBody;
+				default:
+					Log.EngineLogger.AssertDebug(false, "Unknown body type");
+					return .b2_staticBody;
+				}
+			}
+		}
 
-		public bool _fixedRotation = false;
+		private BodyType _bodyType = .Static;
+
+		private bool _fixedRotation = false;
+		private float _gravityScale = 1.0f;
 
 		private int _runtimeBody = 0;
 
@@ -367,6 +387,20 @@ namespace GlitchyEngine.World
 			[Inline]
 			set mut => _runtimeBody = (int)(void*)value;
 		}
+
+		public BodyType BodyType
+		{
+			get => _bodyType;
+			set mut
+			{
+				_bodyType = value;
+
+				if (RuntimeBody != null)
+				{
+					Box2D.Body.SetBodyType(RuntimeBody, _bodyType.GetBox2DBodyType());
+				}
+			}
+		}
 		
 		public bool FixedRotation
 		{
@@ -378,6 +412,20 @@ namespace GlitchyEngine.World
 				if (RuntimeBody != null)
 				{
 					Box2D.Body.SetFixedRotation(RuntimeBody, _fixedRotation);
+				}
+			}
+		}
+
+		public float GravityScale
+		{
+			get => _gravityScale;
+			set mut
+			{
+				_gravityScale = value;
+
+				if (RuntimeBody != null)
+				{
+					Box2D.Body.SetGravityScale(RuntimeBody, _gravityScale);
 				}
 			}
 		}

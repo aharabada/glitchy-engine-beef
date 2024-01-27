@@ -1,7 +1,9 @@
 using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
+using GlitchyEngine.Physics;
 using GlitchyEngine.Serialization;
 
 namespace GlitchyEngine;
@@ -78,6 +80,30 @@ internal static class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_SetTranslation(UUID entityId, in float3 translation);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_GetRotation(UUID entityId, out Quaternion rotation);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_SetRotation(UUID entityId, in Quaternion rotation);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_GetRotationEuler(UUID entityId, out float3 rotationEuler);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_SetRotationEuler(UUID entityId, in float3 rotationEuler);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_GetRotationAxisAngle(UUID entityId, out RotationAxisAngle translation);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_SetRotationAxisAngle(UUID entityId, RotationAxisAngle translation);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_GetScale(UUID entityId, out float3 scale);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_SetScale(UUID entityId, in float3 scale);
 
 #endregion TransformComponent
 
@@ -114,10 +140,22 @@ internal static class ScriptGlue
     internal static extern void Rigidbody2D_GetAngularVelocity(UUID entityId, out float velocity);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_GetBodyType(UUID entityId, out BodyType bodyType);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_SetBodyType(UUID entityId, in BodyType bodyType);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_IsFixedRotation(UUID entityId, out bool isFixedRotation);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetFixedRotation(UUID entityId, in bool isFixedRotation);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_GetGravityScale(UUID entityId, out float gravityScale);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Rigidbody2D_SetGravityScale(UUID entityId, in float gravityScale);
     
 #endregion RigidBody2D
 
@@ -181,6 +219,28 @@ internal static class ScriptGlue
     internal static extern void Physics2D_SetGravity(in float2 gravity);
 
 #endregion Physics2D
+
+#region CircleRenderer
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void CircleRenderer_GetColor(UUID entityId, out ColorRGBA color);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void CircleRenderer_SetColor(UUID entityId, ColorRGBA color);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void CircleRenderer_GetUvTransform(UUID entityId, out float4 uvTransform);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void CircleRenderer_SetUvTransform(UUID entityId, float4 uvTransform);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void CircleRenderer_GetInnerRadius(UUID entityId, out float innerRadius);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void CircleRenderer_SetInnerRadius(UUID entityId, float innerRadius);
+
+#endregion
 
 #region Math
     

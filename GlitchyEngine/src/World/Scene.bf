@@ -204,22 +204,6 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		static b2BodyType GetBox2DBodyType(Rigidbody2DComponent.BodyType bodyType)
-		{
-			switch (bodyType)
-			{
-			case .Static:
-				return .b2_staticBody;
-			case .Dynamic:
-				return .b2_dynamicBody;
-			case .Kinematic:
-				return .b2_kinematicBody;
-			default:
-				Log.EngineLogger.AssertDebug(false, "Unknown body type");
-				return .b2_staticBody;
-			}
-		}
-
 		/**
 		 * Starts the scene.
 		 * @param startRuntime If true, the script runtime will be started.
@@ -477,7 +461,7 @@ namespace GlitchyEngine.World
 			var transform = entity.Transform;
 
 			b2BodyDef def = .();
-			def.type = GetBox2DBodyType(rigidBody.BodyType);
+			def.type = rigidBody.BodyType.GetBox2DBodyType();
 			def.userData = (void*)(uint)entity.Handle;
 
 			// TODO: check how stable this is
@@ -488,7 +472,9 @@ namespace GlitchyEngine.World
 			def.angle = worldRotationEuler.Z;
 
 			b2Body* body = Box2D.World.CreateBody(_physicsWorld2D, &def);
+			// BodyType set above
 			Box2D.Body.SetFixedRotation(body, rigidBody.FixedRotation);
+			Box2D.Body.SetGravityScale(body, rigidBody.GravityScale);
 
 			rigidBody.RuntimeBody = body;
 		}
