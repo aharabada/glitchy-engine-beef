@@ -66,4 +66,9 @@ public static class ImGuiExtension
         
         ImGui.EndTooltip();
     }
+
+    public static void ListElementGrabber()
+    {
+        ScriptGlue.ImGuiExtension_ListElementGrabber();
+    }
 }

@@ -295,4 +295,11 @@ internal static class ScriptGlue
     public static extern void Serialization_GetObjectTypeName(IntPtr internalContext, out string fullTypeName);
 
     #endregion
+
+#region ImGui
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void ImGuiExtension_ListElementGrabber();
+
+#endregion
 }

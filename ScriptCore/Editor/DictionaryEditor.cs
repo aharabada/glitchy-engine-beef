@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace GlitchyEngine.Editor;
@@ -17,24 +18,34 @@ public class DictionaryEditor
 
     public static object? ShowEditor(object? reference, Type fieldType, string fieldName)
     {
-        object newDictionary = EntityEditor.DidNotChange;
+        object? newDictionary = EntityEditor.DidNotChange;
         IDictionary? dictionary = reference as IDictionary;
         
         Type keyType = fieldType.GetGenericArguments()[0];
         Type valueType = fieldType.GetGenericArguments()[1];
+        
+        
+        ImGui.BeginDisabled(dictionary == null);
+        
+        // Open dictionary if we create a new value inside it
+        if (ReferenceEquals(_dictionaryForNewValue, dictionary))
+            ImGui.SetNextItemOpen(true);
 
-        // The buttons should always be visible -> save whether the node is open
-        // If we have no instance, the user shouldn't be able to open the list
-        bool listOpen = ImGui.TreeNodeEx(fieldName,  ImGuiTreeNodeFlags.AllowOverlap | ImGuiTreeNodeFlags.SpanFullWidth |
-            (dictionary == null ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen : ImGuiTreeNodeFlags.Framed));
-
+        // Close dictionary if it is null
         if (dictionary == null)
-            listOpen = false;
+            ImGui.SetNextItemOpen(false);
 
+        
+        bool listOpen = ImGui.TreeNodeEx(fieldName, ImGuiTreeNodeFlags.AllowOverlap | ImGuiTreeNodeFlags.SpanAllColumns | ImGuiTreeNodeFlags.Framed);
+        
+        ImGui.EndDisabled();
+        
         var addButtonWidth = ImGui.CalcTextSize("+").X + 2 * ImGui.GetStyle().FramePadding.X;
-        var removeButtonWidth = ImGui.CalcTextSize("-").X + 2 * ImGui.GetStyle().FramePadding.X;
+        var removeButtonWidth = ImGui.CalcTextSize("x").X + 2 * ImGui.GetStyle().FramePadding.X;
 
-        ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - addButtonWidth - ImGui.GetStyle().FramePadding.X);
+        ImGui.TableSetColumnIndex(1);
+
+        ImGui.SameLine(ImGui.GetContentRegionAvail().X - addButtonWidth - removeButtonWidth - ImGui.GetStyle().FramePadding.X * 2);
 
         if (ImGui.SmallButton("+"))
         {
@@ -53,6 +64,23 @@ public class DictionaryEditor
 
         ImGuiExtension.AttachTooltip("Add a new Entry to the dictionary.");
         
+        ImGui.SameLine(ImGui.GetContentRegionAvail().X - removeButtonWidth - ImGui.GetStyle().FramePadding.X);
+        
+        ImGui.BeginDisabled(dictionary == null);
+
+        if (ImGui.SmallButton("x"))
+        {
+            if (dictionary != null)
+            {
+                newDictionary = null;
+            }
+        }
+
+        ImGuiExtension.AttachTooltip("Deletes the dictionary.");
+
+        ImGui.EndDisabled();
+
+        
         if (listOpen)
         {
             Debug.Assert(dictionary != null, "Opened tree node even though it should have been a leaf!");
@@ -67,6 +95,8 @@ public class DictionaryEditor
                 id++;
                 ImGui.PushID(id);
 
+                EntityEditor.BeginNewRow();
+
                 if (entry.Key == _keyLastCreated)
                 {
                     // The current key is the one that was last created. Open the tree node.
@@ -74,9 +104,11 @@ public class DictionaryEditor
                     _keyLastCreated = null;
                 }
 
-                bool isEntryOpen = ImGui.TreeNode("");
+                bool isEntryOpen = ImGui.TreeNodeEx($"Entry {id}", ImGuiTreeNodeFlags.SpanAllColumns | ImGuiTreeNodeFlags.AllowOverlap);
 
-                ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
+                ImGui.TableSetColumnIndex(1);
+
+                ImGui.SameLine(ImGui.GetContentRegionAvail().X - removeButtonWidth);
 
                 if (ImGui.SmallButton("-"))
                 {
@@ -87,6 +119,8 @@ public class DictionaryEditor
 
                 if (isEntryOpen)
                 {
+                    //ImGui.SameLine();
+
                     object? newKey = EntityEditor.ShowFieldEditor(entry.Key, entry.Key?.GetType() ?? keyType, "Key");
 
                     if (newKey != EntityEditor.DidNotChange && newKey != null)
@@ -108,16 +142,20 @@ public class DictionaryEditor
 
                 ImGui.PopID();
             }
-
-
+            
             if (ReferenceEquals(_dictionaryForNewValue, dictionary))
             {
+                EntityEditor.BeginNewRow();
+
                 ImGui.PushID("NewEntry");
 
                 ImGui.SetNextItemOpen(true);
-                bool isEntryOpen = ImGui.TreeNode("");
+                
+                bool isEntryOpen = ImGui.TreeNodeEx($"New Entry", ImGuiTreeNodeFlags.SpanAllColumns | ImGuiTreeNodeFlags.DefaultOpen | ImGuiTreeNodeFlags.AllowOverlap);
 
-                ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
+                ImGui.TableSetColumnIndex(1);
+
+                ImGui.SameLine(ImGui.GetContentRegionAvail().X - removeButtonWidth);
 
                 if (ImGui.SmallButton("-"))
                 {

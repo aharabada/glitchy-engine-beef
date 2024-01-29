@@ -255,6 +255,91 @@ namespace ImGui
 	
 			return changed;
 		}
+
+		/// Control to edit a vector 2 with drag functionality and reset buttons
+		public static bool Float2Editor(StringView label, ref float2 value, float2 resetValues = .Zero, float dragSpeed = 0.1f, float2 minValue = .Zero, float2 maxValue = .Zero, bool2 componentEnabled = true, StringView[2] format = .())
+		{
+			return VectorEditor<2>(label, ref *(float[2]*)&value, (float[2])resetValues, dragSpeed, (float[2])minValue, (float[2])maxValue, (bool[2])componentEnabled, format);
+		}
+
+		/// Control to edit a vector 3 with drag functionality and reset buttons
+		public static bool Float3Editor(StringView label, ref float3 value, float3 resetValues = .Zero, float dragSpeed = 0.1f, float3 minValue = .Zero, float3 maxValue = .Zero, bool3 componentEnabled = true, StringView[3] format = .())
+		{
+			return VectorEditor<3>(label, ref *(float[3]*)&value, (float[3])resetValues, dragSpeed, (float[3])minValue, (float[3])maxValue, (bool[3])componentEnabled, format);
+		}
+
+		/// Control to edit a vector 4 with drag functionality and reset buttons
+		public static bool Float4Editor(StringView label, ref float4 value, float4 resetValues = .Zero, float dragSpeed = 0.1f, float4 minValue = .Zero, float4 maxValue = .Zero, bool4 componentEnabled = true, StringView[4] format = .())
+		{
+			return VectorEditor<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, (float[4])minValue, (float[4])maxValue, (bool[4])componentEnabled, format);
+		}
+
+		public static bool VectorEditor<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .(), bool[NumComponents] componentEnabled = .(), StringView[NumComponents] numberFormat = .()) where NumComponents : const int32
+		{
+			const String[?] componentNames = .("X", "Y", "Z", "W");
+			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
+
+			bool changed = false;
+
+			PushID(label);
+			defer PopID();
+
+			PushMultiItemsWidths(NumComponents, CalcItemWidth());
+			
+			float lineHeight = GetFont().FontSize + GetStyle().FramePadding.y * 2.0f;
+			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
+
+			componentLoop: for (int i < NumComponents)
+			{
+				if (i > 0)
+				{
+					SameLine();
+				}
+
+				PushStyleColor(.Button, VectorButtonColors[i].Default.ImGuiU32);
+				PushStyleColor(.ButtonHovered, VectorButtonColors[i].Hovered.ImGuiU32);
+				PushStyleColor(.ButtonActive, VectorButtonColors[i].Active.ImGuiU32);
+
+				ImGui.BeginDisabled(!componentEnabled[i]);
+
+				if (Button(componentNames[i], buttonSize))
+				{
+					value[i] = resetValues[i];
+					changed = true;
+				}
+
+				PushStyleVar(.ItemSpacing, Vec2.Zero);
+
+				SameLine();
+
+				char8* format = "%.3f";
+				
+				if (!numberFormat[i].IsWhiteSpace)
+				{
+					// Look if we have a format for the specific index
+					format = numberFormat[i].ToScopeCStr!:componentLoop();
+				}
+				else if (!numberFormat[0].IsWhiteSpace)
+				{
+					// Try to take the first number format
+					format = numberFormat[0].ToScopeCStr!:componentLoop();
+				}
+
+				if (DragFloat(componentIds[i], &value[i], dragSpeed, minValue[i], maxValue[i], format))
+				{
+					changed = true;
+				}
+				
+				PopStyleVar();
+
+				ImGui.EndDisabled();
+				
+				PopItemWidth();
+				PopStyleColor(3);
+			}
+
+			return changed;
+		}
 	
 		/// Draws a rectangle with the given color.
 		public static void DrawRect(Vec2 min, Vec2 max, Color color)
@@ -363,6 +448,47 @@ namespace ImGui
 
 #unwarn		
 			return SliderScalar(label, dataType, &value, &minValue, &maxValue, format, sliderFlags);
+		}
+
+		public static void ListElementGrabber()
+		{
+			Window* window = GetCurrentWindow();
+			if (window.SkipItems)
+			    return;
+
+			Context* g = GetCurrentContext();
+			ref Style style = ref g.Style;
+
+			Vec2 cursorPos = ImGui.GetCursorScreenPos();
+
+			float line_height = max(min(window.DC.CurrLineSize.y, g.FontSize + style.FramePadding.y * 2), g.FontSize);
+			Rect bb = .(cursorPos, Vec2(cursorPos.x + g.FontSize, cursorPos.y + line_height));
+			ItemSize(bb);
+			if (!ItemAdd(bb, 0))
+			{
+			    SameLine(0, style.FramePadding.x * 2);
+			    return;
+			}
+			
+			// Render and stay on same line
+			U32 text_col = GetColorU32(Col.Text);
+
+			float bar_height = line_height / 4.0f;
+
+			Rect topBb = .(cursorPos, (Vec2)((float2)cursorPos + float2(g.FontSize, bar_height)));
+			RenderFrame(topBb.Min, topBb.Max, text_col, true, 4);
+			
+			Rect middleBb = topBb;
+			middleBb.Min.y = cursorPos.y + line_height / 2.0f - bar_height / 2.0f;
+			middleBb.Max.y = middleBb.Min.y + bar_height;
+			RenderFrame(middleBb.Min, middleBb.Max, text_col, true, 4);
+
+			Rect bottomBb = middleBb;
+			bottomBb.Max.y = cursorPos.y + line_height;
+			bottomBb.Min.y = bottomBb.Max.y - bar_height;
+			RenderFrame(bottomBb.Min, bottomBb.Max, text_col, true, 4);
+
+			SameLine(0, style.FramePadding.x * 2.0f);
 		}
 	}
 }

@@ -1065,6 +1065,16 @@ static class ScriptGlue
 
 #endregion
 
+#region ImGui Extension
+	
+	[RegisterCall("ScriptGlue::ImGuiExtension_ListElementGrabber")]
+	static void ImGuiExtension_ListElementGrabber()
+	{
+		ImGui.ImGui.ListElementGrabber();
+	}
+
+#endregion
+
 	private static void RegisterCall<T>(String name, T method) where T : var
 	{
 		Mono.mono_add_internal_call(scope $"GlitchyEngine.{name}", (void*)method);

@@ -1,17 +1,20 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using GlitchyEngine.Math;
 using ImGuiNET;
+using Component = GlitchyEngine.Core.Component;
 
 namespace GlitchyEngine.Editor;
 
@@ -51,6 +54,45 @@ internal class EntityEditor
         }
     }
     
+    public static void BeginNewRow()
+    {
+        if (!StartNewProperty_NewRow)
+        {
+            StartNewProperty_NewRow = true;
+            return;
+        }
+
+        ImGui.TableNextRow();
+        ImGui.TableSetColumnIndex(0);
+    }
+
+    public static void EndTable()
+    {
+        ImGui.EndTable();
+
+        ImGui.GetItemID();
+    }
+    
+    public static bool StartNewProperty_NewRow = true;
+
+    /// <summary>
+    /// Starts a new property by creating a new table row, writing the name in the first column and entering the second column.
+    /// </summary>
+    /// <param name="propertyName">The label that will be show in the label column.</param>
+    /// <returns>A string containing the propertyName as ImGui id</returns>
+    private static string StartNewProperty(string propertyName)
+    {
+        //BeginNewRow();
+
+        ImGui.TextUnformatted(propertyName);
+
+        ImGuiExtension.AttachTooltip(propertyName);
+
+        ImGui.TableSetColumnIndex(1);
+
+        return $"##{propertyName}";
+    }
+
     private static bool TryShowCustomEditor(object? reference, Type fieldType, string fieldName, out object? editedValue)
     {
         editedValue = DidNotChange;
@@ -124,8 +166,10 @@ internal class EntityEditor
         Encoding.UTF8.GetBytes(stringValue, 0, stringValue.Length, bytes, 0);
 
         ImGui.PushID("Decimal");
+        
+        string fieldId = StartNewProperty(fieldName);
 
-        if (ImGui.InputText(fieldName, bytes, (uint)bytes.Length, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsDecimal))
+        if (ImGui.InputText(fieldId, bytes, (uint)bytes.Length, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsDecimal))
         {
             string text = Encoding.UTF8.GetString(bytes);
 
@@ -142,6 +186,8 @@ internal class EntityEditor
 
     private static object? ShowPrimitiveEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
+        string fieldId = StartNewProperty(fieldName);
+
         object newValue = DidNotChange;
 
         unsafe void DragScalar<T>(ImGuiDataType dataType) where T : unmanaged
@@ -200,14 +246,14 @@ internal class EntityEditor
 
             if (range?.Slider == true)
             {
-                if (ImGui.SliderScalar(fieldName, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max)))
+                if (ImGui.SliderScalar(fieldId, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max)))
                 {
                     newValue = value;
                 }
             }
             else
             {
-                if (ImGui.DragScalar(fieldName, dataType, (IntPtr)(&value), dragSpeed, (IntPtr)(&min), (IntPtr)(&max)))
+                if (ImGui.DragScalar(fieldId, dataType, (IntPtr)(&value), dragSpeed, (IntPtr)(&min), (IntPtr)(&max)))
                 {
                     newValue = value;
                 }
@@ -219,7 +265,7 @@ internal class EntityEditor
             if (fieldType == typeof(bool))
             {
                 bool value = (bool)reference;
-                if (ImGui.Checkbox(fieldName, ref value))
+                if (ImGui.Checkbox(fieldId, ref value))
                     newValue = value;
             }
             else if (fieldType == typeof(char))
@@ -273,7 +319,7 @@ internal class EntityEditor
                     // Place string delimiter after encoded UTF8 sequence.
                     buffer[encodedBytes] = (byte)'\0';
 
-                    if (ImGui.InputText(fieldName, (IntPtr)buffer, 8))
+                    if (ImGui.InputText(fieldId, (IntPtr)buffer, 8))
                     {
                         if (buffer[0] == '\\' && buffer[1] != '\0')
                         {
@@ -334,9 +380,10 @@ internal class EntityEditor
 
     private static object ShowEnumEditor(object? reference, Type fieldType, string fieldName)
     {
-        object newValue = DidNotChange;
+        string fieldId = StartNewProperty(fieldName);
 
-        if (ImGui.BeginCombo(fieldName, reference?.ToString()))
+        object newValue = DidNotChange;
+        if (ImGui.BeginCombo(fieldId, reference?.ToString()))
         {
             foreach (object enumValue in Enum.GetValues(fieldType))
             {
@@ -358,8 +405,10 @@ internal class EntityEditor
         
         ImGui.BeginDisabled(readonlyAttribute != null);
 
-        object? newValue;
+        object? newValue = DidNotChange;
         
+        BeginNewRow();
+
         if (TryShowCustomEditor(reference, fieldType, fieldName, out newValue))
         {
 
@@ -372,7 +421,6 @@ internal class EntityEditor
             }
             else
             {
-                // TODO: Try to use a custom editor
                 ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{fieldName}: Type {fieldType} is not implemented.");
             }
         }
@@ -396,12 +444,12 @@ internal class EntityEditor
             }
             else if (fieldType == typeof(bool2))
             {
+                // TODO: The bool vector editor should not be here...
+
+                string fieldId = StartNewProperty(fieldName);
+
                 bool2 value = (bool2)reference!;
-                    
-                ImGui.TextUnformatted(fieldName);
-
-                ImGui.SameLine();
-
+                
                 if (ImGui.Checkbox($"##{fieldName}X", ref value.X))
                     newValue = value;
                     
@@ -412,23 +460,7 @@ internal class EntityEditor
             }
             else
             {
-                ImGui.EndDisabled();
-
-                // Struct
-                if (ImGui.TreeNode(fieldName))
-                {
-                    ImGui.BeginDisabled(readonlyAttribute != null);
-
-                    ShowEditor(fieldType, reference);
-                
-                    ImGui.TreePop();
-
-                    newValue = reference;
-                }
-                else
-                {
-                    ImGui.BeginDisabled(readonlyAttribute != null);
-                }
+                newValue = ShowObjectEditor(reference, fieldType, fieldName, attributes);
             }
         }
         else if (fieldType.IsSubclassOf(typeof(Entity)) || fieldType == typeof(Entity))
@@ -445,53 +477,74 @@ internal class EntityEditor
         }
         else
         {
-            ImGui.EndDisabled();
-
-            if (ImGui.TreeNode(fieldName))
-            {
-                ImGui.BeginDisabled(readonlyAttribute != null);
-
-                if (reference == null)
-                {
-                    ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - ImGui.CalcTextSize("Create").X - 2 * ImGui.GetStyle().FramePadding.X);
-
-                    if (ImGui.BeginCombo("Create", "Create", ImGuiComboFlags.HeightSmall | ImGuiComboFlags.NoArrowButton))
-                    {
-                        foreach (Type t in TypeExtension.FindDerivedTypes(fieldType))
-                        {
-                            if (ImGui.Selectable(t.Name))
-                            {
-                                newValue = ActivatorExtension.CreateInstanceSafe(t);
-                            }
-                        }
-
-                        ImGui.EndCombo();
-                    }
-                }
-                else
-                {
-                    ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - ImGui.CalcTextSize("Remove").X - 2 * ImGui.GetStyle().FramePadding.X);
-
-                    if (ImGui.SmallButton("Remove"))
-                    {
-                        newValue = null;
-                    }
-                }
-
-                if (reference == null)
-                    ImGui.Text("(NULL)");
-                else
-                    ShowEditor(reference.GetType(), reference);
-
-                ImGui.TreePop();
-            }
-            else
-            {
-                ImGui.BeginDisabled(readonlyAttribute != null);
-            }
+            newValue = ShowObjectEditor(reference, fieldType, fieldName, attributes);
         }
 
         ImGui.EndDisabled();
+
+        return newValue;
+    }
+
+    private static object? ShowObjectEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes)
+    {
+        object? newValue = DidNotChange;
+        
+        //ReadonlyAttribute? readonlyAttribute = GetAttribute<ReadonlyAttribute>(attributes);
+        
+        // TODO: Disabling stuff
+        //ImGui.EndDisabled();
+
+        ImGui.BeginDisabled(reference == null);
+        
+        if (reference == null)
+            ImGui.SetNextItemOpen(false);
+
+        bool open = ImGui.TreeNodeEx(fieldName, ImGuiTreeNodeFlags.AllowOverlap | ImGuiTreeNodeFlags.SpanAllColumns);
+        
+        ImGui.EndDisabled();
+
+        ImGui.TableSetColumnIndex(1);
+
+        if (!fieldType.IsValueType)
+        {
+            if (reference == null)
+            {
+                if (ImGui.BeginCombo("##Create", "Create instance...", ImGuiComboFlags.HeightSmall | ImGuiComboFlags.NoArrowButton))
+                {
+                    foreach (Type t in TypeExtension.FindDerivedTypes(fieldType))
+                    {
+                        if (ImGui.Selectable(t.Name))
+                        {
+                            newValue = ActivatorExtension.CreateInstanceSafe(t);
+                        }
+                    }
+
+                    ImGui.EndCombo();
+                }
+            }
+            else
+            {
+                if (ImGui.SmallButton("Remove"))
+                {
+                    newValue = null;
+                }
+            }
+        }
+        else
+        {
+            newValue = reference;
+        }
+        
+        if (open)
+        {
+            //ImGui.BeginDisabled(readonlyAttribute != null);
+
+            Debug.Assert(reference != null);
+
+            ShowEditor(reference!.GetType(), reference);
+
+            ImGui.TreePop();
+        }
 
         return newValue;
     }
@@ -500,8 +553,7 @@ internal class EntityEditor
     {
         object? newValue = DidNotChange;
         
-        ImGui.Text($"{fieldName}: ");
-        ImGui.SameLine();
+        string fieldId = StartNewProperty(fieldName);
 
         Component? component = currentValue as Component;
 
@@ -573,9 +625,8 @@ internal class EntityEditor
     private static object? ShowEntityDropTarget(string fieldName, Type fieldType, object? currentValue)
     {
         object? newValue = DidNotChange;
-
-        ImGui.Text($"{fieldName}: ");
-        ImGui.SameLine();
+        
+        string fieldId = StartNewProperty(fieldName);
 
         string entityName = "None";
         
@@ -663,21 +714,22 @@ internal class EntityEditor
 
     private static object ShowStringEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
+        string fieldId = StartNewProperty(fieldName);
+
         object newValue = DidNotChange;
 
         TextFieldAttribute? textField = GetAttribute<TextFieldAttribute>(attributes);
 
-        string value = reference as string ?? $"{float.MinValue}";
+        string value = reference as string ?? "";
 
         if (textField?.Multiline == true)
         {
-            ImGui.Text(fieldName);
-            if (ImGui.InputTextMultiline($"##{fieldName}", ref value, 1000, new Vector2(-1.0f, ImGui.GetTextLineHeight() * textField.TextFieldLines)))
+            if (ImGui.InputTextMultiline(fieldId, ref value, 1000, new Vector2(-1.0f, ImGui.GetTextLineHeight() * textField.TextFieldLines)))
                 newValue = value;
         }
         else
         {
-            if (ImGui.InputText(fieldName, ref value, 1000))
+            if (ImGui.InputText(fieldId, ref value, 1000, ImGuiInputTextFlags.EnterReturnsTrue))
                 newValue = value;
         }
 
@@ -740,6 +792,9 @@ internal class EntityEditor
 
             i++;
             ImGui.PushID(i);
+
+            ImGui.TableNextRow();
+            ImGui.TableSetColumnIndex(0);
 
             if (method.GetParameters().Length > 0)
             {
@@ -894,19 +949,24 @@ internal class EntityEditor
         object? newList = DidNotChange;
         IList? myList = list as IList;
 
-        // The buttons should always be visible -> save whether the node is open
-        // If we have no instance, the user shouldn't be able to open the list
-        bool listOpen = ImGui.TreeNodeEx(fieldName,  ImGuiTreeNodeFlags.AllowOverlap | ImGuiTreeNodeFlags.SpanFullWidth |
-            (myList == null ? ImGuiTreeNodeFlags.Leaf | ImGuiTreeNodeFlags.NoTreePushOnOpen : ImGuiTreeNodeFlags.Framed));
-
+        ImGui.BeginDisabled(myList == null);
+        
         if (myList == null)
-            listOpen = false;
+            ImGui.SetNextItemOpen(false);
+
+        bool listOpen = ImGui.TreeNodeEx(fieldName, ImGuiTreeNodeFlags.AllowOverlap | ImGuiTreeNodeFlags.SpanAllColumns | ImGuiTreeNodeFlags.Framed);
+        
+        ImGui.EndDisabled();
+        
+        ImGui.TableSetColumnIndex(1);
 
         var addButtonWidth = ImGui.CalcTextSize("+").X + 2 * ImGui.GetStyle().FramePadding.X;
         var removeButtonWidth = ImGui.CalcTextSize("-").X + 2 * ImGui.GetStyle().FramePadding.X;
+        
+        // TODO: Problem: when opening the list the buttons will move
 
-        ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - addButtonWidth - ImGui.GetStyle().FramePadding.X - removeButtonWidth);
-
+        ImGui.SameLine(ImGui.GetContentRegionAvail().X - addButtonWidth - ImGui.GetStyle().FramePadding.X - removeButtonWidth);
+        
         if (ImGui.SmallButton("+"))
         {
             addElement(myList, out newList);
@@ -914,7 +974,7 @@ internal class EntityEditor
 
         ImGuiExtension.AttachTooltip("Add a new Element at the end of the list.");
 
-        ImGui.SameLine(ImGui.GetWindowContentRegionMax().X - removeButtonWidth);
+        ImGui.SameLine(ImGui.GetContentRegionAvail().X - removeButtonWidth);
 
         ImGui.BeginDisabled(myList == null);
 
@@ -929,8 +989,8 @@ internal class EntityEditor
 
         if (listOpen)
         {
-            Debug.Assert(myList != null, "Opened tree node even though it should have been a leaf!");
-
+            Debug.Assert(myList != null, "Opened tree node even though the list is null!");
+            
             // Returns true if something was dropped into the droptarget
             bool DropTarget(int insertIndex, string tooltip)
             {
@@ -973,20 +1033,23 @@ internal class EntityEditor
                 return dropped;
             }
 
-            // Drop at index 0
-            ImGui.Separator();
-            DropTarget(0, "Drop before Element 0.");
-
+            //// Drop at index 0
+            //ImGui.Separator();
+            //DropTarget(0, "Drop before Element 0.");
+            
             bool orderChanged = false;
-
+            
             for (int i = 0, id = 0; i < myList!.Count; i++, id++)
             {
                 ImGui.PushID(id);
 
                 object element = myList[i];
 
+                BeginNewRow();
+
                 // A Bullet point to grab the element
-                ImGui.Bullet();
+                ImGuiExtension.ListElementGrabber();
+
                 if (ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceAllowNullID))
                 {
                     unsafe
@@ -1016,9 +1079,8 @@ internal class EntityEditor
 
                     ImGui.EndPopup();
                 }
-                
-                ImGui.SameLine();
 
+                StartNewProperty_NewRow = false;
                 object? newValue = ShowFieldEditor(element, element?.GetType() ?? elementType, $"Element {i}");
 
                 // Don't apply changes, when the order changed
@@ -1027,10 +1089,9 @@ internal class EntityEditor
                     myList[i] = newValue;
                 }
 
-                // Drop after current element
-                ImGui.Separator();
-                
-                orderChanged |= DropTarget(i + 1, $"Drop after Element {i}.");
+                //// Drop after current element
+                //ImGui.Separator();
+                //orderChanged |= DropTarget(i + 1, $"Drop after Element {i}.");
 
                 ImGui.PopID();
             }
