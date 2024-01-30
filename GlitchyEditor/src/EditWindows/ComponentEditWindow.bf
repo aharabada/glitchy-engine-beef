@@ -170,13 +170,21 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		/// Starts a new property by creating a new table row, writing the name in the first column and entering the second column.
-		private static void StartNewProperty(StringView propertyName)
+		/// Starts a new row in the table and enters the first column.
+		private static void StartNewRow()
 		{
 			ImGui.TableNextRow();
 			ImGui.TableSetColumnIndex(0);
+		}
 
-			if (ImGui.TableGetRowIndex() == 0)
+		/// Starts a new property by creating a new table row, writing the name in the first column and entering the second column.
+		private static void StartNewProperty(StringView propertyName)
+		{
+			StartNewRow();
+
+			bool isFirstTableRow = ImGui.TableGetRowIndex() == 0;
+
+			if (isFirstTableRow)
 				ImGui.PushItemWidth(-1);
 
 			ImGui.TextUnformatted(propertyName);
@@ -185,7 +193,7 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.TableSetColumnIndex(1);
 			
-			if (ImGui.TableGetRowIndex() == 0)
+			if (isFirstTableRow)
 				ImGui.PushItemWidth(-1);
 		}
 
@@ -590,7 +598,39 @@ namespace GlitchyEditor.EditWindows
 			if (ImGui.Float2Editor("Offset", ref offset, .Zero, 0.1f))
 				polygonCollider.Offset = offset;
 
-			if (CollapsingHeader("Vertices"))
+			StartNewRow();
+
+			bool isOpen = ImGui.TreeNodeEx("Vertices", .AllowOverlap | .SpanAllColumns);
+
+			ImGui.TableSetColumnIndex(1);
+
+			var addButtonWidth = ImGui.CalcTextSize("+").x + 2 * ImGui.GetStyle().FramePadding.x;
+			var removeButtonWidth = ImGui.CalcTextSize("-").x + 2 * ImGui.GetStyle().FramePadding.x;
+			
+			ImGui.SameLine(ImGui.GetContentRegionAvail().x - addButtonWidth - ImGui.GetStyle().FramePadding.x - removeButtonWidth);
+			
+			ImGui.BeginDisabled(polygonCollider.VertexCount >= 8);
+
+			if (ImGui.SmallButton("+"))
+				polygonCollider.VertexCount++;
+
+			ImGui.AttachTooltip("Add a new vertex to the collider.");
+
+			ImGui.EndDisabled();
+
+			ImGui.SameLine(ImGui.GetContentRegionAvail().x - removeButtonWidth);
+
+			ImGui.BeginDisabled(polygonCollider.VertexCount <= 3);
+
+			if (ImGui.SmallButton("-"))
+				polygonCollider.VertexCount--;
+
+			ImGui.AttachTooltip("Remove the last vertex from the collider.");
+
+			ImGui.EndDisabled();
+
+			// If isOpen is true, show list of vertices
+			if (isOpen)
 			{
 				StartNewProperty("Show Vertex gizmos");
 				ImGui.Checkbox("##Show Vertex gizmos", &_editVerticesPolygonCollider2D);
@@ -601,19 +641,7 @@ namespace GlitchyEditor.EditWindows
 					ImGui.Float2Editor(scope $"##{i}", ref polygonCollider.Vertices[i]);
 				}
 
-				StartNewProperty("");
-
-				ImGui.BeginDisabled(polygonCollider.VertexCount >= 8);
-				if (ImGui.Button("Add Vertex"))
-					polygonCollider.VertexCount++;
-				ImGui.EndDisabled();
-
-				ImGui.SameLine();
-
-				ImGui.BeginDisabled(polygonCollider.VertexCount <= 3);
-				if (ImGui.Button("Remove Vertex"))
-					polygonCollider.VertexCount--;
-				ImGui.EndDisabled();
+				ImGui.TreePop();
 			}
 
 			float density = polygonCollider.Density;
