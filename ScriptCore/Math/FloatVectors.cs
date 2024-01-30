@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
 using GlitchyEngine.Math;
@@ -19,6 +20,9 @@ public partial struct float2
     public static readonly float2 UnitX = new(1.0f, 0.0f);
     public static readonly float2 UnitY = new(0.0f, 1.0f);
     public static readonly float2 One = new(0.0f, 0.0f);
+
+    public static explicit operator Vector2(float2 self) => new(self.X, self.Y);
+    public static explicit operator float2(Vector2 self) => new(self.X, self.Y);
 }
 
 [Vector(typeof(float), 3, "float")]
@@ -41,6 +45,9 @@ public partial struct float3
     public static readonly float3 Right = new(1.0f, 0.0f, 0.0f);
     public static readonly float3 Up = new(0.0f, 1.0f, 0.0f);
     public static readonly float3 Down = new(0.0f, -1.0f, 0.0f);
+    
+    public static explicit operator Vector3(float3 self) => new(self.X, self.Y, self.Z);
+    public static explicit operator float3(Vector3 self) => new(self.X, self.Y, self.Z);
 }
 
 [Vector(typeof(float), 4, "float")]
@@ -57,4 +64,7 @@ public partial struct float4
     public static readonly float4 UnitZ	= new(0f, 0f, 1f, 0f);
     public static readonly float4 UnitW	= new(0f, 0f, 0f, 1f);
     public static readonly float4 One   = new(1f, 1f, 1f, 1f);
+
+    public static explicit operator Vector4(float4 self) => new(self.X, self.Y, self.Z, self.W);
+    public static explicit operator float4(Vector4 self) => new(self.X, self.Y, self.Z, self.W);
 }
