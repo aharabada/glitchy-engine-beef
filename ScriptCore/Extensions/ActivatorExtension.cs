@@ -66,4 +66,13 @@ public static class ActivatorExtension
 
         return component;
     }
+
+    /// <summary>
+    /// Returns the null for reference types and an initialized value for structs / value types.
+    /// </summary>
+    /// <param name="type">The type to create the default value for.</param>
+    public static object? CreateDefaultValue(Type type)
+    {
+        return type.IsClass ? null : CreateInstanceSafe(type);
+    }
 }

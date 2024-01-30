@@ -13,6 +13,7 @@ using System.Text;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using GlitchyEngine.Math;
+using GlitchyEngine.Math.Attributes;
 using ImGuiNET;
 using Component = GlitchyEngine.Core.Component;
 
@@ -66,13 +67,6 @@ internal class EntityEditor
         ImGui.TableSetColumnIndex(0);
     }
 
-    public static void EndTable()
-    {
-        ImGui.EndTable();
-
-        ImGui.GetItemID();
-    }
-    
     public static bool StartNewProperty_NewRow = true;
 
     /// <summary>
@@ -184,8 +178,10 @@ internal class EntityEditor
         return DidNotChange;
     }
 
-    private static object? ShowPrimitiveEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
+    private static object ShowPrimitiveEditor(object reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
+        Debug.Assert(reference != null);
+
         string fieldId = StartNewProperty(fieldName);
 
         object newValue = DidNotChange;
@@ -260,121 +256,114 @@ internal class EntityEditor
             }
         }
 
-        if (reference != null)
+        if (fieldType == typeof(bool))
         {
-            if (fieldType == typeof(bool))
+            bool value = (bool)reference;
+            if (ImGui.Checkbox(fieldId, ref value))
+                newValue = value;
+        }
+        else if (fieldType == typeof(char))
+        {
+            unsafe
             {
-                bool value = (bool)reference;
-                if (ImGui.Checkbox(fieldId, ref value))
-                    newValue = value;
-            }
-            else if (fieldType == typeof(char))
-            {
-                unsafe
+                // TODO: Allow escaped unicode chars \u XXXX
+                // TODO: Add text input validation, so that it isn't possible to type invalid chars
+
+                char* value = stackalloc char[4];
+                switch((char)reference)
                 {
-                    // TODO: Allow escaped unicode chars \u XXXX
-                    // TODO: Add text input validation, so that it isn't possible to type invalid chars
+                    case '\a':
+                        value[0] = '\\';
+                        value[1] = 'a';
+                        break;
+                    case '\b':
+                        value[0] = '\\';
+                        value[1] = 'b';
+                        break;
+                    case '\f':
+                        value[0] = '\\';
+                        value[1] = 'f';
+                        break;
+                    case '\n':
+                        value[0] = '\\';
+                        value[1] = 'n';
+                        break;
+                    case '\r':
+                        value[0] = '\\';
+                        value[1] = 'r';
+                        break;
+                    case '\t':
+                        value[0] = '\\';
+                        value[1] = 't';
+                        break;
+                    case '\v':
+                        value[0] = '\\';
+                        value[1] = 'v';
+                        break;
+                    default:
+                        value[0] = (char)reference;
+                        value[1] = '\0';
+                        break;
+                };
 
-                    char* value = stackalloc char[4];
-                    switch((char)reference)
+                // Enough space to store two code points
+                byte* buffer = stackalloc byte[8];
+                int encodedBytes = Encoding.UTF8.GetBytes(value, 2, buffer, 8);
+
+                // Place string delimiter after encoded UTF8 sequence.
+                buffer[encodedBytes] = (byte)'\0';
+
+                if (ImGui.InputText(fieldId, (IntPtr)buffer, 8))
+                {
+                    if (buffer[0] == '\\' && buffer[1] != '\0')
                     {
-                        case '\a':
-                            value[0] = '\\';
-                            value[1] = 'a';
-                            break;
-                        case '\b':
-                            value[0] = '\\';
-                            value[1] = 'b';
-                            break;
-                        case '\f':
-                            value[0] = '\\';
-                            value[1] = 'f';
-                            break;
-                        case '\n':
-                            value[0] = '\\';
-                            value[1] = 'n';
-                            break;
-                        case '\r':
-                            value[0] = '\\';
-                            value[1] = 'r';
-                            break;
-                        case '\t':
-                            value[0] = '\\';
-                            value[1] = 't';
-                            break;
-                        case '\v':
-                            value[0] = '\\';
-                            value[1] = 'v';
-                            break;
-                        default:
-                            value[0] = (char)reference;
-                            value[1] = '\0';
-                            break;
-                    };
-
-                    // Enough space to store two code points
-                    byte* buffer = stackalloc byte[8];
-                    int encodedBytes = Encoding.UTF8.GetBytes(value, 2, buffer, 8);
-
-                    // Place string delimiter after encoded UTF8 sequence.
-                    buffer[encodedBytes] = (byte)'\0';
-
-                    if (ImGui.InputText(fieldId, (IntPtr)buffer, 8))
+                        newValue = (char)buffer[1] switch
+                        {
+                            'a' => newValue = '\a',
+                            'b' => newValue = '\b',
+                            'f' => newValue = '\f',
+                            'n' => newValue = '\n',
+                            'r' => newValue = '\r',
+                            't' => newValue = '\t',
+                            'v' => newValue = '\v',
+                            _ => newValue = '\\'
+                        };
+                    }
+                    else
                     {
-                        if (buffer[0] == '\\' && buffer[1] != '\0')
-                        {
-                            newValue = (char)buffer[1] switch
-                            {
-                                'a' => newValue = '\a',
-                                'b' => newValue = '\b',
-                                'f' => newValue = '\f',
-                                'n' => newValue = '\n',
-                                'r' => newValue = '\r',
-                                't' => newValue = '\t',
-                                'v' => newValue = '\v',
-                                _ => newValue = '\\'
-                            };
-                        }
-                        else
-                        {
-                            // Only decode first codepoint
-                            Encoding.UTF8.GetChars(buffer, 4, value, 4);
+                        // Only decode first codepoint
+                        Encoding.UTF8.GetChars(buffer, 4, value, 4);
 
-                            newValue = value[0];
-                        }
-                    }   
-                }
-            }
-            else if (fieldType == typeof(byte))
-                DragScalar<byte>(ImGuiDataType.U8);
-            else if (fieldType == typeof(sbyte))
-                DragScalar<sbyte>(ImGuiDataType.S8);
-            else if (fieldType == typeof(short))
-                DragScalar<short>(ImGuiDataType.S16);
-            else if (fieldType == typeof(ushort))
-                DragScalar<ushort>(ImGuiDataType.U16);
-            else if (fieldType == typeof(int))
-                DragScalar<int>(ImGuiDataType.S32);
-            else if (fieldType == typeof(uint))
-                DragScalar<uint>(ImGuiDataType.U32);
-            else if (fieldType == typeof(long))
-                DragScalar<long>(ImGuiDataType.S64);
-            else if (fieldType == typeof(ulong))
-                DragScalar<ulong>(ImGuiDataType.U64);
-            else if (fieldType == typeof(float))
-                DragScalar<float>(ImGuiDataType.Float);
-            else if (fieldType == typeof(double))
-                DragScalar<double>(ImGuiDataType.Double);
-            else
-            {
-                ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{fieldName}: Type {fieldType} is not implemented.");
+                        newValue = value[0];
+                    }
+                }   
             }
         }
+        else if (fieldType == typeof(byte))
+            DragScalar<byte>(ImGuiDataType.U8);
+        else if (fieldType == typeof(sbyte))
+            DragScalar<sbyte>(ImGuiDataType.S8);
+        else if (fieldType == typeof(short))
+            DragScalar<short>(ImGuiDataType.S16);
+        else if (fieldType == typeof(ushort))
+            DragScalar<ushort>(ImGuiDataType.U16);
+        else if (fieldType == typeof(int))
+            DragScalar<int>(ImGuiDataType.S32);
+        else if (fieldType == typeof(uint))
+            DragScalar<uint>(ImGuiDataType.U32);
+        else if (fieldType == typeof(long))
+            DragScalar<long>(ImGuiDataType.S64);
+        else if (fieldType == typeof(ulong))
+            DragScalar<ulong>(ImGuiDataType.U64);
+        else if (fieldType == typeof(float))
+            DragScalar<float>(ImGuiDataType.Float);
+        else if (fieldType == typeof(double))
+            DragScalar<double>(ImGuiDataType.Double);
         else
         {
-            return ActivatorExtension.CreateInstanceSafe(fieldType);
+            ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{fieldName}: Type {fieldType} is not implemented.");
         }
-
+        
         return newValue;
     }
 
@@ -434,7 +423,7 @@ internal class EntityEditor
         }
         else if (fieldType.IsPrimitive)
         {
-            newValue = ShowPrimitiveEditor(reference, fieldType, fieldName, attributes);
+            newValue = ShowPrimitiveEditor(reference!, fieldType, fieldName, attributes);
         }
         else if (fieldType.IsValueType)
         {
@@ -442,21 +431,17 @@ internal class EntityEditor
             {
                 newValue = ShowDecimalEditor(reference, fieldType, fieldName, attributes);
             }
-            else if (fieldType == typeof(bool2))
+            else if (fieldType == typeof(ColorRGBA))
             {
-                // TODO: The bool vector editor should not be here...
-
                 string fieldId = StartNewProperty(fieldName);
 
-                bool2 value = (bool2)reference!;
-                
-                if (ImGui.Checkbox($"##{fieldName}X", ref value.X))
+                ColorRGBA value = (ColorRGBA)reference!;
+                if (ImGui.ColorEdit4(fieldId, ref Unsafe.As<ColorRGBA, Vector4>(ref value)))
                     newValue = value;
-                    
-                ImGui.SameLine();
-
-                if (ImGui.Checkbox($"##{fieldName}Y", ref value.Y))
-                    newValue = value;
+            }
+            else if (fieldType.TryGetCustomAttribute(out VectorAttribute vectorAttribute))
+            {
+                newValue = ShowVectorEditor(reference, fieldType, fieldName, vectorAttribute);
             }
             else
             {
@@ -481,6 +466,121 @@ internal class EntityEditor
         }
 
         ImGui.EndDisabled();
+
+        return newValue;
+    }
+
+    private static object ShowVectorEditor(object? reference, Type fieldType, string fieldName, VectorAttribute vectorAttribute)
+    {
+        object newValue = DidNotChange;
+        
+        string fieldId = StartNewProperty(fieldName);
+
+        if (vectorAttribute.Type == typeof(bool))
+        {
+            if (vectorAttribute.ComponentCount == 2)
+            {
+                bool2 value = (bool2)reference!;
+                if (ImGuiExtension.Checkbox2(fieldId, ref value))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 3)
+            {
+                bool3 value = (bool3)reference!;
+                if (ImGuiExtension.Checkbox3(fieldId, ref value))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 4)
+            {
+                bool4 value = (bool4)reference!;
+                if (ImGuiExtension.Checkbox4(fieldId, ref value))
+                    newValue = value;
+            }
+        }
+        else if (vectorAttribute.Type == typeof(int))
+        {
+            if (vectorAttribute.ComponentCount == 2)
+            {
+                int2 value = (int2)reference!;
+                if (ImGui.DragInt2(fieldId, ref value.X))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 3)
+            {
+                int3 value = (int3)reference!;
+                if (ImGui.DragInt3(fieldId, ref value.X))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 4)
+            {
+                int4 value = (int4)reference!;
+                if (ImGui.DragInt4(fieldId, ref value.X))
+                    newValue = value;
+            }
+        }
+        else if (vectorAttribute.Type == typeof(uint))
+        {
+            if (vectorAttribute.ComponentCount == 2)
+            {
+                uint2 value = (uint2)reference!;
+                if (ImGuiExtension.DragUInt2(fieldId, ref value))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 3)
+            {
+                uint3 value = (uint3)reference!;
+                if (ImGuiExtension.DragUInt3(fieldId, ref value))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 4)
+            {
+                uint4 value = (uint4)reference!;
+                if (ImGuiExtension.DragUInt4(fieldId, ref value))
+                    newValue = value;
+            }
+        }
+        else if (vectorAttribute.Type == typeof(float))
+        {
+            if (vectorAttribute.ComponentCount == 2)
+            {
+                float2 value = (float2)reference!;
+                if (ImGui.DragFloat2(fieldId, ref Unsafe.As<float2, Vector2>(ref value)))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 3)
+            {
+                float3 value = (float3)reference!;
+                if (ImGui.DragFloat3(fieldId, ref Unsafe.As<float3, Vector3>(ref value)))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 4)
+            {
+                float4 value = (float4)reference!;
+                if (ImGui.DragFloat4(fieldId, ref Unsafe.As<float4, Vector4>(ref value)))
+                    newValue = value;
+            }
+        }
+        else if (vectorAttribute.Type == typeof(double))
+        {
+            if (vectorAttribute.ComponentCount == 2)
+            {
+                double2 value = (double2)reference!;
+                if (ImGuiExtension.DragDouble2(fieldId, ref value))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 3)
+            {
+                double3 value = (double3)reference!;
+                if (ImGuiExtension.DragDouble3(fieldId, ref value))
+                    newValue = value;
+            }
+            else if (vectorAttribute.ComponentCount == 4)
+            {
+                double4 value = (double4)reference!;
+                if (ImGuiExtension.DragDouble4(fieldId, ref value))
+                    newValue = value;
+            }
+        }
 
         return newValue;
     }
@@ -846,9 +946,7 @@ internal class EntityEditor
             
             try
             {
-                // Reference values can be null
-                object? newElement = elementType.IsByRef ? null : ActivatorExtension.CreateInstanceSafe(elementType);
-
+                object? newElement = ActivatorExtension.CreateDefaultValue(elementType);
                 list?.Add(newElement);
             }
             catch (Exception ex)
@@ -912,8 +1010,8 @@ internal class EntityEditor
 
                 newList = newArray;
             }
-
-            object newElement = Activator.CreateInstance(elementType);
+            
+            object? newElement = ActivatorExtension.CreateDefaultValue(elementType!);
             ((IList)newList)[newIndex] = newElement;
         }
 

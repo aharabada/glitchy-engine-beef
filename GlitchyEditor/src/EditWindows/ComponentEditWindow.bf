@@ -142,15 +142,7 @@ namespace GlitchyEditor.EditWindows
 
 			TComponent* component = entity.GetComponent<TComponent>();
 
-			//ImGui.PushID(header);
-
-			/*ImGui.PushClipRect(.(), .(float.MaxValue, float.MaxValue), false);
-			ImGui.TableNextRow();
-			ImGui.TableSetColumnIndex(0);
-			ImGui.PopClipRect();*/
-
 			bool nodeOpen = ImGui.CollapsingHeader(header.CStr(), .DefaultOpen | .AllowOverlap | .Framed | .SpanFullWidth);
-				//ImGui.TreeNodeEx(header.CStr(), .DefaultOpen | .AllowOverlap | .Framed | .SpanFullWidth | .SpanAllColumns);
 
 			if (showComponentContextMenu != null)
 			{
@@ -169,20 +161,13 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 
-			if (nodeOpen)
+			if (nodeOpen && ImGui.BeginTableEx("properties", TableId, 2, .SizingStretchSame | .BordersInner | .Resizable))
 			{
-				if (ImGui.BeginTableEx("properties", TableId, 2, .SizingStretchSame | .BordersInner | .Resizable))
-				{
-					if (entity.TryGetComponent<TComponent>(let actualComponent))
-						showComponentEditor(entity, actualComponent);
+				if (entity.TryGetComponent<TComponent>(let actualComponent))
+					showComponentEditor(entity, actualComponent);
 
-					ImGui.EndTable();
-				}
-
-				//ImGui.TreePop();
+				ImGui.EndTable();
 			}
-
-			//ImGui.PopID();
 		}
 
 		/// Starts a new property by creating a new table row, writing the name in the first column and entering the second column.
@@ -191,11 +176,17 @@ namespace GlitchyEditor.EditWindows
 			ImGui.TableNextRow();
 			ImGui.TableSetColumnIndex(0);
 
+			if (ImGui.TableGetRowIndex() == 0)
+				ImGui.PushItemWidth(-1);
+
 			ImGui.TextUnformatted(propertyName);
 
 			ImGui.AttachTooltip(propertyName);
 
 			ImGui.TableSetColumnIndex(1);
+			
+			if (ImGui.TableGetRowIndex() == 0)
+				ImGui.PushItemWidth(-1);
 		}
 
 		private static void ShowNameComponentEditor(Entity entity)
@@ -221,7 +212,11 @@ namespace GlitchyEditor.EditWindows
 			// Copy name to buffer
 			Internal.MemCpy(&nameBuffer, name.Ptr, Math.Min(nameBuffer.Count, name.Length));
 
+			ImGui.PushItemWidth(-1);
+
 			StartNewProperty("Name");
+
+			ImGui.PushItemWidth(-1);
 
 			if(ImGui.InputText("##Name", &nameBuffer, nameBuffer.Count, .EnterReturnsTrue))
 			{

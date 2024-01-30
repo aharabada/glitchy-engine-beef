@@ -60,6 +60,7 @@ public class DictionaryEditor
             _dictionaryForNewValue = dictionary;
 
             _newDictionaryValue = new DictionaryEntry();
+            _newDictionaryValue.Value = ActivatorExtension.CreateDefaultValue(valueType);
         }
 
         ImGuiExtension.AttachTooltip("Add a new Entry to the dictionary.");

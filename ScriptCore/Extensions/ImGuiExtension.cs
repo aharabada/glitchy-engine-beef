@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
+using GlitchyEngine.Math;
 using ImGuiNET;
 
 namespace GlitchyEngine.Extensions;
@@ -70,5 +72,54 @@ public static class ImGuiExtension
     public static void ListElementGrabber()
     {
         ScriptGlue.ImGuiExtension_ListElementGrabber();
+    }
+
+    public static bool Checkbox2(string label, ref bool2 value) => CheckboxN(2, label, ref value.X);
+    public static bool Checkbox3(string label, ref bool3 value) => CheckboxN(3, label, ref value.X);
+    public static bool Checkbox4(string label, ref bool4 value) => CheckboxN(4, label, ref value.X);
+
+    public static bool CheckboxN(int componentCount, string label, ref bool value)
+    {
+        bool changed = false;
+
+        for (int i = 0; i < componentCount; i++)
+        {
+            if (i != 0)
+                ImGui.SameLine();
+
+            changed |= ImGui.Checkbox($"##{label}{i}", ref Unsafe.Add(ref value, i));
+            
+        }
+        return changed;
+    }
+
+    public static unsafe bool DragUInt2(string label, ref uint2 value)
+    {
+        return ImGui.DragScalarN(label, ImGuiDataType.U32, (IntPtr)Unsafe.AsPointer(ref value), 2);
+    }
+    
+    public static unsafe bool DragUInt3(string label, ref uint3 value)
+    {
+        return ImGui.DragScalarN(label, ImGuiDataType.U32, (IntPtr)Unsafe.AsPointer(ref value), 3);
+    }
+    
+    public static unsafe bool DragUInt4(string label, ref uint4 value)
+    {
+        return ImGui.DragScalarN(label, ImGuiDataType.U32, (IntPtr)Unsafe.AsPointer(ref value), 4);
+    }
+    
+    public static unsafe bool DragDouble2(string label, ref double2 value)
+    {
+        return ImGui.DragScalarN(label, ImGuiDataType.Double, (IntPtr)Unsafe.AsPointer(ref value), 2);
+    }
+    
+    public static unsafe bool DragDouble3(string label, ref double3 value)
+    {
+        return ImGui.DragScalarN(label, ImGuiDataType.Double, (IntPtr)Unsafe.AsPointer(ref value), 3);
+    }
+    
+    public static unsafe bool DragDouble4(string label, ref double4 value)
+    {
+        return ImGui.DragScalarN(label, ImGuiDataType.Double, (IntPtr)Unsafe.AsPointer(ref value), 4);
     }
 }

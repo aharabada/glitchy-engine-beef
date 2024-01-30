@@ -284,10 +284,16 @@ namespace ImGui
 			PushID(label);
 			defer PopID();
 
-			PushMultiItemsWidths(NumComponents, CalcItemWidth());
+			//PushMultiItemsWidths(NumComponents, CalcItemWidth());
+
+			float totalWidth = CalcItemWidth();
+
+			float componentWidth = totalWidth / NumComponents;
 			
 			float lineHeight = GetFont().FontSize + GetStyle().FramePadding.y * 2.0f;
 			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
+
+			float dragFloatWidth = componentWidth - buttonSize.x - GetStyle().FramePadding.x;
 
 			componentLoop: for (int i < NumComponents)
 			{
@@ -300,7 +306,9 @@ namespace ImGui
 				PushStyleColor(.ButtonHovered, VectorButtonColors[i].Hovered.ImGuiU32);
 				PushStyleColor(.ButtonActive, VectorButtonColors[i].Active.ImGuiU32);
 
-				ImGui.BeginDisabled(!componentEnabled[i]);
+				BeginDisabled(!componentEnabled[i]);
+
+				//PushItemWidth(buttonSize.x);
 
 				if (Button(componentNames[i], buttonSize))
 				{
@@ -325,16 +333,19 @@ namespace ImGui
 					format = numberFormat[0].ToScopeCStr!:componentLoop();
 				}
 
+				PushItemWidth(dragFloatWidth);
+
 				if (DragFloat(componentIds[i], &value[i], dragSpeed, minValue[i], maxValue[i], format))
 				{
 					changed = true;
 				}
+
+				PopItemWidth();
 				
 				PopStyleVar();
 
-				ImGui.EndDisabled();
+				EndDisabled();
 				
-				PopItemWidth();
 				PopStyleColor(3);
 			}
 
