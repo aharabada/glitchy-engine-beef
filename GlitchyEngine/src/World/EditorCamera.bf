@@ -308,7 +308,7 @@ namespace GlitchyEngine.World
 		private void UpdateProjection() mut
 		{
 			//_projection = Matrix.InfinitePerspectiveProjection(_fovY, _aspectRatio, _nearPlane);
-			_projection = Matrix.PerspectiveProjection(_fovY, _aspectRatio, _nearPlane, 10000);
+			_projection = Matrix.ReversedPerspectiveProjection(_fovY, _aspectRatio, _nearPlane, 10000);
 		}
 
 		public void OnViewportResize(uint32 sizeX, uint32 sizeY) mut

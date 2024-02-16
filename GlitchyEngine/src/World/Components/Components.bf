@@ -274,15 +274,16 @@ namespace GlitchyEngine.World
 				float halfWidth = halfHeight * _aspectRatio;
 
 				_projection = Matrix.OrthographicProjectionOffCenter(-halfWidth, halfWidth, halfHeight, -halfHeight,
-					_orthographicNearPlane, _orthographicFarPlane);
+					// Swap far and near plane, because we use reversed depth!
+					_orthographicFarPlane, _orthographicNearPlane);
 			}
 			else if (_projectionType case .Perspective)
 			{
-				_projection = Matrix.PerspectiveProjection(_perspectiveFovY, _aspectRatio, _perspectiveNearPlane, _perspectiveFarPlane);
+				_projection = Matrix.ReversedPerspectiveProjection(_perspectiveFovY, _aspectRatio, _perspectiveNearPlane, _perspectiveFarPlane);
 			}
 			else if (_projectionType case .InfinitePerspective)
 			{
-				_projection = Matrix.InfinitePerspectiveProjection(_perspectiveFovY, _aspectRatio, _perspectiveNearPlane);
+				_projection = Matrix.ReversedInfinitePerspectiveProjection(_perspectiveFovY, _aspectRatio, _perspectiveNearPlane);
 			}
 		}
 	}

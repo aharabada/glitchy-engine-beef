@@ -1,6 +1,7 @@
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Content;
 using GlitchyEngine.Math;
+using System;
 
 namespace GlitchyEngine.World;
 
@@ -26,20 +27,23 @@ class SceneRenderer
 	{
 		RenderTargetGroupDescription desc = .(100, 100,
 			TargetDescription[](
-			RenderTargetFormat.R16G16B16A16_Float,
-			.(RenderTargetFormat.R32_UInt) {ClearColor = .UInt(uint32.MaxValue)}),
-			RenderTargetFormat.D24_UNorm_S8_UInt);
+				.(.R16G16B16A16_Float, ownDebugName: new String("Color")),
+				.(.R32_UInt) {ClearColor = .UInt(uint32.MaxValue), DebugName = new String("EntityId")}
+			),
+			TargetDescription(.D24_UNorm_S8_UInt, clearColor: ClearColor.DepthStencil(0.0f, 0)));
 		_compositeTarget = new RenderTargetGroup(desc);
+		_compositeTarget.[Friend]Identifier = "Composite Target";
 
 		_cameraTarget = new RenderTargetGroup(.(){
 				Width = 100,
 				Height = 100,
 				ColorTargetDescriptions = TargetDescription[](
-					.(.R16G16B16A16_Float),
-					.(.R32_UInt)
+					.(.R16G16B16A16_Float, ownDebugName: new String("Color")),
+					.(.R32_UInt) {ClearColor = .UInt(uint32.MaxValue), DebugName = new String("EntityId")}
 				),
-				DepthTargetDescription = .(.D24_UNorm_S8_UInt)
+				DepthTargetDescription = .(.D24_UNorm_S8_UInt, clearColor: ClearColor.DepthStencil(0.0f, 0))
 			});
+		_cameraTarget.[Friend]Identifier = "Camera Target";
 
 		_gammaCorrectEffect = Content.LoadAsset("Resources/Shaders/GammaCorrect.hlsl");
 	}
@@ -83,6 +87,8 @@ class SceneRenderer
 		finalTarget.AddRef();
 		
 		renderTarget = _cameraTarget..AddRef();
+		
+		RenderCommand.Clear(_compositeTarget, .ColorDepth);
 
 		// 3D render
 		Renderer.BeginScene(*primaryCamera, primaryCameraTransform, renderTarget, _compositeTarget);

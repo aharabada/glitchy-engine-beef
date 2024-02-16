@@ -392,6 +392,9 @@ namespace GlitchyEngine.Renderer
 
 				_lights.Clear();
 
+				// TODO: I don't understand why we need to clear depth here. It should happen in SceneRenderer, but doesn't work for some reason...
+				RenderCommand.Clear(_sceneConstants.CompositionTarget, .Depth);
+
 				// Copy EntityIDs to compositionTarget
 				_gBuffer.Target.CopyTo(_sceneConstants.CompositionTarget, 1, int2.Zero, int2((int32)_sceneConstants.CameraTarget.Width, (int32)_sceneConstants.CameraTarget.Height), int2.Zero, 6);
 

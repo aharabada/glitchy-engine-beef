@@ -758,10 +758,14 @@ namespace GlitchyEngine.Renderer
 				return;
 
 			SortInstances();
+			
+			RenderCommand.SetDepthStencilState(Renderer.[Friend]_meshDepthStencilState);
 
 			DrawDeferredQuads();
 			DrawDeferredCircles();
 			DrawDeferredLines();
+
+			RenderCommand.SetDepthStencilState(Renderer.[Friend]_fullscreenDepthState);
 		}
 
 		private static void DrawDeferredQuads()
