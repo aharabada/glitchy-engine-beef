@@ -315,7 +315,10 @@ namespace GlitchyEngine.Renderer
 			
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
 
-			// TODO: UAVs
+			// TODO: create UAVs
+			
+			SetDebugName(target.DebugName, resourceView, "SRV");
+			SetDebugName(target.DebugName, targetOrDepthView, target.Format.IsDepth ? "DSV" : "RTV");
 
 			return (resourceView, targetOrDepthView);
 		}
@@ -357,7 +360,14 @@ namespace GlitchyEngine.Renderer
 	
 				for (int i < _nativeTextures.Count)
 				{
-					TargetDescription target = _colorTargetDescriptions[i];
+					ref TargetDescription target = ref _colorTargetDescriptions[i];
+
+#if GE_RESOURCE_DEBUG_NAMES
+					if (String.IsNullOrWhiteSpace(target.DebugName))
+					{
+						target.DebugName = new $"{i}";
+					}
+#endif
 	
 					if (target.IsSwapchainTarget)
 					{
@@ -371,6 +381,7 @@ namespace GlitchyEngine.Renderer
 					else
 					{
 						_nativeTextures[i] = PlatformCreateTexture(target);
+						SetDebugName(target.DebugName, _nativeTextures[i]);
 					}
 	
 					(_nativeResourceViews[i], _renderTargetViews[i]) = (.)CreateViews(target, _nativeTextures[i]);
@@ -379,10 +390,48 @@ namespace GlitchyEngine.Renderer
 			
 			if (_depthTargetDescription.Format != .None)
 			{
+#if GE_RESOURCE_DEBUG_NAMES
+				if (String.IsNullOrWhiteSpace(_depthTargetDescription.DebugName))
+				{
+					_depthTargetDescription.DebugName = new String("Depth Stencil");
+				}
+#endif
+
 				_nativeDepthTexture = PlatformCreateTexture(_depthTargetDescription);
+				SetDebugName(_depthTargetDescription.DebugName, _nativeDepthTexture);
 				
 				(_nativeDepthResourceView, _nativeDepthTargetView) = (.)CreateViews(_depthTargetDescription, _nativeDepthTexture);
 			}
+		}
+
+		/// Sets the debug name of the given resource.
+		/// If available also includes the asset identifier of the rendertargetgroup in the debug name.
+		/// Note: This method will only be called when the preprocessor macro GE_RESOURCE_DEBUG_NAMES is defined.
+#if !GE_RESOURCE_DEBUG_NAMES
+		[SkipCall]
+#endif
+		private void SetDebugName(StringView subtextureName, ID3D11DeviceChild* resource, StringView? extraInfo = null)
+		{
+			if (resource == null)
+				return;
+
+			String debugName = scope String(64);
+
+			if (Identifier.IsWhiteSpace)
+				debugName.AppendF($"Render Target Group {Handle}");
+			else
+				debugName.Append(Identifier);
+
+			debugName.Append(": ");
+
+			debugName.Append(subtextureName);
+
+			if (extraInfo != null)
+			{
+				debugName.AppendF($" ({extraInfo})");
+			}
+			
+			resource.SetDebugName(debugName);
 		}
 
 		public override void Resize(uint32 width, uint32 height)

@@ -24,4 +24,4 @@ PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 
 [Configs.Debug.Win64]
-PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI"]
+PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI", "GE_RESOURCE_DEBUG_NAMES"]
