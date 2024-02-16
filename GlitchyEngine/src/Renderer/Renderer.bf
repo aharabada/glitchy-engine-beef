@@ -63,7 +63,8 @@ namespace GlitchyEngine.Renderer
 						),
 						TargetDescription(.D24_UNorm_S8_UInt, ownDebugName: new String("DepthStencil")){
 							SamplerDescription = samplerDesc,
-							ClearColor = .DepthStencil(1.0f, 0)
+							// We use an inverted depth buffer so 0.0 represents the furthest distance
+							ClearColor = .DepthStencil(0.0f, 0)
 						});
 					Target = new RenderTargetGroup(targetDesc);
 					// TODO: there needs to be a proper way to do it
@@ -101,6 +102,9 @@ namespace GlitchyEngine.Renderer
 
 		static BlendState _gBufferBlend;
 		static BlendState _lightBlend;
+		/// Depth Stencil State used to render objects.
+		static DepthStencilState _meshDepthStencilState;
+		/// Depth Stencil State used to render lights and other full screen effects.
 		static DepthStencilState _fullscreenDepthState;
 
 		static Buffer _sceneBuffer;
@@ -195,6 +199,11 @@ namespace GlitchyEngine.Renderer
 				RenderTargetWriteMask = .All
 			};
 			_lightBlend = new BlendState(lightBlendDesc);
+			
+			DepthStencilStateDescription meshDsDesc = .Default;
+			// We use an inverted depth buffer so greater depth values are closer
+			meshDsDesc.DepthFunction = .Greater;
+			_meshDepthStencilState = new DepthStencilState(meshDsDesc);
 
 			DepthStencilStateDescription dsDesc = .Default;
 			dsDesc.DepthEnabled = false;
@@ -213,6 +222,7 @@ namespace GlitchyEngine.Renderer
 			_sceneBuffer.ReleaseRef();
 
 			_fullscreenDepthState.ReleaseRef();
+			_meshDepthStencilState.ReleaseRef();
 			_lightBlend.ReleaseRef();
 			_gBufferBlend.ReleaseRef();
 			delete _gBuffer;
@@ -305,6 +315,7 @@ namespace GlitchyEngine.Renderer
 				RenderCommand.SetViewport(0, 0, _sceneConstants.CameraTarget.Width, _sceneConstants.CameraTarget.Height);
 
 				RenderCommand.SetBlendState(_gBufferBlend);
+				RenderCommand.SetDepthStencilState(_meshDepthStencilState);
 
 				for (SubmittedMesh entry in _queue)
 				{
