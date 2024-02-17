@@ -376,7 +376,31 @@ internal class EntityEditor
         {
             foreach (object enumValue in Enum.GetValues(fieldType))
             {
-                if (ImGui.Selectable(enumValue.ToString(), enumValue == reference))
+                string enumValueName = enumValue.ToString();
+
+                FieldInfo? fieldInfo = fieldType.GetField(enumValueName);
+
+                string enumValueLabel;
+
+                if (fieldInfo != null)
+                {
+                    LabelAttribute label = (LabelAttribute)Attribute.GetCustomAttribute(fieldInfo, typeof(LabelAttribute));
+
+                    if (label != null)
+                    {
+                        enumValueLabel = label.Label ?? enumValueName;
+                    }
+                    else
+                    {
+                        enumValueLabel = enumValueName.ToPrettyName();
+                    }
+                }
+                else
+                {
+                    enumValueLabel = enumValueName.ToPrettyName();
+                }
+
+                if (ImGui.Selectable(enumValueLabel, enumValue == reference))
                 {
                     newValue = enumValue;
                 }
