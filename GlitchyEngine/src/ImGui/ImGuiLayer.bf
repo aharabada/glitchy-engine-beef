@@ -131,6 +131,7 @@ namespace GlitchyEngine.ImGui
 
 			colors[(.)ImGui.Col.WindowBg] = ImGui.Vec4(0.118f, 0.118f, 0.118f, 1.00f);
 			colors[(.)ImGui.Col.FrameBg] = ImGui.Vec4(0.289f, 0.387f, 0.533f, 1.00f);
+			colors[(.)ImGui.Col.MenuBarBg] = ImGui.Vec4(0.21f, 0.21f, 0.21f, 1.00f);
 			colors[(.)ImGui.Col.Header] = ImGui.Vec4(0.267f, 0.295f, 0.329f, 1.00f);
 			colors[(.)ImGui.Col.Tab] = ImGui.Vec4(0.473f, 0.519f, 0.580f, 1.00f);
 			colors[(.)ImGui.Col.TabUnfocused] = ImGui.Vec4(0.255f, 0.255f, 0.255f, 1.00f);
