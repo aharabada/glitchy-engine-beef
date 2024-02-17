@@ -88,8 +88,19 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
 			ShowComponentEditor<CircleCollider2DComponent>("Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
 			ShowComponentEditor<PolygonCollider2DComponent>("Polygon collider 2D", entity, => ShowPolygonCollider2DComponentEditor, => ShowComponentContextMenu<PolygonCollider2DComponent>);
-			ShowComponentEditor<ScriptComponent>("Script Component", entity, => ShowScriptComponentEditor, => ShowComponentContextMenu<ScriptComponent>);
-			
+
+			ScriptComponent:
+			{
+				String scriptComponentName = "Script";
+
+				if (entity.TryGetComponent<ScriptComponent>(let scriptComponent) && scriptComponent.Instance != null)
+				{
+					scriptComponentName = scope:ScriptComponent $"Script ({scriptComponent.ScriptClassName})";
+				}
+
+				ShowComponentEditor<ScriptComponent>(scriptComponentName, entity, => ShowScriptComponentEditor, => ShowComponentContextMenu<ScriptComponent>);
+			}
+
 			ImGui.PopStyleVar();
 
 			ShowAddComponentButton(entity);
