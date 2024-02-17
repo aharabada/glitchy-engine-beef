@@ -1153,6 +1153,7 @@ namespace GlitchyEditor
 
 			SaveFileDialog sfd = scope .();
 			sfd.InitialDirectory = _currentProject.AssetsFolder;
+			sfd.SetFilter("scene file (*.scene)|*.scene");
 
 			if (sfd.ShowDialog() case .Ok(let result) && result == .OK)
 			{
@@ -1166,6 +1167,7 @@ namespace GlitchyEditor
 		{
 			OpenFileDialog ofd = scope .();
 			ofd.InitialDirectory = _currentProject.AssetsFolder;
+			ofd.SetFilter("scene file (*.scene)|*.scene");
 
 			if (ofd.ShowDialog() case .Ok(let result) && result == .OK)
 			{
