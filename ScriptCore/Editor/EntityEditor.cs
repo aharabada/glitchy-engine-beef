@@ -852,7 +852,9 @@ internal class EntityEditor
 
                 IEnumerable<Attribute> attributes = field.GetCustomAttributes();
 
-                object? newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, field.Name, attributes);
+                string prettyName = field.Name.ToPrettyName();
+
+                object? newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, prettyName, attributes);
 
                 if (newValue != DidNotChange)
                 {
