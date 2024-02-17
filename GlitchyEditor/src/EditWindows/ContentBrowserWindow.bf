@@ -22,6 +22,8 @@ namespace GlitchyEditor.EditWindows
 		private String _fileExtension ~ delete _;
 		private CreateAssetFunc _doCreateAsset ~ delete _;
 
+		private SubTexture2D _icon ~ _?.ReleaseRef();
+
 		public delegate void CreateAssetFunc(StringView outputPath);
 
 		public StringView Name => _name;
@@ -30,12 +32,17 @@ namespace GlitchyEditor.EditWindows
 
 		public CreateAssetFunc CreateAsset => _doCreateAsset;
 
-		public this(StringView name, StringView defaultFileName, StringView fileExtension, CreateAssetFunc createAsset)
+		public SubTexture2D Icon => _icon;
+
+		public this(StringView name, StringView defaultFileName, StringView fileExtension, CreateAssetFunc createAsset, SubTexture2D icon = null)
 		{
 			_name = new String(name);
 			_defaultFileName = new String(defaultFileName);
 			_fileExtension = new String(fileExtension);
 			_doCreateAsset = createAsset;
+
+			_icon = icon;
+			_icon?.AddRef();
 		}
 	}
 
@@ -58,6 +65,8 @@ namespace GlitchyEditor.EditWindows
 		private append String _assetToRename = .();
 		private char8[128] _renameFileNameBuffer;
 
+		private AssetThumbnailManager _thumbnailManager;
+
 		public static SubTexture2D s_FolderTexture;
 		public static SubTexture2D s_FileTexture;
 
@@ -69,9 +78,10 @@ namespace GlitchyEditor.EditWindows
 		bool _showNewFile = false;
 		AssetCreator _newFileCreator = null;
 
-		public this(EditorContentManager contentManager)
+		public this(EditorContentManager contentManager, AssetThumbnailManager thumbnailManager)
 		{
 			_manager = contentManager;
+			_thumbnailManager = thumbnailManager;
 		}
 
 		/// Registers an asset creator that will show up in the "Create new" drop down menu
@@ -577,7 +587,7 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			// TODO: preview images
-			SubTexture2D image = entry->IsDirectory ? s_FolderTexture : s_FileTexture;
+			SubTexture2D image = _thumbnailManager.GetThumbnail(entry.Value);
 
 			ImGui.ImageButton("FileImage", image, (.)IconSize);
 
@@ -713,7 +723,7 @@ namespace GlitchyEditor.EditWindows
 			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
 
 			// TODO: preview images
-			SubTexture2D image = s_FileTexture;
+			SubTexture2D image = _newFileCreator.Icon ?? s_FileTexture;
 
 			ImGui.ImageButton("FileImage", image, (.)IconSize);
 

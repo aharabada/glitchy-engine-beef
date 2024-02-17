@@ -109,6 +109,8 @@ namespace GlitchyEditor
 		/// Returns whether or not the current scene can be saved.
 		public bool CanSaveScene => _sceneState == .Edit;
 
+		private AssetThumbnailManager _thumbnailManager ~ delete _;
+
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
@@ -125,7 +127,9 @@ namespace GlitchyEditor
 
 			_camera = EditorCamera(float3(-3f, 3f, -3f), Quaternion.FromEulerAngles(MathHelper.ToRadians(40), MathHelper.ToRadians(25), 0), MathHelper.ToRadians(75), 0.1f, 1);
 			_camera.RenderTarget = _cameraTarget;
-			
+
+			_thumbnailManager = new AssetThumbnailManager(_editorIcons);
+
 			InitEditor();
 
 			RegisterAssetCreators();
@@ -156,7 +160,7 @@ namespace GlitchyEditor
 					{
 						Log.ClientLogger.Error($"Directory \"{path}\" could not be created ({error}).");
 					}
-				}));
+				}, _editorIcons.Folder));
 
 			Editor.Instance.ContentBrowserWindow.InsertAssetCreatorSeparator();
 
@@ -166,7 +170,7 @@ namespace GlitchyEditor
 					{
 						SaveScene(newScene, path);
 					}
-				}));
+				}, _editorIcons.File_Scene));
 
 			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Material", "New Material", ".mat", new (path) =>
 				{
@@ -174,7 +178,7 @@ namespace GlitchyEditor
 					{
 						_contentManager.SaveAssetToFile(newMaterial, path);
 					}
-				}));
+				}, _editorIcons.File_Material));
 			
 			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Script", "New Entity", ".cs", new (path) =>
 				{
@@ -240,7 +244,7 @@ namespace GlitchyEditor
 					{
 						Log.EngineLogger.Error($"Failed to edit project file ({err}). Please add the file to the project manually.");
 					}
-				}));
+				}, _editorIcons.File_CSharpScript));
 		}
 
 		private void ToCSharpName(String input, String output)
@@ -354,7 +358,7 @@ namespace GlitchyEditor
 
 		private void InitEditor()
 		{
-			_editor = new Editor(_editorScene, _contentManager);
+			_editor = new Editor(_editorScene, _contentManager, _thumbnailManager);
 			_editor.SceneViewportWindow.ViewportSizeChanged.Add(new (s, e) => EditorViewportSizeChanged(s, e));
 			_editor.GameViewportWindow.ViewportSizeChanged.Add(new (s, e) => GameViewportSizeChanged(s, e));
 			_editor.CurrentCamera = &_camera;

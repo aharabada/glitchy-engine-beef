@@ -23,6 +23,10 @@ namespace GlitchyEditor
 		public SubTexture2D Warning ~ _.ReleaseRef();
 		public SubTexture2D Info ~ _.ReleaseRef();
 		public SubTexture2D Trace ~ _.ReleaseRef();
+		public SubTexture2D File_Scene ~ _.ReleaseRef();
+		public SubTexture2D File_Material ~ _.ReleaseRef();
+		public SubTexture2D File_CSharpScript ~ _.ReleaseRef();
+		public SubTexture2D File_Shader ~ _.ReleaseRef();
 
 		public SamplerState SamplerState
 		{
@@ -49,6 +53,10 @@ namespace GlitchyEditor
 			Warning = GetNextGridTexture(ref pen, iconSize);
 			Info = GetNextGridTexture(ref pen, iconSize);
 			Trace = GetNextGridTexture(ref pen, iconSize);
+			File_Scene = GetNextGridTexture(ref pen, iconSize);
+			File_Material = GetNextGridTexture(ref pen, iconSize);
+			File_CSharpScript = GetNextGridTexture(ref pen, iconSize);
+			File_Shader = GetNextGridTexture(ref pen, iconSize);
 		}
 
 		private SubTexture2D GetNextGridTexture(ref float2 pen, float2 iconSize)
