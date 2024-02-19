@@ -36,6 +36,19 @@ public class Transform : Component
         }
         set => ScriptGlue.Transform_SetTranslation(Entity.UUID, in value);
     }
+    
+    /// <summary>
+    /// Gets or sets the translation (position) of the entity in global space.
+    /// </summary>
+    public float3 WorldTranslation
+    {
+        get
+        {
+            ScriptGlue.Transform_GetWorldTranslation(Entity.UUID, out float3 translation);
+            return translation;
+        }
+        set => ScriptGlue.Transform_SetWorldTranslation(Entity.UUID, in value);
+    }
 
     /// <summary>
     /// Gets or sets the rotation of the entity.

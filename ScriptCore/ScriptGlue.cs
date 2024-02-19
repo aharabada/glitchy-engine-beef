@@ -82,6 +82,12 @@ internal static class ScriptGlue
     internal static extern void Transform_SetTranslation(UUID entityId, in float3 translation);
     
     [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_GetWorldTranslation(UUID entityId, out float3 translation);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Transform_SetWorldTranslation(UUID entityId, in float3 translation);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_GetRotation(UUID entityId, out Quaternion rotation);
 
     [MethodImpl(MethodImplOptions.InternalCall)]

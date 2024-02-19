@@ -506,6 +506,43 @@ static class ScriptGlue
 		}
 		// TODO: we need to handle repositioning of colliders that are children of the entity with rigidbody...
 	}
+
+	[RegisterCall("ScriptGlue::Transform_GetWorldTranslation")]
+	static void Transform_GetWorldTranslation(UUID entityId, out float3 translationWorld)
+	{
+		Entity entity = GetEntitySafe(entityId);
+
+		TransformComponent* transform = entity.Transform;
+
+		translationWorld = transform.WorldTransform.Translation; //(float4(entity.Transform.Position, 1.0f) * entity.Transform.WorldTransform).XYZ;
+	}
+
+	[RegisterCall("ScriptGlue::Transform_SetWorldTranslation")]
+	static void Transform_SetWorldTranslation(UUID entityId, in float3 translation)
+	{
+		Log.ClientLogger.Warning("Transform_SetWorldTranslation is not implemented!");
+
+		// Entity entity = GetEntitySafe(entityId);
+
+		// entity.Transform.Position = translation;
+
+		// // if necessary reposition Rigidbody2D
+		// if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+		// {
+		// 	rigidbody2D.SetPosition(translation.XY);
+		// }
+		// TODO: we need to handle repositioning of colliders that are children of the entity with rigidbody...
+	}
+
+	[RegisterCall("ScriptGlue::Transform_TransformPointToWorld")]
+	static void Transform_TransformPointToWorld(UUID entityId, float3 point, out float3 pointWorld)
+	{
+		Entity entity = GetEntitySafe(entityId);
+
+		float3 localPoint = entity.Transform.Position;
+
+		pointWorld = (float4(localPoint, 1.0f) * entity.Transform.WorldTransform).XYZ;
+	}
 	
 	[RegisterCall("ScriptGlue::Transform_GetRotation")]
 	static void Transform_GetRotation(UUID entityId, out Quaternion rotation)
