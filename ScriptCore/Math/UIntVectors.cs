@@ -6,6 +6,9 @@ namespace GlitchyEngine.Math;
 
 // TODO: Currently no VectorMath-Attribute because -uint results in long
 
+/// <summary>
+/// Represents a vector with two 32-bit unsigned integer values.
+/// </summary>
 [Vector(typeof(uint), 2, "uint")]
 [VectorLogic]
 [ComparableVector]
@@ -19,6 +22,9 @@ public partial struct uint2
     }
 }
 
+/// <summary>
+/// Represents a vector with three 32-bit unsigned integer values.
+/// </summary>
 [Vector(typeof(uint), 3, "uint")]
 [VectorLogic]
 [ComparableVector]
@@ -32,6 +38,9 @@ public partial struct uint3
     }
 }
 
+/// <summary>
+/// Represents a vector with four 32-bit unsigned integer values.
+/// </summary>
 [Vector(typeof(uint), 4, "uint")]
 [VectorLogic]
 [ComparableVector]

@@ -4,6 +4,9 @@ using GlitchyEngine.Math.Attributes;
 
 namespace GlitchyEngine.Math;
 
+/// <summary>
+/// Represents a vector with two 32-bit signed integer values.
+/// </summary>
 [Vector(typeof(int), 2, "int")]
 [VectorMath]
 [VectorLogic]
@@ -18,6 +21,9 @@ public partial struct int2
     }
 }
 
+/// <summary>
+/// Represents a vector with three 32-bit signed integer values.
+/// </summary>
 [Vector(typeof(int), 3, "int")]
 [VectorMath]
 [VectorLogic]
@@ -32,6 +38,9 @@ public partial struct int3
     }
 }
 
+/// <summary>
+/// Represents a vector with four 32-bit signed integer values.
+/// </summary>
 [Vector(typeof(int), 4, "int")]
 [VectorMath]
 [VectorLogic]

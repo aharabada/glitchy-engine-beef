@@ -57,9 +57,13 @@ public struct ColorRGBA
     public static explicit operator float4(ColorRGBA color) => new float4(color.R, color.G, color.B, color.A);
     public static explicit operator ColorRGBA(float4 vector) => new ColorRGBA(vector.X, vector.Y, vector.Z, vector.W);
     
-    // Converts a Color from sRGB color space to Linear color space.
+    /// <summary>
+    /// Converts a Color from sRGB color space to Linear color space.
+    /// </summary>
     public static ColorRGBA SRgbToLinear(ColorRGBA sRGB) => new ColorRGBA(pow(sRGB.R, SrgbToLin), pow(sRGB.G, SrgbToLin), pow(sRGB.B, SrgbToLin), sRGB.A);
 
-    // Converts a Color from linear color space to sRGB color space.
+    /// <summary>
+    /// Converts a Color from linear color space to sRGB color space.
+    /// </summary>
     public static ColorRGBA LinearToSRGB(ColorRGBA linear) => new ColorRGBA(pow(linear.R, LinToSRGB), pow(linear.G, LinToSRGB), pow(linear.B, LinToSRGB), linear.A);
 }

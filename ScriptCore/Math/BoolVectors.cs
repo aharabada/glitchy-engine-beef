@@ -4,6 +4,9 @@ using GlitchyEngine.Math.Attributes;
 
 namespace GlitchyEngine.Math;
 
+/// <summary>
+/// Represents a vector with two boolean values.
+/// </summary>
 [Vector(typeof(bool), 2, "bool")]
 [VectorLogic]
 public partial struct bool2
@@ -14,6 +17,9 @@ public partial struct bool2
     }
 }
 
+/// <summary>
+/// Represents a vector with three boolean values.
+/// </summary>
 [Vector(typeof(bool), 3, "bool")]
 [VectorLogic]
 public partial struct bool3
@@ -24,6 +30,9 @@ public partial struct bool3
     }
 }
 
+/// <summary>
+/// Represents a vector with four boolean values.
+/// </summary>
 [Vector(typeof(bool), 4, "bool")]
 [VectorLogic]
 public partial struct bool4

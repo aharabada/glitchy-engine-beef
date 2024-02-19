@@ -4,18 +4,19 @@ using System.Runtime.CompilerServices;
 namespace GlitchyEngine.Math;
 
 /// <summary>
-/// Represents a 16-bit floating point number. (IEEE 754 half-precision binary floating-point (binary16))
+/// Represents a 16-bit (half-precision) floating point number. (aka. IEEE 754 half-precision binary floating-point (binary16))
 /// </summary>
 /// <remarks>
-/// Even though it is possible, it's not recommended to perform calculations using this type directly, because most operators will simply cast the operands to <see cref="float"/> and cast the result back to <see cref="Half"/>.
+/// Even though it is possible, it's not recommended to perform large calculations using this type directly because most operators will simply cast the operands to <see cref="float"/> and cast the result back to <see cref="Half"/>.
+/// If you need to do larger calculations consider casting to <see cref="float"/> once and cast the result back to <see cref="Half"/> afterwards. This will not only have better performance, but will also increase the accuracy of the result.
 /// </remarks>
 public struct Half : IComparable , IComparable<Half>, IConvertible, IEquatable<Half>, IFormattable
 {
     public static readonly Half MinValue = new(-65504); // Should be 0xFBFF
     public static readonly Half MaxValue = new(65504); // Should be 0x7BFF
 
-    // The numbers for Inifnity, NaN and Zero need to be hardcoded as binaries,
-    // because the conversion intself relies on them.
+    // The numbers for Infinity, NaN and Zero need to be hardcoded as binaries,
+    // because the conversion itself relies on them.
 
     public static readonly Half PositiveInfinity = new(0x7C00);
     public static readonly Half NegativeInfinity = new(0xFC00);
