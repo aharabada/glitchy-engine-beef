@@ -206,6 +206,11 @@ static class ScriptGlue
 	static void Log_LogMessage(int32 logLevel, MonoString* message, MonoString* fileName, int lineNumber)
 	{
 		char8* utfMessage = Mono.mono_string_to_utf8(message);
+		
+		String escapedMessage = scope String(StringView(utfMessage));
+
+		escapedMessage.Replace("{", "{{");
+		escapedMessage.Replace("}", "}}");
 
 		if (fileName != null)
 		{
@@ -213,13 +218,14 @@ static class ScriptGlue
 
 			MessageOrigin messageOrigin = new MessageOrigin(StringView(utfFileName), lineNumber);
 
-			Log.ClientLogger.Log((LogLevel)logLevel, StringView(utfMessage), messageOrigin);
+
+			Log.ClientLogger.Log((LogLevel)logLevel, escapedMessage, messageOrigin);
 
 			Mono.mono_free(utfFileName);
 		}
 		else
 		{
-			Log.ClientLogger.Log((LogLevel)logLevel, StringView(utfMessage));
+			Log.ClientLogger.Log((LogLevel)logLevel, escapedMessage);
 		}
 
 		Mono.mono_free(utfMessage);

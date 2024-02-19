@@ -109,18 +109,35 @@ public class EditorLogger : Logger
 		DateTime timestamp = DateTime.Now;
 
 		String message = scope String(4096);
-		message.AppendF(format, params args);
+
+		MonoExceptionHelper exceptionHelper = null;
+		MessageOrigin messageOrigin = null;
+
+		if (args.Count > 0)
+		{
+			exceptionHelper = args[^1] as MonoExceptionHelper;
+			messageOrigin = args[^1] as MessageOrigin;
+		}
+
+		var argsForMessage = args[0...];
+
+		if (exceptionHelper != null || messageOrigin != null)
+		{
+			argsForMessage = args[0..<^1];
+		}
+
+		message.AppendF(format, params argsForMessage);
 
 		Debug.Write($"[{timestamp:HH:mm:ss.fff}] ({_name})|{level.UpperString}: {message}\n");
 
 		if (Editor.Instance?.LogWindow == null)
 			return;
 
-		if (args.Count > 0 && (var ex = args[^1] as MonoExceptionHelper))
+		if (args.Count > 0 && exceptionHelper != null)
 		{
-			Editor.Instance.LogWindow.LogException(timestamp, ex);
+			Editor.Instance.LogWindow.LogException(timestamp, exceptionHelper);
 		}
-		else if (args.Count > 0 && (var messageOrigin = args[^1] as MessageOrigin))
+		else if (args.Count > 0 && messageOrigin != null)
 		{
 			Editor.Instance.LogWindow.Log(timestamp, level, message, new .() {IsEngineMessage = IsEngineLogger, MessageOrigin = messageOrigin});
 		}
