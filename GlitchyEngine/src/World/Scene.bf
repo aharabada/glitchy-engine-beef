@@ -701,6 +701,7 @@ namespace GlitchyEngine.World
 				}
 
 				// TODO: Execute Fixed-Updates
+				TransformSystem.Update(_ecsWorld);
 			}
 		}
 
@@ -754,12 +755,17 @@ namespace GlitchyEngine.World
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			TransformSystem.Update(_ecsWorld);
+			if (mode.HasFlag(.Physics))
+			{
+				UpdatePhysics(gameTime);
+			}
 
 			if (mode.HasFlag(.Scripts))
 			{
 				UpdateScripts(gameTime, mode);
 			}
+
+			TransformSystem.Update(_ecsWorld);
 
 			if (!_destroyScriptQueue.IsEmpty)
 			{
@@ -783,11 +789,6 @@ namespace GlitchyEngine.World
 				}
 
 				_destroyQueue.Clear();
-			}
-
-			if (mode.HasFlag(.Physics))
-			{
-				UpdatePhysics(gameTime);
 			}
 		}
 
