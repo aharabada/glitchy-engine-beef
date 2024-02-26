@@ -111,6 +111,10 @@ namespace GlitchyEditor
 
 		private AssetThumbnailManager _thumbnailManager ~ delete _;
 
+#if GE_EDITOR_IMGUI_DEMO
+		private bool _showImguiDemoWindow;
+#endif
+
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
@@ -1214,6 +1218,13 @@ namespace GlitchyEditor
 
 			DrawMainMenuBar();
 
+#if GE_EDITOR_IMGUI_DEMO
+			if (_showImguiDemoWindow)
+			{
+				ImGui.ShowDemoWindow();
+			}
+#endif
+
 			_editor.SceneViewportWindow.RenderTarget = _editorViewportTarget;
 			_editor.GameViewportWindow.RenderTarget = _gameViewportTarget;
 
@@ -1534,6 +1545,10 @@ namespace GlitchyEditor
 			{
 				if(ImGui.MenuItem("Reload Scripts"))
 					ScriptEngine.ReloadAssemblies();
+
+#if GE_EDITOR_IMGUI_DEMO
+				ImGui.Checkbox("Show ImGui Demo", &_showImguiDemoWindow);
+#endif
 
 				ImGui.EndMenu();
 			}
