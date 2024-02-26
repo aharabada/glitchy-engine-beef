@@ -73,14 +73,27 @@ internal class EntityEditor
     /// Starts a new property by creating a new table row, writing the name in the first column and entering the second column.
     /// </summary>
     /// <param name="propertyName">The label that will be show in the label column.</param>
+    /// <param name="attributes">The list of attributes of the field. If it contains a <see cref="TooltipAttribute"/>, this will be used as the tooltip.
+    /// If null or the attribute isn't in the list, <see cref="propertyName"/> will be used as tooltip.</param>
     /// <returns>A string containing the propertyName as ImGui id</returns>
-    private static string StartNewProperty(string propertyName)
+    private static string StartNewProperty(string propertyName, IEnumerable<Attribute> attributes)
     {
-        //BeginNewRow();
+        TooltipAttribute? tooltip = GetAttribute<TooltipAttribute>(attributes);
 
+        return StartNewProperty(propertyName, tooltip?.Tooltip);
+    }
+    
+    /// <summary>
+    /// Starts a new property by creating a new table row, writing the name in the first column and entering the second column.
+    /// </summary>
+    /// <param name="propertyName">The label that will be show in the label column.</param>
+    /// <param name="tooltip">The tooltip that will be shown when hovering over the label. If null, <see cref="propertyName"/> will be used as tooltip.</param>
+    /// <returns>A string containing the propertyName as ImGui id</returns>
+    private static string StartNewProperty(string propertyName, string? tooltip = null)
+    {
         ImGui.TextUnformatted(propertyName);
-
-        ImGuiExtension.AttachTooltip(propertyName);
+        
+        ImGuiExtension.AttachTooltip(tooltip ?? propertyName);
 
         ImGui.TableSetColumnIndex(1);
 
@@ -161,7 +174,7 @@ internal class EntityEditor
 
         ImGui.PushID("Decimal");
         
-        string fieldId = StartNewProperty(fieldName);
+        string fieldId = StartNewProperty(fieldName, attributes);
 
         if (ImGui.InputText(fieldId, bytes, (uint)bytes.Length, ImGuiInputTextFlags.EnterReturnsTrue | ImGuiInputTextFlags.CharsDecimal))
         {
@@ -182,7 +195,7 @@ internal class EntityEditor
     {
         Debug.Assert(reference != null);
 
-        string fieldId = StartNewProperty(fieldName);
+        string fieldId = StartNewProperty(fieldName, attributes);
 
         object newValue = DidNotChange;
 
@@ -367,9 +380,9 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object ShowEnumEditor(object? reference, Type fieldType, string fieldName)
+    private static object ShowEnumEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
-        string fieldId = StartNewProperty(fieldName);
+        string fieldId = StartNewProperty(fieldName, attributes);
 
         object newValue = DidNotChange;
         if (ImGui.BeginCombo(fieldId, reference?.ToString()))
@@ -443,7 +456,7 @@ internal class EntityEditor
         }
         else if (fieldType.IsEnum)
         {
-            newValue = ShowEnumEditor(reference, fieldType, fieldName);
+            newValue = ShowEnumEditor(reference, fieldType, fieldName, attributes);
         }
         else if (fieldType.IsPrimitive)
         {
@@ -457,7 +470,7 @@ internal class EntityEditor
             }
             else if (fieldType == typeof(ColorRGBA))
             {
-                string fieldId = StartNewProperty(fieldName);
+                string fieldId = StartNewProperty(fieldName, attributes);
 
                 ColorRGBA value = (ColorRGBA)reference!;
                 if (ImGui.ColorEdit4(fieldId, ref Unsafe.As<ColorRGBA, Vector4>(ref value)))
@@ -465,7 +478,7 @@ internal class EntityEditor
             }
             else if (fieldType.TryGetCustomAttribute(out VectorAttribute vectorAttribute))
             {
-                newValue = ShowVectorEditor(reference, fieldType, fieldName, vectorAttribute);
+                newValue = ShowVectorEditor(reference, fieldType, fieldName, vectorAttribute, attributes);
             }
             else
             {
@@ -474,11 +487,11 @@ internal class EntityEditor
         }
         else if (fieldType.IsSubclassOf(typeof(Entity)) || fieldType == typeof(Entity))
         {
-            newValue = ShowEntityDropTarget(fieldName, fieldType, reference);
+            newValue = ShowEntityDropTarget(fieldName, fieldType, reference, attributes);
         }
         else if (fieldType.IsSubclassOf(typeof(Component)))
         {
-            newValue = ShowComponentDropTarget(fieldName, fieldType, reference);
+            newValue = ShowComponentDropTarget(fieldName, fieldType, reference, attributes);
         }
         else if (fieldType == typeof(string))
         {
@@ -494,11 +507,11 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object ShowVectorEditor(object? reference, Type fieldType, string fieldName, VectorAttribute vectorAttribute)
+    private static object ShowVectorEditor(object? reference, Type fieldType, string fieldName, VectorAttribute vectorAttribute, IEnumerable<Attribute>? attributes)
     {
         object newValue = DidNotChange;
         
-        string fieldId = StartNewProperty(fieldName);
+        string fieldId = StartNewProperty(fieldName, attributes);
 
         if (vectorAttribute.Type == typeof(bool))
         {
@@ -609,7 +622,7 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object? ShowObjectEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute> attributes)
+    private static object? ShowObjectEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
         object? newValue = DidNotChange;
         
@@ -673,11 +686,11 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object? ShowComponentDropTarget(string fieldName, Type fieldType, object? currentValue)
+    private static object? ShowComponentDropTarget(string fieldName, Type fieldType, object? currentValue, IEnumerable<Attribute>? attributes)
     {
         object? newValue = DidNotChange;
         
-        string fieldId = StartNewProperty(fieldName);
+        string fieldId = StartNewProperty(fieldName, attributes);
 
         Component? component = currentValue as Component;
 
@@ -746,11 +759,11 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object? ShowEntityDropTarget(string fieldName, Type fieldType, object? currentValue)
+    private static object? ShowEntityDropTarget(string fieldName, Type fieldType, object? currentValue, IEnumerable<Attribute> attributes)
     {
         object? newValue = DidNotChange;
         
-        string fieldId = StartNewProperty(fieldName);
+        string fieldId = StartNewProperty(fieldName, attributes);
 
         string entityName = "None";
         
@@ -838,7 +851,7 @@ internal class EntityEditor
 
     private static object ShowStringEditor(object? reference, Type fieldType, string fieldName, IEnumerable<Attribute>? attributes)
     {
-        string fieldId = StartNewProperty(fieldName);
+        string fieldId = StartNewProperty(fieldName, attributes);
 
         object newValue = DidNotChange;
 
