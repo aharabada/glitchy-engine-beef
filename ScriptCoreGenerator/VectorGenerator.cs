@@ -24,7 +24,7 @@ public class VectorGenerator : ISourceGenerator
     {
         _context = context;
 
-        var receiver = (VectorSyntaxReceiver)context.SyntaxReceiver;
+        var receiver = (VectorSyntaxReceiver?)context.SyntaxReceiver;
 
         if (receiver == null) return;
 
@@ -71,7 +71,7 @@ public class VectorGenerator : ISourceGenerator
 
                     namespace {{vector.Struct.GetNamespace()}};
 
-                    public partial struct {{vector.VectorName}}
+                    public partial struct {{vector.Name}}
                     {
 
                     """);
@@ -87,24 +87,24 @@ public class VectorGenerator : ISourceGenerator
             GenerateEquals(vector, builder);
             GenerateGetHashCode(vector, builder);
 
-            if (receiver.ComparableReceiver.ComparableVectors.Contains(vector.VectorName))
+            if (receiver.ComparableReceiver.ComparableVectors.Contains(vector.Name))
             {
                 GenerateComparisonOperators(vector, builder);
             }
 
-            if (receiver.MathReceiver.MathVectors.Contains(vector.VectorName))
+            if (receiver.MathReceiver.MathVectors.Contains(vector.Name))
             {
                 GenerateMathOperators(vector, builder);
             }
 
-            if (receiver.LogicReceiver.LogicVectors.Contains(vector.VectorName))
+            if (receiver.LogicReceiver.LogicVectors.Contains(vector.Name))
             {
                 GenerateLogicOperators(vector, builder);
             }
 
-            foreach (var cast in receiver.CastReceiver.VectorCasts.Where(c => c.FromType == vector.VectorName))
+            foreach (var cast in receiver.CastReceiver.VectorCasts.Where(c => c.FromType == vector.Name))
             {
-                VectorDefinition toVectorDefinition = receiver.Vectors.First(v => v.VectorName == cast.ToType);
+                VectorDefinition toVectorDefinition = receiver.Vectors.First(v => v.Name == cast.ToType);
 
                 GenerateCastOperator(cast, vector, toVectorDefinition, builder);
             }
@@ -115,7 +115,7 @@ public class VectorGenerator : ISourceGenerator
 
             builder.Append('}');
         
-            context.AddSource($"{vector.VectorName}.g.cs", builder.ToString());
+            context.AddSource($"{vector.Name}.g.cs", builder.ToString());
         }
     }
 
@@ -124,7 +124,7 @@ public class VectorGenerator : ISourceGenerator
         builder.Append($$"""
                              public override bool Equals(object other)
                              {
-                                 if (other is {{vector.VectorName}} otherVector)
+                                 if (other is {{vector.Name}} otherVector)
                                     return Math.all(this == otherVector);
                                     
                                 return false;
@@ -183,7 +183,7 @@ public class VectorGenerator : ISourceGenerator
                 new DiagnosticDescriptor(
                     "SG0001",
                     "Vector-Dimensions don't match for cast.",
-                    $"Cannot cast from \"{fromVector.VectorName}\" to \"{toVector.VectorName}\" because the dimensions don't match.",
+                    $"Cannot cast from \"{fromVector.Name}\" to \"{toVector.Name}\" because the dimensions don't match.",
                     "Vector Generator",
                     DiagnosticSeverity.Error,
                     true), fromVector.Struct.GetLocation()));
@@ -240,9 +240,9 @@ public class VectorGenerator : ISourceGenerator
         }
 
         builder.Append($$"""
-                public static implicit operator {{vector.VectorName}}({{vector.ElementTypeName}} value)
+                public static implicit operator {{vector.Name}}({{vector.ElementTypeName}} value)
                 {
-                    return new {{vector.VectorName}}({{castBuilder}});
+                    return new {{vector.Name}}({{castBuilder}});
                 }
 
 
@@ -307,7 +307,7 @@ public class VectorGenerator : ISourceGenerator
         }
 
         builder.Append($$"""
-                public {{vector.VectorName}} ({{parameters}})
+                public {{vector.Name}} ({{parameters}})
                 {{{body}}
                 }
 
@@ -318,7 +318,7 @@ public class VectorGenerator : ISourceGenerator
     private void Generatefloat3Constructors(VectorDefinition vector, StringBuilder builder)
     {
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.BaseName}}2 xy, {{vector.ElementTypeName}} z)
+            public {{vector.Name}}({{vector.BaseName}}2 xy, {{vector.ElementTypeName}} z)
             {
                 X = xy.X;
                 Y = xy.Y;
@@ -328,7 +328,7 @@ public class VectorGenerator : ISourceGenerator
         """);
 
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.ElementTypeName}} x, {{vector.BaseName}}2 yz)
+            public {{vector.Name}}({{vector.ElementTypeName}} x, {{vector.BaseName}}2 yz)
             {
                 X = x;
                 Y = yz.X;
@@ -341,7 +341,7 @@ public class VectorGenerator : ISourceGenerator
     private void Generatefloat4Constructors(VectorDefinition vector, StringBuilder builder)
     {
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.BaseName}}2 xy, {{vector.BaseName}}2 zw)
+            public {{vector.Name}}({{vector.BaseName}}2 xy, {{vector.BaseName}}2 zw)
             {
                 //XY = xy;
                 //ZW = zw;
@@ -355,7 +355,7 @@ public class VectorGenerator : ISourceGenerator
         """);
 
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.BaseName}}2 xy, {{vector.ElementTypeName}} z, {{vector.ElementTypeName}} w)
+            public {{vector.Name}}({{vector.BaseName}}2 xy, {{vector.ElementTypeName}} z, {{vector.ElementTypeName}} w)
             {
                 X = xy.X;
                 Y = xy.Y;
@@ -367,7 +367,7 @@ public class VectorGenerator : ISourceGenerator
         """);
 
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.ElementTypeName}} x, {{vector.BaseName}}2 yz, {{vector.ElementTypeName}} w)
+            public {{vector.Name}}({{vector.ElementTypeName}} x, {{vector.BaseName}}2 yz, {{vector.ElementTypeName}} w)
             {
                 X = x;
                 Y = yz.X;
@@ -379,7 +379,7 @@ public class VectorGenerator : ISourceGenerator
         """);
 
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.ElementTypeName}} x, {{vector.ElementTypeName}} y, {{vector.BaseName}}2 zw)
+            public {{vector.Name}}({{vector.ElementTypeName}} x, {{vector.ElementTypeName}} y, {{vector.BaseName}}2 zw)
             {
                 X = x;
                 Y = y;
@@ -391,7 +391,7 @@ public class VectorGenerator : ISourceGenerator
         """);
 
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.BaseName}}3 xyz, {{vector.ElementTypeName}} w)
+            public {{vector.Name}}({{vector.BaseName}}3 xyz, {{vector.ElementTypeName}} w)
             {
                 X = xyz.X;
                 Y = xyz.Y;
@@ -403,7 +403,7 @@ public class VectorGenerator : ISourceGenerator
         """);
 
         builder.Append($$"""
-            public {{vector.VectorName}}({{vector.ElementTypeName}} x, {{vector.BaseName}}3 yzw)
+            public {{vector.Name}}({{vector.ElementTypeName}} x, {{vector.BaseName}}3 yzw)
             {
                 X = x;
                 Y = yzw.X;
@@ -482,7 +482,7 @@ public class VectorGenerator : ISourceGenerator
         }
 
         builder.Append($$"""
-                public static bool{{vector.ComponentCount}} operator {{op}}({{vector.VectorName}} left, {{vector.VectorName}} right)
+                public static bool{{vector.ComponentCount}} operator {{op}}({{vector.Name}} left, {{vector.Name}} right)
                 {
                     return new bool{{vector.ComponentCount}}({{arguments}});
                 }
@@ -524,9 +524,9 @@ public class VectorGenerator : ISourceGenerator
         }
 
         builder.Append($$"""
-                public static {{vector.VectorName}} operator {{op}}({{vector.VectorName}} value)
+                public static {{vector.Name}} operator {{op}}({{vector.Name}} value)
                 {
-                    return new {{vector.VectorName}}({{negativeArguments}});
+                    return new {{vector.Name}}({{negativeArguments}});
                 }
 
 
@@ -548,9 +548,9 @@ public class VectorGenerator : ISourceGenerator
         }
         
         builder.Append($$"""
-                public static {{vector.VectorName}} operator {{op}}({{vector.VectorName}} left, {{vector.VectorName}} right)
+                public static {{vector.Name}} operator {{op}}({{vector.Name}} left, {{vector.Name}} right)
                 {
-                    return new {{vector.VectorName}}({{arguments}});
+                    return new {{vector.Name}}({{arguments}});
                 }
 
 
@@ -567,9 +567,9 @@ public class VectorGenerator : ISourceGenerator
         }
         
         builder.Append($$"""
-                public static {{vector.VectorName}} operator {{op}}({{vector.VectorName}} left, {{vector.ElementTypeName}} right)
+                public static {{vector.Name}} operator {{op}}({{vector.Name}} left, {{vector.ElementTypeName}} right)
                 {
-                    return new {{vector.VectorName}}({{arguments}});
+                    return new {{vector.Name}}({{arguments}});
                 }
 
 
@@ -586,9 +586,9 @@ public class VectorGenerator : ISourceGenerator
         }
         
         builder.Append($$"""
-                public static {{vector.VectorName}} operator {{op}}({{vector.ElementTypeName}} left, {{vector.VectorName}} right)
+                public static {{vector.Name}} operator {{op}}({{vector.ElementTypeName}} left, {{vector.Name}} right)
                 {
-                    return new {{vector.VectorName}}({{arguments}});
+                    return new {{vector.Name}}({{arguments}});
                 }
 
 
@@ -720,21 +720,27 @@ public class VectorSyntaxReceiver : ISyntaxReceiver
         var @struct = attr.GetParent<StructDeclarationSyntax>();
         var name = @struct.Identifier.Text;
         
-        var elementTypeName = (attr.ArgumentList.Arguments[0].Expression as TypeOfExpressionSyntax).Type.ToFullString();
+        var elementTypeName = (attr.ArgumentList?.Arguments[0].Expression as TypeOfExpressionSyntax)?.Type.ToFullString();
 
-        var componentCount = (attr.ArgumentList.Arguments[1].Expression as LiteralExpressionSyntax).Token.Value as int?;
+        if (elementTypeName == null)
+            return;
+        
+        var componentCount = (attr.ArgumentList?.Arguments[1].Expression as LiteralExpressionSyntax)?.Token.Value as int?;
         
         if (componentCount == null)
             return;
         
-        var baseName = (attr.ArgumentList.Arguments[2].Expression as LiteralExpressionSyntax).Token.ValueText;
+        var baseName = (attr.ArgumentList?.Arguments[2].Expression as LiteralExpressionSyntax)?.Token.ValueText;
 
+        if (baseName == null)
+            return;
+        
         Vectors.Add(new VectorDefinition(name, @struct, componentCount.Value, baseName, elementTypeName));
     }
 
     public class VectorDefinition
     {
-        public string VectorName { get; }
+        public string Name { get; }
         public StructDeclarationSyntax Struct { get; }
 
         public int ComponentCount { get; }
@@ -743,9 +749,9 @@ public class VectorSyntaxReceiver : ISyntaxReceiver
 
         public string ElementTypeName { get; }
 
-        public VectorDefinition(string vectorName, StructDeclarationSyntax @struct, int componentCount, string baseName, string elementTypeName)
+        public VectorDefinition(string name, StructDeclarationSyntax @struct, int componentCount, string baseName, string elementTypeName)
         {
-            VectorName = vectorName;
+            Name = name;
             Struct = @struct;
             ComponentCount = componentCount;
             BaseName = baseName;
@@ -814,9 +820,12 @@ public class VectorCastSyntaxReceiver : ISyntaxReceiver
         var @struct = attr.GetParent<StructDeclarationSyntax>();
         var fromType = @struct.Identifier.Text;
 
-        var toType = (attr.ArgumentList.Arguments[0].Expression as TypeOfExpressionSyntax).Type.ToFullString();
+        var toType = (attr.ArgumentList?.Arguments[0].Expression as TypeOfExpressionSyntax)?.Type.ToFullString();
         
-        var isExplicit = (attr.ArgumentList.Arguments[1].Expression as LiteralExpressionSyntax).Token.Value as bool?;
+        if (toType == null)
+            return;
+        
+        var isExplicit = (attr.ArgumentList?.Arguments[1].Expression as LiteralExpressionSyntax)?.Token.Value as bool?;
         
         if (isExplicit == null)
             return;

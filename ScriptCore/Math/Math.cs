@@ -9,7 +9,7 @@ namespace GlitchyEngine.Math;
 /// <summary>
 /// Provides constants and methods for trigonometric and vector calculations.
 /// </summary>
-public static class Math
+public static partial class Math
 {
     /// An optimal representation of π.
     public const float Pi = 3.141592654f;
@@ -35,6 +35,7 @@ public static class Math
     /// Converts radians to degrees
     public const float DegToRad = Pi / 180.0f;
 
+#region any / all
 
     /// Returns true if at least one of the components is true.
     public static bool any(bool value) => value;
@@ -48,18 +49,58 @@ public static class Math
     /// Returns true if at least one of the components is true.
     public static bool any(bool4 value) => value.X || value.Y || value.Z || value.W;
 
+    /// Returns true if at least one of the components is true.
+    public static bool any(bool2x2 value) => value.M11 || value.M12 || value.M21 || value.M22;
+    
+    /// Returns true if at least one of the components is true.
+    public static bool any(bool3x3 value) => value.M11 || value.M12 || value.M13 || 
+                                             value.M21 || value.M22 || value.M23 || 
+                                             value.M31 || value.M32 || value.M33;
+    
+    /// Returns true if at least one of the components is true.
+    public static bool any(bool4x4 value) => value.M11 || value.M12 || value.M13 || value.M14 ||
+                                             value.M21 || value.M22 || value.M23 || value.M24 ||
+                                             value.M31 || value.M32 || value.M33 || value.M34 ||
+                                             value.M41 || value.M42 || value.M43 || value.M44;
+
     /// Returns true if all of the components are true.
     public static bool all(bool value) => value;
 
     /// Returns true if all of the components are true.
-    public static bool all(bool2 value) => value.X && value.Y;
+    public static bool all(bool2 value) => value is { X: true, Y: true };
 
     /// Returns true if all of the components are true.
-    public static bool all(bool3 value) => value.X && value.Y && value.Z;
+    public static bool all(bool3 value) => value is { X: true, Y: true, Z: true };
 
     /// Returns true if all of the components are true.
-    public static bool all(bool4 value) => value.X && value.Y && value.Z && value.W;
+    public static bool all(bool4 value) => value is { X: true, Y: true, Z: true, W: true };
 
+    /// Returns true if all of the components are true.
+    public static bool all(bool2x2 value) => value is
+    {
+        M11: true, M12: true, 
+        M21: true, M22: true
+    };
+    
+    /// Returns true if all of the components are true.
+    public static bool all(bool3x3 value) => value is
+    {
+        M11: true, M12: true, M13: true, 
+        M21: true, M22: true, M23: true, 
+        M31: true, M32: true, M33: true
+    };
+    
+    /// Returns true if all of the components are true.
+    public static bool all(bool4x4 value) => value is
+    {
+        M11: true, M12: true, M13: true, M14: true, 
+        M21: true, M22: true, M23: true, M24: true, 
+        M31: true, M32: true, M33: true, M34: true, 
+        M41: true, M42: true, M43: true, M44: true
+    };
+    
+#endregion
+    
     #region abs
 
     public static float abs(float value)
