@@ -76,7 +76,7 @@ internal class EntityEditor
     /// <param name="attributes">The list of attributes of the field. If it contains a <see cref="TooltipAttribute"/>, this will be used as the tooltip.
     /// If null or the attribute isn't in the list, <see cref="propertyName"/> will be used as tooltip.</param>
     /// <returns>A string containing the propertyName as ImGui id</returns>
-    private static string StartNewProperty(string propertyName, IEnumerable<Attribute> attributes)
+    private static string StartNewProperty(string propertyName, IEnumerable<Attribute>? attributes)
     {
         TooltipAttribute? tooltip = GetAttribute<TooltipAttribute>(attributes);
 
@@ -251,7 +251,7 @@ internal class EntityEditor
                 }
             }
 
-            var value = (T)reference;
+            var value = (T)reference!;
 
             if (range?.Slider == true)
             {
@@ -271,7 +271,7 @@ internal class EntityEditor
 
         if (fieldType == typeof(bool))
         {
-            bool value = (bool)reference;
+            bool value = (bool)reference!;
             if (ImGui.Checkbox(fieldId, ref value))
                 newValue = value;
         }
@@ -283,7 +283,7 @@ internal class EntityEditor
                 // TODO: Add text input validation, so that it isn't possible to type invalid chars
 
                 char* value = stackalloc char[4];
-                switch((char)reference)
+                switch((char)reference!)
                 {
                     case '\a':
                         value[0] = '\\';
@@ -759,7 +759,7 @@ internal class EntityEditor
         return newValue;
     }
 
-    private static object? ShowEntityDropTarget(string fieldName, Type fieldType, object? currentValue, IEnumerable<Attribute> attributes)
+    private static object? ShowEntityDropTarget(string fieldName, Type fieldType, object? currentValue, IEnumerable<Attribute>? attributes)
     {
         object? newValue = DidNotChange;
         
