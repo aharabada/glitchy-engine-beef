@@ -216,6 +216,10 @@ internal class EntityEditor
                 }
             }
 
+            NumberFormatAttribute? numberFormat = GetAttribute<NumberFormatAttribute>(attributes);
+            
+            string? format = numberFormat?.Format;
+            
             RangeAttribute? range = GetAttribute<RangeAttribute>(attributes);
 
             // Get Min and Max Values from Type T
@@ -255,14 +259,14 @@ internal class EntityEditor
 
             if (range?.Slider == true)
             {
-                if (ImGui.SliderScalar(fieldId, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max)))
+                if (ImGui.SliderScalar(fieldId, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max), format))
                 {
                     newValue = value;
                 }
             }
             else
             {
-                if (ImGui.DragScalar(fieldId, dataType, (IntPtr)(&value), dragSpeed, (IntPtr)(&min), (IntPtr)(&max)))
+                if (ImGui.DragScalar(fieldId, dataType, (IntPtr)(&value), dragSpeed, (IntPtr)(&min), (IntPtr)(&max), format))
                 {
                     newValue = value;
                 }
