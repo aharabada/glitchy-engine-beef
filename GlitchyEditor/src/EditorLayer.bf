@@ -605,111 +605,27 @@ namespace GlitchyEditor
 				Log.ClientLogger.Error($"Target directory is not empty.");
 				return .Err;
 			}
+			
+			String templatePath = scope .();
+			Directory.GetCurrentDirectory(templatePath);
+			Path.Combine(templatePath, "Resources/ProjectTemplate");
 
-			Project newProject = Project.CreateNew(workspaceDirectory, projectName);
+			Result<Project> newProjectResult = Project.CreateNewFromTemplate(workspaceDirectory, projectName, templatePath);
 
 			// If the project couldn't be created or initialization failed, we delete the workspace directory.
-			if (newProject == null || InitProject(newProject) == .Err)
+			if (newProjectResult == .Err)
 			{
 				if (Directory.DelTree(workspaceDirectory) case .Err(let error))
 				{
 					Log.EngineLogger.Error($"Failed to delete workspace ({workspaceDirectory}).");
 				}
-				delete newProject;
 
 				return .Err;
 			}
 			
-			if (OpenProject(newProject) case .Err)
+			if (OpenProject(newProjectResult.Get()) case .Err)
 			{
 				Log.ClientLogger.Error($"Failed to open newly created project.");
-				return .Err;
-			}
-
-			return .Ok;
-		}
-
-		const String ProjectNamePlaceholder = "[ProjectName]";
-		const String CoreLibPathPlaceholder = "[CoreLibPath]";
-
-		/// Initializes the given project with the template.
-		private static Result<void> InitProject(Project project)
-		{
-			Try!(CopyTemplate(project));
-
-			Try!(RenameAndFixupFiles(project.WorkspacePath, project));
-
-			return .Ok;
-		}
-
-		/// Moves files so that [ProjectName] in their paths will be replaced by the actual project name
-		private static Result<void> RenameAndFixupFiles(StringView directoryPath, Project project)
-		{
-			String fullPath = scope .(256);
-			String modifiedFileName = scope String(256);
-
-			for (FileFindEntry entry in Directory.Enumerate(scope $"{directoryPath}/*", .Files | .Directories))
-			{
-				entry.GetFilePath(fullPath..Clear());
-				
-				if (fullPath.Contains(ProjectNamePlaceholder))
-				{
-					modifiedFileName.Set(fullPath);
-					modifiedFileName.Replace(ProjectNamePlaceholder, project.Name);
-
-					if (entry.IsDirectory)
-						Try!(Directory.Move(fullPath, modifiedFileName));
-					else
-						Try!(File.Move(fullPath, modifiedFileName));
-
-					Swap!(fullPath, modifiedFileName);
-				}
-
-				if (entry.IsDirectory)
-				{
-					Try!(RenameAndFixupFiles(fullPath, project));
-				}
-				else
-				{
-					String fileContent = scope String();
-					if (File.ReadAllText(fullPath, fileContent, true) case .Err)
-					{
-						Log.EngineLogger.Error($"FixupFile: Failed to read file {fullPath}.");
-						return .Err;
-					}
-
-					if (!fileContent.Contains(ProjectNamePlaceholder) && !fileContent.Contains(CoreLibPathPlaceholder))
-						continue;
-
-					fileContent.Replace(ProjectNamePlaceholder, project.Name);
-
-					// TODO: This is pretty bad, we don't really want to hard code the script core path like that!
-					String scriptCorePath = scope .();
-					Directory.GetCurrentDirectory(scriptCorePath);
-					scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
-					fileContent.Replace(CoreLibPathPlaceholder, scriptCorePath);
-
-					if (File.WriteAllText(fullPath, fileContent, false) case .Err)
-					{
-						Log.EngineLogger.Error($"FixupFile: Failed to write file {fullPath}.");
-						return .Err;
-					}
-				}
-			}
-
-			return .Ok;
-		}
-
-		/// Copies the template files into the given project.
-		private static Result<void> CopyTemplate(Project project)
-		{
-			String templatePath = scope .();
-			Directory.GetCurrentDirectory(templatePath);
-			Path.Combine(templatePath, "Resources/ProjectTemplate");
-
-			if (Directory.Copy(templatePath, project.WorkspacePath) case .Err)
-			{
-				Log.EngineLogger.Error($"CopyTemplate: Failed to copy template {templatePath} to {project.WorkspacePath}.");
 				return .Err;
 			}
 

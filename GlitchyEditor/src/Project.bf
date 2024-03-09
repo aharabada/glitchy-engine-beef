@@ -94,7 +94,7 @@ class Project
 	}
 
 	/// Creates a new project with the given directory and name.
-	public static Project CreateNew(StringView projectDirectory, StringView projectName)
+	public static Result<Project> CreateNew(StringView projectDirectory, StringView projectName)
 	{
 		Project project = new Project(projectDirectory);
 		project._projectName = new String(projectName);
@@ -108,10 +108,115 @@ class Project
 			Log.EngineLogger.Warning($"Failed to save project file \"{settingsFile}\".");
 			delete project;
 
-			return null;
+			return .Err;
 		}
 	
 		return project;
+	}
+
+	/// Creates a new project with the given name in the specified directory basend on the provided template.
+	public static Result<Project> CreateNewFromTemplate(StringView projectDirectory, StringView projectName, StringView templatePath)
+	{
+		Project newProject = Try!(Project.CreateNew(projectDirectory, projectName));
+
+		if (Project.InitializeTemplate(newProject, templatePath) case .Err)
+		{
+			delete newProject;
+			return .Err;
+		}
+
+		return newProject;
+	}
+
+	/// Initializes a project with the provided template.
+	public static Result<void> InitializeTemplate(Project project, StringView templatePath)
+	{
+		Try!(CopyTemplate(project, templatePath));
+		
+		Try!(RenameAndFixupFiles(project.WorkspacePath, project));
+
+		return .Ok;
+	}
+
+	/// Copies the template files into the given project.
+	private static Result<void> CopyTemplate(Project project, StringView templatePath)
+	{
+		if (Directory.Copy(templatePath, project.WorkspacePath) case .Err)
+		{
+			Log.EngineLogger.Error($"CopyTemplate: Failed to copy template {templatePath} to {project.WorkspacePath}.");
+			return .Err;
+		}
+
+		return .Ok;
+	}
+
+	const String ProjectNamePlaceholder = "[ProjectName]";
+	const String CoreLibPathPlaceholder = "[CoreLibPath]";
+	
+	/// Moves files so that [ProjectName] in their paths will be replaced by the actual project name
+	private static Result<void> RenameAndFixupFiles(StringView directoryPath, Project project)
+	{
+		String fullPath = scope .(256);
+		String modifiedFileName = scope String(256);
+
+		for (FileFindEntry entry in Directory.Enumerate(scope $"{directoryPath}/*", .Files | .Directories))
+		{
+			entry.GetFilePath(fullPath..Clear());
+			
+			if (fullPath.Contains(ProjectNamePlaceholder))
+			{
+				modifiedFileName.Set(fullPath);
+				modifiedFileName.Replace(ProjectNamePlaceholder, project.Name);
+
+				if (entry.IsDirectory)
+					Try!(Directory.Move(fullPath, modifiedFileName));
+				else
+					Try!(File.Move(fullPath, modifiedFileName));
+
+				Swap!(fullPath, modifiedFileName);
+			}
+
+			if (entry.IsDirectory)
+			{
+				Try!(RenameAndFixupFiles(fullPath, project));
+			}
+			else
+			{
+				Try!(FixupFile(fullPath, project));
+			}
+		}
+
+		return .Ok;
+	}
+
+	// Fixups a file by replacing placeholders for e.g. the project name.
+	private static Result<void> FixupFile(StringView filePath, Project project)
+	{
+		String fileContent = scope String();
+		if (File.ReadAllText(filePath, fileContent, true) case .Err)
+		{
+			Log.EngineLogger.Error($"FixupFile: Failed to read file {filePath}.");
+			return .Err;
+		}
+
+		if (!fileContent.Contains(ProjectNamePlaceholder) && !fileContent.Contains(CoreLibPathPlaceholder))
+			return .Ok;
+
+		fileContent.Replace(ProjectNamePlaceholder, project.Name);
+
+		// TODO: This is pretty bad, we don't really want to hard code the script core path like that!
+		String scriptCorePath = scope .();
+		Directory.GetCurrentDirectory(scriptCorePath);
+		scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
+		fileContent.Replace(CoreLibPathPlaceholder, scriptCorePath);
+
+		if (File.WriteAllText(filePath, fileContent, false) case .Err)
+		{
+			Log.EngineLogger.Error($"FixupFile: Failed to write file {filePath}.");
+			return .Err;
+		}
+
+		return .Ok;
 	}
 
 	public static Result<Project> Load(StringView projectDirectory)
