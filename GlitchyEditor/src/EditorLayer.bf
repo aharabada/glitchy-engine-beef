@@ -628,23 +628,78 @@ namespace GlitchyEditor
 
 			return .Ok;
 		}
-		
+
+		const String ProjectNamePlaceholder = "[ProjectName]";
+		const String CoreLibPathPlaceholder = "[CoreLibPath]";
+
 		/// Initializes the given project with the template.
 		private static Result<void> InitProject(Project project)
 		{
 			Try!(CopyTemplate(project));
 
-			// Rename files within project
-			Try!(MoveFile(project, "TemplateProject.sln", scope $"{project.Name}.sln"));
-			Try!(MoveFile(project, "TemplateProject.csproj", scope $"{project.Name}.csproj"));
-
-			Try!(FixupTemplateFile(project, scope $"{project.Name}.sln"));
-			Try!(FixupTemplateFile(project, scope $"{project.Name}.csproj"));
-			Try!(FixupTemplateFile(project, scope $"Properties/AssemblyInfo.cs"));
+			Try!(RenameAndFixupFiles(project.WorkspacePath, project));
 
 			return .Ok;
 		}
-		
+
+		/// Moves files so that [ProjectName] in their paths will be replaced by the actual project name
+		private static Result<void> RenameAndFixupFiles(StringView directoryPath, Project project)
+		{
+			String fullPath = scope .(256);
+			String modifiedFileName = scope String(256);
+
+			for (FileFindEntry entry in Directory.Enumerate(scope $"{directoryPath}/*", .Files | .Directories))
+			{
+				entry.GetFilePath(fullPath..Clear());
+				
+				if (fullPath.Contains(ProjectNamePlaceholder))
+				{
+					modifiedFileName.Set(fullPath);
+					modifiedFileName.Replace(ProjectNamePlaceholder, project.Name);
+
+					if (entry.IsDirectory)
+						Try!(Directory.Move(fullPath, modifiedFileName));
+					else
+						Try!(File.Move(fullPath, modifiedFileName));
+
+					Swap!(fullPath, modifiedFileName);
+				}
+
+				if (entry.IsDirectory)
+				{
+					Try!(RenameAndFixupFiles(fullPath, project));
+				}
+				else
+				{
+					String fileContent = scope String();
+					if (File.ReadAllText(fullPath, fileContent, true) case .Err)
+					{
+						Log.EngineLogger.Error($"FixupFile: Failed to read file {fullPath}.");
+						return .Err;
+					}
+
+					if (!fileContent.Contains(ProjectNamePlaceholder) && !fileContent.Contains(CoreLibPathPlaceholder))
+						continue;
+
+					fileContent.Replace(ProjectNamePlaceholder, project.Name);
+
+					// TODO: This is pretty bad, we don't really want to hard code the script core path like that!
+					String scriptCorePath = scope .();
+					Directory.GetCurrentDirectory(scriptCorePath);
+					scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
+					fileContent.Replace(CoreLibPathPlaceholder, scriptCorePath);
+
+					if (File.WriteAllText(fullPath, fileContent, false) case .Err)
+					{
+						Log.EngineLogger.Error($"FixupFile: Failed to write file {fullPath}.");
+						return .Err;
+					}
+				}
+			}
+
+			return .Ok;
+		}
+
 		/// Copies the template files into the given project.
 		private static Result<void> CopyTemplate(Project project)
 		{
@@ -655,53 +710,6 @@ namespace GlitchyEditor
 			if (Directory.Copy(templatePath, project.WorkspacePath) case .Err)
 			{
 				Log.EngineLogger.Error($"CopyTemplate: Failed to copy template {templatePath} to {project.WorkspacePath}.");
-				return .Err;
-			}
-
-			return .Ok;
-		}
-		
-		/// Renames a file within the project.
-		private static Result<void> MoveFile(Project project, StringView fromName, StringView toName)
-		{
-			String fromPath = scope String();
-			project.PathInProject(fromPath, fromName);
-			
-			String toPath = scope String();
-			project.PathInProject(toPath, toName);
-
-			if (File.Move(fromPath, toPath) case .Err(let error))
-			{
-				Log.EngineLogger.Error($"Failed to move file from {fromPath} to {toPath}. ({error})");
-				return .Err;
-			}
-
-			return .Ok;
-		}
-		
-		/// Fixups a template file by replacing placeholders with actual values.
-		private static Result<void> FixupTemplateFile(Project project, StringView fileName)
-		{
-			String fileTargetPath = scope String();
-			project.PathInProject(fileTargetPath, fileName);
-
-			String fileContent = scope String();
-			if (File.ReadAllText(fileTargetPath, fileContent, true) case .Err)
-			{
-				Log.EngineLogger.Error($"FixupFile: Failed to read file {fileTargetPath}.");
-				return .Err;
-			}
-
-			fileContent.Replace("[ProjectName]", project.Name);
-
-			String scriptCorePath = scope .();
-			Directory.GetCurrentDirectory(scriptCorePath);
-			scriptCorePath.Append("/Resources/Scripts/ScriptCore.dll");
-			fileContent.Replace("[CoreLibPath]", scriptCorePath);
-
-			if (File.WriteAllText(fileTargetPath, fileContent, false) case .Err)
-			{
-				Log.EngineLogger.Error($"FixupFile: Failed to write file {fileTargetPath}.");
 				return .Err;
 			}
 
