@@ -10,6 +10,7 @@ using GlitchyEngine.Content;
 using GlitchyEngine;
 using GlitchyEditor.Assets;
 using System.Diagnostics;
+using GlitchyEditor.CodeEditors;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -242,7 +243,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Open C# Project..."))
 			{
-				VisualStudioUtility.OpenScriptProject();
+				RiderIdeAdapter.OpenScriptProject();
 			}
 
 			ImGui.AttachTooltip("Opens the C# Solution of this project.");
@@ -865,7 +866,7 @@ namespace GlitchyEditor.EditWindows
 				if (entry->Path.EndsWith(".cs"))
 				{
 					// Obviously windows only
-					VisualStudioUtility.OpenScript(entry->Path);
+					RiderIdeAdapter.OpenScript(entry->Path);
 				}
 				else if (Path.OpenFolder(entry->Path) case .Err)
 					Log.EngineLogger.Error("Failed to open file.");

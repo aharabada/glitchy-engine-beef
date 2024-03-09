@@ -3,9 +3,9 @@ using System.Diagnostics;
 using GlitchyEngine;
 using System.Collections;
 
-namespace GlitchyEditor;
+namespace GlitchyEditor.CodeEditors;
 
-class VisualStudioUtility
+class VisualStudioIdeAdapter : IIdeAdapter
 {
 	public static bool IsRunning()
 	{

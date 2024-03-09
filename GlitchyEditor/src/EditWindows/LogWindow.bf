@@ -7,6 +7,7 @@ using GlitchLog;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Renderer;
 using GlitchyEngine;
+using GlitchyEditor.CodeEditors;
 
 namespace GlitchyEditor.EditWindows;
 
@@ -315,7 +316,7 @@ class LogWindow : EditorWindow
 				{
 					if (message.Source.MessageOrigin != null)
 					{
-						VisualStudioUtility.OpenScript(message.Source.MessageOrigin.FileName);
+						RiderIdeAdapter.OpenScript(message.Source.MessageOrigin.FileName);
 					}
 				}
 				

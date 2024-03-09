@@ -27,10 +27,23 @@ namespace GlitchyEngine
 namespace GlitchyEditor;
 
 [Reflect]
+enum ScriptIde
+{
+	Rider,
+	VisualStudio
+}
+
+[Reflect]
 class ScriptSettings
 {
-	[Setting("Script", "Visual Studio path", "The path of the Visual Studio devenv.exe"), BonInclude]
+	[Setting("Tools", "Visual Studio path", "The path of Visual Studio's \"devenv.exe\""), BonInclude]
 	public String VisualStudioPath ~ delete _;
+
+	[Setting("Tools", "Rider path", "The path to JetBrains Rider IDE (rider64.exe)"), BonInclude]
+	public String RiderPath ~ delete _;
+	
+	[Setting("Tools", "IDE", "The IDE that will be used to open scripts for editing."), BonInclude]
+	public ScriptIde SelectedIde;
 
 	public void Apply()
 	{

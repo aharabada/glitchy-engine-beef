@@ -264,15 +264,110 @@ namespace GlitchyEditor
 
 						char8[256] buffer = .();
 
-						value.CopyTo(buffer);
+						value?.CopyTo(buffer);
 
 						if (ImGui.InputText(scope $"##{setting.Name}", &buffer, buffer.Count))
 						{
-							value..Clear().Append(&buffer);
+							if (value != null)
+								value..Clear().Append(&buffer);
+							else
+								SetSettingValue!(new String(&buffer));
 
 							_settingsChanged = true;
 						}
 					}
+					
+					/*if (fieldInfo.FieldType.IsEnum)
+					{
+						uint64 enumValue = 0;
+
+						fieldInfo.GetValueReference(setting.SettingsObject);
+
+						// Assign value
+						switch (fieldInfo.FieldType.Size)
+						{
+						case 1: enumValue = *(uint8*)&enumValue;
+						case 2: *(uint16*)&enumValue = *(uint16*)&enumValue;
+						case 4: *(uint32*)&enumValue = *(uint32*)&enumValue;
+						case 8: *(uint64*)&enumValue = *(uint64*)&enumValue;
+						}
+
+						bool found = false;
+						for (var field in valType.GetFields())
+						{
+							if (field.[Friend]mFieldData.mFlags.HasFlag(.EnumCase) &&
+								*(int64*)&field.[Friend]mFieldData.[Friend]mData == valueData)
+							{
+								writer.Enum(field.Name);
+								found = true;
+								break;
+							}
+						}
+
+						// Find field on enum
+						bool found = false;
+						for (var field in valType.GetFields())
+							if (field.[Friend]mFieldData.mFlags.HasFlag(.EnumCase)
+								&& name == field.Name)
+							{
+								// Add value of enum case to current enum value
+								enumValue |= *(int64*)&field.[Friend]mFieldData.[Friend]mData;
+								found = true;
+								break;
+							}
+
+						if (!found)
+							Error!("Enum case not found", reader, valType);
+
+
+						uint64 value = 0;
+						StringView selectedValue;
+						
+						for (FieldInfo enumField in fieldInfo.FieldType.GetFields())
+						{
+							if (enumField.[Friend]mFieldData.mFlags.HasFlag(.EnumCase))
+							{
+								hasCaseData = true;
+
+								if (name == enumField.Name)
+								{
+									unionPayload = ValueView(enumField.FieldType, val.dataPtr);
+									
+									foundCase = true;
+									break;
+								}
+								
+								unionDiscrIndex++;
+							}
+							else if (enumField.[Friend]mFieldData.mFlags.HasFlag(.EnumDiscriminator))
+							{
+								let discrType = enumField.FieldType;
+								Debug.Assert(discrType.IsInteger);
+								discrVal = ValueView(discrType, (uint8*)val.dataPtr + enumField.[Friend]mFieldData.mData);
+							}
+						}
+
+						ImGui.BeginCombo(scope $"##{setting.Name}", null);
+
+						for (var v in Enum.GetValues(fieldInfo.FieldType))
+						{
+
+						}
+
+						ImGui.EndCombo();
+
+						/*// Find field on enum
+						bool found = false;
+						for (var field in valType.GetFields())
+							if (field.[Friend]mFieldData.mFlags.HasFlag(.EnumCase)
+								&& name == field.Name)
+							{
+								// Add value of enum case to current enum value
+								enumValue |= *(int64*)&field.[Friend]mFieldData.[Friend]mData;
+								found = true;
+								break;
+							}*/
+					}*/
 				}
 				
 				ImGui.EndTable();
