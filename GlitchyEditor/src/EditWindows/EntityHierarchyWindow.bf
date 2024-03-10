@@ -365,9 +365,8 @@ namespace GlitchyEditor.EditWindows
 			return deleted;
 		}
 
-		private void ShowVisibilityButton(Entity entity)
+		private void ShowVisibilityToggleButton(Entity entity)
 		{
-			ImGui.PushStyleVar(.WindowPadding, ImGui.Vec2(0, 2));
 			ImGui.PushStyleVar(.ItemInnerSpacing, ImGui.Vec2(0, 0));
 			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
 
@@ -413,10 +412,11 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			ImGui.PopStyleColor(3);
-			ImGui.PopStyleVar(2);
+			ImGui.PopStyleVar(1);
 		}
 
-		private void ImGuiPrintEntityTree(TreeNode<Entity> tree)
+		/// Shows the given entity and it's children as a tree.
+		private void ImGuiPrintEntityTree(TreeNode<Entity> tree, bool flat = false)
 		{
 			Entity entity = tree.Value;
 			
@@ -428,7 +428,7 @@ namespace GlitchyEditor.EditWindows
 			ImGui.TableNextRow();
 			ImGui.TableNextColumn();
 
-			ShowVisibilityButton(entity);
+			ShowVisibilityToggleButton(entity);
 
 			ImGui.TableNextColumn();
 
@@ -507,7 +507,8 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropSource();
 			}
 
-			EntityDropTarget(entity);
+			if (!flat)
+				EntityDropTarget(entity);
 
 			bool clicked = ImGui.IsItemClicked() && !ImGui.IsItemToggledOpen();
 			bool clickedRight = ImGui.IsItemClicked(.Right);
@@ -588,90 +589,89 @@ namespace GlitchyEditor.EditWindows
 
 		private static Entity lastClickedEntity;
 
-		private void ShowEntityHierarchy()
+		/// Shows the entity hierarchy as a tree.
+		private void ShowUnfilteredEntityHierarchy()
 		{
-			StringView searchString = StringView(&_entitySearchChars);
+			TreeNode<Entity> root = scope .(Entity(.InvalidEntity, _scene));
 
-			if (_scene == null)
+			TreeNode<Entity> InsertIntoTree(Entity entity)
 			{
-				ImGui.TextUnformatted("<No scene open>");
-				return;
+				var transform = entity.GetComponent<TransformComponent>();
+
+				if(transform == null)
+				{
+					return root.AddChild(entity);
+				}
+				else
+				{
+					var parentEntity = Entity(transform.Parent, _scene);
+
+					var parentNode = root.FindNode(parentEntity);
+
+					if(parentNode == null)
+						parentNode = InsertIntoTree(parentEntity);
+
+					return parentNode.AddChild(entity);
+				}
 			}
 
-			if(searchString.IsWhiteSpace)
+			for(var entityId in _scene.[Friend]_ecsWorld.Enumerate())
 			{
-				// Show entity hierarchy as tree
-				
-				TreeNode<Entity> root = scope .(Entity(.InvalidEntity, _scene));
+				Entity entity = .(entityId, _scene);
 
-				TreeNode<Entity> InsertIntoTree(Entity entity)
+				InsertIntoTree(entity);
+			}
+
+			// Rectangle over the entire window space
+			ImGui.Rect rect = .();
+			rect.Min = (ImGui.Vec2)((float2)ImGui.GetWindowContentRegionMin() + (float2)ImGui.GetWindowPos());
+			rect.Max = (ImGui.Vec2)((float2)rect.Min + (float2)ImGui.GetContentRegionAvail());
+
+			// Use window background as drop target to drop entities into scene root
+			if(ImGui.BeginDragDropTargetCustom(rect, ImGui.GetID("sceneDropTarget")))
+			{
+				Payload<UUID>? payload = ImGui.AcceptDragDropPayload<UUID>(.Entity);
+
+				if(payload != null)
 				{
-					var transform = entity.GetComponent<TransformComponent>();
-
-					if(transform == null)
+					if (_editor.CurrentScene.GetEntityByID(payload->Data) case .Ok(let movedEntity))
 					{
-						return root.AddChild(entity);
-					}
-					else
-					{
-						var parentEntity = Entity(transform.Parent, _scene);
-
-						var parentNode = root.FindNode(parentEntity);
-
-						if(parentNode == null)
-							parentNode = InsertIntoTree(parentEntity);
-
-						return parentNode.AddChild(entity);
-					}
-				}
-				
-				for(var entityId in _scene.[Friend]_ecsWorld.Enumerate())
-				{
-					Entity entity = .(entityId, _scene);
-
-					InsertIntoTree(entity);
-				}
-
-				ImGui.Rect rect = .();
-				rect.Min = (ImGui.Vec2)((float2)ImGui.GetWindowContentRegionMin() + (float2)ImGui.GetWindowPos());
-				rect.Max = (ImGui.Vec2)((float2)rect.Min + (float2)ImGui.GetContentRegionAvail());
-
-				if(ImGui.BeginDragDropTargetCustom(rect, ImGui.GetID("sceneDropTarget")))
-				{
-					Payload<UUID>? payload = ImGui.AcceptDragDropPayload<UUID>(.Entity);
-
-					if(payload != null)
-					{
-						UUID movedEntityId = payload->Data;
-						
-						Entity movedEntity = _editor.CurrentScene.GetEntityByID(movedEntityId);
-
 						var transformComponent = movedEntity.GetComponent<TransformComponent>();
 						transformComponent.Parent = .InvalidEntity;
 					}
-
-					ImGui.EndDragDropTarget();
-				}
-
-				if (ImGui.BeginTable("entityTable", 2, .RowBg | .NoBordersInBody | .SizingFixedFit))
-				{
-					ImGui.TableSetupColumn("Visibility", .IndentDisable | .NoResize);
-					ImGui.TableSetupColumn("Entities", .IndentEnable | .WidthStretch);
-
-					for(var child in root.Children)
+					else
 					{
-						ImGuiPrintEntityTree(child);
+						Log.EngineLogger.Error($"Tried to move entity with id {payload->Data} into scene root, but the entity doesn't exist.");
 					}
-
-					ImGui.EndTable();
 				}
-			}
-			else
-			{
-				// Show search results as flat list
 
-				List<StringView> searchTokens = new:ScopedAlloc! .(searchString.Split(' ', .RemoveEmptyEntries));
-				
+				ImGui.EndDragDropTarget();
+			}
+
+			if (ImGui.BeginTable("entityTable", 2, .RowBg | .NoBordersInBody | .SizingFixedFit))
+			{
+				ImGui.TableSetupColumn("", .IndentDisable | .NoResize);
+				ImGui.TableSetupColumn("Entities", .IndentEnable | .WidthStretch);
+
+				for(var child in root.Children)
+				{
+					ImGuiPrintEntityTree(child);
+				}
+
+				ImGui.EndTable();
+			}
+		}
+
+		/// Shows a list of entities that match the search query.
+		private void ShowFilteredEntityList(StringView searchString)
+		{
+			List<StringView> searchTokens = scope .(searchString.Split(' ', .RemoveEmptyEntries));
+
+			if (ImGui.BeginTable("entityTable", 2, .RowBg | .NoBordersInBody | .SizingFixedFit))
+			{
+				ImGui.TableSetupColumn("Visibility", .IndentDisable | .NoResize);
+				ImGui.TableSetupColumn("Entities", .IndentEnable | .WidthStretch);
+
 				worldEnumeration:
 				for(var entityId in _scene.[Friend]_ecsWorld.Enumerate())
 				{
@@ -700,8 +700,32 @@ namespace GlitchyEditor.EditWindows
 						}
 					}
 
-					ImGuiPrintEntityTree(scope .(entity));
+					ImGuiPrintEntityTree(scope .(entity), true);
 				}
+
+				ImGui.EndTable();
+			}
+
+		}
+
+		/// Shows the entity hierarchy either as tree or as filtered list.
+		private void ShowEntityHierarchy()
+		{
+			StringView searchString = StringView(&_entitySearchChars);
+
+			if (_scene == null)
+			{
+				ImGui.TextUnformatted("<No scene open>");
+				return;
+			}
+
+			if(searchString.IsWhiteSpace)
+			{
+				ShowUnfilteredEntityHierarchy();
+			}
+			else
+			{
+				ShowFilteredEntityList(searchString);
 			}
 
 			// If the mouse was released and no entity took the chance to become selected we probably hovered the background while releasing -> select no entity

@@ -2,6 +2,7 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Content;
 using GlitchyEngine.Math;
 using System;
+using GlitchyEngine.World.Components;
 
 namespace GlitchyEngine.World;
 
@@ -156,16 +157,22 @@ class SceneRenderer
 		// 3D render
 		Renderer.BeginScene(camera, _compositeTarget);
 
-		for (var (entity, transform, mesh, meshRenderer) in Scene._ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent>())
+		for (var (entity, transform, mesh, meshRenderer, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, MeshComponent, MeshRendererComponent, EditorFlagsComponent>())
 		{
+			if (editorFlags.Flags.HasFlag(.HideInScene))
+				continue;
+
 			if (mesh.Mesh == .Invalid || meshRenderer.Material == .Invalid)
 				continue;
 
 			Renderer.Submit(mesh.Mesh, meshRenderer.Material, entity, transform.WorldTransform);
 		}
 
-		for (var (entity, transform, light) in Scene._ecsWorld.Enumerate<TransformComponent, LightComponent>())
+		for (var (entity, transform, light, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, LightComponent, EditorFlagsComponent>())
 		{
+			if (editorFlags.Flags.HasFlag(.HideInScene))
+				continue;
+
 			Renderer.Submit(light.SceneLight, transform.WorldTransform);
 		}
 
@@ -182,13 +189,19 @@ class SceneRenderer
 		// Sprite renderer
 		Renderer2D.BeginScene(camera, .BackToFront);
 
-		for (var (entity, transform, sprite) in Scene._ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent>())
+		for (var (entity, transform, sprite, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent, EditorFlagsComponent>())
 		{
+			if (editorFlags.Flags.HasFlag(.HideInScene))
+				continue;
+
 			Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 		}
 
-		for (var (entity, transform, circle) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent>())
+		for (var (entity, transform, circle, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent, EditorFlagsComponent>())
 		{
+			if (editorFlags.Flags.HasFlag(.HideInScene))
+				continue;
+
 			Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
 		}
 

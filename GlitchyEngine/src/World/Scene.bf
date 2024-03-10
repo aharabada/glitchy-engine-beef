@@ -9,6 +9,7 @@ using GlitchyEngine.Scripting;
 using GlitchyEngine.Math;
 using GlitchyEngine.Scripting.Classes;
 using GlitchyEngine.Serialization;
+using GlitchyEngine.World.Components;
 
 namespace GlitchyEngine.World
 {
@@ -800,6 +801,11 @@ namespace GlitchyEngine.World
 
 			let nameComponent = entity.AddComponent<NameComponent>();
 			nameComponent.Name = (name.IsEmpty ? "Entity" : name);
+
+#if GE_EDITOR
+			// Only add the editor flags if we are indeed in an editor
+			entity.AddComponent<EditorFlagsComponent>();
+#endif
 			
 			// If no id is given generate a random one.
 			IDComponent idComponent = (id == default) ? IDComponent() : IDComponent(id);
