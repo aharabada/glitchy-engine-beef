@@ -1157,15 +1157,12 @@ namespace GlitchyEditor
 			_settingsWindow.Show();
 			ShowCreateNewProjectModal();
 
-			ShowPlayControls();
-
 			return false;
 		}
 
 		/// Shows the window with Play/Pause, etc. buttons
 		private void ShowPlayControls()
 		{
-			ImGui.PushStyleVar(.WindowPadding, ImGui.Vec2(0, 2));
 			ImGui.PushStyleVar(.ItemInnerSpacing, ImGui.Vec2(0, 0));
 			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
 
@@ -1179,8 +1176,6 @@ namespace GlitchyEditor
 
 			ImGui.PushStyleColor(.ButtonHovered, hoveredColor);
 			ImGui.PushStyleColor(.ButtonActive, activeColor);
-
-			ImGui.Begin("##toolbar", null, .NoDecoration | .NoScrollbar | .NoScrollWithMouse);
 
 			float padding = 2.0f;
 
@@ -1247,8 +1242,6 @@ namespace GlitchyEditor
 					totalWidth = size * 3 + padding * 4;
 				}
 
-				// Display the buttons for play/simulation state
-
 				ImGui.SameLine();
 				ImGui.SetCursorPosX(centerX - totalWidth / 2.0f);
 
@@ -1279,17 +1272,38 @@ namespace GlitchyEditor
 
 					if (ImGui.BeginPopupContextItem())
 					{
-						ImGui.TextUnformatted("Time step:");
-						ImGui.SameLine();
-						ImGui.DragFloat("##timestep", &_fixedTimestep, 0.001f, 0.001f, 1000.0f, "%.4fs");
-
-						float fps = 1.0f / _fixedTimestep;
-						
-						ImGui.TextUnformatted("Frame rate:");
-						ImGui.SameLine();
-						if (ImGui.DragFloat("##fps", &fps, 1.0f, 0.001f, 1000.0f, "%.3f FPS"))
+						if (ImGui.BeginTable("time_step_table", 2))
 						{
-							_fixedTimestep = 1.0f / fps;
+							ImGui.TableNextRow();
+							ImGui.TableNextColumn();
+
+							ImGui.TextUnformatted("Time step:");
+
+							ImGui.TableNextColumn();
+
+							float itemWidth = ImGui.CalcTextSize("1000.000 FPS").x;
+
+							ImGui.SetNextItemWidth(itemWidth);
+
+							ImGui.DragFloat("##timestep", &_fixedTimestep, 0.001f, 0.001f, 1000.0f, "%.4fs");
+
+							ImGui.TableNextRow();
+							ImGui.TableNextColumn();
+
+							float fps = 1.0f / _fixedTimestep;
+							
+							ImGui.TextUnformatted("Frame rate:");
+
+							ImGui.TableNextColumn();
+
+							ImGui.SetNextItemWidth(itemWidth);
+
+							if (ImGui.DragFloat("##fps", &fps, 1.0f, 0.001f, 1000.0f, "%.3f FPS"))
+							{
+								_fixedTimestep = 1.0f / fps;
+							}
+
+							ImGui.EndTable();
 						}
 
 						ImGui.EndPopup();
@@ -1311,10 +1325,8 @@ namespace GlitchyEditor
 				ImGui.AttachTooltip("Stop");
 			}
 
-			ImGui.End();
-
 			ImGui.PopStyleColor(3);
-			ImGui.PopStyleVar(2);
+			ImGui.PopStyleVar(1);
 		}
 
 		private void ShowOpenRecentSceneMenu()
@@ -1431,7 +1443,7 @@ namespace GlitchyEditor
 				ImGui.Separator();
 				
 				if (ImGui.MenuItem("Exit"))
-					Application.Get().Close();
+					Application.Instance.Close();
 
 				ImGui.EndMenu();
 			}
@@ -1476,6 +1488,8 @@ namespace GlitchyEditor
 
 				ImGui.EndMenu();
 			}
+
+			ShowPlayControls();
 
 			ImGui.EndMainMenuBar();
 		}
