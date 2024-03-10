@@ -17,4 +17,8 @@ public enum EditorFlags : byte
     /// The entity is hidden in the scene.
     /// </summary>
     HideInScene = 2,
+    /// <summary>
+    /// The entity will not be saved.
+    /// </summary>
+    DontSave = 4
 }

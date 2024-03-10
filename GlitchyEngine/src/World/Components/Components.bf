@@ -36,16 +36,6 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	/// If an entity has the EditorComponent it won't be displayed in the scene hierarchy.
-	struct EditorComponent
-	{
-		bool b = false;
-		public this()
-		{
-
-		}
-	}
-
 	[Component("Sprite Renderer")]
 	struct SpriteRendererComponent
 	{

@@ -10,6 +10,7 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Serialization;
+using GlitchyEngine.World.Components;
 
 namespace GlitchyEngine.World;
 
@@ -72,8 +73,7 @@ class SceneSerializer
 				{
 					Entity entity = .(e, _scene);
 
-					// TODO: also serialize object with EditorComponent (e.g. to save the location of the editor camera)
-					if (entity.HasComponent<EditorComponent>())
+					if (entity.EditorFlags.HasFlag(.DontSave))
 						continue;
 
 					SerializeEntity(writer, entity);
@@ -113,8 +113,6 @@ class SceneSerializer
 		{
 			Serialize.Value(writer, "Id", entity.UUID);
 			
-			SerializeComponent<EditorComponent>(writer, entity, "EditorComponent", scope (component) => {});
-
 			SerializeComponent<NameComponent>(writer, entity, "NameComponent", scope (component) =>
 			{
 				Serialize.Value(writer, "Name", component.Name);
@@ -245,41 +243,11 @@ class SceneSerializer
 
 					_objectsNotWritten.Remove(entity.UUID);
 				}
+			});
 
-				//if (component.HasScript)
-				// TODO: Thats not a good check, I think. At least we know the script class is valid
-				//if (ScriptEngine.GetScriptClass(component.ScriptClassName) != null)
-				//{
-					//Serialize.Value(writer, "Fields", );
-
-					// TODO: Serialize Script Instance!
-					/*let fields = ScriptEngine.GetScriptFieldMap(entity);
-					
-					writer.Identifier("Fields");
-
-					using (writer.ArrayBlock())
-					{
-						for (var (fieldName, fieldInstance) in fields)
-						{
-							if (fieldInstance.Type == .None)
-								continue;
-
-							switch (fieldInstance.Type)
-							{
-							case .Enum, .Class, .Struct:
-								// TODO: implement
-							default:
-								writer.Identifier(fieldName);
-
-								String str = scope .();
-								fieldInstance.Type.ToString(str);
-								writer.Type(str);
-
-								Serialize.Value(writer, ValueView(fieldInstance.Type.GetBeefType(), &fieldInstance.[Friend]_data), gBonEnv);
-							}
-						}
-					}*/
-				//}
+			SerializeComponent<EditorFlagsComponent>(writer, entity, "Editor", scope (component) =>
+			{
+				Serialize.Value(writer, "Flags", component.Flags);
 			});
 		}
 
@@ -450,8 +418,6 @@ class SceneSerializer
 
 			switch(identifier)
 			{
-			case "EditorComponent":
-				Try!(DeserializeComponent<EditorComponent>(reader, entity, scope (component) => { return .Ok; }));
 			case "NameComponent":
 				Try!(DeserializeComponent<NameComponent>(reader, entity, scope (component) =>
 				{
@@ -697,6 +663,13 @@ class SceneSerializer
 						if (Try!(reader.Identifier()) == "Fields")
 							SerializedObject.BonDeserialize(reader, _serializedObjects, gBonEnv);
 					}
+
+					return .Ok;
+				}));
+			case "Editor":
+				Try!(DeserializeComponent<EditorFlagsComponent>(reader, entity, scope (component) =>
+				{
+					Try!(Deserialize.Value(reader, "Flags", out component.Flags));
 
 					return .Ok;
 				}));

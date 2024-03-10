@@ -143,7 +143,6 @@ namespace GlitchyEngine.World
 			// Copy components
 			CopyComponents<MeshRendererComponent>(this, target);
 			CopyComponents<MeshComponent>(this, target);
-			CopyComponents<EditorComponent>(this, target);
 			CopyComponents<SpriteRendererComponent>(this, target);
 			CopyComponents<CircleRendererComponent>(this, target);
 			CopyComponents<CameraComponent>(this, target);
@@ -153,6 +152,8 @@ namespace GlitchyEngine.World
 			CopyComponents<BoxCollider2DComponent>(this, target);
 			CopyComponents<CircleCollider2DComponent>(this, target);
 			CopyComponents<PolygonCollider2DComponent>(this, target);
+			
+			CopyComponents<EditorFlagsComponent>(this, target);
 
 			if (copyScripts)
 			{
@@ -193,15 +194,30 @@ namespace GlitchyEngine.World
 				Entity sourceEntity = .(sourceHandle, source);
 
 				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
-				targetEntity.AddComponent<TComponent>(*sourceComponent);
+
+				if (targetEntity.TryGetComponent<TComponent>(let targetComponent))
+				{
+					*targetComponent = *sourceComponent;
+				}
+				else
+				{
+					targetEntity.AddComponent<TComponent>(*sourceComponent);
+				}
 			}
 		}
 
 		private static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new
 		{
-			if (source.TryGetComponent<TComponent>(let component))
+			if (source.TryGetComponent<TComponent>(let sourceComponent))
 			{
-				target.AddComponent<TComponent>(*component);
+				if (target.TryGetComponent<TComponent>(let targetComponent))
+				{
+					*targetComponent = *sourceComponent;
+				}
+				else
+				{
+					target.AddComponent<TComponent>(*sourceComponent);
+				}
 			}
 		}
 
@@ -901,7 +917,6 @@ namespace GlitchyEngine.World
 
 				CopyComponent<MeshRendererComponent>(original, copy);
 				CopyComponent<MeshComponent>(original, copy);
-				CopyComponent<EditorComponent>(original, copy);
 				CopyComponent<SpriteRendererComponent>(original, copy);
 				CopyComponent<CircleRendererComponent>(original, copy);
 				CopyComponent<CameraComponent>(original, copy);
@@ -911,6 +926,8 @@ namespace GlitchyEngine.World
 				CopyComponent<BoxCollider2DComponent>(original, copy);
 				CopyComponent<CircleCollider2DComponent>(original, copy);
 				CopyComponent<PolygonCollider2DComponent>(original, copy);
+				
+				CopyComponent<EditorFlagsComponent>(original, copy);
 
 				// Copy ScriptComponent... needs extra handling for the script instances
 				if (original.TryGetComponent<ScriptComponent>(let sourceScript))
