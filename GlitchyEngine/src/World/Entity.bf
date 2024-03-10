@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using GlitchyEngine.Core;
+using GlitchyEngine.Editor;
+using GlitchyEngine.World.Components;
 
 using internal GlitchyEngine.World;
 
@@ -73,6 +75,22 @@ namespace GlitchyEngine.World
 		}
 
 		public TransformComponent* Transform => GetComponent<TransformComponent>();
+
+		public EditorFlags EditorFlags
+		{
+			get
+			{
+				if (TryGetComponent<EditorFlagsComponent>(let flagsComponent))
+					return flagsComponent.Flags;
+
+				return .Default;
+			}
+			set
+			{
+				if (TryGetComponent<EditorFlagsComponent>(let flagsComponent))
+					flagsComponent.Flags = value;
+			}
+		}
 
 		public T* AddComponent<T>(T value = T()) where T: struct, new
 		{

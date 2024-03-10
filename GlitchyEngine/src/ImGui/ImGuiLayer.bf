@@ -136,6 +136,8 @@ namespace GlitchyEngine.ImGui
 			colors[(.)ImGui.Col.Tab] = ImGui.Vec4(0.473f, 0.519f, 0.580f, 1.00f);
 			colors[(.)ImGui.Col.TabUnfocused] = ImGui.Vec4(0.255f, 0.255f, 0.255f, 1.00f);
 			colors[(.)ImGui.Col.CheckMark] = ImGui.Vec4(0.851f, 0.863f, 0.900f, 1.00f);
+			colors[(.)ImGui.Col.TitleBg] = ImGui.Vec4(0.406f, 0.401f, 0.390f, 1.000f);
+			colors[(.)ImGui.Col.TitleBgActive] = ImGui.Vec4(0.196f, 0.192f, 0.182f, 1.000f);
 			
 		    /*colors[(.)ImGui.Col.Text]                   = ImGui.Vec4(0.00f, 0.00f, 0.00f, 1.00f);
 			colors[(.)ImGui.Col.TextDisabled]           = ImGui.Vec4(0.60f, 0.60f, 0.60f, 1.00f);

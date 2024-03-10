@@ -10,6 +10,8 @@ using System.Collections;
 using Box2D;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Serialization;
+using GlitchyEngine.Editor;
+using GlitchyEngine.World.Components;
 
 namespace GlitchyEngine.Scripting;
 
@@ -187,6 +189,23 @@ static class ScriptGlue
 		component = null;
 		return false;
 	}
+	
+	/// Gets the entity. Returns true, if the entity was found.
+	static bool TryGetEntitySafe(UUID entityId, out Entity entity)
+	{
+		entity = default;
+
+		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
+
+		if (foundEntity case .Ok(out entity))
+		{
+			return true;
+		}
+
+		Log.ClientLogger.Error($"No entity with ID {entityId} found.");
+		return false;
+	}
+
 
 #region Exception Helpers
 
@@ -460,6 +479,25 @@ static class ScriptGlue
 		entity.Name = StringView(rawName);
 
 		Mono.mono_free(rawName);
+	}
+	
+	[RegisterCall("ScriptGlue::Entity_GetEditorFlags")]
+    static void Entity_GetEditorFlags(UUID entityId, out EditorFlags editorFlags)
+	{
+		editorFlags = .Default;
+#if GE_EDITOR
+		if (TryGetEntitySafe(entityId, let entity))
+			editorFlags = entity.EditorFlags;
+#endif
+	}
+	
+	[RegisterCall("ScriptGlue::Entity_SetEditorFlags")]
+    static void Entity_SetEditorFlags(UUID entityId, EditorFlags editorFlags)
+	{
+#if GE_EDITOR
+		if (TryGetEntitySafe(entityId, let entity))
+			entity.EditorFlags = editorFlags;
+#endif
 	}
 
 #endregion

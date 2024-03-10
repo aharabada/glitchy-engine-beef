@@ -8,6 +8,8 @@ namespace GlitchyEditor
 {
 	class EditorIcons : RefCounted
 	{
+		private static EditorIcons _editorIcons;
+
 		AssetHandle<Texture2D> _texture;
 
 		public SubTexture2D DirectionalLight ~ _.ReleaseRef();
@@ -27,6 +29,10 @@ namespace GlitchyEditor
 		public SubTexture2D File_Material ~ _.ReleaseRef();
 		public SubTexture2D File_CSharpScript ~ _.ReleaseRef();
 		public SubTexture2D File_Shader ~ _.ReleaseRef();
+		public SubTexture2D Entity_Visible ~ _.ReleaseRef();
+		public SubTexture2D Entity_Hidden ~ _.ReleaseRef();
+
+		public static EditorIcons Instance => _editorIcons;
 
 		public SamplerState SamplerState
 		{
@@ -36,6 +42,8 @@ namespace GlitchyEditor
 
 		public this(String texturePath, float2 iconSize)
 		{
+			_editorIcons = this;
+
 			_texture = Content.LoadAsset(texturePath, null, true);
 			
 			float2 pen = .();
@@ -57,6 +65,13 @@ namespace GlitchyEditor
 			File_Material = GetNextGridTexture(ref pen, iconSize);
 			File_CSharpScript = GetNextGridTexture(ref pen, iconSize);
 			File_Shader = GetNextGridTexture(ref pen, iconSize);
+			Entity_Visible = GetNextGridTexture(ref pen, iconSize);
+			Entity_Hidden = GetNextGridTexture(ref pen, iconSize);
+		}
+
+		public ~this()
+		{
+			_editorIcons = null;
 		}
 
 		private SubTexture2D GetNextGridTexture(ref float2 pen, float2 iconSize)

@@ -6,6 +6,9 @@ using System.Collections;
 using GlitchyEngine;
 using GlitchyEngine.Core;
 using System.Diagnostics;
+using GlitchyEngine.World.Components;
+using GlitchyEngine.Renderer;
+using GlitchyEngine.Math;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -362,11 +365,76 @@ namespace GlitchyEditor.EditWindows
 			return deleted;
 		}
 
+		private void ShowVisibilityButton(Entity entity)
+		{
+			ImGui.PushStyleVar(.WindowPadding, ImGui.Vec2(0, 2));
+			ImGui.PushStyleVar(.ItemInnerSpacing, ImGui.Vec2(0, 0));
+			ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
+
+			let colors = ImGui.GetStyle().Colors;
+
+			ImGui.Vec4 hoveredColor = colors[(int)ImGui.Col.ButtonHovered];
+			hoveredColor.w = 0.5f;
+
+			ImGui.Vec4 activeColor = colors[(int)ImGui.Col.ButtonActive];
+			activeColor.w = 0.5f;
+
+			ImGui.PushStyleColor(.ButtonHovered, hoveredColor);
+			ImGui.PushStyleColor(.ButtonActive, activeColor);
+
+			if (entity.TryGetComponent<EditorFlagsComponent>(let flags))
+			{
+				bool hidden = flags.Flags.HasFlag(.HideInScene);
+
+				SubTexture2D icon = hidden ? EditorIcons.Instance.Entity_Hidden : EditorIcons.Instance.Entity_Visible;
+
+				ImGui.Vec4 tintColor = hidden ? *ImGui.GetStyleColorVec4(.TextDisabled) : *ImGui.GetStyleColorVec4(.Text);
+				
+				if (ImGui.ImageButtonEx(ImGui.GetID("visibilityToggle"), icon, .(16, 16), .Zero, .Ones, .Zero, tintColor))
+				{
+					flags.Flags ^= .HideInScene;
+				}
+
+				if (ImGui.IsItemHovered())
+				{
+					ImGui.BeginTooltip();
+
+					if (hidden)
+					{
+						ImGui.TextUnformatted("Entity is hidden. Click to show the entity.");
+					}
+					else
+					{
+						ImGui.TextUnformatted("Entity is visible. Click to hide the entity.");
+					}
+
+					ImGui.EndTooltip();
+				}
+			}
+
+			ImGui.PopStyleColor(3);
+			ImGui.PopStyleVar(2);
+		}
+
 		private void ImGuiPrintEntityTree(TreeNode<Entity> tree)
 		{
+			Entity entity = tree.Value;
+			
+			if (entity.EditorFlags.HasFlag(.HideInHierarchy))
+				return;
+			
+			ImGui.PushID(entity.UUID.GetHashCode());
+
+			ImGui.TableNextRow();
+			ImGui.TableNextColumn();
+
+			ShowVisibilityButton(entity);
+
+			ImGui.TableNextColumn();
+
 			String name = null;
 
-			var nameComponent = tree.Value.GetComponent<NameComponent>();
+			var nameComponent = entity.GetComponent<NameComponent>();
 
 			if(nameComponent != null)
 			{
@@ -374,52 +442,48 @@ namespace GlitchyEditor.EditWindows
 			}
 			else
 			{
-				name = scope:: $"Entity {(tree.Value.Handle.[Friend]Index)}";
+				name = scope:: $"Entity {(entity.Handle.[Friend]Index)}";
 			}
 
-			ImGui.TreeNodeFlags flags = .OpenOnArrow | .DefaultOpen | .SpanAvailWidth | .OpenOnDoubleClick;
+			ImGui.TreeNodeFlags flags = .OpenOnArrow | .DefaultOpen | .SpanAllColumns | .OpenOnDoubleClick;
 
 			if(tree.Children.Count == 0)
 				flags |= .Leaf;
 			
-			bool inSelectedList = IsEntitySelected(tree.Value);
+			bool inSelectedList = IsEntitySelected(entity);
 			
 			if(inSelectedList)
 				flags |= .Selected;
 
-			if (_entitiesToUnfold.Contains(tree.Value))
+			if (_entitiesToUnfold.Contains(entity))
 			{
-				_entitiesToUnfold.Remove(tree.Value);
+				_entitiesToUnfold.Remove(entity);
 
 				ImGui.SetNextItemOpen(true, .None);
 			}
 
-			bool isOpen = ImGui.TreeNodeEx((void*)(uint)tree.Value.Handle.[Friend]Index, flags, $"{name}");
+			bool isOpen = ImGui.TreeNodeEx((void*)(uint)entity.Handle.[Friend]Index, flags, $"{name}");
 
-			if (_entityToHighlight == tree.Value)
+			if (_entityToHighlight == entity)
 			{
 				ImGui.SetScrollHereY(0);
 				_entityToHighlight = .();
 			}
-
-			ImGui.PushID((void*)(uint)tree.Value.Handle.[Friend]Index);
 
 			bool deleted = false;
 
 			if (ImGui.BeginPopupContextItem("treeNodePopup"))
 			{
 				// Only select if it isn't already selected, because it otherwise clears the selection when ctrl is released
-				if (!IsEntitySelected(tree.Value))
+				if (!IsEntitySelected(entity))
 				{
-					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl);
+					SelectEntity(entity, !ImGui.GetIO().KeyCtrl);
 				}
 
 				ShowEntityContextMenu(out deleted);
 
 				ImGui.EndPopup();
 			}
-
-			ImGui.PopID();
 
 			if (deleted)
 			{
@@ -435,7 +499,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				isDragged = true;
 
-				UUID id = tree.Value.UUID;
+				UUID id = entity.UUID;
 				ImGui.SetDragDropPayload(.Entity, &id, sizeof(UUID));
 
 				ImGui.Text(name);
@@ -443,7 +507,7 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropSource();
 			}
 
-			EntityDropTarget(tree.Value);
+			EntityDropTarget(entity);
 
 			bool clicked = ImGui.IsItemClicked() && !ImGui.IsItemToggledOpen();
 			bool clickedRight = ImGui.IsItemClicked(.Right);
@@ -461,17 +525,19 @@ namespace GlitchyEditor.EditWindows
 
 			if (clicked || clickedRight)
 			{
-				lastClickedEntity = tree.Value;
+				lastClickedEntity = entity;
 			}
 
-			if (!isDragged && (hovered && !ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right)) && tree.Value == lastClickedEntity)
+			if (!isDragged && (hovered && !ImGui.IsMouseDown(.Left) && !ImGui.IsMouseDown(.Right)) && entity == lastClickedEntity)
 			{
 				if (!inSelectedList)
 				{
-					SelectEntity(tree.Value, !ImGui.GetIO().KeyCtrl);
+					SelectEntity(entity, !ImGui.GetIO().KeyCtrl);
 					inSelectedList = true;
 				}
 			}
+
+			ImGui.PopID();
 		}
 
 		private void EntityDropTarget(Entity target)
@@ -565,37 +631,41 @@ namespace GlitchyEditor.EditWindows
 
 					InsertIntoTree(entity);
 				}
-				
-				if(ImGui.TreeNodeEx("Scene", .DefaultOpen))
+
+				ImGui.Rect rect = .();
+				rect.Min = (ImGui.Vec2)((float2)ImGui.GetWindowContentRegionMin() + (float2)ImGui.GetWindowPos());
+				rect.Max = (ImGui.Vec2)((float2)rect.Min + (float2)ImGui.GetContentRegionAvail());
+
+				if(ImGui.BeginDragDropTargetCustom(rect, ImGui.GetID("sceneDropTarget")))
 				{
-					if(ImGui.BeginDragDropTarget())
+					Payload<UUID>? payload = ImGui.AcceptDragDropPayload<UUID>(.Entity);
+
+					if(payload != null)
 					{
-						Payload<UUID>? payload = ImGui.AcceptDragDropPayload<UUID>(.Entity);
+						UUID movedEntityId = payload->Data;
+						
+						Entity movedEntity = _editor.CurrentScene.GetEntityByID(movedEntityId);
 
-						if(payload != null)
-						{
-							UUID movedEntityId = payload->Data;
-							
-							Entity movedEntity = _editor.CurrentScene.GetEntityByID(movedEntityId);
-
-							// Also mark transform as dirty
-							var transformComponent = movedEntity.GetComponent<TransformComponent>();
-							transformComponent.Parent = .InvalidEntity;
-							//transformComponent?.IsDirty = true;
-						}
-
-						ImGui.EndDragDropTarget();
+						var transformComponent = movedEntity.GetComponent<TransformComponent>();
+						transformComponent.Parent = .InvalidEntity;
 					}
+
+					ImGui.EndDragDropTarget();
+				}
+
+				if (ImGui.BeginTable("entityTable", 2, .RowBg | .NoBordersInBody | .SizingFixedFit))
+				{
+					ImGui.TableSetupColumn("Visibility", .IndentDisable | .NoResize);
+					ImGui.TableSetupColumn("Entities", .IndentEnable | .WidthStretch);
 
 					for(var child in root.Children)
 					{
 						ImGuiPrintEntityTree(child);
 					}
 
-					ImGui.TreePop();
+					ImGui.EndTable();
 				}
 			}
-			// Otherwise
 			else
 			{
 				// Show search results as flat list

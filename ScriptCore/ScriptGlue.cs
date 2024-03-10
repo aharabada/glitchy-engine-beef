@@ -2,6 +2,7 @@ using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
+using GlitchyEngine.Editor;
 using GlitchyEngine.Math;
 using GlitchyEngine.Physics;
 using GlitchyEngine.Serialization;
@@ -64,6 +65,12 @@ internal static class ScriptGlue
     
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern string Entity_SetName(UUID entityId, string name);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void Entity_GetEditorFlags(UUID uuid, out EditorFlags flags);
+    
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    public static extern void Entity_SetEditorFlags(UUID uuid, EditorFlags editorFlags);
     
 #endregion Entity
 

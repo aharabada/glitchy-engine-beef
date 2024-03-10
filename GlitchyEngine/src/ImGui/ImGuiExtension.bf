@@ -138,7 +138,9 @@ namespace ImGui
 		public static void TextUnformatted(StringView text) => TextUnformattedImpl(text.Ptr, text.Ptr + text.Length);
 		
 		public static void PushID(StringView id) => PushID(id.Ptr, id.Ptr + id.Length);
-	
+		
+		public static void PushID(int id) => PushID((void*)id);
+
 		/// Releases references that accumulated calls like ImGui::Image
 		protected internal static extern void CleanupFrame();
 

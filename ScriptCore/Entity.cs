@@ -7,6 +7,7 @@ using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
 using GlitchyEngine.Physics;
 using System.Diagnostics.CodeAnalysis;
+using GlitchyEngine.Editor;
 
 namespace GlitchyEngine;
 
@@ -22,6 +23,19 @@ public class Entity : EngineObject
     {
         get => ScriptGlue.Entity_GetName(_uuid);
         set => ScriptGlue.Entity_SetName(_uuid, value);
+    }
+    
+    /// <summary>
+    /// Gets or sets the <see cref="EditorFlags"/> of the <see cref="Entity"/>, which specify how the <see cref="Entity"/> is displayed and interacted with in the editor.
+    /// </summary>
+    public EditorFlags EditorFlags
+    {
+        get
+        {
+            ScriptGlue.Entity_GetEditorFlags(_uuid, out EditorFlags flags);
+            return flags;
+        }
+        set => ScriptGlue.Entity_SetEditorFlags(_uuid, value);
     }
 
     /// <summary>

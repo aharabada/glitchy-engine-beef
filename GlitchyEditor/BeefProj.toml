@@ -5,6 +5,7 @@ Dependencies = {corlib = "*", GlitchLog = "*", GlitchyEngine = "*"}
 Name = "GlitchyEditor"
 TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
+ProcessorMacros = ["GE_EDITOR_IMGUI_DEMO"]
 
 [Configs.Debug.Win64]
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
