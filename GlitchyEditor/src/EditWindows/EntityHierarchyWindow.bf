@@ -388,8 +388,8 @@ namespace GlitchyEditor.EditWindows
 				SubTexture2D icon = hidden ? EditorIcons.Instance.Entity_Hidden : EditorIcons.Instance.Entity_Visible;
 
 				ImGui.Vec4 tintColor = hidden ? *ImGui.GetStyleColorVec4(.TextDisabled) : *ImGui.GetStyleColorVec4(.Text);
-				
-				if (ImGui.ImageButtonEx(ImGui.GetID("visibilityToggle"), icon, .(16, 16), .Zero, .Ones, .Zero, tintColor))
+
+				if (ImGui.ImageButtonEx(ImGui.GetID("visibilityToggle"), icon, .(ImGui.GetTextLineHeight(), ImGui.GetTextLineHeight()), .Zero, .Ones, .Zero, tintColor))
 				{
 					flags.Flags ^= .HideInScene;
 				}
