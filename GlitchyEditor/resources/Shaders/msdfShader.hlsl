@@ -74,7 +74,11 @@ float4 PS(PS_Input input) : SV_Target0
     float screenPxDistance = ScreenPxRange(input.TexCoord) * (sd - 0.5);
     float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
 
-    return float4(input.Color.rgb, opacity * input.Color.a);
+    clip(opacity - 0.001f);
+
+    //return float4(input.Color.rgb, opacity * input.Color.a) * 0.0001f + float4(opacity.xxxx);
+    return input.Color * opacity; // TODO: This is not quite right // float4(input.Color.rgb, input.Color.a * opacity);
+    //return float4(input.Color.rgb, opacity * input.Color.a) * 0.0001f + float4(msd, 1.0f);
 }
 
 /*

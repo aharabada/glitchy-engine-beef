@@ -9,6 +9,7 @@ using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Core;
 using Mono;
+using GlitchyEngine.World.Components;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -81,9 +82,12 @@ namespace GlitchyEditor.EditWindows
 			
 			ShowComponentEditor<SpriteRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriteRendererComponent>);
 			ShowComponentEditor<CircleRendererComponent>("Circle Renderer", entity, => ShowCircleRendererComponentEditor, => ShowComponentContextMenu<CircleRendererComponent>);
+			ShowComponentEditor<TextRendererComponent>("Text Renderer", entity, => ShowTextRendererComponentEditor, => ShowComponentContextMenu<TextRendererComponent>);
+
 			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
 			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
 			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
+
 			ShowComponentEditor<Rigidbody2DComponent>("Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
 			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
 			ShowComponentEditor<CircleCollider2DComponent>("Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
@@ -452,6 +456,49 @@ namespace GlitchyEditor.EditWindows
 			
 			StartNewProperty("Inner Radius");
 			ImGui.DragFloat("##Inner Radius", &circleRendererComponent.InnerRadius, 0.1f, 0.0f, 1.0f);
+		}
+		
+		static int InputTextCallback(ImGui.InputTextCallbackData* data)
+		{
+			if (data.EventFlag == .CallbackResize)
+			{
+				String str = (String)Internal.UnsafeCastToObject(data.UserData);
+
+				Log.EngineLogger.AssertDebug(str.Ptr == data.Buf);
+
+				str.PadRight(data.BufTextLen * 2, '\0');
+				data.Buf = str.Ptr;
+
+				return 0;
+			}
+
+			return 0;
+		}
+
+		private static void ShowTextRendererComponentEditor(Entity entity, TextRendererComponent* textRendererComponent)
+		{
+			StartNewProperty("Text");
+
+			String text = textRendererComponent.[Friend]_text;
+
+			if (text == null)
+			{
+				text = textRendererComponent.[Friend]_text = new String();
+			}
+
+			text?.EnsureNullTerminator();
+
+			if (ImGui.InputTextMultiline("##text", text.Ptr, (uint64)text.Length, .Zero, .CallbackResize, => InputTextCallback, Internal.UnsafeCastToPtr(text)))
+			{
+				// To deleting text, ImGui simply puts a null char after the remaining text.
+				// Search for null char and set the length of the string accordingly.
+				int length = text.IndexOf('\0');
+
+				if (length >= 0)
+				{
+					text.Length = length;
+				}
+			}
 		}
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
@@ -844,6 +891,7 @@ namespace GlitchyEditor.EditWindows
 				ShowComponentButton<CameraComponent>("Camera");
 				ShowComponentButton<SpriteRendererComponent>("Sprite Renderer");
 				ShowComponentButton<CircleRendererComponent>("Circle Renderer");
+				ShowComponentButton<TextRendererComponent>("Text Renderer");
 				ShowComponentButton<LightComponent>("Light");
 				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
 				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");

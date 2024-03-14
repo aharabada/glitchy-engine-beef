@@ -5,6 +5,7 @@ using GlitchyEngine.Math;
 using System.Collections;
 using GlitchyEngine.Core;
 using GlitchyEngine.Content;
+using System.Text;
 using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
@@ -126,7 +127,15 @@ namespace GlitchyEngine.Renderer.Text
 			case BottomToTop;
 		}
 
-		public static PreparedText PrepareText(Font font, String text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
+		public enum TextCase
+		{
+			case RetainCase;
+			case UpperCase;
+			case LowerCase;
+			case InvertCase;
+		}
+
+		public static PreparedText PrepareText(Font font, StringView text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -143,17 +152,18 @@ namespace GlitchyEngine.Renderer.Text
 			// Position of the next character on the line
 			float penPosition = 0;
 
-			// TODO: use stringview?
-			StringView textBuffer = .(text, 0, 0);//new:ScopedAlloc! String();
-			
-			hb_buffer_t* buf = hb_buffer_create();
+			List<char32> chars = new:ScopedAlloc! .(text.Length);
+			int runStart = 0;
 
-			//PreparedLine currentLine = new PreparedLine();
+			hb_buffer_t* buf = hb_buffer_create();
 
 			// Stack to keep track of the text direction.
 			List<TextDirection> textDirectionStack = scope .();
 			textDirectionStack.Add(direction);
-			
+
+			List<TextCase> textCaseStack = scope .();
+			textCaseStack.Add(.RetainCase);
+
 			int movedLines = 0;
 
 			Font currentFont = font;
@@ -168,10 +178,9 @@ namespace GlitchyEngine.Renderer.Text
 
 				hb_buffer_clear_contents(buf);
 
-				hb_buffer_add_utf8(buf, text.Ptr, (.)text.Length, (.)(textBuffer.Ptr - text.Ptr), (.)textBuffer.Length);
-				
-				textBuffer.Ptr += textBuffer.Length;
-				textBuffer.Length = 0;
+				hb_buffer_add_utf32(buf, chars.Ptr, (.)chars.Count, (.)runStart, (.)(chars.Count - runStart));
+
+				runStart = chars.Count;
 
 				// Set the script, language and direction of the buffer.
 				// TODO: change direction, script, etc.
@@ -226,6 +235,8 @@ namespace GlitchyEngine.Renderer.Text
 				penPosition = 0;
 			}
 
+			bool escapeNextChar = false;
+
 			for (char32 char in text.DecodedChars)
 			{
 				defer
@@ -233,16 +244,21 @@ namespace GlitchyEngine.Renderer.Text
 					currentIndex = @char.NextIndex;
 				}
 
-				switch(char)
+				void DoLineBreak()
 				{
-				case '\n':
+					chars.Add('\n');
 					// Only flush after the first new line
 					if (movedLines == 0)
 						FlushShapeBuffer();
 
 					// carriage return
 					movedLines++;
+				}
 
+				switch(char)
+				{
+				case '\n':
+					DoLineBreak();
 					continue;
 				case '\u{240}':
 					FlushShapeBuffer();
@@ -274,6 +290,107 @@ namespace GlitchyEngine.Renderer.Text
 						textDirectionStack.PopBack();
 
 					continue;
+				case '\\':
+					if (escapeNextChar)
+						break;
+					else
+					{
+						escapeNextChar = true;
+						continue;
+					}
+				case '<':
+					if (escapeNextChar)
+						break;
+
+					// Copy the char enumerator to make a lookahead
+					String.UTF8Enumerator tagEnumerator = @char;
+
+					String tagText = scope .();
+
+					int endIndex = -1;
+
+					for (char32 tagChar in tagEnumerator)
+					{
+						if (tagChar == '>')
+						{
+							endIndex = tagEnumerator.NextIndex;
+							break;
+						}
+						else
+						{
+							UTF32.Decode(Span<char32>(&tagChar, 1), tagText);
+						}
+					}
+
+					// It seems that it's just an unescaped <
+					if (endIndex == -1)
+						break; // TODO: Probably warn or something
+
+					bool isEndTag = tagText.StartsWith('/');
+
+					if (isEndTag)
+						tagText.Remove(0);
+
+					switch(tagText)
+					{
+					case "b", "bold":
+						// bold
+					case "br", "linebreak":
+						DoLineBreak();
+					case "u", "underline":
+						// underlined
+					case "i", "italic":
+						// italic
+					case "small":
+					case "sub", "subscript":
+					case "sup", "superscript":
+					case "s", "strikethrough":
+
+						// Text case control
+					case "lc", "lowercase":
+						if (isEndTag && textCaseStack.Count > 0)
+							textCaseStack.PopBack();
+						else
+							textCaseStack.Add(.LowerCase);
+					case "uc", "uppercase":
+						if (isEndTag && textCaseStack.Count > 0)
+							textCaseStack.PopBack();
+						else
+							textCaseStack.Add(.UpperCase);
+					case "rc", "retaincase":
+						if (isEndTag && textCaseStack.Count > 0)
+							textCaseStack.PopBack();
+						else
+							textCaseStack.Add(.RetainCase);
+					case "ic", "invertcase":
+						if (isEndTag && textCaseStack.Count > 0)
+							textCaseStack.PopBack();
+						else
+							textCaseStack.Add(.InvertCase);
+
+					}
+					
+					// Skip the tag in the main enumerator
+					@char.NextIndex = endIndex;
+
+					continue;
+				}
+
+				escapeNextChar = false;
+
+				switch (textCaseStack.Back)
+				{
+				case .RetainCase:
+					// Nothing to do
+				case .LowerCase:
+					char = char.ToLower;
+				case .UpperCase:
+					char = char.ToUpper;
+				case .InvertCase:
+					if (char.IsUpper)
+						char = char.ToLower;
+					else if (char.IsLower)
+						char = char.ToUpper;
 				}
 
 				// Get the font that can draw the char. Use the given font if no fallback is found (will draw the "missing glyph").
@@ -299,12 +416,7 @@ namespace GlitchyEngine.Renderer.Text
 					movedLines = 0;
 				}
 
-				//textBuffer.Append(char);
-				if(textBuffer.Length == 0)
-				{
-					textBuffer.Ptr = text.Ptr + currentIndex;
-				}
-				textBuffer.Length += @char.NextIndex - currentIndex;
+				chars.Add(char);
 			}
 			
 			FlushShapeBuffer();
@@ -336,7 +448,7 @@ namespace GlitchyEngine.Renderer.Text
 			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect;
 			// TODO: oh no....
 			// Copy viewProjection from current effect
-			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
+			Matrix viewProjection = Renderer2D.[Friend]s_quadBatchEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
 			_msdfEffect.Variables["ViewProjection"].SetData(viewProjection);
 			
 			// TODO: this doesn't really work with fallback fonts

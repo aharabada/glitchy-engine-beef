@@ -249,6 +249,12 @@ class SceneSerializer
 			{
 				Serialize.Value(writer, "Flags", component.Flags);
 			});
+
+			SerializeComponent<TextRendererComponent>(writer, entity, "TextRenderer", scope (component) =>
+			{
+				Serialize.Value(writer, "IsRichText", component.IsRichText);
+				Serialize.Value(writer, "Text", component.Text);
+			});
 		}
 
 		writer.EntryEnd();
@@ -670,6 +676,27 @@ class SceneSerializer
 				Try!(DeserializeComponent<EditorFlagsComponent>(reader, entity, scope (component) =>
 				{
 					Try!(Deserialize.Value(reader, "Flags", out component.Flags));
+
+					return .Ok;
+				}));
+			case "TextRenderer":
+				Try!(DeserializeComponent<TextRendererComponent>(reader, entity, scope (component) =>
+				{
+					Try!(Deserialize.Value<bool>(reader, "IsRichText", let isRichText));
+					component.IsRichText = isRichText;
+					
+					Try!(reader.EntryEnd());
+
+					String text = null;
+
+					Try!(Deserialize.Value<String>(reader, "Text", out text));
+
+					if (text != null)
+					{
+						component.Text = text;
+
+						delete text;
+					}
 
 					return .Ok;
 				}));

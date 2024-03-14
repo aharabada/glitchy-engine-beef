@@ -3,6 +3,7 @@ using GlitchyEngine.Content;
 using GlitchyEngine.Math;
 using System;
 using GlitchyEngine.World.Components;
+using GlitchyEngine.Renderer.Text;
 
 namespace GlitchyEngine.World;
 
@@ -23,6 +24,10 @@ class SceneRenderer
 	private AssetHandle<Effect> _gammaCorrectEffect;
 
 	public RenderTargetGroup CompositeTarget => _compositeTarget;
+
+	Font _font ~ _.ReleaseRef();
+
+	FontRenderer.PreparedText _smallLinesInfo;
 
 	public this()
 	{
@@ -47,6 +52,8 @@ class SceneRenderer
 		_cameraTarget.[Friend]Identifier = "Camera Target";
 
 		_gammaCorrectEffect = Content.LoadAsset("Resources/Shaders/GammaCorrect.hlsl");
+
+		_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
 	}
 
 	/// Sets the size of the viewport into which the scene will be rendered.
@@ -204,6 +211,20 @@ class SceneRenderer
 
 			Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
 		}
+		
+		for (var (entity, transform, text, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, TextRendererComponent, EditorFlagsComponent>())
+		{
+			if (editorFlags.Flags.HasFlag(.HideInScene))
+				continue;
+			
+			_smallLinesInfo = FontRenderer.PrepareText(_font, text.Text, 24, .Black);
+
+			FontRenderer.DrawText(_smallLinesInfo, transform.WorldTransform * Matrix.Scaling(1.0f / 24.0f));
+
+			_smallLinesInfo.ReleaseRef();
+		}
+		
+		//FontRenderer.DrawText(_smallLinesInfo, 0, 0);
 
 		Renderer2D.EndScene();
 
