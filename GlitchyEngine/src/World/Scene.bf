@@ -10,6 +10,8 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Scripting.Classes;
 using GlitchyEngine.Serialization;
 using GlitchyEngine.World.Components;
+using GlitchyEngine.Renderer.Text;
+using static GlitchyEngine.Renderer.Text.FontRenderer;
 
 namespace GlitchyEngine.World
 {
@@ -55,6 +57,8 @@ namespace GlitchyEngine.World
 
 			cameraEntity
 		};
+		
+		Font _font ~ _.ReleaseRef();
 
 		/// Gets or sets the name of the scene.
 		public StringView Name
@@ -117,6 +121,8 @@ namespace GlitchyEngine.World
 					scene.InitPolygonCollider2D(e, collider);
 				}
 			});
+
+			_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
 		}
 
 		public ~this()
@@ -768,6 +774,22 @@ namespace GlitchyEngine.World
 			}
 		}
 
+		private void BuildTexts()
+		{
+			for (let (entity, textRenderer) in _ecsWorld.Enumerate<TextRendererComponent>())
+			{
+				if (textRenderer.NeedsRebuild || textRenderer.PreparedText == null)
+				{
+					using (PreparedText preparedText = FontRenderer.PrepareText(_font, textRenderer.Text, 24, .Black))
+					{
+						textRenderer.PreparedText = preparedText;
+					}
+
+					textRenderer.NeedsRebuild = false;
+				}
+			}
+		}
+
 		public void Update(GameTime gameTime, UpdateMode mode)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -807,6 +829,8 @@ namespace GlitchyEngine.World
 
 				_destroyQueue.Clear();
 			}
+
+			BuildTexts();
 		}
 
 		/// Creates a new Entity with the given name.

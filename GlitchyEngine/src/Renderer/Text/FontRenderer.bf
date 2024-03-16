@@ -135,6 +135,49 @@ namespace GlitchyEngine.Renderer.Text
 			case InvertCase;
 		}
 
+		class StyleStack<T>
+		{
+			private append List<T> _stack = .();
+
+			public this(T bottomValue)
+			{
+				_stack.Add(bottomValue);
+			}
+
+			public void Push(T value)
+			{
+				_stack.Add(value);
+			}
+
+			public T CurrentValue()
+			{
+				return _stack.Back;
+			}
+
+			public T Pop()
+			{
+				if (_stack.Count == 1)
+					return _stack[0];
+
+				return _stack.PopBack();
+			}
+
+			/// If popValue is true, the given value will not be pushed and the current top of the stack will be poped.
+			/// If popValaue is false, the given value will be pushed and returned.
+			public T PushButPopIfTrue(T value, bool popValue)
+			{
+				if (popValue)
+				{
+					return Pop();
+				}
+				else
+				{
+					Push(value);
+					return value;
+				}	
+			}
+		}	
+
 		public static PreparedText PrepareText(Font font, StringView text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -158,11 +201,11 @@ namespace GlitchyEngine.Renderer.Text
 			hb_buffer_t* buf = hb_buffer_create();
 
 			// Stack to keep track of the text direction.
-			List<TextDirection> textDirectionStack = scope .();
-			textDirectionStack.Add(direction);
+			StyleStack<TextDirection> textDirectionStack = scope .(direction);
 
-			List<TextCase> textCaseStack = scope .();
-			textCaseStack.Add(.RetainCase);
+			StyleStack<TextCase> textCaseStack = scope .(.RetainCase);
+			
+			StyleStack<bool> richTextStack = scope .(true);
 
 			int movedLines = 0;
 
@@ -185,7 +228,7 @@ namespace GlitchyEngine.Renderer.Text
 				// Set the script, language and direction of the buffer.
 				// TODO: change direction, script, etc.
 
-				TextDirection direction = textDirectionStack.Back;
+				TextDirection direction = textDirectionStack.CurrentValue();
 
 				switch (direction)
 				{
@@ -237,7 +280,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			bool escapeNextChar = false;
 
-			for (char32 char in text.DecodedChars)
+			mainEnumerator: for (char32 char in text.DecodedChars)
 			{
 				defer
 				{
@@ -271,14 +314,14 @@ namespace GlitchyEngine.Renderer.Text
 					// LEFT-TO-RIGHT ISOLATE
 					FlushShapeBuffer();
 
-					textDirectionStack.Add(.RightToLeft);
+					textDirectionStack.Push(.RightToLeft);
 
 					continue;
 				case '\u{2067}':
 					// RIGHT-TO-LEFT ISOLATE
 					FlushShapeBuffer();
 
-					textDirectionStack.Add(.RightToLeft);
+					textDirectionStack.Push(.RightToLeft);
 
 					continue;
 				// TODO: FIRST STRONG ISOLATE (U+2068)
@@ -286,8 +329,7 @@ namespace GlitchyEngine.Renderer.Text
 					// POP DIRECTIONAL ISOLATE
 					FlushShapeBuffer();
 
-					if (textDirectionStack.Count > 1)
-						textDirectionStack.PopBack();
+					textDirectionStack.Pop();
 
 					continue;
 				case '\\':
@@ -331,6 +373,30 @@ namespace GlitchyEngine.Renderer.Text
 					if (isEndTag)
 						tagText.Remove(0);
 
+					tagText.ToLower();
+
+					if (tagText == "rt" || tagText == "richtext")
+					{
+						richTextStack.PushButPopIfTrue(true, isEndTag);
+						
+						// Skip the tag in the main enumerator
+						@char.NextIndex = endIndex;
+						continue;
+					}
+
+					if (tagText == "pt" || tagText == "plaintext")
+					{
+						richTextStack.PushButPopIfTrue(false, isEndTag);
+						
+						// Skip the tag in the main enumerator
+						@char.NextIndex = endIndex;
+						continue;
+					}
+
+					// Only process the other tags if we currently use rich text processing
+					if (!richTextStack.CurrentValue())
+						break;
+
 					switch(tagText)
 					{
 					case "b", "bold":
@@ -348,37 +414,24 @@ namespace GlitchyEngine.Renderer.Text
 
 						// Text case control
 					case "lc", "lowercase":
-						if (isEndTag && textCaseStack.Count > 0)
-							textCaseStack.PopBack();
-						else
-							textCaseStack.Add(.LowerCase);
+						textCaseStack.PushButPopIfTrue(.LowerCase, isEndTag);
 					case "uc", "uppercase":
-						if (isEndTag && textCaseStack.Count > 0)
-							textCaseStack.PopBack();
-						else
-							textCaseStack.Add(.UpperCase);
+						if (isEndTag)
+						textCaseStack.PushButPopIfTrue(.UpperCase, isEndTag);
 					case "rc", "retaincase":
-						if (isEndTag && textCaseStack.Count > 0)
-							textCaseStack.PopBack();
-						else
-							textCaseStack.Add(.RetainCase);
+						textCaseStack.PushButPopIfTrue(.RetainCase, isEndTag);
 					case "ic", "invertcase":
-						if (isEndTag && textCaseStack.Count > 0)
-							textCaseStack.PopBack();
-						else
-							textCaseStack.Add(.InvertCase);
-
+						textCaseStack.PushButPopIfTrue(.InvertCase, isEndTag);
 					}
-					
+
 					// Skip the tag in the main enumerator
 					@char.NextIndex = endIndex;
-
 					continue;
 				}
 
 				escapeNextChar = false;
 
-				switch (textCaseStack.Back)
+				switch (textCaseStack.CurrentValue())
 				{
 				case .RetainCase:
 					// Nothing to do

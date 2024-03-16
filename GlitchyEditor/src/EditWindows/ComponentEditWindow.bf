@@ -477,6 +477,18 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowTextRendererComponentEditor(Entity entity, TextRendererComponent* textRendererComponent)
 		{
+			StartNewProperty("Rich text");
+
+			ImGui.AttachTooltip("If checked, the text will be interpreted as rich text. This means, that you can use tags to change the style of the text.");
+
+			bool isRichText = textRendererComponent.IsRichText;
+
+			if (ImGui.Checkbox("##rich_text", &isRichText))
+			{
+				textRendererComponent.IsRichText = isRichText;
+				textRendererComponent.NeedsRebuild = true;
+			}
+
 			StartNewProperty("Text");
 
 			String text = textRendererComponent.[Friend]_text;
@@ -498,6 +510,8 @@ namespace GlitchyEditor.EditWindows
 				{
 					text.Length = length;
 				}
+				
+				textRendererComponent.NeedsRebuild = true;
 			}
 		}
 

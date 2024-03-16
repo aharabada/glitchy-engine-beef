@@ -25,10 +25,6 @@ class SceneRenderer
 
 	public RenderTargetGroup CompositeTarget => _compositeTarget;
 
-	Font _font ~ _.ReleaseRef();
-
-	FontRenderer.PreparedText _smallLinesInfo;
-
 	public this()
 	{
 		RenderTargetGroupDescription desc = .(100, 100,
@@ -52,8 +48,6 @@ class SceneRenderer
 		_cameraTarget.[Friend]Identifier = "Camera Target";
 
 		_gammaCorrectEffect = Content.LoadAsset("Resources/Shaders/GammaCorrect.hlsl");
-
-		_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
 	}
 
 	/// Sets the size of the viewport into which the scene will be rendered.
@@ -214,14 +208,10 @@ class SceneRenderer
 		
 		for (var (entity, transform, text, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, TextRendererComponent, EditorFlagsComponent>())
 		{
-			if (editorFlags.Flags.HasFlag(.HideInScene))
+			if (editorFlags.Flags.HasFlag(.HideInScene) || text.PreparedText == null)
 				continue;
 			
-			_smallLinesInfo = FontRenderer.PrepareText(_font, text.Text, 24, .Black);
-
-			FontRenderer.DrawText(_smallLinesInfo, transform.WorldTransform * Matrix.Scaling(1.0f / 24.0f));
-
-			_smallLinesInfo.ReleaseRef();
+			FontRenderer.DrawText(text.PreparedText, transform.WorldTransform * Matrix.Scaling(1.0f / 24.0f));
 		}
 		
 		//FontRenderer.DrawText(_smallLinesInfo, 0, 0);

@@ -1,11 +1,20 @@
 using System;
+using static GlitchyEngine.Renderer.Text.FontRenderer;
 namespace GlitchyEngine.World.Components;
+
+enum TextRendererFlags
+{
+	IsRichText = 1,
+	NeedsRebuild = 2
+}
 
 struct TextRendererComponent : IDisposableComponent
 {
 	private String _text;
+	
+	private PreparedText _preparedText;
 
-	private bool _isRichText;
+	private TextRendererFlags _flags;
 
 	public StringView Text
 	{
@@ -19,14 +28,27 @@ struct TextRendererComponent : IDisposableComponent
 		}
 	}
 
+	public PreparedText PreparedText
+	{
+		get => _preparedText;
+		set mut => SetReference!(_preparedText, value);
+	}
+
 	public bool IsRichText
 	{
-		get => _isRichText;
-		set mut => _isRichText = value;
+		get => _flags.HasFlag(.IsRichText);
+		set mut => Enum.SetFlagConditionally(ref _flags, .IsRichText, value);
+	}
+
+	public bool NeedsRebuild
+	{
+		get => _flags.HasFlag(.NeedsRebuild);
+		set mut => Enum.SetFlagConditionally(ref _flags, .NeedsRebuild, value);
 	}
 
 	public void Dispose()
 	{
 		delete _text;
+		_preparedText?.ReleaseRef();
 	}
 }
