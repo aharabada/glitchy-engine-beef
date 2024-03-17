@@ -481,7 +481,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			StartNewProperty("Rich text");
 
-			ImGui.AttachTooltip("If checked, the text will be interpreted as rich text. This means, that you can use tags to change the style of the text.");
+			ImGui.AttachTooltip("If checked, the text will be interpreted as rich text.");
 
 			bool isRichText = textRendererComponent.IsRichText;
 

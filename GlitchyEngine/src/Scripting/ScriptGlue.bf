@@ -91,6 +91,7 @@ static class ScriptGlue
 		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Physics.Rigidbody2D");
 		RegisterComponent<CameraComponent>("GlitchyEngine.Core.Camera");
 		RegisterComponent<CircleRendererComponent>("GlitchyEngine.Graphics.CircleRenderer");
+		RegisterComponent<TextRendererComponent>("GlitchyEngine.Graphics.TextRenderer");
 	}
 
 	[RegisterMethod]
@@ -992,6 +993,61 @@ static class ScriptGlue
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
 		circleRenderer.InnerRadius = innerRadius;
+	}
+
+#endregion
+
+#region TextRenderer
+
+	[RegisterCall("ScriptGlue::TextRenderer_SetIsRichText")]
+	static bool TextRenderer_SetIsRichText(UUID entityId)
+	{
+		return GetComponentSafe<TextRendererComponent>(entityId).IsRichText;
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_SetIsRichText")]
+	static void TextRenderer_SetIsRichText(UUID entityId, bool isRichText)
+	{
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+
+		textComponent.IsRichText = isRichText;
+		textComponent.NeedsRebuild = true;
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_GetText")]
+	static void TextRenderer_GetText(UUID entityId, out MonoString* text)
+	{
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+
+		text = Mono.mono_string_new_len(ScriptEngine.[Friend]s_AppDomain, textComponent.Text.Ptr, (uint32)textComponent.Text.Length);
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_SetText")]
+	static void TextRenderer_SetText(UUID entityId, MonoString* text)
+	{
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+
+		char8* rawText = Mono.mono_string_to_utf8(text);
+
+		textComponent.Text = StringView(rawText);
+
+		textComponent.NeedsRebuild = true;
+
+		Mono.mono_free(rawText);
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_GetColor")]
+	static void TextRenderer_GetColor(UUID entityId, out ColorRGBA color)
+	{
+		color = default;
+
+		return;
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_SetColor")]
+	static void TextRenderer_SetColor(UUID entityId, ColorRGBA color)
+	{
+		return;
 	}
 
 #endregion

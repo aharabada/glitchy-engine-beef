@@ -255,6 +255,28 @@ internal static class ScriptGlue
 
 #endregion
 
+#region TextRenderer
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool TextRenderer_GetIsRichText(UUID entityId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_SetIsRichText(UUID entityId, bool isRichText);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_GetText(UUID entityId, out string text);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_SetText(UUID entityId, string text);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_GetColor(UUID entityId, out ColorRGBA color);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_SetColor(UUID entityId, ColorRGBA color);
+
+#endregion
+
 #region Math
     
     [MethodImpl(MethodImplOptions.InternalCall)]

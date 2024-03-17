@@ -84,6 +84,18 @@ namespace GlitchyEngine.Renderer.Text
 			}
 
 			public static readonly Self Empty = new Self(null) ~ _.ReleaseRef();
+
+			/// Optimizes rendering of the text by sorting the glyphs
+			public void Optimize()
+			{
+				// Sort by texture -> render all glyphs with same font at once
+				Glyphs.Sort((lhs, rhs) => (int)Internal.UnsafeCastToPtr(lhs.Font._atlas) - (int)Internal.UnsafeCastToPtr(rhs.Font._atlas));
+			}
+
+			public void Clear()
+			{
+				Glyphs.Clear();
+			}
 		}
 		/*
 		public class PreparedLine
@@ -178,11 +190,11 @@ namespace GlitchyEngine.Renderer.Text
 			}
 		}	
 
-		public static PreparedText PrepareText(Font font, StringView text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
+		public static void PrepareText(PreparedText preparedText, Font font, StringView text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			PreparedText preparedText = new PreparedText(font);
+			preparedText.Clear();
 
 			float scale = fontSize / (float)font._fontSize;
 			
@@ -476,7 +488,7 @@ namespace GlitchyEngine.Renderer.Text
 			
 			preparedText.AdvanceY = baseline;
 
-			return preparedText;
+			preparedText.Optimize();
 		}
 
 		public static void DrawText(PreparedText text, float x, float y, Color fontColor = .White)
@@ -497,6 +509,7 @@ namespace GlitchyEngine.Renderer.Text
 			Renderer2D.Flush();
 
 			// TODO: this is very not good!
+			// At some point we will support using materials with the 2D renderer. At that point we can simply bind different materials with fonts (or glyphs?) and don't need this hack anymore. One day...
 			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
 			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect;
 			// TODO: oh no....

@@ -118,14 +118,28 @@ class SceneRenderer
 		// Sprite renderer
 		Renderer2D.BeginScene(*primaryCamera, primaryCameraTransform, .BackToFront);
 
-		for (var (entity, transform, sprite) in Scene._ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent>())
+		for (var (entity, transform, sprite, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, SpriteRendererComponent, EditorFlagsComponent>())
 		{
+			if (editorFlags.Flags.HasFlag(.HideInScene))
+				continue;
+			
 			Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 		}
 
-		for (var (entity, transform, circle) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent>())
+		for (var (entity, transform, circle, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent, EditorFlagsComponent>())
 		{
+			if (editorFlags.Flags.HasFlag(.HideInScene))
+				continue;
+			
 			Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
+		}
+		
+		for (var (entity, transform, text, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, TextRendererComponent, EditorFlagsComponent>())
+		{
+			if (editorFlags.Flags.HasFlag(.HideInScene) || text.PreparedText == null)
+				continue;
+			
+			FontRenderer.DrawText(text.PreparedText, transform.WorldTransform * Matrix.Scaling(1.0f / 24.0f));
 		}
 
 		Renderer2D.EndScene();

@@ -117,9 +117,6 @@ namespace GlitchyEngine.Renderer.Text
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			// Make sure the fontrenderer is initialized (Font only cares about freetype)
-			FontRenderer.Init();
-
 			// Set default sampler
 			Sampler = null;
 

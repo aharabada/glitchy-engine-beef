@@ -799,10 +799,18 @@ namespace GlitchyEngine.World
 			{
 				if (textRenderer.NeedsRebuild || textRenderer.PreparedText == null)
 				{
-					using (PreparedText preparedText = FontRenderer.PrepareText(_font, textRenderer.Text, 24, .Black))
+					if (textRenderer.PreparedText == null)
 					{
-						textRenderer.PreparedText = preparedText;
+						textRenderer.PreparedText = new FontRenderer.PreparedText(_font);
 					}
+					else
+					{
+						textRenderer.PreparedText.AddRef();
+					}
+
+					FontRenderer.PrepareText(textRenderer.PreparedText, _font, textRenderer.Text, 24, .Black);
+					
+					textRenderer.PreparedText.ReleaseRef();
 
 					textRenderer.NeedsRebuild = false;
 				}
