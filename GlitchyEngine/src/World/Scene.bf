@@ -834,7 +834,7 @@ namespace GlitchyEngine.World
 		}
 
 		/// Creates a new Entity with the given name.
-		public Entity CreateEntity(StringView name = "", UUID id = default)
+		public Entity CreateEntity(StringView name = "", UUID id = .Zero)
 		{
 			Entity entity = Entity(_ecsWorld.NewEntity(), this);
 			entity.AddComponent<TransformComponent>();
@@ -848,13 +848,25 @@ namespace GlitchyEngine.World
 #endif
 			
 			// If no id is given generate a random one.
-			IDComponent idComponent = (id == default) ? IDComponent() : IDComponent(id);
+			IDComponent idComponent = (id == .Zero) ? IDComponent(CreateEntityId()) : IDComponent(id);
 
 			entity.AddComponent<IDComponent>(idComponent);
 
 			_idToEntity.Add(idComponent.ID, entity.Handle);
 
 			return entity;
+		}
+
+		/// Creates a new entity Id that is unique within this scene.
+		public UUID CreateEntityId()
+		{
+			while (true)
+			{
+				UUID entityId = UUID.Create();
+
+				if (!_idToEntity.ContainsKey(entityId))
+					return entityId;
+			}
 		}
 
 		/** Deletes the given entity.

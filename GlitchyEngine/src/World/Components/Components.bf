@@ -24,10 +24,9 @@ namespace GlitchyEngine.World
 	{
 		public readonly UUID ID;
 
-		/// Create a new IDComponent with a random UUID.
 		public this()
 		{
-			ID = UUID.Create();
+			ID = .Zero;
 		}
 
 		public this(UUID id)
