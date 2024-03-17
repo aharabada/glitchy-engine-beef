@@ -9,6 +9,13 @@ using Mono;
 
 namespace GlitchyEngine.World
 {
+	/// Components that implement this interface provide custom copy logic.
+	interface ICopyComponent<T>
+	{
+		/// Copies the data from source to target.
+		concrete static void Copy(T* source, T* target);
+	}
+
 	[AttributeUsage(.Struct, .ReflectAttribute, ReflectUser=.Methods | .NonStaticFields)]
 	struct ComponentAttribute : Attribute
 	{

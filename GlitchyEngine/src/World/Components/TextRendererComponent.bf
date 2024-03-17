@@ -8,7 +8,7 @@ enum TextRendererFlags
 	NeedsRebuild = 2
 }
 
-struct TextRendererComponent : IDisposableComponent
+struct TextRendererComponent : IDisposableComponent, ICopyComponent<TextRendererComponent>
 {
 	private String _text;
 	
@@ -50,5 +50,13 @@ struct TextRendererComponent : IDisposableComponent
 	{
 		delete _text;
 		_preparedText?.ReleaseRef();
+	}
+
+	public static void Copy(Self* source, Self* target)
+	{
+		target.Text = source.Text;
+
+		target._flags = source._flags;
+		target.NeedsRebuild = true;
 	}
 }

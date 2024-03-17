@@ -151,6 +151,7 @@ namespace GlitchyEngine.World
 			CopyComponents<MeshComponent>(this, target);
 			CopyComponents<SpriteRendererComponent>(this, target);
 			CopyComponents<CircleRendererComponent>(this, target);
+			CopyComponents<TextRendererComponent>(this, target);
 			CopyComponents<CameraComponent>(this, target);
 			CopyComponents<LightComponent>(this, target);
 		
@@ -193,25 +194,27 @@ namespace GlitchyEngine.World
 			//target.SetViewportSize(_viewportWidth, _viewportHeight);
 		}
 
+		/// Copies the all components of type TComponent from source scene to the corresponding entities in target scene.
 		private static void CopyComponents<TComponent>(Scene source, Scene target) where TComponent : struct, new
 		{
 			for (let (sourceHandle, sourceComponent) in source._ecsWorld.Enumerate<TComponent>())
 			{
 				Entity sourceEntity = .(sourceHandle, source);
 
-				Entity targetEntity = target.GetEntityByID(sourceEntity.UUID);
+				Result<Entity> targetEntityResult = target.GetEntityByID(sourceEntity.UUID);
 
-				if (targetEntity.TryGetComponent<TComponent>(let targetComponent))
+				if (targetEntityResult case .Ok(let targetEntity))
 				{
-					*targetComponent = *sourceComponent;
+					CopyComponent<TComponent>(sourceEntity, targetEntity);
 				}
 				else
 				{
-					targetEntity.AddComponent<TComponent>(*sourceComponent);
+					Log.EngineLogger.Error($"Tried to copy component \"{typeof(TComponent)}\" of entity \"{sourceEntity.UUID}\", but there is no entity with the same ID in the target scene.");
 				}
 			}
 		}
 
+		/// Copy POD components that don't need any extra care.
 		private static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new
 		{
 			if (source.TryGetComponent<TComponent>(let sourceComponent))
@@ -224,6 +227,22 @@ namespace GlitchyEngine.World
 				{
 					target.AddComponent<TComponent>(*sourceComponent);
 				}
+			}
+		}
+
+		/// Copy components that have custom copy methods.
+		private static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new, ICopyComponent<TComponent>
+		{
+			if (source.TryGetComponent<TComponent>(let sourceComponent))
+			{
+				TComponent* targetComponent = null;
+
+				if (!target.TryGetComponent<TComponent>(out targetComponent))
+				{
+					targetComponent = target.AddComponent<TComponent>();
+				}
+
+				TComponent.Copy(sourceComponent, targetComponent);
 			}
 		}
 
@@ -955,6 +974,7 @@ namespace GlitchyEngine.World
 				CopyComponent<MeshComponent>(original, copy);
 				CopyComponent<SpriteRendererComponent>(original, copy);
 				CopyComponent<CircleRendererComponent>(original, copy);
+				CopyComponent<TextRendererComponent>(original, copy);
 				CopyComponent<CameraComponent>(original, copy);
 				CopyComponent<LightComponent>(original, copy);
 
