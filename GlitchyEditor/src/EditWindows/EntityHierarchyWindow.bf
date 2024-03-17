@@ -37,7 +37,7 @@ namespace GlitchyEditor.EditWindows
 		public int SelectionSize => _selectedEntityIds.Count;
 
 		/// Returns the Entity at the given index or null if it doesn't exist.
-		public Entity GetSelectedEntity(int index)
+		public Result<Entity> GetSelectedEntity(int index)
 		{
 			var index;
 
@@ -50,10 +50,14 @@ namespace GlitchyEditor.EditWindows
 
 			if (selectedEntity case .Ok(let entity))
 				return entity;
+			else
+			{
+				// Entity doesn't exist. This can have many reasons, but it is safe to assume, that it existed at some point and probably got deleted.
+				// Thus we just remove it from the selection.
+				_selectedEntityIds.RemoveAt(index);
 
-			// TODO: The entity should always exist in the scene, I'm sure!
-			// If we can assume that, then we can remove the nullable and make everything even easier!
-			Runtime.FatalError(scope $"No entity exists with selected id \"{id}\".");
+				return .Err;
+			}
 		}
 
 		public void HighlightEntity(Entity e)
@@ -188,7 +192,12 @@ namespace GlitchyEditor.EditWindows
 
 			for (int i < SelectionSize)
 			{
-				Entity entity = GetSelectedEntity(i);
+				Result<Entity> entityResult = GetSelectedEntity(i);
+
+				if (entityResult case .Err)
+					continue;
+
+				Entity entity = entityResult;
 
 				var transformComponent = entity.GetComponent<TransformComponent>();
 
@@ -275,7 +284,7 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
-			let commonParent = GetSelectedEntity(0).GetComponent<TransformComponent>();
+			let commonParent = TrySilent!(GetSelectedEntity(0)).GetComponent<TransformComponent>();
 
 			let newEntity = _scene.CreateEntity();
 
@@ -290,7 +299,12 @@ namespace GlitchyEditor.EditWindows
 			// new entity is parent of all selected entities.
 			for (int i < SelectionSize)
 			{
-				let selectedTransform = GetSelectedEntity(i).GetComponent<TransformComponent>();
+				Result<Entity> selectedEntity = GetSelectedEntity(i);
+
+				if (selectedEntity case .Err)
+					continue;
+
+				let selectedTransform = selectedEntity.Value.GetComponent<TransformComponent>();
 				selectedTransform?.Parent = newEntity.Handle;
 			}
 		}
@@ -307,8 +321,13 @@ namespace GlitchyEditor.EditWindows
 							_scene.CreateEntity();
 						else
 						{
-							Entity? parent = GetSelectedEntity(-1).Parent;
-							CreateChild(parent);
+							Result<Entity> selectedEntityResult = GetSelectedEntity(-1);
+
+							if (selectedEntityResult case .Ok(let selectedEntity))
+							{
+								Entity? parent = selectedEntity.Parent;
+								CreateChild(parent);
+							}
 						}
 					}
 
@@ -322,8 +341,12 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.MenuItem("Empty Child", null, false, SelectionSize != 0))
 					{
-						Entity selectedEntity = GetSelectedEntity(-1);
-						CreateChild(selectedEntity);
+						Result<Entity> selectedEntityResult = GetSelectedEntity(-1);
+
+						if (selectedEntityResult case .Ok(let selectedEntity))
+						{
+							CreateChild(selectedEntity);
+						}
 					}
 					
 					if(ImGui.IsItemHovered())

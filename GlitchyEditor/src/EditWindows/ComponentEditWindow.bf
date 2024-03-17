@@ -49,8 +49,10 @@ namespace GlitchyEditor.EditWindows
 
 			if (_entityHierarchyWindow.SelectionSize == 1)
 			{
-				Entity entity = _entityHierarchyWindow.GetSelectedEntity(0);
-				ShowComponents(entity);
+				Result<Entity> entityResult = _entityHierarchyWindow.GetSelectedEntity(0);
+
+				if (entityResult case .Ok(let selectedEntity))
+					ShowComponents(selectedEntity);
 			}
 			else
 			{

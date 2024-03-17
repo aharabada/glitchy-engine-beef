@@ -326,7 +326,7 @@ namespace GlitchyEditor.EditWindows
 			if(_editor.EntityHierarchyWindow.SelectionSize == 0)
 				return false;
 
-			Entity entity = _editor.EntityHierarchyWindow.GetSelectedEntity(-1);
+			Entity entity = TrySilent!(_editor.EntityHierarchyWindow.GetSelectedEntity(-1));
 
 			var transformCmp = entity.GetComponent<TransformComponent>();
 
