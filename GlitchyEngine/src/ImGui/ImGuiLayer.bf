@@ -126,8 +126,11 @@ namespace GlitchyEngine.ImGui
 			style.FrameRounding = 4;
 			style.TabRounding = 8;
 			style.ScrollbarSize = 20;
+			style.ScrollbarRounding = 3;
 
 			style.WindowMinSize = ImGui.Vec2(100, 100);
+
+			style.SeparatorTextAlign = ImGui.Vec2(0.5f, 0.5f);
 
 			colors[(.)ImGui.Col.WindowBg] = ImGui.Vec4(0.118f, 0.118f, 0.118f, 1.00f);
 			colors[(.)ImGui.Col.FrameBg] = ImGui.Vec4(0.289f, 0.387f, 0.533f, 1.00f);

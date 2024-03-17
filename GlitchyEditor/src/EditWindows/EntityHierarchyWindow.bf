@@ -648,9 +648,11 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropTarget();
 			}
 
-			if (ImGui.BeginTable("entityTable", 2, .RowBg | .NoBordersInBody | .SizingFixedFit))
+			ImGui.PushStyleVar(.FramePadding, float2(0, 0));
+
+			if (ImGui.BeginTable("entityTable", 2, .RowBg | .SizingFixedFit | .NoPadInnerX))
 			{
-				ImGui.TableSetupColumn("", .IndentDisable | .NoResize);
+				ImGui.TableSetupColumn("Visibility", .IndentDisable | .NoResize);
 				ImGui.TableSetupColumn("Entities", .IndentEnable | .WidthStretch);
 
 				for(var child in root.Children)
@@ -660,14 +662,18 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.EndTable();
 			}
+
+			ImGui.PopStyleVar(1);
 		}
 
 		/// Shows a list of entities that match the search query.
 		private void ShowFilteredEntityList(StringView searchString)
 		{
 			List<StringView> searchTokens = scope .(searchString.Split(' ', .RemoveEmptyEntries));
+			
+			ImGui.PushStyleVar(.FramePadding, float2(0, 0));
 
-			if (ImGui.BeginTable("entityTable", 2, .RowBg | .NoBordersInBody | .SizingFixedFit))
+			if (ImGui.BeginTable("entityTable", 2, .RowBg | .SizingFixedFit | .NoPadInnerX))
 			{
 				ImGui.TableSetupColumn("Visibility", .IndentDisable | .NoResize);
 				ImGui.TableSetupColumn("Entities", .IndentEnable | .WidthStretch);
@@ -706,6 +712,7 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndTable();
 			}
 
+			ImGui.PopStyleVar(1);
 		}
 
 		/// Shows the entity hierarchy either as tree or as filtered list.

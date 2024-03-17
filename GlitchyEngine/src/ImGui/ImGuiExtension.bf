@@ -78,6 +78,8 @@ namespace ImGui
 		    return IsItemActive();
 		}*/
 
+		public static void PushStyleVar(StyleVar styleVar, float2 value) => PushStyleVar(styleVar, (Vec2)value);
+
 		// TODO: Color-functions
 		public static bool ColorEdit3(char* label, ref ColorRGB col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorEdit3Impl(label, *(float[3]*)&col, flags);
 		public static bool ColorEdit3(char* label, ref ColorRGBA col, ColorEditFlags flags = (ColorEditFlags) 0) => ColorEdit3Impl(label, *(float[3]*)&col, flags);
