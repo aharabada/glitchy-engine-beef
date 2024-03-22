@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace GlitchyEngine.Math;
 
@@ -31,4 +32,13 @@ public static class RandomExtension
     /// <returns>A 32-bit signed integer greater than or equal to <paramref name="min"/> and less than <paramref name="max"/>; that is, the range of return values includes <paramref name="min"/> but not <paramref name="max"/>. If <paramref name="min"/> equals <paramref name="max"/>, <paramref name="min"/> is returned.</returns>
     /// <exception cref="T:System.ArgumentOutOfRangeException"><paramref name="min"/> is greater than <paramref name="max"/>.</exception>
     public static double Range(this Random random, double min, double max) => random.NextDouble() * (max - min) + min;
+    
+    /// <summary>
+    /// Picks a random element from the given list.
+    /// </summary>
+    /// <param name="random"></param>
+    /// <param name="list">The list to pick an element from.</param>
+    /// <typeparam name="T">The type of elements in the list.</typeparam>
+    /// <returns>The randomly picked element.</returns>
+    public static T Pick<T>(this Random random, IList<T> list) => list[random.Range(0, list.Count)];
 }
