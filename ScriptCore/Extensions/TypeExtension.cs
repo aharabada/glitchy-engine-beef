@@ -41,7 +41,7 @@ public static class TypeExtension
         foreach (Assembly domainAssembly in AppDomain.CurrentDomain.GetAssemblies())
         foreach (Type type in domainAssembly.GetTypes())
         {
-            if (baseType.IsAssignableFrom(type) && !type.IsAbstract) yield return type;
+            if (!type.IsAbstract && baseType.IsAssignableFrom(type)) yield return type;
         }
     }
 
@@ -157,5 +157,74 @@ public static class TypeExtension
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Gets the simple name of the type. This is the name of the type without any generic arguments.
+    /// </summary>
+    /// <param name="type">The type whose name is to be simplified.</param>
+    /// <returns>The simple name of the type.</returns>
+    public static string GetSimpleName(this Type type)
+    {
+        string uglyName = type.Name;
+
+        int tickIndex = uglyName.IndexOf('`');
+
+        if (tickIndex < 0)
+        {
+            return uglyName;
+        }
+
+        return uglyName.Substring(0, tickIndex);
+    }
+
+    /// <summary>
+    /// Gets the pretty name of the type, including generic arguments. This prints the type name as it would be written in C# code.
+    /// If the type is not generic, the name is returned as is.
+    /// </summary>
+    /// <param name="type">The type whose name is to be written pretty.</param>
+    /// <returns>The pretty name of the type.</returns>
+    public static string GetPrettyName(this Type type)
+    {
+        if (!type.IsGenericType)
+        {
+            return type.Name;
+        }
+
+        string uglyName = type.Name;
+
+        int tickIndex = uglyName.IndexOf('`');
+
+        // No tick in generic name?
+        if (tickIndex < 0)
+        {
+            return uglyName;
+        }
+        
+        StringBuilder nameBuilder = new StringBuilder(uglyName.Substring(0, tickIndex));
+
+        nameBuilder.Append('<');
+                            
+        Type[] genericParameters = type.GetGenericArguments();
+
+        bool first = true;
+                            
+        foreach (Type genericParameter in genericParameters)
+        {
+            if (!first)
+            {
+                nameBuilder.Append(", ");
+            }
+            else
+            {
+                first = false;
+            }
+                                
+            nameBuilder.Append(genericParameter.Name);
+        }
+
+        nameBuilder.Append('>');
+                            
+        return nameBuilder.ToString();
     }
 }
