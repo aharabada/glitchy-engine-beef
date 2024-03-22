@@ -446,7 +446,7 @@ public class DeserializationObject
 
         for (int i = 0; i < count; i++)
         {
-            object? elementValue = ActivatorExtension.CreateInstanceSafe(elementType);
+            object? elementValue = NeedsInstance(elementType) ? ActivatorExtension.CreateInstanceSafe(elementType) : null;
 
             object? newValue = deserializedObject.DeserializeField(elementValue, elementType, $"{i}");
 
@@ -462,6 +462,19 @@ public class DeserializationObject
         }
 
         return deserializedObject._instance;
+    }
+
+    private bool NeedsInstance(Type type)
+    {
+        if (type.IsClass)
+        {
+            if (type == typeof(string))
+                return false;
+
+            return true;
+        }
+
+        return true;
     }
 
     public object DeserializeEnum(string fieldName, Type enumType)
