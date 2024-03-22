@@ -650,17 +650,11 @@ internal class EntityEditor
         {
             if (reference == null)
             {
-                if (ImGui.BeginCombo("##Create", "Create instance...", ImGuiComboFlags.HeightSmall | ImGuiComboFlags.NoArrowButton))
-                {
-                    foreach (Type t in TypeExtension.FindDerivedTypes(fieldType))
-                    {
-                        if (ImGui.Selectable(t.Name))
-                        {
-                            newValue = ActivatorExtension.CreateInstanceSafe(t);
-                        }
-                    }
+                Type? selectedType = ShowTypeDropdown("##Create", "Create instance...", fieldType);
 
-                    ImGui.EndCombo();
+                if (selectedType != null)
+                {
+                    newValue = ActivatorExtension.CreateInstanceSafe(selectedType);
                 }
             }
             else
@@ -688,6 +682,40 @@ internal class EntityEditor
         }
 
         return newValue;
+    }
+
+    /// <summary>
+    /// Shows a dropdown of all types that can be assigned to the given baseType.
+    /// </summary>
+    /// <param name="label">The label of the combo box.</param>
+    /// <param name="previewValue">The preview value that will be shown in the combo box.</param>
+    /// <param name="baseType">The base type of the types that can be selected.</param>
+    /// <returns>The selected type; or <see langword="null"/> if no type was selected.</returns>
+    private static Type? ShowTypeDropdown(string label, string? previewValue, Type baseType)
+    {
+        Type? selectedType = null;
+        
+        if (ImGui.BeginCombo(label, previewValue, ImGuiComboFlags.HeightSmall | ImGuiComboFlags.NoArrowButton))
+        {
+            foreach (Type t in TypeExtension.FindDerivedTypes(baseType))
+            {
+                if (t.IsGenericType)
+                {
+                    // TODO: Generic types
+                }
+                else
+                {
+                    if (ImGui.Selectable(t.Name))
+                    {
+                        selectedType = t;
+                    }
+                }
+            }
+
+            ImGui.EndCombo();
+        }
+
+        return selectedType;
     }
 
     private static object? ShowComponentDropTarget(string fieldName, Type fieldType, object? currentValue, IEnumerable<Attribute>? attributes)
