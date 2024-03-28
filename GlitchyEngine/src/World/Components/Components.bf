@@ -344,7 +344,7 @@ namespace GlitchyEngine.World
 		public SceneLight SceneLight;
 	}
 
-	struct Rigidbody2DComponent : IDisposableComponent
+	struct Rigidbody2DComponent : IDisposableComponent, ICopyComponent<Rigidbody2DComponent>
 	{
 		public enum BodyType
 		{
@@ -383,6 +383,13 @@ namespace GlitchyEngine.World
 			get => (b2Body*)(void*)_runtimeBody;
 			[Inline]
 			set mut => _runtimeBody = (int)(void*)value;
+		}
+		
+		public static void Copy(Self* source, Self* target)
+		{
+			target._bodyType = source._bodyType;
+			target._fixedRotation = source._fixedRotation;
+			target._gravityScale = source._gravityScale;
 		}
 
 		public BodyType BodyType
@@ -552,7 +559,7 @@ namespace GlitchyEngine.World
 		}
 	}*/
 
-	struct BoxCollider2DComponent
+	struct BoxCollider2DComponent : ICopyComponent<BoxCollider2DComponent>
 	{
 		public float2 Offset = .(0.0f, 0.0f);
 		public float2 Size = .(0.5f, 0.5f);
@@ -575,9 +582,18 @@ namespace GlitchyEngine.World
 		
 		[Inline]
 		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
+		
+		public static void Copy(Self* source, Self* target)
+		{
+			target.Offset = source.Offset;
+			target.Density = source.Density;
+			target.Friction = source.Friction;
+			target.Restitution = source.Restitution;
+			target.RestitutionThreshold = source.RestitutionThreshold;
+		}
 	}
 
-	struct CircleCollider2DComponent
+	struct CircleCollider2DComponent : ICopyComponent<CircleCollider2DComponent>
 	{
 		public float2 Offset = .(0.0f, 0.0f);
 
@@ -601,10 +617,20 @@ namespace GlitchyEngine.World
 		
 		[Inline]
 		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
+
+		public static void Copy(Self* source, Self* target)
+		{
+			target.Offset = source.Offset;
+			target.Radius = source.Radius;
+			target.Density = source.Density;
+			target.Friction = source.Friction;
+			target.Restitution = source.Restitution;
+			target.RestitutionThreshold = source.RestitutionThreshold;
+		}
 	}
 
 	// Todo: This component is rather large (> 1 Cache line)
-	struct PolygonCollider2DComponent
+	struct PolygonCollider2DComponent : ICopyComponent<PolygonCollider2DComponent>
 	{
 		public float2 Offset = .(0.0f, 0.0f);
 
@@ -629,6 +655,16 @@ namespace GlitchyEngine.World
 		
 		[Inline]
 		internal ref b2Vec2 b2Offset mut => ref *(Box2D.b2Vec2*)(void*)&Offset;
+
+		public static void Copy(Self* source, Self* target)
+		{
+			target.Offset = source.Offset;
+			target.Density = source.Density;
+			target.Friction = source.Friction;
+			target.Restitution = source.Restitution;
+			target.Vertices = source.Vertices;
+			target.VertexCount = source.VertexCount;
+		}
 	}
 
 	struct ScriptComponent : IDisposableComponent
