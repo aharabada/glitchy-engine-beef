@@ -27,6 +27,8 @@ class EngineClasses
 
 	private ScriptClass s_Collision2D ~ _?.ReleaseRef();
 
+	private ScriptClass s_RunInEditModeAttribute ~ _?.ReleaseRef();
+
 	public ScriptClass ComponentRoot => s_ComponentRoot;
 	public ScriptClass EntityRoot => s_EntityRoot;
 	public ScriptClass EngineObject => s_EngineObject;
@@ -36,6 +38,8 @@ class EngineClasses
 	public ScriptClass EntitySerializer => s_EntitySerializer;
 
 	public ScriptClass Collision2D => s_Collision2D;
+
+	public ScriptClass RunInEditModeAttribute => s_RunInEditModeAttribute;
 
 	internal void ReleaseAndNullify()
 	{
@@ -49,6 +53,8 @@ class EngineClasses
 		ReleaseRefAndNullify!(s_SerializationContext);
 
 		ReleaseRefAndNullify!(s_Collision2D);
+
+		ReleaseRefAndNullify!(s_RunInEditModeAttribute);
 	}
 
 	internal void LoadClasses(MonoImage* image)
@@ -65,6 +71,9 @@ class EngineClasses
 		s_EntitySerializer = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer", image, .Class);
 
 		s_Collision2D = new ScriptClass("GlitchyEngine.Physics", "Collision2D", image, .Struct);
+
+		// Attributes
+		s_RunInEditModeAttribute = new ScriptClass("GlitchyEngine.Editor", "RunInEditModeAttribute", image, .Struct);
 	}
 }
 
@@ -85,11 +94,8 @@ static class ScriptEngine
 
 	public static EngineClasses Classes => _classes;
 
-	private static Dictionary<StringView, SharpType> _sharpClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
-	
 	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
-	private static Dictionary<StringView, ScriptClass> _componentClasses = new .() ~ DeleteDictionaryAndReleaseValues!(_);
-	
+
 	private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
 		for (var entry in _)
 		{
@@ -99,7 +105,6 @@ static class ScriptEngine
 	}
 
 	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
-	public static Dictionary<StringView, ScriptClass> ComponentClasses => _componentClasses;
 
 	/// Gets or sets the current scene context for the runtime.
 	public static Scene Context
@@ -114,12 +119,6 @@ static class ScriptEngine
 	private static bool _debuggingEnabled = true;
 
 	private static String _appAssemblyPath = new .() ~ delete _;
-
-	internal static class Attributes
-	{
-		internal static MonoClass* s_ShowInEditorAttribute;
-		internal static MonoClass* s_RunInEditModeAttribute;
-	}
 
 	public class ApplicationData
 	{
@@ -283,14 +282,9 @@ static class ScriptEngine
 			s_AppAssemblyImage = null;
 		}
 
-		GetCoreAttributes();
 		Classes.LoadClasses(s_CoreAssemblyImage);
 
-		ClearDictionaryAndReleaseValues!(_sharpClasses);
-		ClearDictionaryAndReleaseValues!(_componentClasses);
 		ClearDictionaryAndReleaseValues!(_entityScripts);
-		
-		GetComponentsFromAssemblies();
 
 		GetEntitiesFromAssemblies();
 
@@ -454,17 +448,6 @@ static class ScriptEngine
 		return (assembly, image);
 	}
 
-	/// Retrieves the classes for Attributes that are defined in the Core library
-	static void GetCoreAttributes()
-	{
-		// We definitely need these attributes!
-		// TODO: Some only for the editor!
-		Attributes.s_ShowInEditorAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "ShowInEditorAttribute");
-		Debug.Assert(Attributes.s_ShowInEditorAttribute != null);
-		Attributes.s_RunInEditModeAttribute = Mono.mono_class_from_name(s_CoreAssemblyImage, "GlitchyEngine.Editor", "RunInEditModeAttribute");
-		Debug.Assert(Attributes.s_RunInEditModeAttribute != null);
-	}
-
 	private static void GetEntitiesFromAssemblies()
 	{
 		Debug.Profiler.ProfileFunction!();
@@ -492,34 +475,6 @@ static class ScriptEngine
 				_entityScripts.Add(entityScript.FullName, entityScript);
 
 				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
-			}
-	    }
-	}
-
-	private static void GetComponentsFromAssemblies()
-	{
-		Debug.Profiler.ProfileFunction!();
-
-	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_CoreAssemblyImage, .MONO_TABLE_TYPEDEF);
-	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
-
-	    for (int32 i = 0; i < numTypes; i++)
-	    {
-	        int32[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE] cols = .();
-	        Mono.mono_metadata_decode_row(typeDefinitionsTable, i, (.)&cols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
-
-	        char8* nameSpace = Mono.mono_metadata_string_heap(s_CoreAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAMESPACE]);
-			char8* name = Mono.mono_metadata_string_heap(s_CoreAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
-			
-			MonoClass* monoClass = Mono.mono_class_from_name(s_CoreAssemblyImage, nameSpace, name);
-			
-			// Check if it is a component but not the root Component class
-			if (monoClass != null && monoClass != Classes.ComponentRoot.[Friend]_monoClass && Mono.mono_class_is_subclass_of(monoClass, Classes.ComponentRoot.[Friend]_monoClass, false))
-			{
-				ScriptClass componentClass = new ScriptClass(StringView(nameSpace), StringView(name), s_CoreAssemblyImage, .Component);
-				_componentClasses.Add(componentClass.FullName, componentClass);
-
-				Log.EngineLogger.Info($"Added component \"{componentClass.FullName}\"");
 			}
 	    }
 	}
@@ -574,11 +529,6 @@ static class ScriptEngine
 
 		Mono.mono_jit_cleanup(s_RootDomain);
 		s_RootDomain = null;
-	}
-
-	internal static void RegisterSharpType(SharpType sharpType)
-	{
-		_sharpClasses.Add(sharpType.FullName, sharpType..AddRef());
 	}
 
 	/// Returns the script instance or null.

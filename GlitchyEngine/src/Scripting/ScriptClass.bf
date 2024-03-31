@@ -26,8 +26,6 @@ abstract class SharpType : RefCounter
 		_className = new String(className);
 		_fullName = new $"{_namespace}.{_className}";
 		_scriptType = scriptType;
-		
-		ScriptEngine.RegisterSharpType(this);
 	}
 }
 
@@ -110,9 +108,8 @@ class ScriptClass : SharpClass
 		// TODO: This is only relevant for the editor!
 		MonoCustomAttrInfo* attributes = Mono.mono_custom_attrs_from_class(_monoClass);
 
-		if (attributes != null)
-		_runInEditMode = Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Attributes.s_RunInEditModeAttribute);
-
+		if (attributes != null && ScriptEngine.Classes.RunInEditModeAttribute != null)
+			_runInEditMode = Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Classes.RunInEditModeAttribute._monoClass);
 	}
 
 	private MonoMethod* FindConstructor()
