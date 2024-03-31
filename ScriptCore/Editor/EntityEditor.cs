@@ -146,14 +146,16 @@ internal class EntityEditor
         return false;
     }
     
-    public static void ShowDefaultEntityEditor(UUID entityId, Type entityType)
+    public static void ShowDefaultEntityEditor(UUID entityId)
     {
         // TODO: Call custom editors here!
 
         ScriptGlue.Entity_GetScriptInstance(entityId, out object? instance);
 
         if (instance != null)
-            ShowEditor(entityType, instance);
+        {
+            ShowEditor(instance.GetType(), instance);
+        }
     }
 
     private static T? GetAttribute<T>(IEnumerable<Attribute>? attributes) where T : Attribute

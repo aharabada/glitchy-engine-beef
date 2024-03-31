@@ -13,19 +13,16 @@ abstract class SharpType : RefCounter
 	protected String _namespace ~ delete _;
 	protected String _className ~ delete _;
 	protected String _fullName ~ delete _;
-	protected ScriptFieldType _scriptType;
 	
 	public StringView Namespace => _namespace;
 	public StringView ClassName => _className;
 	public StringView FullName => _fullName;
-	public ScriptFieldType ScriptType => _scriptType;
 	
-	public this(StringView classNamespace, StringView className, ScriptFieldType scriptType)
+	public this(StringView classNamespace, StringView className)
 	{
 		_namespace = new String(classNamespace);
 		_className = new String(className);
 		_fullName = new $"{_namespace}.{_className}";
-		_scriptType = scriptType;
 	}
 }
 
@@ -33,35 +30,20 @@ class SharpClass : SharpType
 {
 	protected internal MonoClass* _monoClass;
 	
-	public this(StringView classNamespace, StringView className, MonoImage* image, ScriptFieldType fieldType = .Class) :
-		base(classNamespace, className, fieldType)
+	public this(StringView classNamespace, StringView className, MonoImage* image) :
+		base(classNamespace, className)
 	{
 		_monoClass = Mono.mono_class_from_name(image, _namespace, _className);
 
 		Log.EngineLogger.AssertDebug(_monoClass != null);
 	}
 	
-	internal this(MonoClass* monoClass, ScriptFieldType fieldType = .Class) :
-		base(StringView(Mono.mono_class_get_namespace(monoClass)), StringView(Mono.mono_class_get_name(monoClass)), fieldType)
+	internal this(MonoClass* monoClass) :
+		base(StringView(Mono.mono_class_get_namespace(monoClass)), StringView(Mono.mono_class_get_name(monoClass)))
 	{
 		_monoClass = monoClass;
 
 		Log.EngineLogger.AssertDebug(_monoClass != null);
-	}
-
-	internal MonoType* GetMonoType()
-	{
-		return Mono.mono_class_get_type(_monoClass);
-	}
-
-	internal bool IsType(MonoType* type)
-	{
-		return GetMonoType() == type;
-	}
-
-	internal bool IsSubclass(MonoClass* @class)
-	{
-		return Mono.mono_class_is_subclass_of(_monoClass, @class, false);
 	}
 }
 
@@ -88,8 +70,8 @@ class ScriptClass : SharpClass
 	public bool RunInEditMode => _runInEditMode;
 
 	[AllowAppend]
-	public this(StringView classNamespace, StringView className, MonoImage* image, ScriptFieldType scriptFieldType = .Class) :
-		base(classNamespace, className, image, scriptFieldType)
+	public this(StringView classNamespace, StringView className, MonoImage* image) :
+		base(classNamespace, className, image)
 	{
 		_constructor = FindConstructor();
 		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");

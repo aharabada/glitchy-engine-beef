@@ -585,15 +585,12 @@ static class ScriptEngine
 		if (scriptClass == null)
 			return;
 
-		let monoType = scriptClass.GetMonoType();
-		let monoReflectionType = Mono.mono_type_get_object(s_AppDomain, monoType);
-
 		let entityId = entity.UUID;
 
 #unwarn
-		void*[2] args = .(&entityId, monoReflectionType);
+		void*[1] args = .(&entityId);
 
-		let method = Classes.EntityEditor.GetMethod("ShowDefaultEntityEditor", 2);
+		let method = Classes.EntityEditor.GetMethod("ShowDefaultEntityEditor", 1);
 
 		Classes.EntityEditor.Invoke(method, null, &args);
 	}
