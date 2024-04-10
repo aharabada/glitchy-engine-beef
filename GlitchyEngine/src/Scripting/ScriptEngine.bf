@@ -96,7 +96,7 @@ static class ScriptEngine
 
 	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
 
-	private static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
+	internal static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
 		for (var entry in _)
 		{
 			entry.value?.ReleaseRef();
@@ -485,9 +485,9 @@ static class ScriptEngine
 
 		Log.EngineLogger.Info("Reloading script assemblies.");
 
-		Dictionary<UUID, SerializedObject> serializedData = scope .();
+		ScriptInstanceSerializer contextSerializer = scope .();
 
-		SerializeScriptInstances(serializedData);
+		contextSerializer.SerializeScriptInstances();
 
 		Mono.mono_domain_set(s_RootDomain, true);
 
@@ -513,9 +513,7 @@ static class ScriptEngine
 			}
 		}
 
-		DeserializeScriptInstances(serializedData);
-
-		ClearDictionaryAndDeleteValues!(serializedData);
+		contextSerializer.DeserializeScriptInstances();
 
 		Log.EngineLogger.Info("Script assemblies reloaded!");
 	}
@@ -581,64 +579,5 @@ static class ScriptEngine
 			return;
 		
 		Classes.EntityEditor.ShowEntityEditor(scriptComponent.Instance, entity.UUID);
-	}
-
-	/// Serializes all script instances
-	public static void SerializeScriptInstances(Dictionary<UUID, SerializedObject> allObjects)
-	{
-		Debug.Profiler.ProfileFunction!();
-
-		for (let (id, script) in _entityScriptInstances)
-		{
-			SerializeScriptInstance(script, allObjects);
-		}
-	}
-
-	/// Serializes the given script instance
-	public static void SerializeScriptInstance(ScriptInstance script, Dictionary<UUID, SerializedObject> allObjects)
-	{
-		SerializedObject object = new SerializedObject(allObjects, script.ScriptClass.FullName, script.EntityId);
-		object.Serialize(script);
-	}
-
-	/// Deserializes the given data into the script instances
-	public static void DeserializeScriptInstances(Dictionary<UUID, SerializedObject> allObjects)
-	{
-		Debug.Profiler.ProfileFunction!();
-
-		for (let (id, script) in _entityScriptInstances)
-		{
-			DeserializeScriptInstance(id, script, allObjects);
-		}
-	}
-	
-	/// Deserializes the given script instance.
-	/// @returns true if the script had serialized data; false otherwise.
-	public static bool DeserializeScriptInstance(UUID id, ScriptInstance script, Dictionary<UUID, SerializedObject> allObjects)
-	{
-		if (allObjects.TryGetValue(id, let object))
-		{
-			object.Deserialize(script);
-
-			return true;
-		}
-
-		return false;
-	}
-
-	/// Replaces Entity references in the given serialized data using the specified translation table.
-	public static void FixupSerializedIds(Dictionary<UUID, UUID> originalToCopyIds, Dictionary<UUID, SerializedObject> allObjects)
-	{
-		for (let (id, object) in allObjects)
-		{
-			for (var fieldData in ref object.Fields.Values)
-			{
-				if (fieldData.PrimitiveType != .EntityReference && fieldData.PrimitiveType != .ComponentReference)
-					continue;
-
-				if (originalToCopyIds.TryGetValue(fieldData.Data.EngineObject.ID, let copyId))
-					fieldData.Data.EngineObject.ID = copyId;
-			}
-		}
 	}
 }

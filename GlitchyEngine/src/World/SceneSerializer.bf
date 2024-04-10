@@ -28,11 +28,11 @@ class SceneSerializer
 	// Maps from ID in the prefab file to the actual ID in the scene.
 	private Dictionary<UUID, UUID> _fileToSceneId;
 
-	private Dictionary<UUID, SerializedObject> _serializedObjects ~ DeleteDictionaryAndValues!(_);
+	private append ScriptInstanceSerializer _scriptSerializer = .(); //Dictionary<UUID, SerializedObject> _serializedObjects ~ DeleteDictionaryAndValues!(_);
 
 	private HashSet<UUID> _objectsNotWritten;
 
-	public Dictionary<UUID, SerializedObject> SerializedObjects => _serializedObjects;
+	public ScriptInstanceSerializer ScriptSerializer => _scriptSerializer;
 
 	public this(Scene scene)
 	{
@@ -43,13 +43,11 @@ class SceneSerializer
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
-		_serializedObjects = new .();
+		_scriptSerializer.SerializeScriptInstances();
 
-		ScriptEngine.SerializeScriptInstances(_serializedObjects);
+		_objectsNotWritten = new .(_scriptSerializer.SerializedObjectCount);
 
-		_objectsNotWritten = new .(_serializedObjects.Count);
-
-		for (UUID key in _serializedObjects.Keys)
+		for (UUID key in _scriptSerializer.SerializedObjects.Keys)
 		{
 			_objectsNotWritten.Add(key);
 		}
@@ -84,11 +82,12 @@ class SceneSerializer
 
 			writer.Identifier("ReferencedObjects");
 
+			// Write all objects that don't belong to an entity. (referenced Arrays, Classes, etc...)
 			using (writer.ArrayBlock())
 			{
 				for (UUID id in _objectsNotWritten)
 				{
-					Serialize.Value(writer, _serializedObjects[id]);
+					Serialize.Value(writer, _scriptSerializer.GetSerializedObject(id));
 				}
 			}
 
@@ -237,7 +236,7 @@ class SceneSerializer
 			{
 				Serialize.Value(writer, "ScriptClass", component.ScriptClassName);
 
-				if (_serializedObjects.TryGetValue(entity.UUID, let value))
+				if (_scriptSerializer.TryGetSerializedObject(entity.UUID, let value))
 				{
 					Serialize.Value(writer, "Fields", value);
 
@@ -284,8 +283,6 @@ class SceneSerializer
 	public Result<void> Deserialize(StringView filePath, bool loadAsPrefab = false)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
-
-		_serializedObjects = new .();
 
 		_parentIdToChild = scope Dictionary<UUID, Entity>();
 		_entitiesMissingParent = scope List<(Entity Entity, UUID ParentId)>();
@@ -344,7 +341,7 @@ class SceneSerializer
 				Try!(reader.EntryEnd());
 			}
 
-			Try!(SerializedObject.BonDeserialize(reader, _serializedObjects, gBonEnv));
+			Try!(SerializedObject.BonDeserialize(reader, _scriptSerializer.SerializedObjects, gBonEnv));
 
 			first = false;
 		}
@@ -667,7 +664,7 @@ class SceneSerializer
 						Try!(reader.EntryEnd());
 
 						if (Try!(reader.Identifier()) == "Fields")
-							SerializedObject.BonDeserialize(reader, _serializedObjects, gBonEnv);
+							SerializedObject.BonDeserialize(reader, _scriptSerializer.SerializedObjects, gBonEnv);
 					}
 
 					return .Ok;

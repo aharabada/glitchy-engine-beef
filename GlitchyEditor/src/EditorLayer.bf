@@ -811,14 +811,14 @@ namespace GlitchyEditor
 			ImGui.FocusWindow(window);
 		}
 		
-		append Dictionary<UUID, SerializedObject> _prePlaySerializedData = .() ~ ClearDictionaryAndDeleteValues!(_prePlaySerializedData);
+		append ScriptInstanceSerializer _scriptSerializer = .();
 
 		/// Starts the play mode for the current scene
 		private void OnScenePlay()
 		{
-			Log.EngineLogger.AssertDebug(_prePlaySerializedData.Count == 0, "Somehow some entities are serialized.");
+			Log.EngineLogger.AssertDebug(_scriptSerializer.SerializedObjectCount == 0, "Somehow some entities are serialized.");
 
-			ScriptEngine.SerializeScriptInstances(_prePlaySerializedData);
+			_scriptSerializer.SerializeScriptInstances();
 			
 			_editor.SceneViewportWindow.EditorMode = false;
 			_sceneState = .Play;
@@ -829,7 +829,7 @@ namespace GlitchyEditor
 
 				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true, newPlayMode: .Play);
 				
-				ScriptEngine.DeserializeScriptInstances(_prePlaySerializedData);
+				_scriptSerializer.DeserializeScriptInstances();
 			}
 
 			_editor.CurrentScene = _activeScene;
@@ -947,22 +947,15 @@ namespace GlitchyEditor
 				SwitchToEditorWindow();
 
 			// Reconstruct state before play
-			ScriptEngine.DeserializeScriptInstances(_prePlaySerializedData);
-
-			ClearPrePlaySerializedData();
-		}
-
-		/// Clears the serialized data cache.
-		private void ClearPrePlaySerializedData()
-		{
-			ClearDictionaryAndDeleteValues!(_prePlaySerializedData);
+			_scriptSerializer.DeserializeScriptInstances();
+			_scriptSerializer.Clear();
 		}
 
 		/// Stops the scene and cleans up the subsystems to allow loading another scene.
 		private void CloseCurrentScene()
 		{
 			// Clear serialized data, so that we don't waste time deserializing it.
-			ClearPrePlaySerializedData();
+			_scriptSerializer.Clear();
 			OnSceneStop();
 		}
 
@@ -983,7 +976,7 @@ namespace GlitchyEditor
 		}
 
 		/// Sets the current editor scene
-		private void SetEditorScene(Scene scene, Dictionary<UUID, SerializedObject> serializedObjects = null)
+		private void SetEditorScene(Scene scene, ScriptInstanceSerializer serializedObjects = null)
 		{
 			_editorScene?.Stop();
 
@@ -998,7 +991,7 @@ namespace GlitchyEditor
 				if (serializedObjects != null)
 				{
 					// Reconstruct state
-					ScriptEngine.DeserializeScriptInstances(serializedObjects);
+					serializedObjects.DeserializeScriptInstances();
 				}
 			}
 
@@ -1118,7 +1111,7 @@ namespace GlitchyEditor
 				// Make sure we actually loaded something!
 				if (result case .Ok)
 				{
-					SetEditorScene(newScene, serializer.SerializedObjects);
+					SetEditorScene(newScene, serializer.ScriptSerializer);
 
 					String relativePath = scope .();
 					Path.GetRelativePath(filename, _currentProject.WorkspacePath, relativePath);

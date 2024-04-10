@@ -958,8 +958,9 @@ namespace GlitchyEngine.World
 		 */
 		public Entity CreateInstance(Entity entity)
 		{
-			Dictionary<UUID, SerializedObject> serializedData = scope .();
-			defer { ClearDictionaryAndDeleteValues!(serializedData); }
+			//Dictionary<UUID, SerializedObject> serializedData = scope .();
+			ScriptInstanceSerializer scriptSerializer = scope .();
+			//defer { ClearDictionaryAndDeleteValues!(serializedData); }
 
 			List<Entity> newEntities = scope .();
 			Dictionary<EcsEntity, EcsEntity> sourceToTargetEntity = scope .();
@@ -1002,7 +1003,7 @@ namespace GlitchyEngine.World
 
 					if (sourceScript.Instance != null)
 					{
-						ScriptEngine.SerializeScriptInstance(sourceScript.Instance, serializedData);
+						scriptSerializer.SerializeScriptInstance(sourceScript.Instance);
 						
 						// Initializes the created instance
 						// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
@@ -1024,13 +1025,13 @@ namespace GlitchyEngine.World
 			Entity newEntity = CopyEntityAndChildren(entity, null);
 
 			// Replace old IDs with new ones
-			ScriptEngine.FixupSerializedIds(sourceIdToTargetId, serializedData);
+			scriptSerializer.FixupSerializedIds(sourceIdToTargetId);
 
 			// Use separate loops for deserialization and OnCreate to ensure complete entities and references in OnCreate
 
 			for (let (originalId, newScriptInstance) in newScripts)
 			{
-				ScriptEngine.DeserializeScriptInstance(originalId, newScriptInstance, serializedData);
+				scriptSerializer.DeserializeScriptInstance(originalId, newScriptInstance);
 			}
 
 			for (let (_, newScriptInstance) in newScripts)
