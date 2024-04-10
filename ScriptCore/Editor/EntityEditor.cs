@@ -146,16 +146,17 @@ internal class EntityEditor
         return false;
     }
     
-    public static void ShowDefaultEntityEditor(UUID entityId)
+    /// <summary>
+    /// Entry point for the engine to show the editor for the given script instance.
+    /// </summary>
+    /// <param name="scriptInstance">The script instance to show the editor for.</param>
+    internal static void ShowEntityEditor(Entity? scriptInstance)
     {
+        if (scriptInstance == null)
+            return;
+
         // TODO: Call custom editors here!
-
-        ScriptGlue.Entity_GetScriptInstance(entityId, out object? instance);
-
-        if (instance != null)
-        {
-            ShowEditor(instance.GetType(), instance);
-        }
+        ShowEditor(scriptInstance.GetType(), scriptInstance);
     }
 
     private static T? GetAttribute<T>(IEnumerable<Attribute>? attributes) where T : Attribute

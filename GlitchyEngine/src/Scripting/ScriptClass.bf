@@ -8,40 +8,29 @@ namespace GlitchyEngine.Scripting;
 
 using internal GlitchyEngine.Scripting;
 
-abstract class SharpType : RefCounter
+class SharpClass : RefCounter
 {
-	protected String _namespace ~ delete _;
-	protected String _className ~ delete _;
-	protected String _fullName ~ delete _;
+	protected String _fullName ~ delete:append _;
+
+	protected StringView _namespace;
+	protected StringView _className;
+	
+	protected internal MonoClass* _monoClass;
 	
 	public StringView Namespace => _namespace;
 	public StringView ClassName => _className;
 	public StringView FullName => _fullName;
-	
-	public this(StringView classNamespace, StringView className)
-	{
-		_namespace = new String(classNamespace);
-		_className = new String(className);
-		_fullName = new $"{_namespace}.{_className}";
-	}
-}
 
-class SharpClass : SharpType
-{
-	protected internal MonoClass* _monoClass;
-	
-	public this(StringView classNamespace, StringView className, MonoImage* image) :
-		base(classNamespace, className)
+	[AllowAppend]
+	public this(StringView classNamespace, StringView className, MonoImage* image)
 	{
-		_monoClass = Mono.mono_class_from_name(image, _namespace, _className);
+		String fullName = append $"{classNamespace}.{className}";
 
-		Log.EngineLogger.AssertDebug(_monoClass != null);
-	}
-	
-	internal this(MonoClass* monoClass) :
-		base(StringView(Mono.mono_class_get_namespace(monoClass)), StringView(Mono.mono_class_get_name(monoClass)))
-	{
-		_monoClass = monoClass;
+		_fullName = fullName;
+		_namespace = _fullName.Substring(0, classNamespace.Length);
+		_className = _fullName.Substring(classNamespace.Length + 1);
+
+		_monoClass = Mono.mono_class_from_name(image, _namespace.ToScopeCStr!(), _className.ToScopeCStr!());
 
 		Log.EngineLogger.AssertDebug(_monoClass != null);
 	}

@@ -20,7 +20,7 @@ class EngineClasses
 	private ScriptClass s_EntityRoot ~ _?.ReleaseRef();
 	private ScriptClass s_EngineObject ~ _?.ReleaseRef();
 
-	private ScriptClass s_EntityEditor ~ _?.ReleaseRef();
+	private EntityEditorWrapper s_EntityEditor ~ _?.ReleaseRef();
 
 	private ScriptClass s_EntitySerializer ~ _?.ReleaseRef();
 	private ScriptClass s_SerializationContext ~ _?.ReleaseRef();
@@ -33,7 +33,7 @@ class EngineClasses
 	public ScriptClass EntityRoot => s_EntityRoot;
 	public ScriptClass EngineObject => s_EngineObject;
 
-	public ScriptClass EntityEditor => s_EntityEditor;
+	public EntityEditorWrapper EntityEditor => s_EntityEditor;
 
 	public ScriptClass EntitySerializer => s_EntitySerializer;
 
@@ -61,19 +61,19 @@ class EngineClasses
 	{
 		ReleaseAndNullify();
 
-		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", image, .Class);
-		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", image, .Entity);
-		s_ComponentRoot = new ScriptClass("GlitchyEngine.Core", "Component", image, .Component);
+		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", image);
+		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", image);
+		s_ComponentRoot = new ScriptClass("GlitchyEngine.Core", "Component", image);
 
 		// Editor classes
-		s_EntityEditor = new ScriptClass("GlitchyEngine.Editor", "EntityEditor", image, .Class);
+		s_EntityEditor = new EntityEditorWrapper("GlitchyEngine.Editor", "EntityEditor", image);
 
-		s_EntitySerializer = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer", image, .Class);
+		s_EntitySerializer = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer", image);
 
-		s_Collision2D = new ScriptClass("GlitchyEngine.Physics", "Collision2D", image, .Struct);
+		s_Collision2D = new ScriptClass("GlitchyEngine.Physics", "Collision2D", image);
 
 		// Attributes
-		s_RunInEditModeAttribute = new ScriptClass("GlitchyEngine.Editor", "RunInEditModeAttribute", image, .Struct);
+		s_RunInEditModeAttribute = new ScriptClass("GlitchyEngine.Editor", "RunInEditModeAttribute", image);
 	}
 }
 
@@ -116,7 +116,7 @@ static class ScriptEngine
 	private static FileSystemWatcher _userAssemblyWatcher ~ delete _;
 
 	// TODO: This should be a global setting somewhere
-	private static bool _debuggingEnabled = true;
+	private static bool _debuggingEnabled = false;
 
 	private static String _appAssemblyPath = new .() ~ delete _;
 
@@ -471,7 +471,7 @@ static class ScriptEngine
 			// Check if it is an entity
 			if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, Classes.EntityRoot.[Friend]_monoClass, false))
 			{
-				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage, .Entity);
+				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage);
 				_entityScripts.Add(entityScript.FullName, entityScript);
 
 				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
@@ -579,20 +579,8 @@ static class ScriptEngine
 	{
 		if (scriptComponent.Instance == null)
 			return;
-
-		ScriptClass scriptClass = ScriptEngine.GetScriptClass(scriptComponent.ScriptClassName);
-
-		if (scriptClass == null)
-			return;
-
-		let entityId = entity.UUID;
-
-#unwarn
-		void*[1] args = .(&entityId);
-
-		let method = Classes.EntityEditor.GetMethod("ShowDefaultEntityEditor", 1);
-
-		Classes.EntityEditor.Invoke(method, null, &args);
+		
+		Classes.EntityEditor.ShowEntityEditor(scriptComponent.Instance, entity.UUID);
 	}
 
 	/// Serializes all script instances
