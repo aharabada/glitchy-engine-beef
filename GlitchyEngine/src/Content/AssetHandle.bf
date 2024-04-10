@@ -315,10 +315,11 @@ struct AssetHandle<T> where T : Asset
 	}
 
 	// TODO: Cast up?
-	public AssetHandle<NewT> Cast<NewT>() where NewT : T
+	// TODO: Wasn't used, if needed, fix...
+	/*public AssetHandle<NewT> Cast<NewT>() where NewT : T
 	{
 		return AssetHandle<NewT>(this._handle, this._contentManager);
-	}
+	}*/
 	
 	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
 	{
