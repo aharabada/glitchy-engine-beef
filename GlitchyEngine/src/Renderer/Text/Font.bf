@@ -40,8 +40,9 @@ namespace GlitchyEngine.Renderer.Text
 			public bool IsRendered = false;
 		}
 
-		internal FT_Face _face ~ FreeType.Done_Face(_face);
-		internal hb_font_t* _harfBuzzFont ~ hb_font_destroy(_);
+		// TODO: I don't understand why freeing the face and hb_font sometimes results in an access violation...
+		internal FT_Face _face;//TODO!: ~ FreeType.Done_Face(_face);
+		internal hb_font_t* _harfBuzzFont;//TODO:!! ~ hb_font_destroy(_);
 
 		private Font _fallback ~ _?.ReleaseRef();
 
