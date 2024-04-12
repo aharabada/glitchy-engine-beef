@@ -18,6 +18,8 @@ using internal GlitchyEngine.World;
 
 class SceneSerializer
 {
+	private const int FileVersion = 1;
+
 	private Scene _scene;
 
 	// Maps from ParentID to ChildEntity
@@ -31,6 +33,8 @@ class SceneSerializer
 	private append ScriptInstanceSerializer _scriptSerializer = .(); //Dictionary<UUID, SerializedObject> _serializedObjects ~ DeleteDictionaryAndValues!(_);
 
 	private HashSet<UUID> _objectsNotWritten;
+
+	private int _fileVersion;
 
 	public ScriptInstanceSerializer ScriptSerializer => _scriptSerializer;
 
@@ -62,7 +66,9 @@ class SceneSerializer
 		{
 			// TODO: Scene name goes here!
 			Serialize.Value(writer, "Name", "Scene name here pls!!!");
-			
+
+			Serialize.Value(writer, "Version", FileVersion);
+
 			writer.Identifier("Entities");
 
 			using (writer.ArrayBlock())
@@ -280,6 +286,31 @@ class SceneSerializer
 		Runtime.NotImplemented();
 	}
 	
+	private Result<void> DeserializeValue<T>(BonReader reader, StringView identifier, out T value, bool tryEndEntry = true, BonEnvironment env = gBonEnv)
+	{
+		Try!(Deserialize.Value(reader, identifier, out value, env));
+
+		TryEndEntry(reader);
+
+		return .Ok;
+	}
+	
+	private static bool Check(BonReader reader, char8 token, bool consume = true)
+	{
+		return reader.[Friend]Check(token, consume);
+	}
+
+	private static bool TryEndEntry(BonReader reader)
+	{
+		if (Check(reader, ',', false))
+		{
+			reader.EntryEnd();
+			return true;
+		}
+
+		return false;
+	}
+
 	public Result<void> Deserialize(StringView filePath, bool loadAsPrefab = false)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
@@ -298,60 +329,35 @@ class SceneSerializer
 		Try!(reader.ObjectBlock());
 
 		_scene.Name = Path.GetFileName(filePath, .. scope .());
+		
+		Try!(DeserializeValue(reader, "Version", out _fileVersion));
 
-		// TODO: Scene name goes here!
-		String testName;
-		Deserialize.Value(reader, "Name", out testName);
-		delete testName;
-
-		Try!(reader.EntryEnd());
-
-		if (Try!(reader.Identifier()) != "Entities")
-			return .Err;
-
-		Try!(reader.ArrayBlock());
-
-		bool first = true;
-		while (reader.ArrayHasMore())
+		if (_fileVersion == 0 || _fileVersion > FileVersion)
 		{
-			if (!first)
-			{
-				Try!(reader.EntryEnd());
-			}
-			
-			Try!(DeserializeEntity(reader, loadAsPrefab));
-
-			first = false;
+			Log.EngineLogger.Warning("The scene file either has no version or it's newer than the current editor. Deserialization might fail.");
 		}
 
-		Try!(reader.ArrayBlockEnd());
-
-		Try!(reader.EntryEnd());
-
-		if (Try!(reader.Identifier()) != "ReferencedObjects")
-			return .Err;
-
-		Try!(reader.ArrayBlock());
-
-		first = true;
-		while (reader.ArrayHasMore())
+		while (reader.ObjectHasMore())
 		{
-			if (!first)
+			StringView identifier = Try!(reader.Identifier());
+
+			switch (identifier)
 			{
-				Try!(reader.EntryEnd());
+			case "Entities":
+				Try!(DeserializeEntities(reader, loadAsPrefab));
+			case "ReferencedObjects":
+				Try!(DeserializeReferencedObjects(reader));
+			default:
+				Log.EngineLogger.Warning($"Encountered unexpected Identifier \"{identifier}\".");
 			}
 
-			Try!(SerializedObject.BonDeserialize(reader, _scriptSerializer.SerializedObjects, gBonEnv));
-
-			first = false;
+			TryEndEntry(reader);
 		}
-
-		Try!(reader.ArrayBlockEnd());
 
 		Try!(reader.ObjectBlockEnd());
 
 		Try!(Deserialize.End(reader));
-
+		
 		// Find parents for entities that don't have their parent yet
 		for ((Entity Entity, UUID ParentId) entry in _entitiesMissingParent)
 		{
@@ -364,6 +370,38 @@ class SceneSerializer
 				entry.Entity.Parent = parent;
 			}
 		}
+
+		return .Ok;
+	}
+
+	private Result<void> DeserializeEntities(BonReader reader, bool loadAsPrefab)
+	{
+		Try!(reader.ArrayBlock());
+
+		while (reader.ArrayHasMore())
+		{
+			Try!(DeserializeEntity(reader, loadAsPrefab));
+
+			TryEndEntry(reader);
+		}
+
+		Try!(reader.ArrayBlockEnd());
+
+		return .Ok;
+	}
+
+	private Result<void> DeserializeReferencedObjects(BonReader reader)
+	{
+		Try!(reader.ArrayBlock());
+
+		while (reader.ArrayHasMore())
+		{
+			Try!(SerializedObject.BonDeserialize(reader, _scriptSerializer, _fileVersion, gBonEnv));
+			
+			TryEndEntry(reader);
+		}
+
+		Try!(reader.ArrayBlockEnd());
 
 		return .Ok;
 	}
@@ -406,8 +444,9 @@ class SceneSerializer
 		}
 
 		Try!(reader.ObjectBlock());
-		
-		Deserialize.Value<uint64>(reader, "Id", let rawUuid);
+
+		// We must start with the Id because we need to construct the entity!
+		DeserializeValue<uint64>(reader, "Id", let rawUuid);
 
 		UUID uuid = RemapId(UUID(rawUuid));
 
@@ -415,58 +454,65 @@ class SceneSerializer
 
 		while(reader.ObjectHasMore())
 		{
-			Try!(reader.EntryEnd());
+			TryEndEntry(reader);
 
-			StringView identifier = Try!(reader.Identifier());
+			StringView componentIdentifier = Try!(reader.Identifier());
 
-			switch(identifier)
+			switch(componentIdentifier)
 			{
 			case "NameComponent":
 				Try!(DeserializeComponent<NameComponent>(reader, entity, scope (component) =>
 				{
-					String name;
-
-					Deserialize.Value(reader, "Name", out name);
-
+					Try!(Deserialize.Value<String>(reader, "Name", let name));
 					component.Name = name;
-
 					delete name;
 
 					return .Ok;
 				}));
 			case "SpriteRendererComponent":
-				Try!(DeserializeComponent<SpriteRendererComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<SpriteRendererComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					Try!(Deserialize.Value(reader, "Color", out component.Color));
-					reader.EntryEnd();
-					Try!(Deserialize.Value(reader, "Sprite", out component.Sprite));
-					reader.EntryEnd();
-					Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
+					switch(fieldIdentifier)
+					{
+					case "Color":
+						Try!(Deserialize.Value(reader, out component.Color));
+					case "Sprite":
+						Try!(Deserialize.Value(reader, out component.Sprite));
+					case "UvTransform":
+						Try!(Deserialize.Value(reader, out component.UvTransform));
+					default:
+						return false;
+					}
 
-					return .Ok;
+					return true;
 				}));
 			case "CircleRendererComponent":
-				Try!(DeserializeComponent<CircleRendererComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<CircleRendererComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					Try!(Deserialize.Value(reader, "Color", out component.Color));
-					reader.EntryEnd();
-					Try!(Deserialize.Value(reader, "InnerRadius", out component.InnerRadius));
-					reader.EntryEnd();
-					Try!(Deserialize.Value(reader, "Sprite", out component.Sprite));
-					reader.EntryEnd();
-					Try!(Deserialize.Value(reader, "UvTransform", out component.UvTransform));
+					switch(fieldIdentifier)
+					{
+					case "Color":
+						Try!(Deserialize.Value(reader, out component.Color));
+					case "InnerRadius":
+						Try!(Deserialize.Value(reader, out component.InnerRadius));
+					case "Sprite":
+						Try!(Deserialize.Value(reader, out component.Sprite));
+					case "UvTransform":
+						Try!(Deserialize.Value(reader, out component.UvTransform));
+					default:
+						return false;
+					}
 
-					return .Ok;
+					return true;
 				}));
 			case "TransformComponent":
-				Try!(DeserializeComponent<TransformComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<TransformComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					let nextId = Try!(reader.Identifier());
-					if (nextId == "ParentId")
+					switch(fieldIdentifier)
 					{
+					case "ParentId":
 						UUID rawParentId;
-						Deserialize.Value(reader, out rawParentId);
-						reader.EntryEnd();
+						Try!(Deserialize.Value(reader, out rawParentId));
 
 						UUID parentId = RemapId(rawParentId);
 
@@ -480,155 +526,170 @@ class SceneSerializer
 						{
 							_entitiesMissingParent.Add((entity, parentId));
 						}
-
-						Deserialize.Value(reader, "Position", out component.[Friend]_position);
-						reader.EntryEnd();
+					case "Position":
+						Try!(Deserialize.Value(reader, out component.[Friend]_position));
+					case "Rotation":
+						Try!(Deserialize.Value(reader, out component.[Friend]_rotation));
+					case "Scale":
+						Try!(Deserialize.Value(reader, out component.[Friend]_scale));
+					case "EditorEulerRotation":
+						Try!(Deserialize.Value(reader, out component.[Friend]_editorRotationEuler));
+					default:
+						return false;
 					}
-					else if (nextId == "Position")
-					{
-						Deserialize.Value(reader, out component.[Friend]_position);
-						reader.EntryEnd();
-					}
- 					else
-					{
-						return .Err;
-					}
-
-					Deserialize.Value(reader, "Rotation", out component.[Friend]_rotation);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Scale", out component.[Friend]_scale);
-					reader.EntryEnd();
-					
-					Deserialize.Value(reader, "EditorEulerRotation", out component.[Friend]_editorRotationEuler);
 
 					component.IsDirty = true;
 
-					return .Ok;
+					return true;
 				}));
 			case "CameraComponent":
-				Try!(DeserializeComponent<CameraComponent>(reader, entity, scope (component) =>
-				{
-					SceneCamera camera = component.Camera;
+				Try!(DeserializeComponentFields<CameraComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
+					{
+						ref SceneCamera camera = ref component.Camera;
 
-					Deserialize.Value(reader, "Primary", out component.Primary);
-					reader.EntryEnd();
+						switch(fieldIdentifier)
+						{
+						case "Primary":
+							Try!(Deserialize.Value(reader, out component.Primary));
+						case "ProjectionType":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_projectionType));
 
-					// TODO: Render target
+						case "PerspectiveFovY":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_perspectiveFovY));
+						case "PerspectiveNearPlane":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_perspectiveNearPlane));
+						case "PerspectiveFarPlane":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_perspectiveFarPlane));
 
-					Deserialize.Value(reader, "ProjectionType", out camera.[Friend]_projectionType);
-					reader.EntryEnd();
+						case "OrthographicHeight":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_orthographicHeight));
+						case "OrthographicNearPlane":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_orthographicNearPlane));
+						case "OrthographicFarPlane":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_orthographicFarPlane));
+						case "AspectRatio":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_aspectRatio));
+						case "FixedAspectRatio":
+							Try!(Deserialize.Value(reader, out camera.[Friend]_fixedAspectRatio));
+						default:
+							return false;
+						}
 
-					Deserialize.Value(reader, "PerspectiveFovY", out camera.[Friend]_perspectiveFovY);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "PerspectiveNearPlane", out camera.[Friend]_perspectiveNearPlane);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "PerspectiveFarPlane", out camera.[Friend]_perspectiveFarPlane);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "OrthographicHeight", out camera.[Friend]_orthographicHeight);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "OrthographicNearPlane", out camera.[Friend]_orthographicNearPlane);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "OrthographicFarPlane", out camera.[Friend]_orthographicFarPlane);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "AspectRatio", out camera.[Friend]_aspectRatio);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "FixedAspectRatio", out camera.[Friend]_fixedAspectRatio);
-
-					camera.[Friend]CalculateProjection();
-
-					return .Ok;
-				}));
+						return true;
+					}));
 			case "LightComponent":
-				Try!(DeserializeComponent<LightComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<LightComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
 					ref SceneLight light = ref component.SceneLight;
 
-					Deserialize.Value(reader, "LightType", out light.[Friend]_type);
-					reader.EntryEnd();
+					switch(fieldIdentifier)
+					{
+					case "LightType":
+						Try!(Deserialize.Value(reader, out light.[Friend]_type));
+					case "Illuminance":
+						Try!(Deserialize.Value(reader, out light.[Friend]_illuminance));
+					case "Color":
+						Try!(Deserialize.Value(reader, out light.[Friend]_color));
+					default:
+						return false;
+					}
 
-					Deserialize.Value(reader, "Illuminance", out light.[Friend]_illuminance);
-					reader.EntryEnd();
-
-					Deserialize.Value(reader, "Color", out light.[Friend]_color);
-					return .Ok;
+					return true;
 				}));
 			case "Rigidbody2D":
-				Try!(DeserializeComponent<Rigidbody2DComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<Rigidbody2DComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					Rigidbody2DComponent.BodyType bodyType = .Static;
-					Deserialize.Value(reader, "BodyType", out bodyType);
-					component.BodyType = bodyType;
+					switch(fieldIdentifier)
+					{
+					case "BodyType":
+						Rigidbody2DComponent.BodyType bodyType = .Static;
+						Try!(Deserialize.Value(reader, out bodyType));
+						component.BodyType = bodyType;
+					case "FixedRotation":
+						Try!(Deserialize.Value<bool>(reader, let fixedRotation));
+						component.FixedRotation = fixedRotation;
+					case "GravityScale":
+						Try!(Deserialize.Value<float>(reader, let gravityScale));
+						component.GravityScale = gravityScale;
+					default:
+						return false;
+					}
 
-					reader.EntryEnd();
-
-					bool fixedRotation = false;
-					Deserialize.Value(reader, "FixedRotation", out fixedRotation);
-					component.FixedRotation = fixedRotation;
-
-					reader.EntryEnd();
-
-					Deserialize.Value<float>(reader, "GravityScale", let gravityScale);
-					component.GravityScale = gravityScale;
-
-					return .Ok;
+					return true;
 				}));
 			case "BoxCollider2D":
-				Try!(DeserializeComponent<BoxCollider2DComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<BoxCollider2DComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					Deserialize.Value(reader, "Offset", out component.Offset);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Size", out component.Size);
-					reader.EntryEnd();
-					
-					Deserialize.Value(reader, "Density", out component.Density);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Friction", out component.Friction);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Restitution", out component.Restitution);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "RestitutionThreshold", out component.RestitutionThreshold);
+					switch(fieldIdentifier)
+					{
+					case "Offset":
+						Try!(Deserialize.Value(reader, out component.Offset));
+					case "Size":
+						Try!(Deserialize.Value(reader, out component.Size));
 
-					return .Ok;
+					case "Density":
+						Try!(Deserialize.Value(reader, out component.Density));
+					case "Friction":
+						Try!(Deserialize.Value(reader, out component.Friction));
+					case "Restitution":
+						Try!(Deserialize.Value(reader, out component.Restitution));
+					case "RestitutionThreshold":
+						Try!(Deserialize.Value(reader, out component.RestitutionThreshold));
+					default:
+						return false;
+					}
+
+					return true;
 				}));
 			case "CircleCollider2D":
-				Try!(DeserializeComponent<CircleCollider2DComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<CircleCollider2DComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					Deserialize.Value(reader, "Offset", out component.Offset);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Radius", out component.Radius);
-					reader.EntryEnd();
-					
-					Deserialize.Value(reader, "Density", out component.Density);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Friction", out component.Friction);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Restitution", out component.Restitution);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "RestitutionThreshold", out component.RestitutionThreshold);
+					switch(fieldIdentifier)
+					{
+					case "Offset":
+						Try!(Deserialize.Value(reader, out component.Offset));
+					case "Radius":
+						Try!(Deserialize.Value(reader, out component.Radius));
 
-					return .Ok;
+					case "Density":
+						Try!(Deserialize.Value(reader, out component.Density));
+					case "Friction":
+						Try!(Deserialize.Value(reader, out component.Friction));
+					case "Restitution":
+						Try!(Deserialize.Value(reader, out component.Restitution));
+					case "RestitutionThreshold":
+						Try!(Deserialize.Value(reader, out component.RestitutionThreshold));
+					default:
+						return false;
+					}
+
+					return true;
 				}));
 			case "PolygonCollider2D":
-				Try!(DeserializeComponent<PolygonCollider2DComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<PolygonCollider2DComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					Deserialize.Value(reader, "Offset", out component.Offset);
-					reader.EntryEnd();
+					switch(fieldIdentifier)
+					{
+					case "Offset":
+						Try!(Deserialize.Value(reader, out component.Offset));
+					case "Vertices":
+						Try!(Deserialize.Value(reader, out component.Vertices));
+					case "VertexCount":
+						Try!(Deserialize.Value(reader, out component.VertexCount));
 
-					Deserialize.Value(reader, "Vertices", out component.Vertices);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "VertexCount", out component.VertexCount);
-					reader.EntryEnd();
+					case "Density":
+						Try!(Deserialize.Value(reader, out component.Density));
+					case "Friction":
+						Try!(Deserialize.Value(reader, out component.Friction));
+					case "Restitution":
+						Try!(Deserialize.Value(reader, out component.Restitution));
+					case "RestitutionThreshold":
+						Try!(Deserialize.Value(reader, out component.RestitutionThreshold));
+					default:
+						return false;
+					}
 
-					
-					Deserialize.Value(reader, "Density", out component.Density);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Friction", out component.Friction);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "Restitution", out component.Restitution);
-					reader.EntryEnd();
-					Deserialize.Value(reader, "RestitutionThreshold", out component.RestitutionThreshold);
-
-					return .Ok;
+					return true;
 				}));
 			case "MeshComponent":
 				Try!(DeserializeComponent<MeshComponent>(reader, entity, scope (component) =>
@@ -645,29 +706,21 @@ class SceneSerializer
 					return .Ok;
 				}));
 			case "ScriptComponent":
-				Try!(DeserializeComponent<ScriptComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<ScriptComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					String scriptClassName = null;
-
-					Try!(Deserialize.Value(reader, "ScriptClass", out scriptClassName));
-
-					if (scriptClassName != null)
+					switch(fieldIdentifier)
 					{
+					case "ScriptClass":
+						Try!(Deserialize.Value<String>(reader, let scriptClassName));
 						component.ScriptClassName = scriptClassName;
-
 						delete scriptClassName;
+					case "Fields":
+						Try!(SerializedObject.BonDeserialize(reader, _scriptSerializer, _fileVersion, gBonEnv));
+					default:
+						return false;
 					}
 
-
-					if (reader.ObjectHasMore())
-					{
-						Try!(reader.EntryEnd());
-
-						if (Try!(reader.Identifier()) == "Fields")
-							SerializedObject.BonDeserialize(reader, _scriptSerializer.SerializedObjects, gBonEnv);
-					}
-
-					return .Ok;
+					return true;
 				}));
 			case "Editor":
 				Try!(DeserializeComponent<EditorFlagsComponent>(reader, entity, scope (component) =>
@@ -677,106 +730,34 @@ class SceneSerializer
 					return .Ok;
 				}));
 			case "TextRenderer":
-				Try!(DeserializeComponent<TextRendererComponent>(reader, entity, scope (component) =>
+				Try!(DeserializeComponentFields<TextRendererComponent>(reader, componentIdentifier, entity, scope (component, fieldIdentifier) =>
 				{
-					Try!(Deserialize.Value<bool>(reader, "IsRichText", let isRichText));
-					component.IsRichText = isRichText;
-					
-					Try!(reader.EntryEnd());
-
-					String text = null;
-
-					Try!(Deserialize.Value<String>(reader, "Text", out text));
-
-					if (text != null)
+					switch(fieldIdentifier)
 					{
+					case "IsRichText":
+						Try!(Deserialize.Value<bool>(reader, let isRichText));
+						component.IsRichText = isRichText;
+					case "Text":
+						Try!(Deserialize.Value<String>(reader, let text));
 						component.Text = text;
-
 						delete text;
+					default:
+						return false;
 					}
 
-					return .Ok;
+					return true;
 				}));
 			default:
-				Log.EngineLogger.AssertDebug(false, "Unknown component type");
-				//return .Err;
+				Log.EngineLogger.Error($"Unknown component type \"{componentIdentifier}\" in entity {entity.UUID}");
+				return .Err;
 			}
 		}
 
 		Try!(reader.ObjectBlockEnd());
 
 		return .Ok;
-
-		/*writer.EntryStart();
-
-		using (writer.ObjectBlock())
-		{
-			// TODO: Entity GUID goes here!
-			Serialize.Value(writer, "Id", entity.Handle.Index);
-			
-			SerializeComponent<EditorComponent>(writer, entity, "EditorComponent", scope (component) => {});
-
-			SerializeComponent<DebugNameComponent>(writer, entity, "NameComponent", scope (component) =>
-			{
-				Serialize.Value(writer, "Name", component.DebugName);
-			});
-
-			SerializeComponent<SpriterRendererComponent>(writer, entity, "SpriterRendererComponent", scope (component) =>
-			{
-				// TODO: Texture
-
-				Serialize.Value(writer, "Color", component.Color);
-			});
-
-			SerializeComponent<TransformComponent>(writer, entity, "TransformComponent", scope (component) =>
-			{
-				// TODO: Use GUIDs
-				if (component.Parent != .InvalidEntity)
-					Serialize.Value(writer, "ParentId", component.Parent.Index);
-
-				Serialize.Value(writer, "Position", component.Position);
-				Serialize.Value(writer, "Rotation", component.Rotation);
-				Serialize.Value(writer, "Scale", component.Scale);
-
-				Serialize.Value(writer, "EditorEulerRotation", component.EditorRotationEuler);
-			});
-
-			SerializeComponent<CameraComponent>(writer, entity, "CameraComponent", scope (component) =>
-			{
-				SceneCamera camera = component.Camera;
-
-				Serialize.Value(writer, "Primary", component.Primary);
-
-				// TODO: Render target
-				
-				Serialize.Value(writer, "ProjectionType", camera.ProjectionType);
-				
-				Serialize.Value(writer, "PerspectiveFovY", camera.PerspectiveFovY);
-				Serialize.Value(writer, "PerspectiveNearPlane", camera.PerspectiveNearPlane);
-				Serialize.Value(writer, "PerspectiveFarPlane", camera.PerspectiveFarPlane);
-				Serialize.Value(writer, "OrthographicHeight", camera.OrthographicHeight);
-				Serialize.Value(writer, "OrthographicNearPlane", camera.OrthographicNearPlane);
-				Serialize.Value(writer, "OrthographicFarPlane", camera.OrthographicFarPlane);
-				Serialize.Value(writer, "AspectRatio", camera.AspectRatio);
-				Serialize.Value(writer, "FixedAspectRatio", camera.FixedAspectRatio);
-			});
-			
-
-			SerializeComponent<LightComponent>(writer, entity, "LightComponent", scope (component) =>
-			{
-				SceneLight light = component.SceneLight;
-
-				Serialize.Value(writer, "LightType", light.LightType);
-
-				Serialize.Value(writer, "Illuminance", light.Illuminance);
-
-				Serialize.Value(writer, "Color", light.Color);
-			});
-		}
-
-		writer.EntryEnd();*/
 	}
-
+	
 	static Result<void> DeserializeComponent<T>(BonReader reader, Entity entity, delegate Result<void>(T* component) deserialize) where T : struct, new
 	{
 		Try!(reader.ObjectBlock());
@@ -789,6 +770,35 @@ class SceneSerializer
 			component = entity.AddComponent<T>();
 
 		Try!(deserialize(component));
+
+		Try!(reader.ObjectBlockEnd());
+
+		return .Ok;
+	}
+
+	static Result<void> DeserializeComponentFields<T>(BonReader reader, StringView prettyComponentName, Entity entity, delegate Result<bool>(T* component, StringView identifier) deserializeField) where T : struct, new
+	{
+		Try!(reader.ObjectBlock());
+		
+		T* component;
+
+		if (entity.HasComponent<T>())
+			component = entity.GetComponent<T>();
+		else
+			component = entity.AddComponent<T>();
+
+		while(reader.ObjectHasMore())
+		{
+			StringView fieldIdentifier = Try!(reader.Identifier());
+			
+			if (!Try!(deserializeField(component, fieldIdentifier)))
+			{
+				Log.EngineLogger.Error($"Unknown identifier \"{fieldIdentifier}\" in component \"{prettyComponentName}\" of entity {entity.UUID}");
+				return .Err;
+			}
+
+			TryEndEntry(reader);
+		}
 
 		Try!(reader.ObjectBlockEnd());
 

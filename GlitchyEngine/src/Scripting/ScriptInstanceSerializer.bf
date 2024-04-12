@@ -40,7 +40,7 @@ public class ScriptInstanceSerializer
 	/// Serializes the given script instance.
 	public void SerializeScriptInstance(ScriptInstance script)
 	{
-		SerializedObject object = new SerializedObject(_serializedData, script.ScriptClass.FullName, script.EntityId);
+		SerializedObject object = new SerializedObject(this, script.ScriptClass.FullName, script.EntityId);
 		object.Serialize(script);
 	}
 
@@ -94,4 +94,14 @@ public class ScriptInstanceSerializer
 	{
 		return _serializedData.TryGetValue(id, out object);
 	}
+
+	public bool ContainsId(UUID id)
+	{
+		return _serializedData.ContainsKey(id);
+	}
+
+	internal void AddObject(SerializedObject object)
+	{
+		_serializedData.Add(object.Id, object);
+	}	
 }

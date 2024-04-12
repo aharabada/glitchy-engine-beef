@@ -1151,7 +1151,7 @@ static class ScriptGlue
 		
 		char8* rawTypeName = Mono.mono_string_to_utf8(typeName);
 		
-		SerializedObject newObject = new SerializedObject(context.AllObjects, StringView(rawTypeName));
+		SerializedObject newObject = new SerializedObject(context.Serializer, StringView(rawTypeName));
 
 		Mono.mono_free(rawTypeName);
 
@@ -1182,9 +1182,9 @@ static class ScriptGlue
 		
 		objectContext = null;
 
-		Log.EngineLogger.AssertDebug(context.AllObjects.ContainsKey(context.Id));
+		Log.EngineLogger.AssertDebug(context.Serializer.ContainsId(context.Id));
 
-		if (!context.AllObjects.TryGetValue(id, let foundObject))
+		if (!context.Serializer.TryGetSerializedObject(id, let foundObject))
 			return;
 
 		objectContext = Internal.UnsafeCastToPtr(foundObject);

@@ -9,6 +9,8 @@ using System.Reflection;
 
 namespace GlitchyEngine.Serialization;
 
+using internal GlitchyEngine.Scripting;
+
 [BonTarget]
 class SerializedObject
 {
@@ -33,18 +35,18 @@ class SerializedObject
 
 	public String TypeName ~ delete:append _;
 
-	public Dictionary<UUID, SerializedObject> AllObjects;
+	public ScriptInstanceSerializer Serializer;
 
 	private List<String> _ownedString = new List<String>() ~ DeleteContainerAndItems!(_);
 
 	public append Dictionary<StringView, (SerializationType PrimitiveType, FieldData Data)> Fields = .();
 
 	[AllowAppend]
-	public this(Dictionary<UUID, SerializedObject> allObjects, StringView? typeName, UUID? id = null)
+	public this(ScriptInstanceSerializer serializer, StringView? typeName, UUID? id = null)
 	{
 		String typeNameCopy = append String(typeName.Value);
 
-		AllObjects = allObjects;
+		Serializer = serializer;
 
 		if (id == null)
 		{
@@ -53,14 +55,14 @@ class SerializedObject
 			{
 				Id = UUID.Create();
 			}
-			while (AllObjects.ContainsKey(Id));
+			while (Serializer.ContainsId(Id));
 		}
 		else
 		{
 			Id = id.Value;
 		}
 
-		AllObjects.Add(Id, this);
+		Serializer.AddObject(this);
 
 		TypeName = typeNameCopy;
 	}
@@ -364,7 +366,7 @@ class SerializedObject
 		return name;
 	}
 
-	public static Result<SerializedObject> BonDeserialize(BonReader reader, Dictionary<UUID, SerializedObject> allObjects, BonEnvironment environment = gBonEnv)
+	public static Result<SerializedObject> BonDeserialize(BonReader reader, ScriptInstanceSerializer scriptSerializer, int sceneFileVersion, BonEnvironment environment = gBonEnv)
 	{
 		StringView type = Try!(reader.Type());
 
@@ -372,7 +374,7 @@ class SerializedObject
 		
 		Try!(Deserialize.Value<UUID>(reader, "ID", let objectId, environment));
 
-		SerializedObject object = new SerializedObject(allObjects, type, objectId);
+		SerializedObject object = new SerializedObject(scriptSerializer, type, objectId);
 
 		while (reader.ObjectHasMore())
 		{
