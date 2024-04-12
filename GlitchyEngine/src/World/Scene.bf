@@ -123,6 +123,7 @@ namespace GlitchyEngine.World
 			});
 
 			_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
+			//_font = new Font(@"C:\Windows\Fonts\Cascadia Code.ttf", 24);
 		}
 
 		public ~this()
@@ -958,9 +959,8 @@ namespace GlitchyEngine.World
 		 */
 		public Entity CreateInstance(Entity entity)
 		{
-			//Dictionary<UUID, SerializedObject> serializedData = scope .();
 			ScriptInstanceSerializer scriptSerializer = scope .();
-			//defer { ClearDictionaryAndDeleteValues!(serializedData); }
+			scriptSerializer.Init();
 
 			List<Entity> newEntities = scope .();
 			Dictionary<EcsEntity, EcsEntity> sourceToTargetEntity = scope .();

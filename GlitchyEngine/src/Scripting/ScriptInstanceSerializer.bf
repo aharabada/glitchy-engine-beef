@@ -24,12 +24,20 @@ public class ScriptInstanceSerializer
 	public void Clear()
 	{
 		ClearDictionaryAndDeleteValues!(_serializedData);
+		ScriptEngine.Classes.EntitySerializer.DestroySerializationContext(this);
+	}
+
+	public void Init()
+	{
+		ScriptEngine.Classes.EntitySerializer.CreateSerializationContext(this);
 	}
 
 	/// Serializes all script instances that are currently managed by the ScriptEngine.
 	public void SerializeScriptInstances()
 	{
 		Debug.Profiler.ProfileFunction!();
+
+		Init();
 
 		for (let (id, scriptInstance) in ScriptEngine._entityScriptInstances)
 		{
@@ -60,6 +68,8 @@ public class ScriptInstanceSerializer
 	public void DeserializeScriptInstances()
 	{
 		Debug.Profiler.ProfileFunction!();
+
+		Init();
 
 		for (let (id, script) in ScriptEngine._entityScriptInstances)
 		{

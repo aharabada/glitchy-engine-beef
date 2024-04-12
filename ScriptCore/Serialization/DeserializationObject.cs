@@ -603,6 +603,11 @@ public class DeserializationObject
             if (type == null)
                 return NoValueDeserialized;
 
+            if (deserializedObject._instance != null)
+            {
+                return deserializedObject._instance;
+            }
+
             deserializedObject._instance = ActivatorExtension.CreateInstanceSafe(type);
 
             if (deserializedObject._instance == null)

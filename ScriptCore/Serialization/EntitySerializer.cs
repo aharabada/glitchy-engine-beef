@@ -9,27 +9,54 @@ namespace GlitchyEngine.Serialization;
 
 internal static class EntitySerializer
 {
-    internal static void Serialize(Entity entity, IntPtr internalContext)
+    private static Dictionary<IntPtr, Dictionary<object, SerializedObject>> SerializationObjects = new(); 
+    private static Dictionary<IntPtr, Dictionary<UUID, DeserializationObject>> DeserializationObjects = new(); 
+    
+    internal static void CreateSerializationContext(IntPtr engineSerializer)
     {
-        SerializedObject obj = new SerializedObject(internalContext, false, UUID.Zero, new Dictionary<object, SerializedObject>());
+        if (SerializationObjects.ContainsKey(engineSerializer))
+        {
+            ClearSerializationContext(engineSerializer);
+            return;
+        }
+        
+        SerializationObjects.Add(engineSerializer, new Dictionary<object, SerializedObject>());
+        DeserializationObjects.Add(engineSerializer, new Dictionary<UUID, DeserializationObject>());
+    }
+    
+    internal static void ClearSerializationContext(IntPtr engineSerializer)
+    {
+        SerializationObjects[engineSerializer].Clear();
+        DeserializationObjects[engineSerializer].Clear();
+    }
+
+    internal static void DestroySerializationContext(IntPtr engineSerializer)
+    {
+        SerializationObjects.Remove(engineSerializer);
+        DeserializationObjects.Remove(engineSerializer);
+    }
+    
+    internal static void Serialize(Entity entity, IntPtr engineObject, IntPtr engineSerializer)
+    {
+        SerializedObject obj = new SerializedObject(engineObject, false, UUID.Zero, SerializationObjects[engineSerializer]);
         obj.Serialize(entity);
     }
     
-    internal static void Deserialize(Entity entity, IntPtr internalContext)
+    internal static void Deserialize(Entity entity, IntPtr engineObject, IntPtr engineSerializer)
     {
-        DeserializationObject obj = new DeserializationObject(internalContext, false, UUID.Zero, new Dictionary<UUID, DeserializationObject>());
+        DeserializationObject obj = new DeserializationObject(engineObject, false, UUID.Zero, DeserializationObjects[engineSerializer]);
         obj.Deserialize(entity);
     }
     
-    internal static void SerializeStaticFields(Type type, IntPtr internalContext)
+    internal static void SerializeStaticFields(Type type, IntPtr engineObject, IntPtr engineSerializer)
     {
-        SerializedObject obj = new SerializedObject(internalContext, true, UUID.Zero, new Dictionary<object, SerializedObject>());
+        SerializedObject obj = new SerializedObject(engineObject, true, UUID.Zero, SerializationObjects[engineSerializer]);
         obj.Serialize(type);
     }
 
-    internal static void DeserializeStaticFields(Type type, IntPtr internalContext)
+    internal static void DeserializeStaticFields(Type type, IntPtr engineObject, IntPtr engineSerializer)
     {
-        DeserializationObject obj = new DeserializationObject(internalContext, true, UUID.Zero, new Dictionary<UUID, DeserializationObject>());
+        DeserializationObject obj = new DeserializationObject(engineObject, true, UUID.Zero, DeserializationObjects[engineSerializer]);
         obj.Deserialize(type);
     }
 
