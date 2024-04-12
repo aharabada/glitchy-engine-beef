@@ -231,23 +231,6 @@ class ScriptClass : SharpClass
 		 return *(T*)Mono.mono_object_unbox(object);
 	}
 
-	public T GetFieldValue<T>(MonoObject* instance, MonoClassField* field)
-	{
-		T value = default;
-		Mono.mono_field_get_value(instance, field, &value);
-		return value;
-	}
-
-	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value)
-	{
-		Mono.mono_field_set_value(instance, field, &value);
-	}
-
-	public void SetFieldValue<T>(MonoObject* instance, MonoClassField* field, in T value) where T : struct*
-	{
-		Mono.mono_field_set_value(instance, field, value);
-	}
-	
 	public MonoObject* BoxValue<T>(in T value)
 	{
 		return Mono.mono_value_box(ScriptEngine.[Friend]s_AppDomain, _monoClass, &value);

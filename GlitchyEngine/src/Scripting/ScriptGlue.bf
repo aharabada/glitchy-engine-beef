@@ -1143,7 +1143,7 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall("ScriptGlue::Serialization_CreateObject")]
-	static void Serialization_CreateObject(void* currentContext, MonoString* typeName, out void* newContext, out UUID newId)
+	static void Serialization_CreateObject(void* currentContext, bool isStatic, MonoString* typeName, out void* newContext, out UUID newId)
 	{
 		SerializedObject context = Internal.UnsafeCastToObject(currentContext) as SerializedObject;
 
@@ -1151,7 +1151,7 @@ static class ScriptGlue
 		
 		char8* rawTypeName = Mono.mono_string_to_utf8(typeName);
 		
-		SerializedObject newObject = new SerializedObject(context.Serializer, StringView(rawTypeName));
+		SerializedObject newObject = new SerializedObject(context.Serializer, isStatic, StringView(rawTypeName));
 
 		Mono.mono_free(rawTypeName);
 

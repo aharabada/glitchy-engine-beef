@@ -28,6 +28,8 @@ public class DeserializationObject
 
     private IntPtr _internalContext;
 
+    private bool _isStatic;
+    
     private UUID _id;
 
     private Stack<string> _structScope = new();
@@ -57,9 +59,12 @@ public class DeserializationObject
         }
     }
 
-    public DeserializationObject(IntPtr internalContext, UUID id, Dictionary<UUID, DeserializationObject> deserializedClasses)
+    public bool IsStatic => _isStatic;
+    
+    public DeserializationObject(IntPtr internalContext, bool isStatic, UUID id, Dictionary<UUID, DeserializationObject> deserializedClasses)
     {
         _internalContext = internalContext;
+        _isStatic = isStatic;
         _id = id;
         DeserializedClasses = deserializedClasses;
     }
@@ -114,7 +119,7 @@ public class DeserializationObject
             return null;
         }
 
-        context = new DeserializationObject(contextPtr, id, DeserializedClasses);
+        context = new DeserializationObject(contextPtr, false, id, DeserializedClasses);
         
         DeserializedClasses.Add(id, context);
         
@@ -250,6 +255,36 @@ public class DeserializationObject
 
         DeserializeFields(entity);
     }
+
+    public void Deserialize(Type type)
+    {
+        _instance = null;
+
+        DeserializeStaticFields(type);
+    }
+    
+    public bool DeserializeStaticFields(Type type)
+    {
+        bool changed = false;
+
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))
+        {
+            if (!EntitySerializer.SerializeField(field, true))
+                continue;
+
+            object currentValue = field.GetValue(null);
+
+            object? deserializeValue = DeserializeField(currentValue, field.FieldType, field.Name);
+            
+            if (deserializeValue != NoValueDeserialized)
+            {
+                field.SetValue(null, deserializeValue);
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
     
     public bool DeserializeFields(object obj)
     {
@@ -259,7 +294,7 @@ public class DeserializationObject
 
         foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
         {
-            if (!EntitySerializer.SerializeField(field))
+            if (!EntitySerializer.SerializeField(field, false))
                 continue;
 
             object currentValue = field.GetValue(obj);

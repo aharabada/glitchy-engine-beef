@@ -64,9 +64,6 @@ class SceneSerializer
 
 		using (writer.ObjectBlock())
 		{
-			// TODO: Scene name goes here!
-			Serialize.Value(writer, "Name", "Scene name here pls!!!");
-
 			Serialize.Value(writer, "Version", FileVersion);
 
 			writer.Identifier("Entities");
@@ -93,7 +90,30 @@ class SceneSerializer
 			{
 				for (UUID id in _objectsNotWritten)
 				{
-					Serialize.Value(writer, _scriptSerializer.GetSerializedObject(id));
+					SerializedObject object = _scriptSerializer.GetSerializedObject(id);
+
+					if (object.IsStatic)
+						continue;
+
+					Serialize.Value(writer, object);
+				}
+			}
+
+			writer.EntryEnd();
+
+			writer.Identifier("StaticFields");
+
+			// Write all objects that don't belong to an entity. (referenced Arrays, Classes, etc...)
+			using (writer.ArrayBlock())
+			{
+				for (UUID id in _objectsNotWritten)
+				{
+					SerializedObject object = _scriptSerializer.GetSerializedObject(id);
+
+					if (!object.IsStatic || object.Fields.Count == 0)
+						continue;
+
+					Serialize.Value(writer, object);
 				}
 			}
 
@@ -346,7 +366,9 @@ class SceneSerializer
 			case "Entities":
 				Try!(DeserializeEntities(reader, loadAsPrefab));
 			case "ReferencedObjects":
-				Try!(DeserializeReferencedObjects(reader));
+				Try!(DeserializeReferencedObjects(reader, false));
+			case "StaticFields":
+				Try!(DeserializeReferencedObjects(reader, true));
 			default:
 				Log.EngineLogger.Warning($"Encountered unexpected Identifier \"{identifier}\".");
 			}
@@ -390,14 +412,16 @@ class SceneSerializer
 		return .Ok;
 	}
 
-	private Result<void> DeserializeReferencedObjects(BonReader reader)
+	private Result<void> DeserializeReferencedObjects(BonReader reader, bool isStatic)
 	{
 		Try!(reader.ArrayBlock());
 
 		while (reader.ArrayHasMore())
 		{
-			Try!(SerializedObject.BonDeserialize(reader, _scriptSerializer, _fileVersion, gBonEnv));
-			
+			SerializedObject object = Try!(SerializedObject.BonDeserialize(reader, _scriptSerializer, _fileVersion, gBonEnv));
+
+			object.IsStatic = isStatic;
+
 			TryEndEntry(reader);
 		}
 

@@ -31,17 +31,29 @@ public class ScriptInstanceSerializer
 	{
 		Debug.Profiler.ProfileFunction!();
 
-		for (let (id, script) in ScriptEngine._entityScriptInstances)
+		for (let (id, scriptInstance) in ScriptEngine._entityScriptInstances)
 		{
-			SerializeScriptInstance(script);
+			SerializeScriptInstance(scriptInstance);
+		}
+
+		for (let (name, scriptClass) in ScriptEngine.EntityClasses)
+		{
+			SerializeStaticScriptClassFields(scriptClass);
 		}
 	}
 
 	/// Serializes the given script instance.
 	public void SerializeScriptInstance(ScriptInstance script)
 	{
-		SerializedObject object = new SerializedObject(this, script.ScriptClass.FullName, script.EntityId);
+		SerializedObject object = new SerializedObject(this, false, script.ScriptClass.FullName, script.EntityId);
 		object.Serialize(script);
+	}
+
+	/// Serializes the given script instance.
+	public void SerializeStaticScriptClassFields(ScriptClass scriptClass)
+	{
+		SerializedObject object = new SerializedObject(this, true, scriptClass.FullName, null);
+		object.SerializeStaticFields(scriptClass);
 	}
 
 	/// Deserializes this context into the instances currently managed by the script engine.
@@ -52,6 +64,11 @@ public class ScriptInstanceSerializer
 		for (let (id, script) in ScriptEngine._entityScriptInstances)
 		{
 			DeserializeScriptInstance(id, script);
+		}
+		
+		for (let (name, scriptClass) in ScriptEngine.EntityClasses)
+		{
+			DeserializeStaticScriptClassFields(scriptClass);
 		}
 	}
 
@@ -68,6 +85,25 @@ public class ScriptInstanceSerializer
 
 		return false;
 	}
+
+	public bool DeserializeStaticScriptClassFields(ScriptClass scriptClass)
+	{
+		for (let object in _serializedData.Values)
+		{
+			if (object.IsStatic && object.TypeName == scriptClass.FullName)
+			{
+				// No data anyway, save some time.
+				if (object.Fields.Count == 0)
+					return false;
+
+				object.DeserializeStaticFields(scriptClass);
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 
 	/// Replaces Entity references in the given serialized data using the specified translation table.
 	public void FixupSerializedIds(Dictionary<UUID, UUID> originalToCopyIds)

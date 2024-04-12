@@ -145,6 +145,22 @@ internal class EntityEditor
 
         return false;
     }
+
+    public static bool ShowButtonInEditor(MethodInfo methodInfo)
+    {
+        var showButton = methodInfo.GetCustomAttribute<ShowButtonAttribute>();
+
+        if (showButton == null)
+            return false;
+
+        if (Application.IsInEditMode && !showButton.Visibility.HasFlag(ButtonVisibility.InEditMode))
+            return false;
+        
+        if (Application.IsInPlayMode && !showButton.Visibility.HasFlag(ButtonVisibility.InPlayMode))
+            return false;
+
+        return true;
+    }
     
     /// <summary>
     /// Entry point for the engine to show the editor for the given script instance.
@@ -908,103 +924,119 @@ internal class EntityEditor
         return newValue;
     }
 
-    public static void ShowEditor(Type type, object? reference)
+    private static void ShowEditor(Type type, object? reference)
     {
         int i = 0;
-
+        
         // Iterate all fields
-        foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+        //foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
+        foreach (MemberInfo member in type.GetMembers(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance))
         {
             i++;
             ImGui.PushID(i);
 
-            if (ShowFieldInEditor(field))
+            switch (member)
             {
-                object value = field.GetValue(reference);
-
-                IEnumerable<Attribute> attributes = field.GetCustomAttributes();
-
-                LabelAttribute? label = GetAttribute<LabelAttribute>(attributes);
-
-                string prettyName;
-
-                if (label != null)
-                {
-                    prettyName = label.Label ?? field.Name;
-                }
-                else
-                {
-                    prettyName = field.Name.ToPrettyName();
-                }
-
-                object? newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, prettyName, attributes);
-
-                if (newValue != DidNotChange)
-                {
-                    // Reference was changed inside Field Editor -> write back to field (only necessary for value types)
-                    field.SetValue(reference, newValue);
-                }
+                case FieldInfo field:
+                    ShowField(field, reference);
+                    break;
+                case MethodInfo method:
+                    ShowButton(method, reference);
+                    break;
             }
             
             ImGui.PopID();
         }
 
-        ShowButtons(type, reference);
-    }
-
-    /// <summary>
-    /// Shows all buttons in the UI.
-    /// </summary>
-    private static void ShowButtons(Type type, object? reference)
-    {
-        ImGui.PushID("Buttons");
-
-        int i = 0;
-
-        // Iterate all methods
-        foreach (MethodInfo method in type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
-        {
-            var showButton = method.GetCustomAttribute<ShowButtonAttribute>();
-
-            if (showButton == null)
-                continue;
-
-            if (Application.IsInEditMode && !showButton.Visibility.HasFlag(ButtonVisibility.InEditMode))
-                continue;
+        bool showedHeader = false;
         
-            if (Application.IsInPlayMode && !showButton.Visibility.HasFlag(ButtonVisibility.InPlayMode))
-                continue;
+        foreach (FieldInfo field in type.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Static))
+        {
+            if (!showedHeader)
+            {
+                BeginNewRow();
+                
+                if (!ImGui.TreeNodeEx("Static Fields", ImGuiTreeNodeFlags.AllowOverlap | ImGuiTreeNodeFlags.SpanAllColumns))
+                {
+                    break;
+                }
 
+                showedHeader = true;
+            }
+            
             i++;
             ImGui.PushID(i);
 
-            ImGui.TableNextRow();
-            ImGui.TableSetColumnIndex(0);
-
-            if (method.GetParameters().Length > 0)
-            {
-                Log.Error($"Method {method.Name} cannot be executed from editor, because it expects arguments.");
-            }
-            else if (ImGui.Button(showButton.ButtonText))
-            {
-                try
-                {
-                    method.Invoke(reference, null);
-                }
-                catch (TargetInvocationException ex)
-                {
-                    Log.Exception(ex.InnerException ?? ex);
-                }
-                catch (Exception ex)
-                {
-                    Log.Exception(ex);
-                }                
-            }
-    
+            ShowField(field, null);
+            
             ImGui.PopID();
         }
 
-        ImGui.PopID();
+        if (showedHeader)
+        {
+            ImGui.TreePop();
+        }
+    }
+
+    private static void ShowField(FieldInfo field, object? reference)
+    {
+        if (!ShowFieldInEditor(field))
+            return;
+        
+        object value = field.GetValue(reference);
+
+        IEnumerable<Attribute> attributes = field.GetCustomAttributes();
+
+        LabelAttribute? label = GetAttribute<LabelAttribute>(attributes);
+
+        string prettyName;
+
+        if (label != null)
+        {
+            prettyName = label.Label ?? field.Name;
+        }
+        else
+        {
+            prettyName = field.Name.ToPrettyName();
+        }
+
+        object? newValue = ShowFieldEditor(value, value?.GetType() ?? field.FieldType, prettyName, attributes);
+
+        if (newValue != DidNotChange)
+        {
+            // Reference was changed inside Field Editor -> write back to field (only necessary for value types)
+            field.SetValue(reference, newValue);
+        }
+    }
+
+    private static void ShowButton(MethodInfo method, object? reference)
+    {
+        if (!ShowButtonInEditor(method))
+            return;
+        
+        var showButton = method.GetCustomAttribute<ShowButtonAttribute>();
+
+        BeginNewRow();
+
+        if (method.GetParameters().Length > 0)
+        {
+            Log.Error($"Method {method.Name} cannot be executed from editor, because it expects arguments.");
+        }
+        else if (ImGui.Button(showButton.ButtonText))
+        {
+            try
+            {
+                method.Invoke(reference, null);
+            }
+            catch (TargetInvocationException ex)
+            {
+                Log.Exception(ex.InnerException ?? ex);
+            }
+            catch (Exception ex)
+            {
+                Log.Exception(ex);
+            }                
+        }
     }
 
     struct ListPayload

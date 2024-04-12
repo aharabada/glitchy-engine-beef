@@ -33,6 +33,8 @@ class SerializedObject
 	/// Todo: This sucks because we don't know all UUIDs beforehand and might accidentally assign the ID of an Entity to some class
 	public UUID Id;
 
+	public bool IsStatic;
+
 	public String TypeName ~ delete:append _;
 
 	public ScriptInstanceSerializer Serializer;
@@ -42,11 +44,13 @@ class SerializedObject
 	public append Dictionary<StringView, (SerializationType PrimitiveType, FieldData Data)> Fields = .();
 
 	[AllowAppend]
-	public this(ScriptInstanceSerializer serializer, StringView? typeName, UUID? id = null)
+	public this(ScriptInstanceSerializer serializer, bool isStatic, StringView? typeName, UUID? id = null)
 	{
 		String typeNameCopy = append String(typeName.Value);
 
 		Serializer = serializer;
+
+		IsStatic = isStatic;
 
 		if (id == null)
 		{
@@ -200,33 +204,24 @@ class SerializedObject
 		}
 	}
 	
-	typealias SerializeMethod = function MonoObject*(MonoObject* entity, void* contextPtr, MonoException** exception);
-	typealias DeserializeMethod = function MonoObject*(MonoObject* entity, void* contextPtr, MonoException** exception);
-
 	public void Serialize(ScriptInstance scriptInstance)
 	{
-		SerializeMethod serialize = (SerializeMethod)ScriptEngine.Classes.EntitySerializer.GetMethodThunk("Serialize", 2);
-
-		void* thisPtr = Internal.UnsafeCastToPtr(this);
-
-		MonoException* exception = null;
-		serialize(scriptInstance.[Friend]_instance, thisPtr, &exception);
-
-		if (exception != null)
-			ScriptEngine.[Friend]HandleMonoException(exception, scriptInstance);
+		ScriptEngine.Classes.EntitySerializer.Serialize(scriptInstance, this);
 	}
 
 	public void Deserialize(ScriptInstance scriptInstance)
 	{
-		DeserializeMethod deserialize = (DeserializeMethod)ScriptEngine.Classes.EntitySerializer.GetMethodThunk("Deserialize", 2);
+		ScriptEngine.Classes.EntitySerializer.Deserialize(scriptInstance, this);
+	}
 
-		void* thisPtr = Internal.UnsafeCastToPtr(this);
+	public void SerializeStaticFields(ScriptClass scriptClass)
+	{
+		ScriptEngine.Classes.EntitySerializer.SerializeStatic(scriptClass, this);
+	}
 
-		MonoException* exception = null;
-		deserialize(scriptInstance.[Friend]_instance, thisPtr, &exception);
-
-		if (exception != null)
-			ScriptEngine.[Friend]HandleMonoException(exception, scriptInstance);
+	public void DeserializeStaticFields(ScriptClass scriptClass)
+	{
+		ScriptEngine.Classes.EntitySerializer.DeserializeStatic(scriptClass, this);
 	}
 	
 	static this
@@ -374,7 +369,7 @@ class SerializedObject
 		
 		Try!(Deserialize.Value<UUID>(reader, "ID", let objectId, environment));
 
-		SerializedObject object = new SerializedObject(scriptSerializer, type, objectId);
+		SerializedObject object = new SerializedObject(scriptSerializer, false, type, objectId);
 
 		while (reader.ObjectHasMore())
 		{

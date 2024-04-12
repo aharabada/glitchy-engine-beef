@@ -19,16 +19,21 @@ public class SerializedObject
     private Stack<string> _structScope = new();
 
     private string _structScopeName = "";
+
+    private bool _isStatic;
     
     private delegate void SerializeMethod(SerializedObject container, string fieldName, object? fieldValue, Type fieldType);
 
     private static Dictionary<Type, SerializeMethod> _customSerializers = new();
 
     public UUID Id => _id;
+
+    public bool IsStatic => _isStatic;
     
-    public SerializedObject(IntPtr internalContext, UUID id, Dictionary<object, SerializedObject> serializedClasses)
+    public SerializedObject(IntPtr internalContext, bool isStatic, UUID id, Dictionary<object, SerializedObject> serializedClasses)
     {
         _internalContext = internalContext;
+        _isStatic = isStatic;
         _id = id;
         _serializedClasses = serializedClasses;
     }
@@ -40,9 +45,9 @@ public class SerializedObject
         if (_serializedClasses.TryGetValue(o, out context))
             return (context, false);
         
-        ScriptGlue.Serialization_CreateObject(_internalContext, o.GetType().ToString(), out IntPtr contextPtr, out UUID id);
+        ScriptGlue.Serialization_CreateObject(_internalContext, false, o.GetType().ToString(), out IntPtr contextPtr, out UUID id);
 
-        context = new SerializedObject(contextPtr, id, _serializedClasses);
+        context = new SerializedObject(contextPtr, false, id, _serializedClasses);
 
         _serializedClasses.Add(o, context);
 
@@ -95,19 +100,38 @@ public class SerializedObject
 
     public void Serialize(Entity entity)
     {
-        SerializeFields(entity);
+        SerializeInstanceFields(entity);
+    }
+
+    public void Serialize(Type type)
+    {
+        SerializeStaticTypeFields(type);
     }
     
-    public void SerializeFields(object obj)
+    public void SerializeInstanceFields(object obj)
     {
         Type type = obj.GetType();
 
         foreach (FieldInfo field in type.GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
         {
-            if (!EntitySerializer.SerializeField(field))
+            if (!EntitySerializer.SerializeField(field, false))
                 continue;
 
             object? fieldValue = field.GetValue(obj);
+            Type fieldType = fieldValue?.GetType() ?? field.FieldType;
+
+            SerializeField(field.Name, fieldValue, fieldType);
+        }
+    }
+    
+    public void SerializeStaticTypeFields(Type type)
+    {
+        foreach (FieldInfo field in type.GetFields(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public))
+        {
+            if (!EntitySerializer.SerializeField(field, true))
+                continue;
+
+            object? fieldValue = field.GetValue(null);
             Type fieldType = fieldValue?.GetType() ?? field.FieldType;
 
             SerializeField(field.Name, fieldValue, fieldType);
@@ -285,7 +309,7 @@ public class SerializedObject
     {
         PushScope(fieldName);
 
-        SerializeFields(fieldValue);
+        SerializeInstanceFields(fieldValue);
 
         PopScope();
     }
@@ -312,7 +336,7 @@ public class SerializedObject
 
                 if (newContext)
                 {
-                    context.SerializeFields(fieldValue);
+                    context.SerializeInstanceFields(fieldValue);
                 }
 
                 AddField(fieldName, SerializationType.ObjectReference, context._id);   

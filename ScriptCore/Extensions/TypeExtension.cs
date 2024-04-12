@@ -227,4 +227,17 @@ public static class TypeExtension
                             
         return nameBuilder.ToString();
     }
+
+    /// <summary>
+    /// Returns <see langword="true"/> if the type has at least one static field; <see langword="false"/> otherwise.
+    /// </summary>
+    public static bool HasStaticFields(this Type type)
+    {
+        foreach (FieldInfo _ in type.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+        {
+            return true;
+        }
+
+        return false;
+    }
 }

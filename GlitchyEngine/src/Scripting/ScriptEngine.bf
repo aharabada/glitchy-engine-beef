@@ -22,7 +22,7 @@ class EngineClasses
 
 	private EntityEditorWrapper s_EntityEditor ~ _?.ReleaseRef();
 
-	private ScriptClass s_EntitySerializer ~ _?.ReleaseRef();
+	private EntitySerializerWrapper s_EntitySerializer ~ _?.ReleaseRef();
 	private ScriptClass s_SerializationContext ~ _?.ReleaseRef();
 
 	private ScriptClass s_Collision2D ~ _?.ReleaseRef();
@@ -35,7 +35,7 @@ class EngineClasses
 
 	public EntityEditorWrapper EntityEditor => s_EntityEditor;
 
-	public ScriptClass EntitySerializer => s_EntitySerializer;
+	public EntitySerializerWrapper EntitySerializer => s_EntitySerializer;
 
 	public ScriptClass Collision2D => s_Collision2D;
 
@@ -68,7 +68,7 @@ class EngineClasses
 		// Editor classes
 		s_EntityEditor = new EntityEditorWrapper("GlitchyEngine.Editor", "EntityEditor", image);
 
-		s_EntitySerializer = new ScriptClass("GlitchyEngine.Serialization", "EntitySerializer", image);
+		s_EntitySerializer = new EntitySerializerWrapper("GlitchyEngine.Serialization", "EntitySerializer", image);
 
 		s_Collision2D = new ScriptClass("GlitchyEngine.Physics", "Collision2D", image);
 
@@ -116,7 +116,7 @@ static class ScriptEngine
 	private static FileSystemWatcher _userAssemblyWatcher ~ delete _;
 
 	// TODO: This should be a global setting somewhere
-	private static bool _debuggingEnabled = false;
+	private static bool _debuggingEnabled = true;
 
 	private static String _appAssemblyPath = new .() ~ delete _;
 
