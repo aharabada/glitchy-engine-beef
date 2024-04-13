@@ -502,7 +502,7 @@ namespace GlitchyEditor.EditWindows
 
 			text?.EnsureNullTerminator();
 
-			if (ImGui.InputTextMultiline("##text", text.Ptr, (uint64)text.Length, .Zero, .CallbackResize, => InputTextCallback, Internal.UnsafeCastToPtr(text)))
+			if (ImGui.InputTextMultiline("##text", text.CStr(), (uint64)(text.Length + 1), .Zero, .CallbackResize, => InputTextCallback, Internal.UnsafeCastToPtr(text)))
 			{
 				// To deleting text, ImGui simply puts a null char after the remaining text.
 				// Search for null char and set the length of the string accordingly.
