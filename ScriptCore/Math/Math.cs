@@ -1109,4 +1109,56 @@ public static partial class Math
     public static float4 tanh(float4 value) => new((float)System.Math.Tanh(value.X), (float)System.Math.Tanh(value.Y), (float)System.Math.Tanh(value.Z), (float)System.Math.Tanh(value.W));
     
     #endregion
+    
+    #region remap
+
+    /// <summary>
+    /// Remaps a value from one range to another.
+    /// </summary>
+    /// <param name="value">The value to remap.</param>
+    /// <param name="oldMin">The minimum value of the old range.</param>
+    /// <param name="oldMax">The maximum value of the old range.</param>
+    /// <param name="newMin">The minimum value of the new range.</param>
+    /// <param name="newMax">The maximum value of the new range.</param>
+    /// <returns>The remapped value.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float remap(float value, float oldMin, float oldMax, float newMin, float newMax)
+    {
+        return newMin + (value - oldMin) * (newMax - newMin) / (oldMax - oldMin);        
+    }
+    
+    /// <inheritdoc cref="remap(float, float, float, float, float)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float2 remap(float2 value, float2 oldMin, float2 oldMax, float2 newMin, float2 newMax)
+    {
+        return new float2(
+            remap(value.X, oldMin.X, oldMax.X, newMin.X, newMax.X),
+            remap(value.Y, oldMin.Y, oldMax.Y, newMin.Y, newMax.Y)
+        );
+    }
+    
+    /// <inheritdoc cref="remap(float, float, float, float, float)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float3 remap(float3 value, float3 oldMin, float3 oldMax, float3 newMin, float3 newMax)
+    {
+        return new float3(
+            remap(value.X, oldMin.X, oldMax.X, newMin.X, newMax.X),
+            remap(value.Y, oldMin.Y, oldMax.Y, newMin.Y, newMax.Y),
+            remap(value.Z, oldMin.Z, oldMax.Z, newMin.Z, newMax.Z)
+        );
+    }
+    
+    /// <inheritdoc cref="remap(float, float, float, float, float)"/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static float4 remap(float4 value, float4 oldMin, float4 oldMax, float4 newMin, float4 newMax)
+    {
+        return new float4(
+            remap(value.X, oldMin.X, oldMax.X, newMin.X, newMax.X),
+            remap(value.Y, oldMin.Y, oldMax.Y, newMin.Y, newMax.Y),
+            remap(value.Z, oldMin.Z, oldMax.Z, newMin.Z, newMax.Z),
+            remap(value.W, oldMin.W, oldMax.W, newMin.W, newMax.W)
+        );
+    }
+    
+    #endregion
 }
