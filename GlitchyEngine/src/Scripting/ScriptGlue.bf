@@ -12,6 +12,7 @@ using GlitchyEngine.Scripting;
 using GlitchyEngine.Serialization;
 using GlitchyEngine.Editor;
 using GlitchyEngine.World.Components;
+using static GlitchyEngine.Renderer.Text.FontRenderer;
 
 namespace GlitchyEngine.Scripting;
 
@@ -91,7 +92,7 @@ static class ScriptGlue
 		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Physics.Rigidbody2D");
 		RegisterComponent<CameraComponent>("GlitchyEngine.Core.Camera");
 		RegisterComponent<CircleRendererComponent>("GlitchyEngine.Graphics.CircleRenderer");
-		RegisterComponent<TextRendererComponent>("GlitchyEngine.Graphics.TextRenderer");
+		RegisterComponent<TextRendererComponent>("GlitchyEngine.Graphics.Text.TextRenderer");
 	}
 
 	[RegisterMethod]
@@ -1039,15 +1040,46 @@ static class ScriptGlue
 	[RegisterCall("ScriptGlue::TextRenderer_GetColor")]
 	static void TextRenderer_GetColor(UUID entityId, out ColorRGBA color)
 	{
-		color = default;
-
-		return;
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		color = textComponent.Color;
 	}
 
 	[RegisterCall("ScriptGlue::TextRenderer_SetColor")]
 	static void TextRenderer_SetColor(UUID entityId, ColorRGBA color)
 	{
-		return;
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		textComponent.Color = color;
+		textComponent.NeedsRebuild = true;
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_GetHorizontalAlignment")]
+	static void TextRenderer_GetHorizontalAlignment(UUID entityId, out HorizontalTextAlignment horizontalAlignment)
+	{
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		horizontalAlignment = textComponent.HorizontalAlignment;
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_SetHorizontalAlignment")]
+	static void TextRenderer_SetHorizontalAlignment(UUID entityId, HorizontalTextAlignment horizontalAlignment)
+	{
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		textComponent.HorizontalAlignment = horizontalAlignment;
+		textComponent.NeedsRebuild = true;
+	}
+	
+	[RegisterCall("ScriptGlue::TextRenderer_GetFontSize")]
+	static void TextRenderer_GetFontSize(UUID entityId, out float fontSize)
+	{
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		fontSize = textComponent.FontSize;
+	}
+
+	[RegisterCall("ScriptGlue::TextRenderer_SetFontSize")]
+	static void TextRenderer_SetFontSize(UUID entityId, float fontSize)
+	{
+		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		textComponent.FontSize = fontSize;
+		textComponent.NeedsRebuild = true;
 	}
 
 #endregion

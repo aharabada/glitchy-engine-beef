@@ -1,4 +1,5 @@
 using System;
+using GlitchyEngine.Math;
 using static GlitchyEngine.Renderer.Text.FontRenderer;
 namespace GlitchyEngine.World.Components;
 
@@ -13,6 +14,12 @@ struct TextRendererComponent : IDisposableComponent, ICopyComponent<TextRenderer
 	private String _text;
 	
 	private PreparedText _preparedText;
+
+	public float FontSize = 1.0f;
+
+	public ColorRGBA Color = ColorRGBA.White;
+
+	public HorizontalTextAlignment HorizontalAlignment = .Left;
 
 	private TextRendererFlags _flags;
 
@@ -56,6 +63,9 @@ struct TextRendererComponent : IDisposableComponent, ICopyComponent<TextRenderer
 	{
 		target.Text = source.Text;
 
+		target.FontSize = source.FontSize;
+		target.Color = source.Color;
+		target.HorizontalAlignment = source.HorizontalAlignment;
 		target._flags = source._flags;
 		target.NeedsRebuild = true;
 	}

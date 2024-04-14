@@ -279,6 +279,9 @@ class SceneSerializer
 			{
 				Serialize.Value(writer, "IsRichText", component.IsRichText);
 				Serialize.Value(writer, "Text", component.Text);
+				Serialize.Value(writer, "Color", component.Color);
+				Serialize.Value(writer, "FontSize", component.FontSize);
+				Serialize.Value(writer, "HorizontalAlignment", component.HorizontalAlignment);
 			});
 		}
 
@@ -765,6 +768,12 @@ class SceneSerializer
 						Try!(Deserialize.Value<String>(reader, let text));
 						component.Text = text;
 						delete text;
+					case "Color":
+						Try!(Deserialize.Value(reader, out component.Color));
+					case "FontSize":
+						Try!(Deserialize.Value(reader, out component.FontSize));
+					case "HorizontalAlignment":
+						Try!(Deserialize.Value(reader, out component.HorizontalAlignment));
 					default:
 						return false;
 					}

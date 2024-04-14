@@ -515,6 +515,27 @@ namespace GlitchyEditor.EditWindows
 				
 				textRendererComponent.NeedsRebuild = true;
 			}
+
+			StartNewProperty("Font Size");
+
+			if (ImGui.DragFloat("##fontSize", &textRendererComponent.FontSize))
+			{
+				textRendererComponent.NeedsRebuild = true;
+			}
+
+			StartNewProperty("Color");
+
+			if (ImGui.ColorEdit4("##color", ref textRendererComponent.Color))
+			{
+				textRendererComponent.NeedsRebuild = true;
+			}
+
+			StartNewProperty("Horizontal Alignment");
+
+			if (ImGui.EnumCombo("##horAlign", ref textRendererComponent.HorizontalAlignment))
+			{
+				textRendererComponent.NeedsRebuild = true;
+			}
 		}
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)

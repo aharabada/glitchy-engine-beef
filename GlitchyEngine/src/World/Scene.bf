@@ -800,20 +800,7 @@ namespace GlitchyEngine.World
 			{
 				if (textRenderer.NeedsRebuild || textRenderer.PreparedText == null)
 				{
-					if (textRenderer.PreparedText == null)
-					{
-						textRenderer.PreparedText = new FontRenderer.PreparedText(_font);
-					}
-					else
-					{
-						textRenderer.PreparedText.AddRef();
-					}
-
-					FontRenderer.PrepareText(textRenderer.PreparedText, _font, textRenderer.Text, 24, .Black);
-					
-					textRenderer.PreparedText.ReleaseRef();
-
-					textRenderer.NeedsRebuild = false;
+					FontRenderer.PrepareText(textRenderer, _font);
 				}
 			}
 		}

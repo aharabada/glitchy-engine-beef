@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Editor;
+using GlitchyEngine.Graphics.Text;
 using GlitchyEngine.Math;
 using GlitchyEngine.Physics;
 using GlitchyEngine.Serialization;
@@ -275,6 +276,18 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void TextRenderer_SetColor(UUID entityId, ColorRGBA color);
 
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_GetHorizontalAlignment(UUID entityId, out HorizontalTextAlignment horizontalAlignment);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_SetHorizontalAlignment(UUID entityId, HorizontalTextAlignment horizontalAlignment);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_GetFontSize(UUID uuid, out float fontSize);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void TextRenderer_SetFontSize(UUID uuid, float fontSize);
+    
 #endregion
 
 #region Math

@@ -139,7 +139,7 @@ class SceneRenderer
 			if (editorFlags.Flags.HasFlag(.HideInScene) || text.PreparedText == null)
 				continue;
 			
-			FontRenderer.DrawText(text.PreparedText, transform.WorldTransform * Matrix.Scaling(1.0f / 24.0f));
+			FontRenderer.DrawText(text.PreparedText, transform.WorldTransform, text.Color);
 		}
 
 		Renderer2D.EndScene();
@@ -225,7 +225,7 @@ class SceneRenderer
 			if (editorFlags.Flags.HasFlag(.HideInScene) || text.PreparedText == null)
 				continue;
 			
-			FontRenderer.DrawText(text.PreparedText, transform.WorldTransform * Matrix.Scaling(1.0f / 24.0f));
+			FontRenderer.DrawText(text.PreparedText, transform.WorldTransform, text.Color);
 		}
 		
 		//FontRenderer.DrawText(_smallLinesInfo, 0, 0);

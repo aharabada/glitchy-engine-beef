@@ -6,6 +6,7 @@ using System.Collections;
 using GlitchyEngine.Core;
 using GlitchyEngine.Content;
 using System.Text;
+using GlitchyEngine.World.Components;
 using static FreeType.HarfBuzz;
 
 using internal GlitchyEngine.Renderer.Text;
@@ -147,6 +148,13 @@ namespace GlitchyEngine.Renderer.Text
 			case InvertCase;
 		}
 
+		public enum HorizontalTextAlignment
+		{
+			case Left;
+			case Right;
+			case Center;
+		}
+
 		class StyleStack<T>
 		{
 			private append List<T> _stack = .();
@@ -190,34 +198,64 @@ namespace GlitchyEngine.Renderer.Text
 			}
 		}	
 
-		public static void PrepareText(PreparedText preparedText, Font font, StringView text, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineSpaceScale = 1.0f, TextDirection direction = .LeftToRight)
+		public static void PrepareText(TextRendererComponent* textRenderer, Font font)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
+			if (textRenderer.Text.IsWhiteSpace)
+				return;
+			
+			if (textRenderer.PreparedText == null)
+			{
+				textRenderer.PreparedText = new FontRenderer.PreparedText(font);
+			}
+			else
+			{
+				textRenderer.PreparedText.AddRef();
+			}
+
+			PreparedText preparedText = textRenderer.PreparedText;
 			preparedText.Clear();
 
-			float scale = fontSize / (float)font._fontSize;
-			
-			// Space between two baselines
-			float linespace = (float)font._linespace * lineSpaceScale * scale;
-			
 			// The line we are writing on
 			float baseline = 0;
 			
 			// Position of the next character on the line
 			float penPosition = 0;
 
-			List<char32> chars = new:ScopedAlloc! .(text.Length);
+			List<char32> chars = new:ScopedAlloc! .(textRenderer.Text.Length);
 			int runStart = 0;
 
 			hb_buffer_t* buf = hb_buffer_create();
 
 			// Stack to keep track of the text direction.
-			StyleStack<TextDirection> textDirectionStack = scope .(direction);
+			StyleStack<TextDirection> textDirectionStack = scope .(.LeftToRight);
 
 			StyleStack<TextCase> textCaseStack = scope .(.RetainCase);
 			
 			StyleStack<bool> richTextStack = scope .(true);
+
+			StyleStack<ColorRGBA> fontColorStack = scope .(textRenderer.Color);
+
+			StyleStack<float> fontSizeStack = scope .(textRenderer.FontSize);
+
+			StyleStack<Font> fontStack = scope .(font);
+
+			StyleStack<float> lineSpaceStack = scope .(1.0f);
+
+			float scale()
+			{
+				return fontSizeStack.CurrentValue() / fontStack.CurrentValue()._fontSize;
+			}
+
+			float linespace()
+			{
+				return (float)fontStack.CurrentValue()._linespace * lineSpaceStack.CurrentValue() * scale();
+			}
+
+			List<int> lineStartIndices = scope .();
+			lineStartIndices.Add(0);
+			List<float> lineWidths = scope .();
 
 			int movedLines = 0;
 
@@ -229,7 +267,7 @@ namespace GlitchyEngine.Renderer.Text
 			{
 				Debug.Profiler.ProfileRendererFunction!();
 
-				float fontScale = (float)fontSize / currentFont._fontSize;
+				float fontScale = scale();
 
 				hb_buffer_clear_contents(buf);
 
@@ -273,6 +311,7 @@ namespace GlitchyEngine.Renderer.Text
 					hb_position_t x_advance = glyph_pos[i].x_advance;
 					hb_position_t y_advance = glyph_pos[i].y_advance;
 
+					// TODO Store color in glyph
 					PreparedGlyph glyph = .(currentFont, glyphid, .(penPosition, baseline), fontScale);//, x_advance / 64, y_advance / 64);
 
 					preparedText.Glyphs.Add(glyph);
@@ -292,7 +331,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			bool escapeNextChar = false;
 
-			mainEnumerator: for (char32 char in text.DecodedChars)
+			mainEnumerator: for (char32 char in textRenderer.Text.DecodedChars)
 			{
 				defer
 				{
@@ -301,7 +340,7 @@ namespace GlitchyEngine.Renderer.Text
 
 				void DoLineBreak()
 				{
-					chars.Add('\n');
+					//chars.Add('\n');
 					// Only flush after the first new line
 					if (movedLines == 0)
 						FlushShapeBuffer();
@@ -472,31 +511,53 @@ namespace GlitchyEngine.Renderer.Text
 				if(movedLines != 0)
 				{
 					// move baseline
-					baseline -= linespace * movedLines;
+					baseline -= linespace() * movedLines;
+
+					lineWidths.Add(penPosition);
 
 					// TODO: make carriage return optional?
 					// return pen to start of line
 					ResetPenPos();
 
 					movedLines = 0;
+
+					lineStartIndices.Add(preparedText.Glyphs.Count);
 				}
 
 				chars.Add(char);
 			}
 			
 			FlushShapeBuffer();
-			
+
+			lineWidths.Add(penPosition);
+
+			for (int i = 0; i < lineStartIndices.Count; i++)
+			{
+				int currentLineStart = lineStartIndices[i];
+				int nextLineStart = i < (lineStartIndices.Count - 1) ? lineStartIndices[i + 1] : preparedText.Glyphs.Count;
+
+				float offset = 0.0f;
+
+				if (textRenderer.HorizontalAlignment == .Center)
+					offset = lineWidths[i] / 2.0f;
+				else if (textRenderer.HorizontalAlignment == .Right)
+					offset = lineWidths[i];
+
+				for (int glyphIndex = currentLineStart; glyphIndex < nextLineStart; glyphIndex++)
+				{
+					preparedText.Glyphs[glyphIndex].Position.X -= offset;
+				}
+			}
+
 			preparedText.AdvanceY = baseline;
 
 			preparedText.Optimize();
+
+			textRenderer.PreparedText.ReleaseRef();
+			textRenderer.NeedsRebuild = false;
 		}
 
-		public static void DrawText(PreparedText text, float x, float y, Color fontColor = .White)
-		{
-			DrawText(text, Matrix.Translation(x, y, 0), fontColor);
-		}
-
-		public static void DrawText(PreparedText text, Matrix transform, Color fontColor = .White)
+		public static void DrawText(PreparedText text, Matrix transform, ColorRGBA fontColor = .White)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -564,7 +625,7 @@ namespace GlitchyEngine.Renderer.Text
 				// Rectangle on the font atlas
 				float4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
 
-				Color glyphColor = fontColor;//Color.White;// TODO: glyphDesc.IsBitmap ? bitmapColor : fontColor;
+				ColorRGBA glyphColor = fontColor;//Color.White;// TODO: glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
 				texRect /= float4(atlasSize, atlasSize);
 
@@ -575,264 +636,11 @@ namespace GlitchyEngine.Renderer.Text
 
 				Matrix glyphTransform = transform * Matrix.Translation(position) * Matrix.Scaling(viewportRect.Z, viewportRect.W, 1.0f);
 				
-				Renderer2D.DrawQuad(glyphTransform, atlas, (ColorRGBA)glyphColor, texRect);
+				Renderer2D.DrawQuad(glyphTransform, atlas, glyphColor, texRect);
 				//Renderer2D.DrawQuad(float2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
 
 				// Show pen positions
 				// Renderer2D.DrawQuad(float3(float2(x, y) + glyph.Position, -1), .(1), 0, .Green);
-			}
-
-			Renderer2D.Flush();
-
-			// TODO: not good!
-			// Change back effect
-			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
-			
-			// release all atlas textures
-			for(int i < atlasses.Count)
-			{
-				atlasses[i].ReleaseRef();
-			}
-		}
-
-		/** @brief Draws a given text using a specified font stack and renderer.
-		 * @param renderer The 2D renderer that will be used to draw the text.
-		 * @param font the Fontstack that will be used to draw the text.
-		 * @param x The horizontal position of the text (i.e. distance between left side of viewport and the left side of the left-most character, well not really but close enough).
-		 * @param y The vertical position of the text (i.e. distance between top side of viewport and the top side of the top-most character, well not really but close enough).
-		 * @param fontSize The font size in pixels. Note: due to technical reasons the actual size might deviate from the specified size.
-		 * @param fontColor The (default) color used for glyphs that don't have color (e.g. letters or emojies if the font doesn't use bitmaps for them).
-		 * @param bitmapColor The (default) color used for glyphs that are bitmaps (e.g. emojies, if the font provies them as bitmap).
-		 * @param lineGapOffset Can be used to manually increase or decrease the gap between lines.
-		 */
-		public static void DrawText(Font font, String text, float x, float y, float fontSize, Color fontColor = .White, Color bitmapColor = .White, float lineGapOffset = 0)
-		{
-			Debug.Profiler.ProfileRendererFunction!();
-
-			if(text.IsWhiteSpace)
-				return;
-			
-			Renderer2D.Flush();
-
-			// TODO: this is very not good!
-			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
-			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect;
-			// TODO: oh no....
-			// Copy viewProjection from current effect
-			Matrix viewProjection = lastEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
-			_msdfEffect.Variables["ViewProjection"].SetData(viewProjection);
-
-			float scale = (float)fontSize / (float)font._fontSize;
-
-			_msdfEffect.Variables["screenPixelRange"].SetData(scale * 4.0f);
-
-			// TODO: this doesn't really work with fallback fonts
-			float2 unitRange = ((float)font._range) / float2(font._atlas.Width, font._atlas.Height);
-			_msdfEffect.Variables["UnitRange"].SetData(unitRange);
-
-			// Space between two baselines
-			float linespace = ((float)font._linespace + lineGapOffset) * scale;
-			
-			// The line we are writing on
-			float baseline = y;// + linespace;
-
-			//renderer.Draw(null, x, baseline, 10000, 1, .Blue);
-
-		    // Position of the next character on the line
-			float penPosition = x;
-
-			// how many lines we moved up or down (e.g. after a \n)
-			int movedLines = 0;
-
-			List<Texture2D> atlasses = scope .();
-			// We render every char with a slightly greater depth, so that the chars don't cull each other.
-			// In order to do that we increment an integer for each glyph and use it as the depth for the next one.
-			// Whenn passing the depth to the renderer we treat the integer as the binary representation of a float.
-			// Therefore every increment will increment the mantissa of the float and is therefore equivalent to the
-			// smallest possible increase a float can represent.
-			// Note: This might do funky stuff when objects are very close to each other. But realistically whe have to do
-			// about 8 million (2^23) increments to reach a depth of 1 so I think it's safe enough.
-			//float f = 1.0f;
-			//int32 depthInt = *(int32*)&f;
-			
-			/*
-			// Shape!!!!!!!!!!!!!!!!!!!
-
-			// 1. Create a buffer and put your text in it:
-			hb_buffer_t *buf;
-			buf = hb_buffer_create();
-			hb_buffer_add_utf8(buf, text.CStr(), -1, 0, -1);
-
-			// 2. Set the script, language and direction of the buffer.
-			hb_buffer_set_direction(buf, .HB_DIRECTION_LTR);
-			hb_buffer_set_script(buf, .HB_SCRIPT_LATIN);
-			hb_buffer_set_language(buf, hb_language_from_string("en".CStr(), -1));
-			
-			// 3. Get the face
-			hb_font_t* hb_font = font._harfBuzzFont;
-			
-			// 4. Shape:
-			hb_shape(hb_font, buf, null, 0);
-			
-			// 5. Get the glyph and position information.
-			uint32 glyph_count = ?;
-			hb_glyph_info_t* glyph_info    = hb_buffer_get_glyph_infos(buf, &glyph_count);
-			hb_glyph_position_t* glyph_pos = hb_buffer_get_glyph_positions(buf, &glyph_count);
-
-			for (uint32 i < glyph_count)
-			{
-				hb_codepoint_t glyphid  = glyph_info[i].codepoint;
-				hb_position_t x_offset  = glyph_pos[i].x_offset;
-				hb_position_t y_offset  = glyph_pos[i].y_offset;
-				hb_position_t x_advance = glyph_pos[i].x_advance;
-				hb_position_t y_advance = glyph_pos[i].y_advance;
-
-				/*
-				if(glyphid == (.)'\n')
-				{
-					movedLines++;
-					continue;
-				}
-				
-				// move baseline if necessary
-				if(movedLines != 0)
-				{
-					// move baseline
-					baseline -= linespace * movedLines;
-
-					// TODO: make carriage return optional?
-					// return pen to start of line
-					penPosition = x;
-
-					movedLines = 0;
-				}
-				*/
-
-				// Get glyph from Font
-				var glyphDesc = font.GetGlyph(glyphid);
-
-				// This never happens
-				Debug.Assert(glyphDesc != null);
-
-				// The glyph might belong to a fallback font
-				var glyphFont = glyphDesc.Font;
-				float glyphFontScale = (float)fontSize / glyphFont._fontSize;
-
-				Texture2D atlas = glyphFont._atlas;
-
-				// Add reference to atlas in case it is recreated during rendering
-				if(!atlasses.Contains(atlas))
-				{
-					atlasses.Add(atlas..AddRef());
-				}
-
-				float2 atlasSize = .(atlas.Width, atlas.Height);
-
-				float adjustToPenX = glyphDesc.AdjustToPen;
-				adjustToPenX *= glyphFontScale;
-
-				float adjustToBaseline = glyphDesc.AdjustToBaseLine;
-				adjustToBaseline *= glyphFontScale;
-
-				// Rectangle on the screen
-				float4 viewportRect = .(
-					penPosition + adjustToPenX,
-					baseline + adjustToBaseline,
-					glyphDesc.Width * glyphFontScale,
-					glyphDesc.Height * glyphFontScale);
-
-				// Rectangle on the font atlas
-				float4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
-
-				Color glyphColor = glyphDesc.IsBitmap ? bitmapColor : fontColor;
-
-				texRect /= float4(atlasSize, atlasSize);
-
-				// Show quads
-				// Renderer2D.DrawQuad(float3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
-
-				Renderer2D.DrawQuad(float2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
-
-				// Show pen positions
-				// Renderer2D.DrawQuad(float3(penPosition, baseline, -1), .(1), 0, .Green);
-
-			    penPosition += (x_advance / 64) * glyphFontScale;
-			    baseline += (y_advance / 64) * glyphFontScale;
-			}
-			*/
-
-			// enumerate through the unicode codepoints
-			for(char32 char in text.DecodedChars)
-			{
-				if(char == '\n')
-				{
-					movedLines++;
-					continue;
-				}
-
-				// move baseline if necessary
-				if(movedLines != 0)
-				{
-					// move baseline
-					baseline -= linespace * movedLines;
-
-					// TODO: make carriage return optional?
-					// return pen to start of line
-					penPosition = x;
-
-					movedLines = 0;
-				}
-				
-				//renderer.Draw(null, penPosition, baseline - fontSize, 1, fontSize, .Lime);
-
-				// Get glyph from Font
-				var glyphDesc = font.GetGlyph(char);
-
-				// This never happens
-				Debug.Assert(glyphDesc != null);
-
-				// The glyph might belong to a fallback font
-				var glyphFont = glyphDesc.Font;
-				float glyphFontScale = (float)fontSize / glyphFont._fontSize;
-
-				Texture2D atlas = glyphFont._atlas;
-
-				// Add reference to atlas in case it is recreated during rendering
-				if(!atlasses.Contains(atlas))
-				{
-					atlasses.Add(atlas..AddRef());
-				}
-
-				float2 atlasSize = .(atlas.Width, atlas.Height);
-
-				float adjustToPenX = glyphDesc.AdjustToPen;
-				adjustToPenX *= glyphFontScale;
-
-				float adjustToBaseline = glyphDesc.AdjustToBaseLine;
-				adjustToBaseline *= glyphFontScale;
-				
-				// Rectangle on the screen
-				float4 viewportRect = .(
-					penPosition + adjustToPenX,
-					baseline + adjustToBaseline,
-					glyphDesc.Width * glyphFontScale,
-					glyphDesc.Height * glyphFontScale);
-
-				// Rectangle on the font atlas
-				float4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
-
-				Color glyphColor = glyphDesc.IsBitmap ? bitmapColor : fontColor;
-
-				texRect /= float4(atlasSize, atlasSize);
-
-				Renderer2D.DrawQuad(float2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, (ColorRGBA)glyphColor, texRect);
-
-				//renderer.Draw(atlas, viewportRect.X, viewportRect.Y, viewportRect.Z, viewportRect.W, glyphColor, *(float*)(&depthInt), texRect);
-
-				penPosition += glyphDesc.Advance * glyphFontScale;
-
-				// Increase depth for the next glyph
-				//depthInt--;
 			}
 
 			Renderer2D.Flush();
