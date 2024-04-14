@@ -1,8 +1,11 @@
-﻿namespace GlitchyEngine.Editor;
+﻿using System;
+
+namespace GlitchyEngine.Editor;
 
 /// <summary>
 /// Flags to controls the visibility of the entity in the editor and how it can be interacted with for editing.
 /// </summary>
+[Flags]
 public enum EditorFlags : byte
 {
     /// <summary>
