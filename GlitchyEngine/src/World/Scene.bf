@@ -240,10 +240,12 @@ namespace GlitchyEngine.World
 
 				if (!target.TryGetComponent<TComponent>(out targetComponent))
 				{
-					targetComponent = target.AddComponent<TComponent>();
+					targetComponent = target.AddComponent<TComponent>(*sourceComponent);
 				}
-
-				TComponent.Copy(sourceComponent, targetComponent);
+				else
+				{
+					TComponent.Copy(sourceComponent, targetComponent);
+				}
 			}
 		}
 

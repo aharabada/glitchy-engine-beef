@@ -640,8 +640,9 @@ namespace GlitchyEngine.World
 		public float Restitution = 0.0f;
 		public float RestitutionThreshold = 0.5f;
 
-		public float2[8] Vertices = .();
-		public int8 VertexCount = 3;
+		// initialize with a well formed shape
+		public float2[8] Vertices = .(.(-0.5f, -0.5f), .(0.5f, -0.5f), .(0.5f, 0.5f), .(-0.5f, 0.5f),);
+		public int8 VertexCount = 4;
 
 		private int _runtimeFixture = 0;
 

@@ -103,6 +103,19 @@ namespace GlitchyEngine.World
 			return component;
 		}
 
+		public T* AddComponent<T>(in T value) where T: struct, new, ICopyComponent<T>
+		{
+			Log.EngineLogger.AssertDebug(!HasComponent<T>(), scope $"Entity already has component.");
+
+			T* component = _scene._ecsWorld.AssignComponent<T>(_entity, value);
+			
+			T.Copy(&value, component);
+
+			_scene.[Friend]OnComponentAdded(this, typeof(T), component);
+
+			return component;
+		}
+
 		public T* GetComponent<T>() where T: struct, new
 		{
 			Log.EngineLogger.AssertDebug(HasComponent<T>(), "Entity doesn't have component!");
