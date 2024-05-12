@@ -107,7 +107,7 @@ namespace GlitchyEngine.World
 		{
 			Log.EngineLogger.AssertDebug(!HasComponent<T>(), scope $"Entity already has component.");
 
-			T* component = _scene._ecsWorld.AssignComponent<T>(_entity, value);
+			T* component = _scene._ecsWorld.AssignComponent<T>(_entity);
 			
 			T.Copy(&value, component);
 
