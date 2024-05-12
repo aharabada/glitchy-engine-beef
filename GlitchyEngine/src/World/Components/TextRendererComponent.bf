@@ -53,10 +53,10 @@ struct TextRendererComponent : IDisposableComponent, ICopyComponent<TextRenderer
 		set mut => Enum.SetFlagConditionally(ref _flags, .NeedsRebuild, value);
 	}
 
-	public void Dispose()
+	public void Dispose() mut
 	{
 		delete _text;
-		_preparedText?.ReleaseRef();
+		ReleaseRefAndNullify!(_preparedText);
 	}
 
 	public static void Copy(Self* source, Self* target)
@@ -67,6 +67,7 @@ struct TextRendererComponent : IDisposableComponent, ICopyComponent<TextRenderer
 		target.Color = source.Color;
 		target.HorizontalAlignment = source.HorizontalAlignment;
 		target._flags = source._flags;
+		ReleaseRefAndNullify!(target._preparedText);
 		target.NeedsRebuild = true;
 	}
 }
