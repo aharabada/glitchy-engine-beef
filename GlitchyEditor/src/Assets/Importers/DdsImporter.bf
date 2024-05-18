@@ -16,6 +16,10 @@ public struct LoadedSurface
 	public int ArrayIndex;
 	public int CubeFace;
 	public int MipLevel;
+
+	public uint32 Width;
+	public uint32 Height;
+	public uint32 Depth;
 }
 
 public struct LoadedTextureInfo
@@ -702,6 +706,10 @@ static class DdsImporter
 					surface.ArrayIndex = arrayIndex;
 					surface.CubeFace = cubeFace;
 					surface.MipLevel = mipLevel;
+
+					surface.Width = width;
+					surface.Height = height;
+					surface.Depth = depth;
 
 					surfaces.Add(surface);
 

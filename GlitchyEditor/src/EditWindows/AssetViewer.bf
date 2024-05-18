@@ -561,7 +561,7 @@ class TexturererViewerer
 
 		_renderTargetEffect.Variables["Swizzle"].SetData(int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
 
-		if (format.IsInt())
+		if (((DirectX.DXGI.Format)format).IsInt())
 		{
 			// Int Texture
 			_renderTargetEffect.Variables["Mode"].SetData(1);
@@ -598,7 +598,7 @@ class TexturererViewerer
 	{
 		var desc = _groupIndex >= 0 ? viewedTexture.[Friend]_colorTargetDescriptions[_groupIndex] : viewedTexture.[Friend]_depthTargetDescription;
 
-		RenderTexture(viewedTexture.GetViewBinding(_groupIndex), float2(viewedTexture.Width, viewedTexture.Height), desc.Format.GetShaderViewFormat());
+		RenderTexture(viewedTexture.GetViewBinding(_groupIndex), float2(viewedTexture.Width, viewedTexture.Height), (.)desc.Format.GetShaderViewFormat());
 	}
 
 	private void RenderTexture(Texture viewedTexture)

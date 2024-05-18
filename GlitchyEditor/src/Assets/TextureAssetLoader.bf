@@ -343,7 +343,7 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 				staging.MipLevels = (.)textureInfo.MipMapCount;
 				staging.ArraySize = (.)textureInfo.ArraySize;
 
-				staging.Format = textureInfo.PixelFormat;
+				staging.Format = (.)textureInfo.PixelFormat;
 
 				// TODO: allow enabling read/write
 				staging.CpuAccess = .None;
@@ -370,7 +370,7 @@ class EditorTextureAssetLoader : IAssetLoader//, IReloadingAssetLoader
 				staging.MipLevels = (.)textureInfo.MipMapCount;
 				staging.ArraySize = (.)textureInfo.ArraySize;
 
-				staging.Format = textureInfo.PixelFormat;
+				staging.Format = (.)textureInfo.PixelFormat;
 
 				// TODO: allow enabling read/write
 				staging.CpuAccess = .None;

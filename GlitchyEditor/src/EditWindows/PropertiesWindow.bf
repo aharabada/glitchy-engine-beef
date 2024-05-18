@@ -79,9 +79,9 @@ class PropertiesWindow : EditorWindow
 		Asset asset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
 
 		// We need the actual asset for preview and sometimes for editing
-		if (asset?.Identifier != assetFile.Identifier)
+		if (asset?.Identifier != assetFile.AssetFile.Identifier)
 		{
-			_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.Identifier);
+			_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.AssetFile.Identifier);
 		}
 
 		// TODO: allow changing AssetLoader

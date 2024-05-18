@@ -9,6 +9,9 @@ using GlitchyEditor.Assets;
 using GlitchyEngine;
 using System.Linq;
 using System.Threading.Tasks;
+using GlitchyEditor.Assets.Importers;
+using GlitchyEngine.Core;
+
 using internal GlitchyEngine.Content.Asset;
 
 namespace GlitchyEditor;
@@ -17,19 +20,22 @@ class EditorContentManager : IContentManager
 {
 	private append String _resourcesDirectory = .();
 	private append String _assetsDirectory = .();
-
-	public StringView ResourcesDirectory => _resourcesDirectory;
-	public StringView AssetDirectory => _assetsDirectory;
 	
 	private append Dictionary<StringView, AssetHandle> _identiferToHandle = .(); // TODO: Check if all resources are unloaded
 
 	private append Dictionary<AssetHandle, Asset> _handleToAsset = .();
 
 	private append AssetHierarchy _assetHierarchy = .(this);
-
-	public AssetHierarchy AssetHierarchy => _assetHierarchy;
+	private append AssetCache _assetCache = .() ~ delete:append _;
+	private append AssetConverter _assetConverter = .(this) ~ delete:append _;
 
 	private append List<AssetHandle> _reloadQueue = .();
+	
+	public StringView ResourcesDirectory => _resourcesDirectory;
+	public StringView AssetDirectory => _assetsDirectory;
+	public AssetHierarchy AssetHierarchy => _assetHierarchy;
+	public AssetCache AssetCache => _assetCache;
+	public AssetConverter AssetConverter => _assetConverter;
 
 	public this()
 	{
@@ -45,7 +51,7 @@ class EditorContentManager : IContentManager
 	private void OnFileContentChanged(AssetNode assetNode)
 	{
 		// Asset isn't loaded so we don't need to reload it.
-		if (assetNode.AssetFile.LoadedAsset == null)
+		if (assetNode.AssetFile?.LoadedAsset == null)
 			return;
 
 		_reloadQueue.Add(assetNode.AssetFile.LoadedAsset.Handle);
@@ -60,7 +66,7 @@ class EditorContentManager : IContentManager
 		Asset asset = assetNode.AssetFile.LoadedAsset;
 
 		_identiferToHandle.Remove(oldIdentifier);
-		asset.Identifier = assetNode.AssetFile.Identifier;
+		asset.Identifier = assetNode.Identifier;
 		_identiferToHandle.Add(asset.Identifier, asset.Handle);
 	}
 
@@ -80,8 +86,15 @@ class EditorContentManager : IContentManager
 		_assetHierarchy.SetAssetsDirectory(_assetsDirectory);
 	}
 
+	public void SetAssetCacheDirectory(StringView fileName)
+	{
+		_assetCache.SetDirectory(fileName);
+	}
+
 	public void Update()
 	{
+		_assetConverter.Update();
+
 		SwapInLoadedAssets();
 
 		if (!_reloadQueue.IsEmpty)
@@ -135,6 +148,16 @@ class EditorContentManager : IContentManager
 
 		return null;
 	}
+
+	// TODO: This type sucks!
+	public Result<(IAssetImporter Importer, IAssetProcessor Processor, IAssetExporter Exporter)> GetDefaultProcessors(StringView fileExtension)
+	{
+		if (_defaultAssetProcessors.TryGetValue(fileExtension, let value))
+			return value;
+
+		return .Err;
+	}
+
 	private append List<String> _supportedExtensions = .() ~ ClearAndDeleteItems!(_);
 	private append List<IAssetLoader> _assetLoaders = .() ~ ClearAndDeleteItems!(_);
 	private append Dictionary<StringView, IAssetLoader> _defaultAssetLoaders = .();
@@ -143,7 +166,13 @@ class EditorContentManager : IContentManager
 		{
 			delete key;
 		}
+		delete:append _;
 	};
+
+	private append List<IAssetImporter> _assetImporters = .() ~ ClearAndDeleteItems!(_);
+	private append List<IAssetProcessor> _assetProcessors = .() ~ ClearAndDeleteItems!(_);
+	private append List<IAssetExporter> _assetExporters = .() ~ ClearAndDeleteItems!(_);
+	private append Dictionary<StringView, (IAssetImporter Importer, IAssetProcessor Processor, IAssetExporter Exporter)> _defaultAssetProcessors = .() ~ delete:append _;
 
 	public void RegisterAssetLoader<T>() where T : new, class, IAssetLoader
 	{
@@ -155,6 +184,30 @@ class EditorContentManager : IContentManager
 
 		for (StringView ext in T.FileExtensions)
 			_supportedExtensions.Add(new String(ext));
+	}
+
+	public void RegisterAssetImporter<T>() where T : new, class, IAssetImporter
+	{
+		T assetImporter = new T();
+
+		_assetImporters.Add(assetImporter);
+
+		for (StringView ext in T.FileExtensions)
+			_supportedExtensions.Add(new String(ext));
+	}
+
+	public void RegisterAssetProcessor<T>() where T : new, class, IAssetProcessor
+	{
+		T assetProcessor = new T();
+
+		_assetProcessors.Add(assetProcessor);
+	}
+
+	public void RegisterAssetExporter<T>() where T : new, class, IAssetExporter
+	{
+		T assetExporter = new T();
+
+		_assetExporters.Add(assetExporter);
 	}
 
 	public void SetAsDefaultAssetLoader<T>(params Span<StringView> fileExtensions) where T : IAssetLoader
@@ -183,6 +236,63 @@ class EditorContentManager : IContentManager
 					break;
 				}
 			}
+		}
+	}
+
+	public void ConfigureDefaultProcessing<TImport, TProcess, TExport>(params Span<StringView> fileExtensions) where TImport : IAssetImporter where TProcess : IAssetProcessor where TExport : IAssetExporter
+	{
+		for (var ext in fileExtensions)
+		{
+			// Find file extension in registered file extensions
+			String foundExtension = null;
+
+			for (var supportedExt in _supportedExtensions)
+			{
+				if (supportedExt == ext)
+				{
+					foundExtension = supportedExt;
+					break;
+				}
+			}
+
+			Log.EngineLogger.Assert(foundExtension != null, "File Extension is not registered.");
+
+			//IAssetImporter importer = _assetImporters.Where((i) => i.GetType() == typeof(TImport)).First();
+			//IAssetProcessor processor = _assetProcessors.Where((i) => i.GetType() == typeof(TProcess)).First();
+			//IAssetExporter exporter = _assetExporters.Where((i) => i.GetType() == typeof(TExport)).First();
+
+			IAssetImporter importer = null;
+			IAssetProcessor processor = null;
+			IAssetExporter exporter = null;
+
+			for (var i in _assetImporters)
+			{
+				if (i.GetType() == typeof(TImport))
+				{
+					importer = i;
+					break;
+				}
+			}
+			
+			for (var i in _assetProcessors)
+			{
+				if (i.GetType() == typeof(TProcess))
+				{
+					processor = i;
+					break;
+				}
+			}
+
+			for (var i in _assetExporters)
+			{
+				if (i.GetType() == typeof(TExport))
+				{
+					exporter = i;
+					break;
+				}
+			}
+
+			_defaultAssetProcessors[foundExtension] = (importer, processor, exporter);
 		}
 	}
 	
@@ -275,11 +385,12 @@ class EditorContentManager : IContentManager
 			return;
 		}
 
-		AssetFile file = resultNode->Value.AssetFile;
+		AssetNode assetNode = resultNode->Value;
+		AssetFile file = assetNode.AssetFile;
 		
 		IAssetLoader assetLoader = GetAssetLoader(file);
 
-		Stream stream = OpenStream(file.FilePath, true);
+		Stream stream = OpenStream(assetNode.Path, true);
 
 		// TODO: Add async loading!
 		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
@@ -361,13 +472,13 @@ class EditorContentManager : IContentManager
 		
 		String filePath = scope String(resultNode->Value.Path);
 
-		AssetFile file = resultNode->Value.AssetFile;
+		AssetNode assetNode = resultNode->Value;
+		AssetFile file = assetNode.AssetFile;
 		
-		GetResourceAndSubassetName(file.Identifier, let resourceName, let subassetName);
+		GetResourceAndSubassetName(assetNode.Identifier, let resourceName, let subassetName);
 
 		IAssetLoader assetLoader = GetAssetLoader(file);
 
-		// TODO: what are we supposed to do if we don't find a loader? Surely not crash...
 		//Log.EngineLogger.AssertDebug(assetLoader != null);
 		if (assetLoader == null)
 		{
@@ -407,7 +518,7 @@ class EditorContentManager : IContentManager
 			loadedAsset = placeholder;
 		}
 
-		loadedAsset.Identifier = file.Identifier;
+		loadedAsset.Identifier = assetNode.Identifier;
 
 		_handleToAsset.Add(handle, loadedAsset);
 
@@ -582,6 +693,26 @@ class EditorContentManager : IContentManager
 		}
 
 		return assetLoader;
+	}
+
+	public IAssetImporter GetAssetImporter(AssetFile file)
+	{
+		IAssetImporter result = null;
+
+		String typeName = scope .(128);
+
+		for (IAssetImporter importer in _assetImporters)
+		{
+			importer.GetType().GetName(typeName..Clear());
+
+			if (typeName == file.AssetConfig.Importer)
+			{
+				result = importer;
+				break;
+			}
+		}
+
+		return result;
 	}
 
 	public enum SaveAssetError

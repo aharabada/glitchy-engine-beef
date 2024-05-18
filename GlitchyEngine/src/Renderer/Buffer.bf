@@ -160,9 +160,6 @@ namespace GlitchyEngine.Renderer
 		//Structured = 2,
 	}
 
-	typealias Format = DirectX.DXGI.Format;
-
-
 	public struct BufferDescription
 	{
 		/**

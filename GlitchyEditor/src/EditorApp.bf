@@ -2,6 +2,7 @@ using System;
 using GlitchyEngine;
 using GlitchyEngine.Content;
 using GlitchyEditor.Assets;
+using GlitchyEditor.Assets.Importers;
 
 namespace GlitchyEditor
 {
@@ -35,6 +36,12 @@ namespace GlitchyEditor
 			_contentManager.RegisterAssetLoader<EffectAssetLoader>();
 			_contentManager.SetAsDefaultAssetLoader<EffectAssetLoader>(".hlsl");
 			_contentManager.SetAssetPropertiesEditor<EffectAssetLoader>(=> EffectAssetPropertiesEditor.Factory);
+
+			_contentManager.RegisterAssetImporter<TextureImporter>();
+			_contentManager.RegisterAssetProcessor<TextureProcessor>();
+			_contentManager.RegisterAssetExporter<TextureExporter>();
+
+			_contentManager.ConfigureDefaultProcessing<TextureImporter, TextureProcessor, TextureExporter>(".png");
 
 			_contentManager.SetResourcesDirectory("./Resources");
 

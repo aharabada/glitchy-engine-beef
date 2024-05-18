@@ -439,11 +439,11 @@ class AssetHierarchy
 			// Only files get AssetFile and AssetHandle
 			if (!isDirectory)
 			{
-				// TODO: Subassets
+				// TODO: Subassets -> Happens in processor!
 				//GrabSubAssets(node);
 
 				// TODO: Apparently directories were supposed to get an AssetFile? Makes sense, we wanted to have settings for directories, too!
-				treeNode->AssetFile = new AssetFile(_contentManager, assetNode.Identifier, assetNode.Path, assetNode.IsDirectory);
+				treeNode->AssetFile = AssetFile.LoadOrCreateAssetFile(_contentManager, assetNode);
 
 				_handleToAssetNode.Add(assetNode.AssetFile.AssetConfig.AssetHandle, treeNode);
 			}
@@ -598,10 +598,10 @@ class AssetHierarchy
 		// Directories have no AssetFile?
 		if (node->AssetFile != null)
 		{
-			node->AssetFile.[Friend]_path.Set(node->Path);
+			node->Path.Set(newFilePath);
 
-			node->AssetFile.[Friend]_identifier.Set(newFilePath);
-			AssetIdentifier.Fixup(node->AssetFile.[Friend]_identifier);
+			delete node->Identifier;
+			node->Identifier = new AssetIdentifier(newFilePath);
 
 			node->AssetFile.[Friend]_assetConfigPath.Set(node->Path);
 			node->AssetFile.[Friend]_assetConfigPath.Append(AssetFile.ConfigFileExtension);

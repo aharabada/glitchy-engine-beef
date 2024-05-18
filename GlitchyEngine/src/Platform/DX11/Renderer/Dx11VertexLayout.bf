@@ -33,7 +33,7 @@ namespace GlitchyEngine.Renderer
 			Debug.Assert(input.Count == output.Count);
 
 			for(int i < input.Count)
-				output[i] = .(input[i].SemanticName, input[i].SemanticIndex, input[i].Format, input[i].InputSlot, input[i].AlignedByteOffset, (.)input[i].InputSlotClass, input[i].InstanceDataStepRate);
+				output[i] = .(input[i].SemanticName, input[i].SemanticIndex, (.)input[i].Format, input[i].InputSlot, input[i].AlignedByteOffset, (.)input[i].InputSlotClass, input[i].InstanceDataStepRate);
 		}
 
 		/// Validates or gets the validated input layout for the given vertexshader.

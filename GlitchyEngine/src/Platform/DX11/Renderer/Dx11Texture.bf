@@ -56,7 +56,7 @@ namespace GlitchyEngine.Renderer
 		public override uint32 Height => nativeDesc.Height;
 		public override uint32 ArraySize => nativeDesc.ArraySize;
 		public override uint32 MipLevels => nativeDesc.MipLevels;
-		public override Format Format => nativeDesc.Format;
+		public override Format Format => (.)nativeDesc.Format;
 
 
 		/*protected override void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch)
@@ -304,7 +304,7 @@ namespace GlitchyEngine.Renderer
 		public override uint32 Height => nativeDesc.Height;
 		public override uint32 ArraySize => nativeDesc.ArraySize / 6;
 		public override uint32 MipLevels => nativeDesc.MipLevels;
-		public override Format Format => nativeDesc.Format;
+		public override Format Format => (.)nativeDesc.Format;
 
 		protected override void CreateTexturePlatform(Texture2DDesc desc, bool isRenderTarget, void* data, uint32 linePitch)
 		{
