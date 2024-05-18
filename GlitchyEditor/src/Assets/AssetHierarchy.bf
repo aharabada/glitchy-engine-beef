@@ -9,80 +9,6 @@ using GlitchyEngine.Content;
 
 namespace GlitchyEditor.Assets;
 
-public class AssetNode
-{
-	public String Name ~ delete _;
-	public String Path ~ delete _;
-	public String Identifier ~ delete _;
-
-	public bool IsDirectory;
-
-	public AssetFile AssetFile ~ delete _;
-
-	public List<SubAsset> SubAssets ~ {
-		SubAssets?.ClearAndDeleteItems();
-		delete SubAssets;
-	}
-
-	public Texture2D PreviewImage ~ _?.ReleaseRef();
-}
-
-public class SubAsset
-{
-	public AssetNode Asset;
-	public String Name ~ delete _;
-	//public String AssetInternalPath ~ delete _;
-
-	public Texture2D PreviewImage ~ _?.ReleaseRef();
-}
-
-public static class AssetIdentifier
-{
-	public const char8 DirectorySeparatorChar = '/';
-
-	// TODO: Asset identifiers and paths have little to do with each other and already caused a bit of pain, we should consider not using String for both.
-	/// Removes or unifies potential platform specific or file-path related stuff in the given asset identifier
-	public static void Fixup(String assetIdentifier)
-	{
-		int dotIndex = 0;
-
-		assetIdentifier.Replace('\\', DirectorySeparatorChar);
-		
-		// Replace /./ stuff
-		while ((dotIndex = assetIdentifier.IndexOf('.', dotIndex)) != -1)
-		{
-			char8 lastChar = '\0';
-			char8 nextChar = '\0';
-
-			int nextIndex = dotIndex + 1;
-			if (nextIndex < assetIdentifier.Length)
-				nextChar = assetIdentifier[nextIndex];
-
-			int lastIndex = dotIndex - 1;
-			if (lastIndex < assetIdentifier.Length)
-				lastChar = assetIdentifier[nextIndex];
-
-			// We either need to have a slash on both sides, or we have to be at the start or end of the string
-			if ((lastChar == '\0' || lastChar == DirectorySeparatorChar) &&
-				(lastChar == '\0' || lastChar == DirectorySeparatorChar))
-			{
-				if (lastChar != '\0')
-					assetIdentifier.Remove(lastIndex, 2);
-				else
-					assetIdentifier.Remove(dotIndex, 2);
-			}
-			else
-			{
-				// Skip the dot
-				dotIndex++;
-			}
-		}
-
-		if (assetIdentifier.StartsWith(DirectorySeparatorChar))
-			assetIdentifier.Remove(0, 1);
-	}
-}
-
 class AssetHierarchy
 {
 	FileSystemWatcher fsw ~ {
@@ -268,7 +194,7 @@ class AssetHierarchy
 		AssetNode assetNode = new AssetNode();
 		assetNode.Path = new String(ResourcesDirectory);
 		assetNode.Name = new String();
-		assetNode.Identifier = new String("###resources");
+		assetNode.Identifier = new AssetIdentifier("###resources");
 		assetNode.IsDirectory = true;
 		Path.GetFileName(assetNode.Path, assetNode.Name);
 
@@ -314,7 +240,7 @@ class AssetHierarchy
 		AssetNode assetNode = new AssetNode();
 		assetNode.Path = new String(AssetsDirectory);
 		assetNode.Name = new String();
-		assetNode.Identifier = new String("###assets");
+		assetNode.Identifier = new AssetIdentifier("###assets");
 		assetNode.IsDirectory = true;
 		Path.GetFileName(assetNode.Path, assetNode.Name);
 
@@ -428,26 +354,25 @@ class AssetHierarchy
 		return _pathToAssetNode.ContainsKey(filePath);
 	}
 
-	/// Determines and set the Identfier for the given asset node.
+	/// Determines and set the Identifier for the given asset node.
 	private void DetermineIdentifier(TreeNode<AssetNode> assetNode)
 	{
-		if (assetNode->Identifier == null)
-			assetNode->Identifier = new String();
-
-		assetNode->Identifier.Clear();
+		String identifier = scope .();
 
 		// Get the Identifier which is simply the path relative to the asste root (either Resources- or Assets-Folder)
 		if (assetNode.IsInSubtree(_resourcesDirectoryNode))
 		{
-			Path.GetRelativePath(assetNode->Path, _resourcesDirectoryNode->Path, assetNode->Identifier);
-			assetNode->Identifier.Insert(0, "Resources/");
+			Path.GetRelativePath(assetNode->Path, _resourcesDirectoryNode->Path, identifier);
+			identifier.Insert(0, "Resources/");
 		}
 		else if (assetNode.IsInSubtree(_assetsDirectoryNode))
 		{
-			Path.GetRelativePath(assetNode->Path, _assetsDirectoryNode->Path, assetNode->Identifier);
-			assetNode->Identifier.Insert(0, "Assets/");
+			Path.GetRelativePath(assetNode->Path, _assetsDirectoryNode->Path, identifier);
+			identifier.Insert(0, "Assets/");
 		}
-		AssetIdentifier.Fixup(assetNode->Identifier);
+
+		delete assetNode->Identifier;
+		assetNode->Identifier = new AssetIdentifier(identifier);
 	}
 
 	/// Scans the tree for orphaned nodes and removes them.

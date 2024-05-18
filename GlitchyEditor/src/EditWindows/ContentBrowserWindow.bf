@@ -226,7 +226,7 @@ namespace GlitchyEditor.EditWindows
 
 					if (assetNode case .Ok(let treeNode))
 					{
-						ImGui.SetClipboardText(treeNode->Identifier);
+						ImGui.SetClipboardText(treeNode->Identifier.FullIdentifier.Ptr);
 					}
 				}
 
@@ -596,7 +596,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginDragDropSource())
 			{
-				ImGui.SetDragDropPayload(.ContentBrowserItem, entry->Identifier, (uint64)entry->Identifier.Length, .Once);
+				ImGui.SetDragDropPayload(.ContentBrowserItem, entry->Identifier.FullIdentifier.Ptr, (uint64)entry->Identifier.FullIdentifier.Length, .Once);
 
 				float2 dndIconSize = (ImGui.GetFontSize() * 2.0f).XX;
 
@@ -606,7 +606,7 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.SetCursorPosY((dndIconSize.X - ImGui.GetFontSize()) / 2);
 
-				ImGui.Text(entry->Identifier);
+				ImGui.Text(entry->Identifier.FullIdentifier.Ptr);
 
 				ImGui.EndDragDropSource();
 			}
@@ -830,7 +830,7 @@ namespace GlitchyEditor.EditWindows
 				
 				if (ImGui.MenuItem("Asset identifier"))
 				{
-					ImGui.SetClipboardText(fileOrFolder->Identifier);
+					ImGui.SetClipboardText(fileOrFolder->Identifier.FullIdentifier.Ptr);
 				}
 
 				ImGui.AttachTooltip("Copies the identifier of this asset.");
