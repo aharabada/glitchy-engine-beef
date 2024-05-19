@@ -4,6 +4,7 @@ using System.IO;
 using System.Collections;
 using GlitchyEngine.Core;
 using GlitchyEngine.Content;
+using System.IO;
 
 namespace GlitchyEditor.Assets;
 
@@ -21,7 +22,9 @@ class CachedAsset
 	public AssetType AssetType;
 	public int64 CompressedByteCount;
 	public int64 UncompressedByteCount;
-	public String AssetIdentifier ~ delete _;
+	public AssetIdentifier AssetIdentifier ~ delete _;
+
+	public int32 DataOffset;
 
 	public const String CacheFileExtension = ".laf";
 }
@@ -93,6 +96,7 @@ class AssetCache
 				Log.EngineLogger.Error($"Failed to read cached asset file \"filePath\".");
 
 				delete cachedAsset;
+				continue;
 			}
 
 			_assets.Add(cachedAsset.Handle, cachedAsset);
@@ -129,29 +133,101 @@ class AssetCache
 		cachedAsset.CompressedByteCount = Try!(stream.Read<int64>());
 		cachedAsset.UncompressedByteCount = Try!(stream.Read<int64>());
 
-		int32 assetIdentifierByteCount = Try!(stream.Read<int32>());
+		int16 assetIdentifierByteCount = Try!(stream.Read<int16>());
 
-		cachedAsset.AssetIdentifier = new String(assetIdentifierByteCount);
-		cachedAsset.AssetIdentifier.PadLeft(assetIdentifierByteCount);
-		Span<char8> charSpan = cachedAsset.AssetIdentifier;
+		String assetIdentifier = scope String(assetIdentifierByteCount);
+		assetIdentifier.PadLeft(assetIdentifierByteCount);
+		Span<char8> charSpan = assetIdentifier;
 		int readBytes = Try!(stream.TryRead(Span<uint8>((uint8*)charSpan.Ptr, charSpan.Length)));
+
+		cachedAsset.AssetIdentifier = new AssetIdentifier(assetIdentifier);
 
 		if (readBytes != assetIdentifierByteCount)
 		{
 			Log.EngineLogger.Warning($"Expected to read {assetIdentifierByteCount} bytes for the asset identifier, but read {readBytes} instead.");
 		}
 
+		cachedAsset.DataOffset = (.)stream.Position;
+
 		return .Ok;
 	}
 
-	public CachedAsset GetCacheEntry(AssetHandle id)
+	public CachedAsset GetCacheEntry(AssetHandle assetHandle)
 	{
 		if (!_cacheLoaded)
 			ReloadCache();
 
-		if (_assets.TryGetValue(id, let cachedAsset))
+		if (_assets.TryGetValue(assetHandle, let cachedAsset))
 			return cachedAsset;
 
 		return null;
+	}
+
+	private void GetCacheFilePath(AssetHandle handle, String outFilePath)
+	{
+		outFilePath.Append(_directory);
+		outFilePath.Append(Path.DirectorySeparatorChar);
+		outFilePath.Append(handle);
+		outFilePath.Append(CachedAsset.CacheFileExtension);
+	}
+
+	public Result<void> SaveAsset(CachedAsset assetInfo, Span<uint8> data)
+	{
+		CachedAsset asset = GetCacheEntry(assetInfo.Handle);
+
+		if (asset == null)
+		{
+			asset = new CachedAsset();
+			asset.Handle = assetInfo.Handle;
+			asset.FilePath = new String(128);
+			GetCacheFilePath(asset.Handle, asset.FilePath);
+			_assets[asset.Handle] = asset;
+		}
+
+		delete asset.AssetIdentifier;
+		asset.AssetIdentifier = new AssetIdentifier(assetInfo.AssetIdentifier);
+
+		asset.FormatVersion = FormatVersion;
+		asset.Compression = assetInfo.Compression;
+		asset.AssetType = assetInfo.AssetType;
+		asset.CreationTimestamp = assetInfo.CreationTimestamp;
+
+		asset.UncompressedByteCount = data.Length;
+
+		Span<uint8> dataToWrite;
+
+		switch (asset.Compression)
+		{
+		case .L4Z:
+			// TODO: L4Z
+			Runtime.NotImplemented();
+			// asset.CompressedByteCount = compressedData.Length;
+		case .None:
+			asset.CompressedByteCount = data.Length;
+			dataToWrite = data;
+		}
+
+		FileStream writer = scope .();
+		Try!(writer.Create(asset.FilePath, .Write, .None));
+
+		Try!(writer.Write<char8[3]>(CachedAsset.MagicWord));
+		Try!(writer.Write(FormatVersion));
+		Try!(writer.Write(asset.Handle));
+		Try!(writer.Write(asset.CreationTimestamp));
+		Try!(writer.Write(asset.Compression));
+		Try!(writer.Write(asset.AssetType));
+		Try!(writer.Write<int64>(asset.CompressedByteCount));
+		Try!(writer.Write<int64>(asset.UncompressedByteCount));
+
+		Try!(writer.Write<int16>((int16)asset.AssetIdentifier.FullIdentifier.Length));
+		Try!(writer.Write(asset.AssetIdentifier.FullIdentifier));
+		
+		asset.DataOffset = (.)writer.Position;
+
+		Try!(writer.Write(dataToWrite));
+
+		// TODO: Notify content manager!
+
+		return .Ok;
 	}
 }

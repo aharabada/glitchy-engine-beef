@@ -18,7 +18,7 @@ interface IAssetProcessor
 {
 	AssetProcessorConfig CreateDefaultConfig();
 
-	Result<Object> Process(ImportedResource importedResource, AssetProcessorConfig config);
+	Result<ProcessedResource> Process(ImportedResource importedResource, AssetProcessorConfig config);
 }
 
 interface IAssetExporter

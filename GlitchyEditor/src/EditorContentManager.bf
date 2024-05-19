@@ -27,7 +27,7 @@ class EditorContentManager : IContentManager
 
 	private append AssetHierarchy _assetHierarchy = .(this);
 	private append AssetCache _assetCache = .() ~ delete:append _;
-	private append AssetConverter _assetConverter = .(this) ~ delete:append _;
+	private append AssetConverter _assetConverter = .(this);
 
 	private append List<AssetHandle> _reloadQueue = .();
 	
@@ -469,7 +469,14 @@ class EditorContentManager : IContentManager
 			Log.EngineLogger.Error($"Could not find asset with handle {handle}.");
 			return .Invalid;
 		}
-		
+
+		CachedAsset cacheEntry = _assetCache.GetCacheEntry(handle);
+
+		if (cacheEntry != null)
+		{
+			// TODO: Load asset with new loaders
+		}
+
 		String filePath = scope String(resultNode->Value.Path);
 
 		AssetNode assetNode = resultNode->Value;
@@ -708,6 +715,46 @@ class EditorContentManager : IContentManager
 			if (typeName == file.AssetConfig.Importer)
 			{
 				result = importer;
+				break;
+			}
+		}
+
+		return result;
+	}
+
+	public IAssetProcessor GetAssetProcessor(AssetFile file)
+	{
+		IAssetProcessor result = null;
+
+		String typeName = scope .(128);
+
+		for (IAssetProcessor processor in _assetProcessors)
+		{
+			processor.GetType().GetName(typeName..Clear());
+
+			if (typeName == file.AssetConfig.Processor)
+			{
+				result = processor;
+				break;
+			}
+		}
+
+		return result;
+	}
+
+	public IAssetExporter GetAssetExporter(AssetFile file)
+	{
+		IAssetExporter result = null;
+
+		String typeName = scope .(128);
+
+		for (IAssetExporter exporter in _assetExporters)
+		{
+			exporter.GetType().GetName(typeName..Clear());
+
+			if (typeName == file.AssetConfig.Exporter)
+			{
+				result = exporter;
 				break;
 			}
 		}

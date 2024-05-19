@@ -186,6 +186,9 @@ class TextureImporter : IAssetImporter
 		surface.SlicePitch = 0;
 		surface.ArrayIndex = 0;
 		surface.MipLevel = 0;
+		surface.Width = width;
+		surface.Height = height;
+		surface.Depth = 1;
 
 		surfaces.Add(surface);
 
@@ -238,11 +241,13 @@ class TextureProcessorConfig : AssetProcessorConfig
 	}
 }
 
-class ProcessedResource
+abstract class ProcessedResource
 {
 	private AssetIdentifier _assetIdentifier ~ delete _;
 
 	public AssetIdentifier AssetIdentifier => _assetIdentifier;
+
+	public abstract AssetType AssetType {get;}
 
 	public this(AssetIdentifier ownAssetIdentifier)
 	{
@@ -261,6 +266,8 @@ class ProcessedTexture : ProcessedResource
 	public int Width = -1;
 	public int Height = -1;
 	public int Depth = -1;
+
+	public override AssetType AssetType => .Texture;
 
 	public class TextureSurface
 	{
@@ -335,17 +342,23 @@ class ProcessedTexture : ProcessedResource
 
 	public void SetSurfaceCount(int arraySize, int mipMapCount)
 	{
-		Log.EngineLogger.AssertDebug(arraySize > Surfaces.GetLength(0));
-		Log.EngineLogger.AssertDebug(mipMapCount > Surfaces.GetLength(1));
+		Log.EngineLogger.AssertDebug(Surfaces == null || arraySize > Surfaces.GetLength(0));
+		Log.EngineLogger.AssertDebug(Surfaces == null ||mipMapCount > Surfaces.GetLength(1));
+
+		ArraySize = arraySize;
+		MipMapCount = mipMapCount;
 
 		TextureSurface[,] oldSurfaces = Surfaces;
 		Surfaces = new TextureSurface[arraySize, mipMapCount];
-		
-		for (int i < oldSurfaces.GetLength(0))
+
+		if (oldSurfaces != null)
 		{
-			for (int j < oldSurfaces.GetLength(1))
+			for (int i < oldSurfaces.GetLength(0))
 			{
-				Surfaces[i, j] = oldSurfaces[i, j];
+				for (int j < oldSurfaces.GetLength(1))
+				{
+					Surfaces[i, j] = oldSurfaces[i, j];
+				}
 			}
 		}
 	}
@@ -358,19 +371,24 @@ class TextureProcessor : IAssetProcessor
 		return new TextureProcessorConfig();
 	}
 
-	public Result<Object> Process(ImportedResource importedObject, AssetProcessorConfig config)
+	public Result<ProcessedResource> Process(ImportedResource importedObject, AssetProcessorConfig config)
 	{
 		Log.EngineLogger.AssertDebug(config is TextureProcessorConfig);
 		Log.EngineLogger.AssertDebug(importedObject is ImportedTexture);
 
-		Try!(ProcessTexture(importedObject as ImportedTexture, config as TextureProcessorConfig));
-
-		return .Ok(null);
+		return Try!(ProcessTexture(importedObject as ImportedTexture, config as TextureProcessorConfig));
 	}
 
-	private Result<void> ProcessTexture(ImportedTexture importedTexture, TextureProcessorConfig config)
+	private Result<ProcessedTexture> ProcessTexture(ImportedTexture importedTexture, TextureProcessorConfig config)
 	{
 		ProcessedTexture processedTexture = new ProcessedTexture(new AssetIdentifier(importedTexture.AssetIdentifier.FullIdentifier));
+
+		processedTexture.Dimension = importedTexture.TextureInfo.Dimension;
+		processedTexture.PixelFormat = (.)importedTexture.TextureInfo.PixelFormat;
+		processedTexture.IsCubeMap = importedTexture.TextureInfo.IsCubeMap;
+		processedTexture.Width = importedTexture.TextureInfo.Width;
+		processedTexture.Height = importedTexture.TextureInfo.Height;
+		processedTexture.Depth = importedTexture.TextureInfo.Depth;
 
 		processedTexture.SetSurfaceCount(importedTexture.TextureInfo.ArraySize, importedTexture.TextureInfo.MipMapCount);
 
@@ -390,7 +408,7 @@ class TextureProcessor : IAssetProcessor
 
 		// TODO: Pack to BC-Format or what ever was selected.
 
-		return .Ok;
+		return processedTexture;
 	}
 
 	private int CalculateMipMapCount(int width, int height, int depth)
