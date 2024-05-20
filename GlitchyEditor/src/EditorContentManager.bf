@@ -469,70 +469,73 @@ class EditorContentManager : IContentManager
 			Log.EngineLogger.Error($"Could not find asset with handle {handle}.");
 			return .Invalid;
 		}
+		
+		AssetNode assetNode = resultNode->Value;
+		AssetFile file = assetNode.AssetFile;
 
 		CachedAsset cacheEntry = _assetCache.GetCacheEntry(handle);
+		
+		Asset loadedAsset;
 
+		// TODO: Remove this check once we no longer need the old stuff
 		if (cacheEntry != null)
 		{
 			// TODO: Load asset with new loaders
-		}
-
-		String filePath = scope String(resultNode->Value.Path);
-
-		AssetNode assetNode = resultNode->Value;
-		AssetFile file = assetNode.AssetFile;
-		
-		GetResourceAndSubassetName(assetNode.Identifier, let resourceName, let subassetName);
-
-		IAssetLoader assetLoader = GetAssetLoader(file);
-
-		//Log.EngineLogger.AssertDebug(assetLoader != null);
-		if (assetLoader == null)
-		{
-			Log.EngineLogger.Error($"No asset loader registered for asset \"{resultNode->Value.Identifier}\" ({handle}).");
-			return .Invalid;
-		}
-
-		Asset loadedAsset;
-
-		// TODO: Support lazy loading for all asset types
-		if (!(assetLoader is EditorTextureAssetLoader) || blocking)
-		{
-			Stream stream = OpenStream(filePath, true);
-
-			loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
-
-			delete stream;
-
-			if (loadedAsset == null)
-				return .Invalid;
+			loadedAsset = LoadFromCache(handle, blocking);
 		}
 		else
 		{
-			PlaceholderAsset placeholder = new PlaceholderAsset(file, assetLoader, .Loading);
+			// else use the old mess...
+	
+			String filePath = scope String(resultNode->Value.Path);
 
-			String filePath2 = new String(filePath);
-			String newResourceName = new String(resourceName);
-			String newSesourceName = subassetName == null ? null : new String(subassetName.Value);
+			GetResourceAndSubassetName(assetNode.Identifier, let resourceName, let subassetName);
 
-			placeholder.LoadingTask = new Task(new () => {
-				AsyncLoadAsset(placeholder, filePath2, assetLoader, file,
-					newResourceName, newSesourceName);
-			});
+			IAssetLoader assetLoader = GetAssetLoader(file);
 
-			ThreadPool.QueueUserWorkItem(placeholder.LoadingTask);
+			//Log.EngineLogger.AssertDebug(assetLoader != null);
+			if (assetLoader == null)
+			{
+				Log.EngineLogger.Error($"No asset loader registered for asset \"{resultNode->Value.Identifier}\" ({handle}).");
+				return .Invalid;
+			}
 
-			loadedAsset = placeholder;
+			// TODO: Support lazy loading for all asset types
+			if (!(assetLoader is EditorTextureAssetLoader) || blocking)
+			{
+				Stream stream = OpenStream(filePath, true);
+
+				loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
+
+				delete stream;
+
+				if (loadedAsset == null)
+					return .Invalid;
+			}
+			else
+			{
+				PlaceholderAsset placeholder = new PlaceholderAsset(file, assetLoader, .Loading);
+
+				String filePath2 = new String(filePath);
+				String newResourceName = new String(resourceName);
+				String newSesourceName = subassetName == null ? null : new String(subassetName.Value);
+
+				placeholder.LoadingTask = new Task(new () => {
+					AsyncLoadAsset(placeholder, filePath2, assetLoader, file,
+						newResourceName, newSesourceName);
+				});
+
+				ThreadPool.QueueUserWorkItem(placeholder.LoadingTask);
+
+				loadedAsset = placeholder;
+			}
 		}
 
 		loadedAsset.Identifier = assetNode.Identifier;
-
-		_handleToAsset.Add(handle, loadedAsset);
-
 		loadedAsset.[Friend]_contentManager = this;
 		loadedAsset.[Friend]_handle = handle;
 
-		// Add to Identifier -> Handle map
+		_handleToAsset.Add(handle, loadedAsset);
 		_identiferToHandle.Add(loadedAsset.Identifier, handle);
 
 		file.[Friend]_loadedAsset = loadedAsset;
@@ -567,99 +570,6 @@ class EditorContentManager : IContentManager
 
 			return .Invalid;
 		}
-
-		//Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromIdentifier(fixedIdentifier);
-
-		//resultNode.
-
-		/*
-		if (_identiferToHandle.TryGetValue(fixedIdentifier, let asset))
-			return asset;
-
-		GetResourceAndSubassetName(fixedIdentifier, let resourceName, let subassetName);
-
-		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromIdentifier(fixedIdentifier);
-
-		if (resultNode case .Err)
-		{
-			Log.EngineLogger.Error($"Could not find asset \"{fixedIdentifier}\".");
-			return .Invalid;
-		}
-		
-		String filePath = scope String(resultNode->Value.Path);
-
-		AssetFile file = resultNode->Value.AssetFile;
-		
-		IAssetLoader assetLoader = GetAssetLoader(file);
-
-		// TODO: what are we supposed to do if we don't find a loader? Surely not crash...
-		//Log.EngineLogger.AssertDebug(assetLoader != null);
-		if (assetLoader == null)
-		{
-			Log.EngineLogger.Error($"No asset loader registered for asset {identifier}.");
-			return .Invalid;
-		}
-
-		Asset loadedAsset;
-
-		// TODO: Support lazy loading for all asset types
-		if (!(assetLoader is EditorTextureAssetLoader) || blocking)
-		{
-			Stream stream = OpenStream(filePath, true);
-
-			loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
-
-			delete stream;
-
-			if (loadedAsset == null)
-				return .Invalid;
-		}
-		else
-		{
-			PlaceholderAsset placeholder = new PlaceholderAsset(file, assetLoader, .Loading);
-
-			String filePath2 = new String(filePath);
-			String newResourceName = new String(resourceName);
-			String newSesourceName = subassetName == null ? null : new String(subassetName.Value);
-
-			placeholder.LoadingTask = new Task(new () => {
-				AsyncLoadAsset(placeholder, filePath2, assetLoader, file,
-					newResourceName, newSesourceName);
-			});
-
-			ThreadPool.QueueUserWorkItem(placeholder.LoadingTask);
-
-			loadedAsset = placeholder;
-		}
-
-		loadedAsset.Identifier = fixedIdentifier;
-
-		AssetHandle handle = .Invalid;
-
-		if (file.AssetConfig.AssetHandle == .Invalid)
-		{
-			handle = ManageAsset(loadedAsset);
-			// TODO: Does this ever happen?
-			file.AssetConfig.AssetHandle = handle;
-		}
-		else
-		{
-			handle = file.AssetConfig.AssetHandle;
-			_handleToAsset.Add(handle, loadedAsset);
-
-			loadedAsset.[Friend]_contentManager = this;
-			loadedAsset.[Friend]_handle = handle;
-		}
-			
-		// ManageAsset increases RefCount, but this scope also holds a reference.
-		loadedAsset.ReleaseRef();
-
-		// Add to Identifier -> Handle map
-		_identiferToHandle.Add(loadedAsset.Identifier, handle);
-
-		file.[Friend]_loadedAsset = loadedAsset;
-
-		return handle;*/
 	}
 
 	private void AsyncLoadAsset(PlaceholderAsset placeholder, String filePath, IAssetLoader assetLoader, AssetFile file, String resourceName, String subassetName)
@@ -997,5 +907,40 @@ class EditorContentManager : IContentManager
 		// Since all we do in order to track assets is add them to a dictionary we can simply unmanage and manage it again.
 		//UnmanageAsset(asset);
 		//ManageAsset(asset);
+	}
+	
+	// TODO: obviously use a map or something...
+	TextureLoader textureLoader = new .();
+
+	private IProcessedAssetLoader GetLoader(AssetType assetType)
+	{
+		switch (assetType)
+		{
+		case .Texture:
+			return textureLoader;
+		default:
+			return null;
+		}
+	}
+
+	private Asset LoadFromCache(AssetHandle handle, bool isBlocking)
+	{
+		FileStream file = scope .();
+
+		CachedAsset asset = _assetCache.GetCacheEntry(handle);
+
+		// TODO: Actually return a placeholder, but they probably need rework too...
+		if (_assetCache.OpenFileStream(asset, file) case .Err)
+			return null;
+		
+		IProcessedAssetLoader loader = GetLoader(asset.AssetType);
+
+		switch (loader.Load(file))
+		{
+		case .Ok(let loadedAsset):
+			 return loadedAsset;
+		case .Err:
+			return null;
+		}
 	}
 }

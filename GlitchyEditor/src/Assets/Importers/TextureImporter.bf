@@ -5,6 +5,7 @@ using Bon;
 using GlitchyEngine.Content;
 using GlitchyEngine;
 using GlitchyEngine.Renderer;
+using GlitchyEngine.Math;
 using static GlitchyEditor.Assets.Importers.LoadedTextureInfo;
 
 namespace GlitchyEditor.Assets.Importers;
@@ -233,11 +234,20 @@ class TextureProcessorConfig : AssetProcessorConfig
 {
 	[BonInclude]
 	private GenerateMipMaps _generateMipMaps;
+	
+	[BonInclude]
+	private SamplerStateDescription _samplerStateDescription = .();
 
 	public GenerateMipMaps GenerateMipMaps
 	{
 		get => _generateMipMaps;
 		set => SetIfChanged(ref _generateMipMaps, value);
+	}
+
+	public SamplerStateDescription SamplerStateDescription
+	{
+		get => _samplerStateDescription;
+		set => SetIfChanged(ref _samplerStateDescription, value);
 	}
 }
 
@@ -267,6 +277,8 @@ class ProcessedTexture : ProcessedResource
 	public int Height = -1;
 	public int Depth = -1;
 
+	public SamplerStateDescription SamplerStateDescription;
+
 	public override AssetType AssetType => .Texture;
 
 	public class TextureSurface
@@ -277,9 +289,11 @@ class ProcessedTexture : ProcessedResource
 		public int Depth;
 		public int MipLevel;
 		public int ArraySlice;
+		public int LinePitch;
+		public int SlicePitch;
 
 		[AllowAppend]
-		public this(int width, int height, int depth, Span<uint8> data, int mipLevel, int arraySlice)
+		public this(int width, int height, int depth, Span<uint8> data, int mipLevel, int arraySlice, int linePitch, int slicePitch)
 		{
 			uint8[] pixelData = append uint8[data.Length];
 			data.CopyTo(pixelData);
@@ -290,6 +304,8 @@ class ProcessedTexture : ProcessedResource
 			Depth = depth;
 			MipLevel = mipLevel;
 			ArraySlice = arraySlice;
+			LinePitch = linePitch;
+			SlicePitch = slicePitch;
 		}
 
 		public uint64 LoadRaw(int x, int y, int z, Format format, ComponentInfo component)
@@ -389,13 +405,15 @@ class TextureProcessor : IAssetProcessor
 		processedTexture.Width = importedTexture.TextureInfo.Width;
 		processedTexture.Height = importedTexture.TextureInfo.Height;
 		processedTexture.Depth = importedTexture.TextureInfo.Depth;
+		
+		processedTexture.SamplerStateDescription = config.SamplerStateDescription;
 
 		processedTexture.SetSurfaceCount(importedTexture.TextureInfo.ArraySize, importedTexture.TextureInfo.MipMapCount);
 
 		for (LoadedSurface loadedSurface in importedTexture.Surfaces)
 		{
 			ProcessedTexture.TextureSurface surface = new .(loadedSurface.Width, loadedSurface.Height, loadedSurface.Depth,
-				loadedSurface.Data, loadedSurface.MipLevel, loadedSurface.ArrayIndex);
+				loadedSurface.Data, loadedSurface.MipLevel, loadedSurface.ArrayIndex, loadedSurface.Pitch, loadedSurface.SlicePitch);
 			processedTexture.Surfaces[loadedSurface.ArrayIndex, loadedSurface.MipLevel] = surface;
 		}
 
@@ -499,7 +517,9 @@ class TextureProcessor : IAssetProcessor
 
 		if (smallerLevel == null)
 		{
-			smallerLevel = new ProcessedTexture.TextureSurface(width, height, depth, new uint8[width * height * depth * pixelFormat.BitsPerPixel()], largerLevel.MipLevel + 1, largerLevel.ArraySlice);
+			smallerLevel = new ProcessedTexture.TextureSurface(width, height, depth,
+				new uint8[width * height * depth * pixelFormat.BitsPerPixel()], largerLevel.MipLevel + 1, largerLevel.ArraySlice,
+				-1, -1); // TODO!
 		}
 
 		// TODO: Kaiser mip maps?
@@ -556,6 +576,8 @@ class TextureExporter : IAssetExporter
 		Depth of larges mip-slice (4 bytes)
 		Array size (4 bytes)
 		Mip map levels (4 bytes)
+		Is Cubemap (1 byte)
+		Data Byte count (8 bytes)
 		Pixeldata
 		{
 			Array[0]: Mip[0] Mip[1] ... Mip[M]
@@ -573,6 +595,9 @@ class TextureExporter : IAssetExporter
 		Try!(stream.Write((uint32)processedTexture.Depth));
 		Try!(stream.Write((uint32)processedTexture.ArraySize));
 		Try!(stream.Write((uint32)processedTexture.MipMapCount));
+		Try!(stream.Write(processedTexture.IsCubeMap));
+
+		Try!(WriteSamplerStateDescription(stream, processedTexture.SamplerStateDescription));
 
 		for (int arraySlice < processedTexture.ArraySize)
 		{
@@ -599,29 +624,122 @@ class TextureExporter : IAssetExporter
 
 				if (validateDepth < 1)
 					validateDepth = 1;
-
+				
+				Try!(stream.Write((uint32)slice.LinePitch));
+				Try!(stream.Write((uint32)slice.SlicePitch));
+				Try!(stream.Write((uint64)slice.PixelData.Count));
 				Try!(stream.TryWrite(slice.PixelData));
 			}
 		}
 
 		return .Ok;
 	}
+
+	private Result<void> WriteSamplerStateDescription(Stream stream, SamplerStateDescription sampler)
+	{
+		Try!(stream.Write(sampler.MinFilter));
+		Try!(stream.Write(sampler.MagFilter));
+		Try!(stream.Write(sampler.MipFilter));
+		Try!(stream.Write(sampler.FilterMode));
+		Try!(stream.Write(sampler.ComparisonFunction));
+		Try!(stream.Write(sampler.AddressModeU));
+		Try!(stream.Write(sampler.AddressModeV));
+		Try!(stream.Write(sampler.AddressModeW));
+		Try!(stream.Write(sampler.MipLODBias));
+		Try!(stream.Write(sampler.MipMinLOD));
+		Try!(stream.Write(sampler.MipMaxLOD));
+		Try!(stream.Write(sampler.MaxAnisotropy));
+		Try!(stream.Write(sampler.BorderColor));
+
+		return .Ok;
+	}
 }
 
-class TextureLoader
+class TextureLoader : IProcessedAssetLoader
 {
-	public Result<Asset> Load(Stream data, AssetIdentifier assetIdentifier)
+	public Result<Asset> Load(Stream dataStream)
 	{
-		Dimension dimension = Try!(data.Read<Dimension>());
-		Format pixelFormat = Try!(data.Read<Format>());
-		uint32 width = Try!(data.Read<uint32>());
-		uint32 height = Try!(data.Read<uint32>());
-		uint32 depth = Try!(data.Read<uint32>());
-		uint32 arraySize = Try!(data.Read<uint32>());
-		uint32 mipMapCount = Try!(data.Read<uint32>());
+		Dimension dimension = Try!(dataStream.Read<Dimension>());
+		Format pixelFormat = Try!(dataStream.Read<Format>());
+		uint32 width = Try!(dataStream.Read<uint32>());
+		uint32 height = Try!(dataStream.Read<uint32>());
+		uint32 depth = Try!(dataStream.Read<uint32>());
+		uint32 arraySize = Try!(dataStream.Read<uint32>());
+		uint32 mipMapCount = Try!(dataStream.Read<uint32>());
+		bool isCubemap = Try!(dataStream.Read<bool>());
 
+		SamplerStateDescription sampler = Try!(ReadSampler(dataStream));
+		
+		List<uint8[]> surfaceDatas = scope .(mipMapCount * arraySize);
+		defer { ClearAndDeleteItems!(surfaceDatas); }
 
+		TextureSliceData[] slices = scope TextureSliceData[mipMapCount * arraySize];
 
-		return .Ok(null);
+		int index = 0;
+		for (int arraySlice < arraySize)
+		{
+			for (int mipSlice < mipMapCount)
+			{
+				uint32 linePitch = Try!(dataStream.Read<uint32>());
+				uint32 slicePitch = Try!(dataStream.Read<uint32>());
+				uint64 byteCount = Try!(dataStream.Read<uint64>());
+
+				uint8[] surfaceData = new uint8[byteCount];
+				Try!(dataStream.TryRead(surfaceData));
+				slices[index] = .(surfaceData.Ptr, linePitch, slicePitch);
+
+				index++;
+
+				surfaceDatas.Add(surfaceData);
+			}
+		}
+
+		Texture result = null;
+
+		switch (dimension)
+		{
+		case .Texture2D:
+			if (isCubemap)
+			{
+				Runtime.NotImplemented();
+			}
+			else
+			{
+				Texture2DDesc desc = .(width, height, pixelFormat, arraySize, mipMapCount, .Immutable, .None);
+
+				Texture2D texture = new Texture2D(desc);
+
+				texture.SetData(slices);
+
+				result = texture;
+			}
+		default:
+			Runtime.NotImplemented();
+		}
+
+		result.SamplerState = SamplerStateManager.GetSampler(sampler);
+
+		return result;
+	}
+
+	private Result<SamplerStateDescription> ReadSampler(Stream dataStream)
+	{
+		SamplerStateDescription sampler;
+
+		sampler.MinFilter = Try!(dataStream.Read<FilterFunction>());
+		sampler.MagFilter = Try!(dataStream.Read<FilterFunction>());
+		sampler.MipFilter = Try!(dataStream.Read<FilterFunction>());
+		sampler.FilterMode = Try!(dataStream.Read<FilterMode>());
+		sampler.ComparisonFunction = Try!(dataStream.Read<ComparisonFunction>());
+		sampler.AddressModeU = Try!(dataStream.Read<TextureAddressMode>());
+		sampler.AddressModeV = Try!(dataStream.Read<TextureAddressMode>());
+		sampler.AddressModeW = Try!(dataStream.Read<TextureAddressMode>());
+		sampler.MipLODBias = Try!(dataStream.Read<float>());
+		sampler.MipMinLOD = Try!(dataStream.Read<float>());
+		sampler.MipMaxLOD = Try!(dataStream.Read<float>());
+		sampler.MaxAnisotropy = Try!(dataStream.Read<uint8>());
+		sampler.BorderColor = Try!(dataStream.Read<ColorRGBA>());
+
+		return sampler;
 	}
 }

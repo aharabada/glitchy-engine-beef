@@ -230,4 +230,17 @@ class AssetCache
 
 		return .Ok;
 	}
+
+	public Result<void> OpenFileStream(CachedAsset asset, FileStream fileStream)
+	{
+		if (asset == null)
+			return .Err;
+
+		Try!(fileStream.Close());
+		Try!(fileStream.Open(asset.FilePath, .Read, .Read));
+
+		fileStream.Position = asset.DataOffset;
+
+		return .Ok;
+	}
 }

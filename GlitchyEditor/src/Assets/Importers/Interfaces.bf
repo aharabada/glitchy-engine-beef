@@ -27,3 +27,8 @@ interface IAssetExporter
 
 	Result<void> Export(Stream stream, ProcessedResource processedObject, AssetExporterConfig config);
 }
+
+interface IProcessedAssetLoader
+{
+	Result<Asset> Load(Stream stream);
+}
