@@ -2,7 +2,7 @@ namespace System
 {
 	extension Runtime
 	{
-		[NoReturn, Warn("The method is not implemented.")]
+		[NoReturn] // , Warn("The method is not implemented.")
 #unwarn
 		public static void NotImplemented(String filePath = Compiler.CallerFilePath, int line = Compiler.CallerLineNum)
 		{
