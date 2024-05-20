@@ -10,7 +10,7 @@ namespace GlitchyEngine.Renderer
 
 		private Viewport _backBufferViewport;
 
-		private DepthStencilFormat _depthStencilFormat = .None;
+		private DepthStencilFormat _depthStencilFormat = .Unknown;
 		
 		public RenderTarget2D _backBuffer ~ _?.ReleaseRef();
 

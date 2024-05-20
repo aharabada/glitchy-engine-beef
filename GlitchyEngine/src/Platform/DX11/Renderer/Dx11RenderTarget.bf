@@ -63,7 +63,7 @@ namespace GlitchyEngine.Renderer
 				PlatformCreateTexture();
 			}
 
-			if(_description.DepthStencilFormat != .None)
+			if(_description.DepthStencilFormat != .Unknown)
 			{
 				_depthStenilTarget = new DepthStencilTarget(_description.Width, _description.Height, _description.DepthStencilFormat);
 			}

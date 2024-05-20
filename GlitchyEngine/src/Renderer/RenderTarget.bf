@@ -20,7 +20,7 @@ namespace GlitchyEngine.Renderer
 		public bool IsSwapchainTarget;
 
 		public this(Format pixelFormat, uint32 width, uint32 height, uint32 arraySize = 1, uint32 mipLevels = 1,
-			DepthStencilFormat depthStencilFormat = .None, CPUAccessFlags cpuAccess = .None, uint32 sampleCount = 1, uint32 sampleQuality = 0, bool isSwapchainTarget = false)
+			DepthStencilFormat depthStencilFormat = .Unknown, CPUAccessFlags cpuAccess = .None, uint32 sampleCount = 1, uint32 sampleQuality = 0, bool isSwapchainTarget = false)
 		{
 			PixelFormat = pixelFormat;
 			Width = width;

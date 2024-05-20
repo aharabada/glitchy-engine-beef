@@ -148,7 +148,7 @@ namespace GlitchyEngine.Renderer
 		 * Clamping value used if FilterMode.Anisotropic is specified in the Filters.
 		 * Valid values are between 1 and 16.
 		*/
-		public uint8 MaxAnisotropy = 1; // TODO: we could use a smaller int
+		public uint8 MaxAnisotropy = 1;
 
 		/**
 		 * Border color to use if TextureAddressMode.Border is specified for AddressModeU, AddressModeV, or AddressModeW.
