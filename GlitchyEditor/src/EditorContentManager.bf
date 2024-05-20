@@ -925,17 +925,20 @@ class EditorContentManager : IContentManager
 
 	private Asset LoadFromCache(AssetHandle handle, bool isBlocking)
 	{
-		FileStream file = scope .();
-
 		CachedAsset asset = _assetCache.GetCacheEntry(handle);
 
+		Result<Stream> streamResult = _assetCache.OpenStream(asset);
+
 		// TODO: Actually return a placeholder, but they probably need rework too...
-		if (_assetCache.OpenFileStream(asset, file) case .Err)
+		if (streamResult case .Err)
 			return null;
-		
+
+		Stream dataStream = streamResult.Value;
+		defer { delete dataStream; }
+
 		IProcessedAssetLoader loader = GetLoader(asset.AssetType);
 
-		switch (loader.Load(file))
+		switch (loader.Load(dataStream))
 		{
 		case .Ok(let loadedAsset):
 			 return loadedAsset;

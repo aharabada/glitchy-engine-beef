@@ -199,9 +199,16 @@ class AssetCache
 		switch (asset.Compression)
 		{
 		case .L4Z:
-			// TODO: L4Z
-			Runtime.NotImplemented();
-			// asset.CompressedByteCount = compressedData.Length;
+			uint maxCompressedSize = LZ4.LZ4F_CompressFrameBound((uint)data.Length);
+
+			uint8[] compressedData = new uint8[maxCompressedSize];
+			defer { delete compressedData; }
+
+			uint actualCompressedSize = LZ4.LZ4F_CompressFrame(compressedData, data);
+
+			asset.CompressedByteCount = (int)actualCompressedSize;
+
+			dataToWrite = Span<uint8>(compressedData.Ptr, (int)actualCompressedSize);
 		case .None:
 			asset.CompressedByteCount = data.Length;
 			dataToWrite = data;
@@ -231,7 +238,7 @@ class AssetCache
 		return .Ok;
 	}
 
-	public Result<void> OpenFileStream(CachedAsset asset, FileStream fileStream)
+	private Result<void> OpenFileStream(CachedAsset asset, FileStream fileStream)
 	{
 		if (asset == null)
 			return .Err;
@@ -242,5 +249,46 @@ class AssetCache
 		fileStream.Position = asset.DataOffset;
 
 		return .Ok;
+	}
+
+	public Result<Stream> OpenStream(CachedAsset asset)
+	{
+		if (asset == null)
+			return .Err;
+
+		switch (asset.Compression)
+		{
+		case .None:
+			FileStream fileStream = new FileStream();
+			Try!(OpenFileStream(asset, fileStream));
+			return fileStream;
+		case .L4Z:
+			FileStream compressedStream = scope FileStream();
+			Try!(OpenFileStream(asset, compressedStream));
+
+			uint8[] compressedData = new uint8[asset.CompressedByteCount];
+			defer { delete compressedData; }
+
+			Try!(compressedStream.TryRead(compressedData));
+
+			MemoryStream ms = new MemoryStream(asset.UncompressedByteCount);
+			ms.Memory.GrowUnitialized(asset.UncompressedByteCount);
+
+			LZ4.LZ4F_dctx* context;
+			LZ4.LZ4F_CreateDecompressionContext(out context);
+
+			while (true)
+			{
+				var result = LZ4.LZ4F_Decompress(context, ms.Memory, compressedData,let bytesRead, let bytesWritten);
+				if (result == 0)
+					break;
+			}
+
+			LZ4.LZ4F_FreeDecompressionContext(context);
+
+			ms.Position = 0;
+
+			return ms;
+		}
 	}
 }
