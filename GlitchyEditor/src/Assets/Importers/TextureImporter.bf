@@ -222,6 +222,7 @@ class TextureImporter : IAssetImporter
 	}
 }
 
+[BonTarget]
 enum GenerateMipMaps
 {
 	No,
@@ -717,7 +718,10 @@ class TextureLoader : IProcessedAssetLoader
 			Runtime.NotImplemented();
 		}
 
-		result.SamplerState = SamplerStateManager.GetSampler(sampler);
+		using (SamplerState samplerState = SamplerStateManager.GetSampler(sampler))
+		{
+			result.SamplerState = samplerState;
+		}
 
 		return result;
 	}

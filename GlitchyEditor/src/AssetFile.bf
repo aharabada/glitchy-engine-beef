@@ -63,6 +63,8 @@ class AssetFile
 
 	public EditorContentManager ContentManager => _contentManager;
 
+	public bool UseNewAssetPipeline => _assetConfig?.ImporterConfig != null;
+
 	[AllowAppend]
 	public this(EditorContentManager contentManager, AssetNode assetNode)
 	{
@@ -82,22 +84,30 @@ class AssetFile
 	{
 		AssetFile assetFile = new AssetFile(contentManager, assetNode);
 
-		assetFile.LoadOrCreateAssetConfig();
-
-		// TODO: Remove this check once we only use the new processing pipeline
-		if (assetFile._assetConfig.ImporterConfig != null)
-		{
-			CachedAsset cacheEntry = assetFile._contentManager.AssetCache.GetCacheEntry(assetFile._assetConfig.AssetHandle);
-	
-			if (cacheEntry == null ||
-				cacheEntry.CreationTimestamp < assetFile._lastAssetEditTime ||
-				cacheEntry.CreationTimestamp < assetFile._lastConfigEditTime)
-			{
-				assetFile._contentManager.AssetConverter.QueueForProcessing(assetFile);
-			}
-		}
+		assetFile.CheckForReprocessing();
 
 		return assetFile;
+	}
+
+	public void CheckForReprocessing()
+	{
+		LoadOrCreateAssetConfig();
+
+		// TODO: Remove this check once we only use the new processing pipeline
+		if (!UseNewAssetPipeline)
+			return;
+
+		CachedAsset cacheEntry = _contentManager.AssetCache.GetCacheEntry(_assetConfig.AssetHandle);
+		
+		_lastAssetEditTime = File.GetLastWriteTimeUtc(_assetFile.Path);
+		_lastConfigEditTime = File.GetLastWriteTimeUtc(_assetConfigPath);
+
+		if (cacheEntry == null ||
+			cacheEntry.CreationTimestamp < _lastAssetEditTime ||
+			cacheEntry.CreationTimestamp < _lastConfigEditTime)
+		{
+			_contentManager.AssetConverter.QueueForProcessing(this);
+		}
 	}
 
 	/// Loads the asset config (.ass) file or creates it.
@@ -107,12 +117,12 @@ class AssetFile
 		{
 			LoadAssetConfig();
 		}
-		else
+		else if (_assetConfig == null)
 		{
 			CreateDefaultAssetLoader();
 		}
 
-		_lastAssetEditTime = File.GetLastWriteTimeUtc(_assetConfigPath);
+		_lastConfigEditTime = File.GetLastWriteTimeUtc(_assetConfigPath);
 	}
 
 	private void GenerateAssetHandle()
@@ -123,7 +133,9 @@ class AssetFile
 	private void CreateDefaultAssetLoader()
 	{
 		String fileExtension = Path.GetExtension(_assetFile.Path, .. scope .());
-		
+
+		Log.EngineLogger.Info($"Created config for {_assetFile.Path}");
+
 		_assetConfig = new AssetConfig();
 		
 		GenerateAssetHandle();
@@ -163,21 +175,33 @@ class AssetFile
 
 	private void LoadAssetConfig()
 	{
-		if (Bon.DeserializeFromFile(ref _assetConfig, _assetConfigPath) case .Err)
+		AssetConfig newAssetConfig = new AssetConfig();
+
+		if (Bon.DeserializeFromFile(ref newAssetConfig, _assetConfigPath) case .Err)
 		{
 			Log.EngineLogger.Error($"Failed to load asset config {_assetConfigPath}");
 
-			// TODO: Handle failure of asset config loading
-			Runtime.NotImplemented();
+			delete newAssetConfig;
+
+			return;
 		}
+
+		delete _assetConfig;
+		_assetConfig = newAssetConfig;
 	}
 
 	public void SaveAssetConfig()
 	{
-		gBonEnv.serializeFlags |= .Verbose;
+		//BonEnvironment bonEnv = scope .();
+
+		var oldFlags = gBonEnv.serializeFlags;
+
+		gBonEnv.serializeFlags |= .IncludeDefault | .Verbose;
 
 		Bon.SerializeIntoFile(_assetConfig, _assetConfigPath);
 
-		_assetConfig.Config.[Friend]_changed = false;
+		_assetConfig.Config?.[Friend]_changed = false;
+
+		gBonEnv.serializeFlags = oldFlags;
 	}
 }

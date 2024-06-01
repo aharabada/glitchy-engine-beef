@@ -26,6 +26,8 @@ class TextureAssetPropertiesEditor : AssetPropertiesEditor
 
 	public override void ShowEditor()
 	{
+		return;
+
 		if (_textureConfig == null)
 			return;
 

@@ -1,7 +1,10 @@
+using Bon;
+
 namespace GlitchyEngine.Content;
 
+[BonTarget]
 enum AssetCompression : uint8
 {
 	None,
-	L4Z
+	LZ4
 }

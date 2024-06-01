@@ -26,7 +26,7 @@ class EditorContentManager : IContentManager
 	private append Dictionary<AssetHandle, Asset> _handleToAsset = .();
 
 	private append AssetHierarchy _assetHierarchy = .(this);
-	private append AssetCache _assetCache = .() ~ delete:append _;
+	private append AssetCache _assetCache = .(this);
 	private append AssetConverter _assetConverter = .(this);
 
 	private append List<AssetHandle> _reloadQueue = .();
@@ -54,9 +54,18 @@ class EditorContentManager : IContentManager
 		if (assetNode.AssetFile?.LoadedAsset == null)
 			return;
 
-		_reloadQueue.Add(assetNode.AssetFile.LoadedAsset.Handle);
+		QueueAssetReload(assetNode.AssetFile.LoadedAsset.Handle);
 	}
-	
+
+	public void QueueAssetReload(AssetHandle assetHandle)
+	{
+		// The asset isn't loaded, so we don't need to reload.
+		if (!_handleToAsset.ContainsKey(assetHandle))
+			return;
+
+		_reloadQueue.Add(assetHandle);
+	}
+
 	public void OnFileRenamed(AssetNode assetNode, StringView oldIdentifier)
 	{
 		// Asset isn't loaded so we don't need to reload it.
@@ -373,33 +382,45 @@ class EditorContentManager : IContentManager
 
 		Log.EngineLogger.AssertDebug(oldAsset != null);
 
-		StringView oldIdentifier = oldAsset.Identifier;
-
-		GetResourceAndSubassetName(oldIdentifier, let resourceName, let subassetName);
-		
 		Result<TreeNode<AssetNode>> resultNode = AssetHierarchy.GetNodeFromAssetHandle(handle);
 
 		if (resultNode case .Err)
 		{
-			Log.EngineLogger.Error($"Could not find asset node for asset \"{oldIdentifier}\".");
+			Log.EngineLogger.Error($"Could not find asset node for asset \"{oldAsset.Identifier}\".");
 			return;
 		}
 
 		AssetNode assetNode = resultNode->Value;
 		AssetFile file = assetNode.AssetFile;
+
+		CachedAsset cacheEntry = _assetCache.GetCacheEntry(handle);
+
+		Asset loadedAsset;
+
+		// TODO: Remove this check once we no longer need the old stuff
+		if (cacheEntry != null)
+		{
+			loadedAsset = LoadFromCache(handle, false);
+		}
+		else
+		{
+			IAssetLoader assetLoader = GetAssetLoader(file);
+	
+			Stream stream = OpenStream(assetNode.Path, true);
+			
+			StringView oldIdentifier = oldAsset.Identifier;
+
+			GetResourceAndSubassetName(oldIdentifier, let resourceName, let subassetName);
+
+			// TODO: Add async loading!
+			loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
 		
-		IAssetLoader assetLoader = GetAssetLoader(file);
-
-		Stream stream = OpenStream(assetNode.Path, true);
-
-		// TODO: Add async loading!
-		Asset loadedAsset = assetLoader.LoadAsset(stream, file.AssetConfig.Config, resourceName, subassetName, this);
-
-		delete stream;
+			delete stream;
+		}
 
 		if (loadedAsset == null)
 			return;
-		
+
 		file.[Friend]_loadedAsset = loadedAsset;
 
 		SwapAsset(oldAsset, loadedAsset);
@@ -910,7 +931,7 @@ class EditorContentManager : IContentManager
 	}
 	
 	// TODO: obviously use a map or something...
-	TextureLoader textureLoader = new .();
+	TextureLoader textureLoader = new .() ~ delete _;
 
 	private IProcessedAssetLoader GetLoader(AssetType assetType)
 	{

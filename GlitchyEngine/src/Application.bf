@@ -30,7 +30,7 @@ namespace GlitchyEngine
 		
 		private IContentManager _contentManager;
 
-		private append List<delegate void()> _jobQueue = .() ~ ClearAndDeleteItems!(_);
+		private append List<delegate bool()> _jobQueue = .() ~ ClearAndDeleteItems!(_);
 		private append Monitor _jobQueueMutex = .();
 
 		public bool IsRunning => _running;
@@ -233,7 +233,7 @@ namespace GlitchyEngine
 		}
 
 		/// Executes the given Job on the main thread. Takes ownership of the delegate.
-		public void InvokeOnMainThread(delegate void() ownJob)
+		public void InvokeOnMainThread(delegate bool() ownJob)
 		{
 			using (_jobQueueMutex.Enter())
 			{
@@ -249,10 +249,14 @@ namespace GlitchyEngine
 			{
 				for (let job in _jobQueue)
 				{
-					job();
+					if (job())
+					{
+						@job.RemoveFast();
+						delete job;
+					}
 				}
 
-				ClearAndDeleteItems!(_jobQueue);
+				//ClearAndDeleteItems!(_jobQueue);
 			}
 		}
 	}

@@ -102,6 +102,8 @@ class PropertiesWindow : EditorWindow
 
 	private void ShowPropertiesEditor(AssetFile assetFile)
 	{
+		return;
+
 		if (_currentPropertiesEditor == null)
 			return;
 		

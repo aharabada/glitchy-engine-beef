@@ -26,6 +26,8 @@ class AssetHierarchy
 	private append String _resourcesDirectory = .();
 	private append String _assetsDirectory = .();
 
+	private const float FileSystemDebounceSeconds = 0.5f;
+
 	private EditorContentManager _contentManager;
 
 	public TreeNode<AssetNode> RootNode => _assetRootNode;
@@ -257,21 +259,31 @@ class AssetHierarchy
 
 	private bool _fileTreeUpdateRequested = false;
 
+	private float _fileSystemDebounce;
+
 	/// Invokes the the file tree update on the mainthread.
 	private void DeferFileTreeUpdate()
 	{
+		_fileSystemDebounce = FileSystemDebounceSeconds;
+
 		if (!_fileTreeUpdateRequested)
 		{
 			_fileTreeUpdateRequested = true;
 
 			Application.Instance.InvokeOnMainThread(new () =>
 				{
+					_fileSystemDebounce -= Application.Instance.GameTime.DeltaTime;
+					
+					if (_fileSystemDebounce > 0)
+						return false;
+
 					UpdateFiles();
 					_fileTreeUpdateRequested = false;
+
+					return true;
 				});
 		}
 	}
-	
 	/// Initializes the FSW for the current ContentDirectory and registers the events.
 	private void SetupFileSystemWatcher()
 	{
@@ -518,7 +530,7 @@ class AssetHierarchy
 			fileName.RemoveFromEnd(AssetFile.ConfigFileExtension.Length);
 
 		String fileNameWithContentRoot = scope .();
-		Path.InternalCombine(fileNameWithContentRoot, _assetsDirectory, fileName);
+		Path.Combine(fileNameWithContentRoot, _assetsDirectory, fileName);
 
 		var nodeResult = GetNodeFromPath(fileNameWithContentRoot);
 
@@ -535,7 +547,21 @@ class AssetHierarchy
 		if (node->IsDirectory)
 			return;
 
-		OnFileContentChanged(node.Value);
+		if (!(node->AssetFile?.UseNewAssetPipeline ?? false))
+			OnFileContentChanged(node.Value);
+
+		_fileSystemDebounce = FileSystemDebounceSeconds;
+
+		Application.Instance.InvokeOnMainThread(new () => {
+			_fileSystemDebounce -= Application.Instance.GameTime.DeltaTime;
+			if (_fileSystemDebounce > 0)
+				return false;
+
+			node->AssetFile?.CheckForReprocessing();
+
+			return true;
+		});
+
 	}
 
 	private void FileRenamed(StringView oldFilePath, StringView newFilePath)
@@ -545,7 +571,6 @@ class AssetHierarchy
 		// Ignore Config files.
 		if (oldFilePath.EndsWith(AssetFile.ConfigFileExtension))
 			return;
-
 
 		String oldFileNameWithContentRoot = scope .();
 		Path.InternalCombine(oldFileNameWithContentRoot, _assetsDirectory, oldFilePath);
@@ -560,7 +585,10 @@ class AssetHierarchy
 
 			if (File.Exists(oldConfigFileName) && !File.Exists(newConfigFileName))
 			{
-				if (File.Move(oldConfigFileName, newConfigFileName) case .Err(let value))
+				// TODO: Actually Move, but it's a bit complicated to manage cases, where external programs move the original file and
+				// rename an new file to the original name. So just copy the config to retain it.
+				// I don't think there is a clean way to solve this.
+				if (File.Copy(oldConfigFileName, newConfigFileName) case .Err(let value))
 				{
 					Log.EngineLogger.Error($"Failed to move file {oldConfigFileName} to {newConfigFileName}. Code: {value}");
 				}

@@ -35,13 +35,20 @@ class AssetCache
 	/// Current format version of loose asset file (.laf) file reader and writer.
 	public const uint16 FormatVersion = 1;
 
-	private append String _directory = .() ~ delete:append _;
+	private append String _directory = .();// ~ delete:append _;
 
-	private append Dictionary<AssetHandle, CachedAsset> _assets ~ delete:append _;
+	private append Dictionary<AssetHandle, CachedAsset> _assets = .();// ~ delete:append _;
 
 	public StringView CacheDirectory => _directory;
 
 	private bool _cacheLoaded;
+
+	private EditorContentManager _contentManager;
+
+	public this(EditorContentManager contentManager)
+	{
+		_contentManager = contentManager;
+	}
 
 	public ~this()
 	{
@@ -198,7 +205,7 @@ class AssetCache
 
 		switch (asset.Compression)
 		{
-		case .L4Z:
+		case .LZ4:
 			uint maxCompressedSize = LZ4.LZ4F_CompressFrameBound((uint)data.Length);
 
 			uint8[] compressedData = new uint8[maxCompressedSize];
@@ -233,7 +240,7 @@ class AssetCache
 
 		Try!(writer.Write(dataToWrite));
 
-		// TODO: Notify content manager!
+		_contentManager.QueueAssetReload(asset.Handle);
 
 		return .Ok;
 	}
@@ -262,7 +269,7 @@ class AssetCache
 			FileStream fileStream = new FileStream();
 			Try!(OpenFileStream(asset, fileStream));
 			return fileStream;
-		case .L4Z:
+		case .LZ4:
 			FileStream compressedStream = scope FileStream();
 			Try!(OpenFileStream(asset, compressedStream));
 

@@ -257,6 +257,8 @@ static class ScriptEngine
 					
 					_requestingReload = false;
 					_userAssemblyWatcher.StartRaisingEvents();
+
+					return true;
 				});
 	
 			});
