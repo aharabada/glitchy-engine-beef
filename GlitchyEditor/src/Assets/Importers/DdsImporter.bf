@@ -2,6 +2,7 @@ using System.IO;
 using System;
 using GlitchyEngine;
 using System.Collections;
+using GlitchyEngine.Renderer;
 
 namespace GlitchyEditor.Assets.Importers;
 
@@ -24,19 +25,11 @@ public struct LoadedSurface
 
 public struct LoadedTextureInfo
 {
-	public enum Dimension
-	{
-		Unknown,
-		Texture1D,
-		Texture2D,
-		Texture3D
-	}
-
 	public uint8[] PixelData = null;
 	public DirectX.DXGI.Format PixelFormat = .Unknown;
 	public int MipMapCount = 0;
 	public int ArraySize = 0;
-	public Dimension Dimension = .Unknown;
+	public TextureDimension Dimension = .Unknown;
 	public bool IsCubeMap;
 
 	public int Width;
