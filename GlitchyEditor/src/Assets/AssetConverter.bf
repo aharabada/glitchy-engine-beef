@@ -18,9 +18,12 @@ class AssetConverter
 		_contentManager = contentManager;
 	}
 
-	public void QueueForProcessing(AssetFile assetFile)
+	public void QueueForProcessing(AssetFile assetFile, bool isBlocking = false)
 	{
-		_queue.Add(assetFile);
+		if (!isBlocking)
+			_queue.Add(assetFile);
+		else
+			Process(assetFile);
 	}
 
 	public void Update()

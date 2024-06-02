@@ -764,8 +764,8 @@ namespace GlitchyEditor
 			_editor.CurrentProject = _currentProject;
 
 			String appAssemblyPath = scope String();
-			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
 			_contentManager.SetAssetCacheDirectory(_currentProject.GetScopedPath!(".cache"));
+			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
 
 			_currentProject.PathInProject(appAssemblyPath, scope $"bin/{_currentProject.Name}.dll");
 

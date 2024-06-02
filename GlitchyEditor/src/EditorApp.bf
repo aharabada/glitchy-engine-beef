@@ -21,9 +21,6 @@ namespace GlitchyEditor
 		protected override IContentManager InitContentManager()
 		{
 			_contentManager = new EditorContentManager();
-			_contentManager.RegisterAssetLoader<EditorTextureAssetLoader>();
-			_contentManager.SetAsDefaultAssetLoader<EditorTextureAssetLoader>(".png", ".dds");
-			_contentManager.SetAssetPropertiesEditor<EditorTextureAssetLoader>(=> TextureAssetPropertiesEditor.Factory);
 			
 			_contentManager.RegisterAssetLoader<ModelAssetLoader>();
 			_contentManager.SetAsDefaultAssetLoader<ModelAssetLoader>(".glb", ".gltf");
@@ -41,9 +38,10 @@ namespace GlitchyEditor
 			_contentManager.RegisterAssetProcessor<TextureProcessor>();
 			_contentManager.RegisterAssetExporter<TextureExporter>();
 
-			_contentManager.ConfigureDefaultProcessing<TextureImporter, TextureProcessor, TextureExporter>(".png");
-
-			_contentManager.SetResourcesDirectory("./Resources");
+			_contentManager.ConfigureDefaultProcessing<TextureImporter, TextureProcessor, TextureExporter>(".png", ".dds");
+			
+			_contentManager.SetGlobalAssetCacheDirectory(".cache");
+			_contentManager.SetResourcesDirectory("Resources");
 
 			return _contentManager;
 		}

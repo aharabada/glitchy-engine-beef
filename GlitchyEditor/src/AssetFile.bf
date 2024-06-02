@@ -149,14 +149,17 @@ class AssetFile
 		var assetLoader = _contentManager.GetDefaultAssetLoader(fileExtension);
 
 		// We don't have a loader -> we don't need a config
-		if (assetLoader == null)
+		if (assetLoader == null && assetPipeline case .Err)
 			return;
 
-		_assetConfig.AssetLoader = new String();
-		assetLoader.GetType().GetName(_assetConfig.AssetLoader);
-
-		_assetConfig.Config = assetLoader?.GetDefaultConfig();
-		_assetConfig.Config?.[Friend]_changed = true;
+		if (assetLoader != null)
+		{
+			_assetConfig.AssetLoader = new String();
+			assetLoader.GetType().GetName(_assetConfig.AssetLoader);
+	
+			_assetConfig.Config = assetLoader?.GetDefaultConfig();
+			_assetConfig.Config?.[Friend]_changed = true;
+		}
 
 		_assetConfig.Importer = new String();
 		assetPipeline?.Importer?.GetType()?.GetName(_assetConfig.Importer);

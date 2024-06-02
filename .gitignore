@@ -10,3 +10,5 @@ GlitchyEditor/MonoDebugger.log
 
 # Ignore files in build-directory of ScriptCore
 GlitchyEditor/Resources/Scripts/*
+
+.cache

@@ -375,12 +375,12 @@ class AssetHierarchy
 		if (assetNode.IsInSubtree(_resourcesDirectoryNode))
 		{
 			Path.GetRelativePath(assetNode->Path, _resourcesDirectoryNode->Path, identifier);
-			identifier.Insert(0, "Resources/");
+			identifier.Insert(0, AssetIdentifier.ResourcesPrefix);
 		}
 		else if (assetNode.IsInSubtree(_assetsDirectoryNode))
 		{
 			Path.GetRelativePath(assetNode->Path, _assetsDirectoryNode->Path, identifier);
-			identifier.Insert(0, "Assets/");
+			identifier.Insert(0, AssetIdentifier.AssetsPrefix);
 		}
 
 		delete assetNode->Identifier;

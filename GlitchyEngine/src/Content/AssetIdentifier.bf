@@ -4,13 +4,20 @@ namespace GlitchyEngine.Content;
 
 public class AssetIdentifier
 {
+	public const String ResourcesPrefix = "Resources/";
+	public const String AssetsPrefix = "Assets/";
+
 	private String _fullIdentifier ~ delete:append _;
+
+	private bool _isResource;
 
 	private int _subassetSeperator;
 
 	public StringView FullIdentifier => _fullIdentifier;
 	public StringView AssetIdentifier => _subassetSeperator > 0 ? StringView(_fullIdentifier, 0, _subassetSeperator) : _fullIdentifier;
 	public StringView SubassetIdentifier => _subassetSeperator > 0 ? StringView(_fullIdentifier, _subassetSeperator + 1) : .();
+
+	public bool IsResource => _isResource;
 
 	[AllowAppend]
 	public this(StringView assetIdentifier)
@@ -21,6 +28,8 @@ public class AssetIdentifier
 		Fixup(_fullIdentifier);
 
 		_subassetSeperator = _fullIdentifier.IndexOf(':', 0);
+
+		_isResource = _fullIdentifier.StartsWith(ResourcesPrefix);
 	}
 
 	[AllowAppend]

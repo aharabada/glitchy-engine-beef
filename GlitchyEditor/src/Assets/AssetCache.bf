@@ -35,11 +35,13 @@ class AssetCache
 	/// Current format version of loose asset file (.laf) file reader and writer.
 	public const uint16 FormatVersion = 1;
 
-	private append String _directory = .();// ~ delete:append _;
+	private append String _projectCacheDirectory = .();// ~ delete:append _;
+	private append String _globalCacheDirectory = .();// ~ delete:append _;
 
 	private append Dictionary<AssetHandle, CachedAsset> _assets = .();// ~ delete:append _;
 
-	public StringView CacheDirectory => _directory;
+	public StringView ProjectCacheDirectory => _projectCacheDirectory;
+	public StringView GlobalCacheDirectory => _globalCacheDirectory;
 
 	private bool _cacheLoaded;
 
@@ -60,11 +62,18 @@ class AssetCache
 		_cacheLoaded = false;
 		ClearDictionaryAndDeleteValues!(_assets);
 	}
+	
+	/// Sets the directory in which the processed assets are cached.
+	public void SetGlobalCacheDirectory(StringView directory)
+	{
+		_globalCacheDirectory.Set(directory);
+		ReloadCache();
+	}
 
 	/// Sets the directory in which the processed assets are cached.
-	public void SetDirectory(StringView directory)
+	public void SetProjectCacheDirectory(StringView directory)
 	{
-		_directory.Set(directory);
+		_projectCacheDirectory.Set(directory);
 		ReloadCache();
 	}
 
@@ -73,13 +82,24 @@ class AssetCache
 	{
 		ClearCache();
 
-		if (!Directory.Exists(_directory))
-		{
-			Log.EngineLogger.Info($"Asset cache directory doesn't exist, creating directory \"{_directory}\"...");
+		LoadCache(_globalCacheDirectory);
+		LoadCache(_projectCacheDirectory);
 
-			if (Directory.CreateDirectory(_directory) case .Err(let error))
+		_cacheLoaded = true;
+	}
+
+	private void LoadCache(StringView directory)
+	{
+		if (directory.IsWhiteSpace)
+			return;
+
+		if (!Directory.Exists(directory))
+		{
+			Log.EngineLogger.Info($"Asset cache directory doesn't exist, creating directory \"{directory}\"...");
+
+			if (Directory.CreateDirectory(directory) case .Err(let error))
 			{
-				Log.EngineLogger.Critical($"Failed to create cache directory \"{_directory}\". Reason: {error}.");
+				Log.EngineLogger.Critical($"Failed to create cache directory \"{directory}\". Reason: {error}.");
 				Log.EngineLogger.Critical($"The engine will not function properly without the asset cache directory. Save your project and restart the engine.");
 			}
 
@@ -87,9 +107,9 @@ class AssetCache
 			// or we failed and can't do anything anyway.
 			return;
 		}
-		
+
 		String filePath = scope .();
-		for (FileFindEntry file in Directory.EnumerateFiles(_directory))
+		for (FileFindEntry file in Directory.EnumerateFiles(directory))
 		{
 			filePath.Clear();
 			file.GetFilePath(filePath);
@@ -108,8 +128,6 @@ class AssetCache
 
 			_assets.Add(cachedAsset.Handle, cachedAsset);
 		}
-
-		_cacheLoaded = true;
 	}
 
 	private Result<void> ReadAssetFile(StringView filePath, CachedAsset cachedAsset)
@@ -170,9 +188,17 @@ class AssetCache
 		return null;
 	}
 
-	private void GetCacheFilePath(AssetHandle handle, String outFilePath)
+	private void GetProjectCacheFilePath(AssetHandle handle, String outFilePath)
 	{
-		outFilePath.Append(_directory);
+		outFilePath.Append(_projectCacheDirectory);
+		outFilePath.Append(Path.DirectorySeparatorChar);
+		outFilePath.Append(handle);
+		outFilePath.Append(CachedAsset.CacheFileExtension);
+	}
+
+	private void GetGlobalCacheFilePath(AssetHandle handle, String outFilePath)
+	{
+		outFilePath.Append(_globalCacheDirectory);
 		outFilePath.Append(Path.DirectorySeparatorChar);
 		outFilePath.Append(handle);
 		outFilePath.Append(CachedAsset.CacheFileExtension);
@@ -187,7 +213,12 @@ class AssetCache
 			asset = new CachedAsset();
 			asset.Handle = assetInfo.Handle;
 			asset.FilePath = new String(128);
-			GetCacheFilePath(asset.Handle, asset.FilePath);
+
+			if (assetInfo.AssetIdentifier.IsResource)
+				GetGlobalCacheFilePath(asset.Handle, asset.FilePath);
+			else
+				GetProjectCacheFilePath(asset.Handle, asset.FilePath);
+
 			_assets[asset.Handle] = asset;
 		}
 

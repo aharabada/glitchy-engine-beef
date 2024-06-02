@@ -94,10 +94,15 @@ class EditorContentManager : IContentManager
 
 		_assetHierarchy.SetAssetsDirectory(_assetsDirectory);
 	}
+	
+	public void SetGlobalAssetCacheDirectory(StringView fileName)
+	{
+		_assetCache.SetGlobalCacheDirectory(fileName);
+	}
 
 	public void SetAssetCacheDirectory(StringView fileName)
 	{
-		_assetCache.SetDirectory(fileName);
+		_assetCache.SetProjectCacheDirectory(fileName);
 	}
 
 	public void Update()
@@ -494,14 +499,11 @@ class EditorContentManager : IContentManager
 		AssetNode assetNode = resultNode->Value;
 		AssetFile file = assetNode.AssetFile;
 
-		CachedAsset cacheEntry = _assetCache.GetCacheEntry(handle);
-		
 		Asset loadedAsset;
 
 		// TODO: Remove this check once we no longer need the old stuff
-		if (cacheEntry != null)
+		if (file.UseNewAssetPipeline)
 		{
-			// TODO: Load asset with new loaders
 			loadedAsset = LoadFromCache(handle, blocking);
 		}
 		else
@@ -522,7 +524,7 @@ class EditorContentManager : IContentManager
 			}
 
 			// TODO: Support lazy loading for all asset types
-			if (!(assetLoader is EditorTextureAssetLoader) || blocking)
+			if (true || blocking)
 			{
 				Stream stream = OpenStream(filePath, true);
 
@@ -948,22 +950,48 @@ class EditorContentManager : IContentManager
 	{
 		CachedAsset asset = _assetCache.GetCacheEntry(handle);
 
+		if (asset == null)
+		{
+			Result<TreeNode<AssetNode>> assetNodeResult = AssetHierarchy.GetNodeFromAssetHandle(handle);
+			
+			if (assetNodeResult case .Ok(let assetNode))
+			{
+				_assetConverter.QueueForProcessing(assetNode->AssetFile, isBlocking);
+			}
+
+			if (isBlocking)
+			{
+				asset = _assetCache.GetCacheEntry(handle);
+
+				Log.EngineLogger.Assert(asset != null, "Failed to load asset.");
+			}
+			else
+			{
+				// TODO: Return placeholder!
+				return null;
+			}
+		}
+
 		Result<Stream> streamResult = _assetCache.OpenStream(asset);
 
-		// TODO: Actually return a placeholder, but they probably need rework too...
 		if (streamResult case .Err)
+		{
+			// Return error
 			return null;
+		}
 
 		Stream dataStream = streamResult.Value;
 		defer { delete dataStream; }
 
 		IProcessedAssetLoader loader = GetLoader(asset.AssetType);
 
-		switch (loader.Load(dataStream))
+		if (loader.Load(dataStream) case .Ok(let loadedAsset))
 		{
-		case .Ok(let loadedAsset):
-			 return loadedAsset;
-		case .Err:
+			return loadedAsset;
+		}
+		else
+		{
+			// Return error
 			return null;
 		}
 	}
