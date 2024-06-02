@@ -359,14 +359,18 @@ class ProcessedTexture : ProcessedResource
 
 	public void SetSurfaceCount(int arraySize, int mipMapCount)
 	{
+		ArraySize = arraySize;
+
+		if (IsCubeMap)
+			ArraySize *= 6;
+
 		Log.EngineLogger.AssertDebug(Surfaces == null || arraySize > Surfaces.GetLength(0));
 		Log.EngineLogger.AssertDebug(Surfaces == null ||mipMapCount > Surfaces.GetLength(1));
 
-		ArraySize = arraySize;
 		MipMapCount = mipMapCount;
 
 		TextureSurface[,] oldSurfaces = Surfaces;
-		Surfaces = new TextureSurface[arraySize, mipMapCount];
+		Surfaces = new TextureSurface[ArraySize, MipMapCount];
 
 		if (oldSurfaces != null)
 		{
@@ -415,7 +419,8 @@ class TextureProcessor : IAssetProcessor
 		{
 			ProcessedTexture.TextureSurface surface = new .(loadedSurface.Width, loadedSurface.Height, loadedSurface.Depth,
 				loadedSurface.Data, loadedSurface.MipLevel, loadedSurface.ArrayIndex, loadedSurface.Pitch, loadedSurface.SlicePitch);
-			processedTexture.Surfaces[loadedSurface.ArrayIndex, loadedSurface.MipLevel] = surface;
+
+			processedTexture.Surfaces[loadedSurface.ArrayIndex * (processedTexture.IsCubeMap ? 6 : 1) + loadedSurface.CubeFace, loadedSurface.MipLevel] = surface;
 		}
 
 		if (!(config.GenerateMipMaps case .No))

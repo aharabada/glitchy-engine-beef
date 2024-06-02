@@ -728,6 +728,11 @@ static class DdsImporter
 					{
 						height = 1;
 					}
+					
+					if (depth == 0)
+					{
+						depth = 1;
+					}
 
 					offset += numBytes;
 				}
