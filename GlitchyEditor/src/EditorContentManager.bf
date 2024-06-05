@@ -125,11 +125,12 @@ class EditorContentManager : IContentManager
 	private void SwapInLoadedAssets()
 	{
 		// Don't take the lock if we have nothing to do.
-		if (_finishedEntries.Count == 0)
+		if (_finishedEntries.Count == 0 && _newFinishedEntries.Count == 0)
 			return;
 
 		using (_finishedEntriesLock.Enter())
 		{
+			// TODO: Get rid of old queue
 			while (_finishedEntries.Count > 0)
 			{
 				let (placeholder, asset) = _finishedEntries[0];
@@ -152,6 +153,36 @@ class EditorContentManager : IContentManager
 
 				_finishedEntries.RemoveAtFast(0);
 			}
+
+			for (let (placeholder, loadedAsset) in _newFinishedEntries)
+			{
+				delete placeholder.LoadingTask;
+				placeholder.LoadingTask = null;
+
+				if (loadedAsset == null)
+					placeholder.PlaceholderType = .Error;
+				else
+				{
+					Result<TreeNode<AssetNode>> assetNodeResult = _assetHierarchy.GetNodeFromAssetHandle(placeholder.Handle);
+					
+					if (assetNodeResult case .Ok(let assetNode))
+					{
+						assetNode->AssetFile.[Friend]_loadedAsset = loadedAsset;
+	
+						SwapAsset(placeholder, loadedAsset);
+					}
+					else
+					{
+						Log.EngineLogger.Error($"Could not find asset node for asset with handle \"{placeholder.AssetHandle}\" while swapping in asset.");
+						placeholder.PlaceholderType = .Error;
+					}
+
+					// SwapAsset increases RefCount, but this scope also holds a reference.
+					loadedAsset.ReleaseRef();
+				}
+			}
+
+			_newFinishedEntries.Clear();
 		}
 	}
 
@@ -355,6 +386,11 @@ class EditorContentManager : IContentManager
 			else if (placeholder.PlaceholderType == .Error)
 				return placeholder.AssetLoader.GetErrorAsset(assetType);
 		}
+		
+		if (var placeholder = asset as NewPlaceholderAsset)
+		{
+			return GetPlaceholderAsset(assetType, placeholder.PlaceholderType);
+		}
 
 		if (assetType == null)
 		{
@@ -370,6 +406,26 @@ class EditorContentManager : IContentManager
 
 			return null;
 		}
+	}
+
+	private Asset GetPlaceholderAsset(Type assetType, PlaceholderType placeholderType)
+	{
+		switch (assetType)
+		{
+		case typeof(Texture2D):
+			if (placeholderType == .Loading)
+			{
+				AssetHandle handle = LoadAsset("Resources/Textures/PlaceholderTexture2D.png", true);
+				return GetAsset(null, handle);
+			}
+			else if (placeholderType == .Error)
+			{
+				AssetHandle handle = LoadAsset("Resources/Textures/ErrorTexture2D.png", true);
+				return GetAsset(null, handle);
+			}
+		}
+
+		return null;
 	}
 
 	private void ReloadAsset(AssetHandle handle)
@@ -470,8 +526,22 @@ class EditorContentManager : IContentManager
 		}
 	}
 
+	private class NewPlaceholderAsset : Asset
+	{
+		public AssetHandle AssetHandle {get; private set;}
+		public Task LoadingTask {get;set;}
+		public PlaceholderType PlaceholderType {get; set;}
+
+		public this(AssetHandle assetHandle, PlaceholderType placeholderType)
+		{
+			AssetHandle = assetHandle;
+			PlaceholderType = placeholderType;
+		}
+	}
+
 	private append Monitor _finishedEntriesLock = .();
 	private append List<(PlaceholderAsset placeholder, Asset newAsset)> _finishedEntries = .();
+	private append List<(NewPlaceholderAsset placeholder, Asset newAsset)> _newFinishedEntries = .();
 
 	private class MissingAsset : Asset {}
 	
@@ -952,13 +1022,10 @@ class EditorContentManager : IContentManager
 
 		if (asset == null)
 		{
-			Result<TreeNode<AssetNode>> assetNodeResult = AssetHierarchy.GetNodeFromAssetHandle(handle);
+			TreeNode<AssetNode> assetNode = TrySilent!(AssetHierarchy.GetNodeFromAssetHandle(handle));
 			
-			if (assetNodeResult case .Ok(let assetNode))
-			{
-				_assetConverter.QueueForProcessing(assetNode->AssetFile, isBlocking);
-			}
-
+			_assetConverter.QueueForProcessing(assetNode->AssetFile, isBlocking);
+		
 			if (isBlocking)
 			{
 				asset = _assetCache.GetCacheEntry(handle);
@@ -967,32 +1034,58 @@ class EditorContentManager : IContentManager
 			}
 			else
 			{
-				// TODO: Return placeholder!
-				return null;
+				return new NewPlaceholderAsset(asset.Handle, .Loading);
 			}
 		}
 
-		Result<Stream> streamResult = _assetCache.OpenStream(asset);
-
-		if (streamResult case .Err)
+		Asset InternalLoad(CachedAsset cachedAsset)
 		{
-			// Return error
-			return null;
+			Result<Stream> streamResult = _assetCache.OpenStream(cachedAsset);
+
+			if (streamResult case .Ok(Stream dataStream))
+			{
+				defer { delete dataStream; }
+
+				IProcessedAssetLoader loader = GetLoader(cachedAsset.AssetType);
+
+				if (loader.Load(dataStream) case .Ok(let loadedAsset))
+				{
+					return loadedAsset;
+				}
+				else
+				{
+					TreeNode<AssetNode> assetNode = TrySilent!(AssetHierarchy.GetNodeFromAssetHandle(handle));
+					Log.EngineLogger.Error($"Failed to load asset \"{assetNode->Identifier}\" ({cachedAsset.Handle}): Loading of cached file failed.");
+				}
+			}
+			else
+			{
+				TreeNode<AssetNode> assetNode = TrySilent!(AssetHierarchy.GetNodeFromAssetHandle(handle));
+				Log.EngineLogger.Error($"Failed to load asset \"{assetNode->Identifier}\" ({cachedAsset.Handle}): Could not open stream to cached file.");
+			}
+	
+			NewPlaceholderAsset placeholder = new NewPlaceholderAsset(asset.Handle, .Error);
+
+			return placeholder;
 		}
 
-		Stream dataStream = streamResult.Value;
-		defer { delete dataStream; }
-
-		IProcessedAssetLoader loader = GetLoader(asset.AssetType);
-
-		if (loader.Load(dataStream) case .Ok(let loadedAsset))
-		{
-			return loadedAsset;
-		}
+		if (isBlocking)
+			return InternalLoad(asset);
 		else
 		{
-			// Return error
-			return null;
+			NewPlaceholderAsset placeholder = new NewPlaceholderAsset(asset.Handle, .Loading);
+			placeholder.LoadingTask = new Task(new () => {
+				Asset loadedAsset = InternalLoad(asset);
+				
+				using (_finishedEntriesLock.Enter())
+				{
+					_newFinishedEntries.Add((placeholder, loadedAsset));
+				}
+			});
+
+			ThreadPool.QueueUserWorkItem(placeholder.LoadingTask);
+
+			return placeholder;
 		}
 	}
 }
