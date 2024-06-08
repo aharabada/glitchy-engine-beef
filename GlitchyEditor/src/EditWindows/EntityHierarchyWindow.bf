@@ -150,7 +150,21 @@ namespace GlitchyEditor.EditWindows
 			Show_ContextMenu_Create(true, SelectedEntityIds.Count == 1, isAnyEntitySelected);
 
 			if (isAnyEntitySelected)
+			{
 				deletedEntity = Show_ContextMenu_Delete();
+
+				ImGui.Separator();
+
+				if (ImGui.MenuItem("Properties..."))
+				{
+					Result<Entity> entityResult = GetSelectedEntity(0);
+
+					if (entityResult case .Ok(let entity))
+					{
+						new PropertiesWindow(_editor, .Entity(entity));
+					}
+				}
+			}
 		}
 
 		protected override void InternalShow()

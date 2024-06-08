@@ -24,8 +24,6 @@ class InspectorWindow : EditorWindow
 
 	private bool _lockCurrentSelection;
 
-	private append String _selectedFileName = .();
-
 	private SelectedObject _selectedObject = .None;
 
 	public this(Editor editor)
@@ -93,19 +91,24 @@ class InspectorWindow : EditorWindow
 		ImGui.Checkbox("Lock", &_lockCurrentSelection);
 		ImGui.Separator();
 
-		if (_selectedObject case .Asset(let assetHandle))
+		ShowSelectedObject(_selectedObject, _editor);
+	}
+
+	public static void ShowSelectedObject(SelectedObject object, Editor editor)
+	{
+		if (object case .Asset(let assetHandle))
 		{
-			ShowAssetProperties(assetHandle);
+			ShowAssetProperties(assetHandle, editor);
 		}
-		else if (_selectedObject case .Entity(let entity))
+		else if (object case .Entity(let entity))
 		{
 			ShowEntityProperties(entity);
 		}
 	}
 
-	private void ShowAssetProperties(AssetHandle assetHandle)
+	private static void ShowAssetProperties(AssetHandle assetHandle, Editor editor)
 	{
-		TreeNode<AssetNode> assetNode = TrySilent!(_editor.ContentManager.AssetHierarchy.GetNodeFromAssetHandle(assetHandle));
+		TreeNode<AssetNode> assetNode = TrySilent!(editor.ContentManager.AssetHierarchy.GetNodeFromAssetHandle(assetHandle));
 
 		AssetFile assetFile = assetNode->AssetFile;
 
@@ -134,7 +137,7 @@ class InspectorWindow : EditorWindow
 			ImGui.EndDisabled();
 	}
 
-	private void ShowEntityProperties(Entity entity)
+	private static void ShowEntityProperties(Entity entity)
 	{
 		ComponentEditWindow.ShowComponents(entity);
 	}

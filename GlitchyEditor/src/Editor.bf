@@ -27,6 +27,8 @@ namespace GlitchyEditor
 		private AssetViewer _assetViewer ~ delete _;
 		private LogWindow _logWindow ~ delete _;
 
+		private List<ClosableWindow> _windows = new .() ~ DeleteContainerAndItems!(_);
+
 		public Scene CurrentScene
 		{
 			get => _scene;
@@ -94,7 +96,7 @@ namespace GlitchyEditor
 			_gameViewportWindow = new GameViewportWindow(this);
 			_entityHierarchyWindow = new EntityHierarchyWindow(this, _scene);
 			_componentEditWindow = new ComponentEditWindow();
-			_contentBrowserWindow = new ContentBrowserWindow((.)Application.Get().ContentManager, _thumbnailManager);
+			_contentBrowserWindow = new ContentBrowserWindow(this, (.)Application.Instance.ContentManager, _thumbnailManager);
 			_inspectorWindow = new InspectorWindow(this);
 			_assetViewer = new AssetViewer((.)Application.Get().ContentManager);
 			_logWindow = new LogWindow();
@@ -110,6 +112,20 @@ namespace GlitchyEditor
 			_inspectorWindow.Show();
 			_assetViewer.Show();
 			_logWindow.Show();
+
+			for (ClosableWindow window in _windows)
+				window.Show();
+		}
+
+		public void AddWindow(ClosableWindow ownClosableWindow)
+		{
+			_windows.Add(ownClosableWindow);
+		}
+
+		public void RemoveWindow(ClosableWindow closableWindow)
+		{
+			_windows.Remove(closableWindow);
+			delete closableWindow;
 		}
 	}
 }

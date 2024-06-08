@@ -84,8 +84,9 @@ namespace GlitchyEditor.EditWindows
 		
 		public Event<EventHandler<StringView>> OnFileSelected ~ _.Dispose();
 
-		public this(EditorContentManager contentManager, AssetThumbnailManager thumbnailManager)
+		public this(Editor editor, EditorContentManager contentManager, AssetThumbnailManager thumbnailManager)
 		{
+			_editor = editor;
 			_manager = contentManager;
 			_thumbnailManager = thumbnailManager;
 		}
@@ -863,6 +864,18 @@ namespace GlitchyEditor.EditWindows
 			if (ImGui.MenuItem("Delete"))
 			{
 				wantsDelete = true;
+			}
+
+			ImGui.Separator();
+			
+			if (ImGui.MenuItem("Properties..."))
+			{
+				AssetHandle? assetHandle = fileOrFolder->AssetFile?.AssetConfig?.AssetHandle;
+
+				if (assetHandle != null)
+				{
+					new PropertiesWindow(_editor, .Asset(assetHandle.Value));
+				}
 			}
 		}
 
