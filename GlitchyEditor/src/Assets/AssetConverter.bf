@@ -4,6 +4,7 @@ using GlitchyEngine;
 using System;
 using System.IO;
 using GlitchyEngine.Content;
+using GlitchyEditor.Assets.Processors;
 
 namespace GlitchyEditor.Assets;
 

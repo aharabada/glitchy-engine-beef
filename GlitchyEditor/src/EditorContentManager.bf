@@ -156,6 +156,10 @@ class EditorContentManager : IContentManager
 
 			for (let (placeholder, loadedAsset) in _newFinishedEntries)
 			{
+				Log.EngineLogger.Trace($"Dequeue: {Internal.UnsafeCastToPtr(placeholder)} {placeholder.AssetHandle} {placeholder.RefCount}");
+
+				placeholder.LoadingTask.Wait();
+
 				delete placeholder.LoadingTask;
 				placeholder.LoadingTask = null;
 
@@ -537,6 +541,11 @@ class EditorContentManager : IContentManager
 			AssetHandle = assetHandle;
 			PlaceholderType = placeholderType;
 		}
+
+		public ~this()
+		{
+			Log.EngineLogger.Trace($"Deleted: {Internal.UnsafeCastToPtr(this)}");
+		}
 	}
 
 	private append Monitor _finishedEntriesLock = .();
@@ -623,15 +632,18 @@ class EditorContentManager : IContentManager
 				loadedAsset = placeholder;
 			}
 		}
+		
+		using (_finishedEntriesLock.Enter())
+		{
+			loadedAsset.Identifier = assetNode.Identifier;
+			loadedAsset.[Friend]_contentManager = this;
+			loadedAsset.[Friend]_handle = handle;
+	
+			_handleToAsset.Add(handle, loadedAsset);
+			_identiferToHandle.Add(loadedAsset.Identifier, handle);
 
-		loadedAsset.Identifier = assetNode.Identifier;
-		loadedAsset.[Friend]_contentManager = this;
-		loadedAsset.[Friend]_handle = handle;
-
-		_handleToAsset.Add(handle, loadedAsset);
-		_identiferToHandle.Add(loadedAsset.Identifier, handle);
-
-		file.[Friend]_loadedAsset = loadedAsset;
+			SetReference!(file.[Friend]_loadedAsset, loadedAsset);
+		}
 
 		return handle;
 	}
@@ -1050,6 +1062,7 @@ class EditorContentManager : IContentManager
 
 				if (loader.Load(dataStream) case .Ok(let loadedAsset))
 				{
+					Log.EngineLogger.Trace($"Loaded asset");
 					return loadedAsset;
 				}
 				else
@@ -1063,7 +1076,8 @@ class EditorContentManager : IContentManager
 				TreeNode<AssetNode> assetNode = TrySilent!(AssetHierarchy.GetNodeFromAssetHandle(handle));
 				Log.EngineLogger.Error($"Failed to load asset \"{assetNode->Identifier}\" ({cachedAsset.Handle}): Could not open stream to cached file.");
 			}
-	
+			
+			Log.EngineLogger.Trace($"Made error placeholder");
 			NewPlaceholderAsset placeholder = new NewPlaceholderAsset(asset.Handle, .Error);
 
 			return placeholder;
@@ -1074,11 +1088,15 @@ class EditorContentManager : IContentManager
 		else
 		{
 			NewPlaceholderAsset placeholder = new NewPlaceholderAsset(asset.Handle, .Loading);
+			Log.EngineLogger.Trace($"Created: {Internal.UnsafeCastToPtr(placeholder)} {placeholder.AssetHandle} {placeholder.RefCount}");
+
 			placeholder.LoadingTask = new Task(new () => {
+				Log.EngineLogger.Trace($"Load: {Internal.UnsafeCastToPtr(placeholder)} {placeholder.AssetHandle} {placeholder.RefCount}");
 				Asset loadedAsset = InternalLoad(asset);
 				
 				using (_finishedEntriesLock.Enter())
 				{
+					Log.EngineLogger.Trace($"Enqueue: {Internal.UnsafeCastToPtr(placeholder)} {placeholder.AssetHandle} {placeholder.RefCount}");
 					_newFinishedEntries.Add((placeholder, loadedAsset));
 				}
 			});

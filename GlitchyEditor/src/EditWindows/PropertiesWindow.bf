@@ -67,7 +67,34 @@ class PropertiesWindow : EditorWindow
 	{
 		AssetFile assetFile = GetCurrentAssetFile();
 
-		if (_currentPropertiesEditor?.Asset != assetFile)
+		if (assetFile == null)
+			return;
+
+		if (ImGui.BeginPropertyTable("asset_properties", ImGui.GetID("asset_properties")))
+		{
+			assetFile.AssetConfig?.ImporterConfig?.ShowEditor();
+			assetFile.AssetConfig?.ProcessorConfig?.ShowEditor();
+			assetFile.AssetConfig?.ExporterConfig?.ShowEditor();
+
+			ImGui.EndTable();
+			
+			ImGui.Separator();
+		}
+
+		bool hasChanges = (assetFile.AssetConfig?.ImporterConfig?.Changed ?? false) || (assetFile.AssetConfig?.ProcessorConfig?.Changed ?? false) || (assetFile.AssetConfig?.ExporterConfig?.Changed ?? false);
+
+		if (!hasChanges)
+			ImGui.BeginDisabled();
+
+		if (ImGui.Button("Apply"))
+		{
+			assetFile.SaveAssetConfig();
+		}
+
+		if (!hasChanges)
+			ImGui.EndDisabled();
+
+		/*if (_currentPropertiesEditor?.Asset != assetFile)
 		{
 			delete _currentPropertiesEditor;
 			_currentPropertiesEditor = _editor.ContentManager.GetNewPropertiesEditor(assetFile);
@@ -81,7 +108,7 @@ class PropertiesWindow : EditorWindow
 		// We need the actual asset for preview and sometimes for editing
 		if (asset?.Identifier != assetFile.AssetFile.Identifier)
 		{
-			_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.AssetFile.Identifier);
+			//_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.AssetFile.Identifier);
 		}
 
 		// TODO: allow changing AssetLoader
@@ -96,7 +123,7 @@ class PropertiesWindow : EditorWindow
 		ShowPropertiesEditor(assetFile);
 
 		ImGui.Separator();
-
+		*/
 		// TODO: preview asset
 	}
 

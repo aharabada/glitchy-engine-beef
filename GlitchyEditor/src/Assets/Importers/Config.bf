@@ -1,5 +1,6 @@
 using Bon;
 using GlitchyEngine.Content;
+using ImGui;
 
 namespace GlitchyEditor.Assets.Importers;
 
@@ -21,18 +22,26 @@ abstract class Config
 
 		return true;
 	}
+	
+	public abstract void ShowEditor();
 }
 
 [BonTarget, BonPolyRegister]
 class AssetImporterConfig : Config
 {
+	public override void ShowEditor()
+	{
 
+	}
 }
 
 [BonTarget, BonPolyRegister]
 class AssetProcessorConfig : Config
 {
+	public override void ShowEditor()
+	{
 
+	}
 }
 
 [BonTarget, BonPolyRegister]
@@ -45,5 +54,17 @@ class AssetExporterConfig : Config
 	{
 		get => _compression;
 		set => SetIfChanged(ref _compression, value);
+	}
+	
+	public override void ShowEditor()
+	{
+		ImGui.PropertyTableStartNewProperty("Compression");
+		ImGui.AttachTooltip("Specifies the compression method used to compress the processed asset.");
+
+		AssetCompression compression = _compression;
+		if (ImGui.EnumCombo<AssetCompression>("##Compression", ref compression))
+		{
+			Compression = compression;
+		}
 	}
 }

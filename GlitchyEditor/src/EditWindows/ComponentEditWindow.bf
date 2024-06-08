@@ -178,40 +178,13 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 
-			if (nodeOpen && ImGui.BeginTableEx("properties", TableId, 2, .SizingStretchSame | .BordersInner | .Resizable))
+			if (nodeOpen && ImGui.BeginPropertyTable("properties", TableId))
 			{
 				if (entity.TryGetComponent<TComponent>(let actualComponent))
 					showComponentEditor(entity, actualComponent);
 
 				ImGui.EndTable();
 			}
-		}
-
-		/// Starts a new row in the table and enters the first column.
-		private static void StartNewRow()
-		{
-			ImGui.TableNextRow();
-			ImGui.TableSetColumnIndex(0);
-		}
-
-		/// Starts a new property by creating a new table row, writing the name in the first column and entering the second column.
-		private static void StartNewProperty(StringView propertyName)
-		{
-			StartNewRow();
-
-			bool isFirstTableRow = ImGui.TableGetRowIndex() == 0;
-
-			if (isFirstTableRow)
-				ImGui.PushItemWidth(-1);
-
-			ImGui.TextUnformatted(propertyName);
-
-			ImGui.AttachTooltip(propertyName);
-
-			ImGui.TableSetColumnIndex(1);
-			
-			if (isFirstTableRow)
-				ImGui.PushItemWidth(-1);
 		}
 
 		private static void ShowNameComponentEditor(Entity entity)
@@ -239,7 +212,7 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.PushItemWidth(-1);
 
-			StartNewProperty("Name");
+			ImGui.PropertyTableStartNewProperty("Name");
 
 			ImGui.PushItemWidth(-1);
 
@@ -264,7 +237,7 @@ namespace GlitchyEditor.EditWindows
 
 			float3 position = transform.Position;
 
-			StartNewProperty("Position");
+			ImGui.PropertyTableStartNewProperty("Position");
 			if (ImGui.Float3Editor("##Position", ref position, resetValues: .Zero, dragSpeed: 0.1f))
 			{
 				transform.Position = position;
@@ -287,7 +260,7 @@ namespace GlitchyEditor.EditWindows
 				rotationEuler.XY = 0;
 			}
 			
-			StartNewProperty("Rotation");
+			ImGui.PropertyTableStartNewProperty("Rotation");
 			if (ImGui.Float3Editor("##Rotation", ref rotationEuler, resetValues: .Zero, dragSpeed: 0.1f, componentEnabled: componentEditable, format: .("%.3f°",)))
 			{
 				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
@@ -301,7 +274,7 @@ namespace GlitchyEditor.EditWindows
 			
 			float3 scale = transform.Scale;
 
-			StartNewProperty("Scale");
+			ImGui.PropertyTableStartNewProperty("Scale");
 			if (ImGui.Float3Editor("##Scale", ref scale, resetValues: .One, dragSpeed: 0.1f))
 				transform.Scale = scale;
 		}
@@ -310,14 +283,14 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowCameraComponentEditor(Entity entity, CameraComponent* cameraComponent)
 		{
-			StartNewProperty("Is Primary");
+			ImGui.PropertyTableStartNewProperty("Is Primary");
 			ImGui.Checkbox("##Is_Primary", &cameraComponent.Primary);
 
 			var camera = ref cameraComponent.Camera;
 
 			String typeName = strings[camera.ProjectionType.Underlying];
 			
-			StartNewProperty("Projection");
+			ImGui.PropertyTableStartNewProperty("Projection");
 			if (ImGui.BeginCombo("##Projection", typeName.CStr()))
 			{
 				for (int i = 0; i < 3; i++)
@@ -338,59 +311,59 @@ namespace GlitchyEditor.EditWindows
 
 			if (camera.ProjectionType == .Perspective)
 			{
-				StartNewProperty("Fov Y");
+				ImGui.PropertyTableStartNewProperty("Fov Y");
 				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
 				if (ImGui.DragFloat("##Fov Y", &fovY, 0.1f, format: "%.3f°"))
 					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
 				
-				StartNewProperty("Near");
+				ImGui.PropertyTableStartNewProperty("Near");
 				float near = camera.PerspectiveNearPlane;
 				if (ImGui.DragFloat("##Near", &near, 0.1f))
 					camera.PerspectiveNearPlane = near;
 				
-				StartNewProperty("Far");
+				ImGui.PropertyTableStartNewProperty("Far");
 				float far = camera.PerspectiveFarPlane;
 				if (ImGui.DragFloat("##Far", &far, 0.1f))
 					camera.PerspectiveFarPlane = far;
 			}
 			else if (camera.ProjectionType == .InfinitePerspective)
 			{
-				StartNewProperty("Vertical FOV");
+				ImGui.PropertyTableStartNewProperty("Vertical FOV");
 				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
 				if (ImGui.DragFloat("##Vertical FOV", &fovY, 0.1f, format: "%.3f°"))
 					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
 				
-				StartNewProperty("Near");
+				ImGui.PropertyTableStartNewProperty("Near");
 				float near = camera.PerspectiveNearPlane;
 				if (ImGui.DragFloat("##Near", &near, 0.1f))
 					camera.PerspectiveNearPlane = near;
 			}
 			else if (camera.ProjectionType == .Orthographic)
 			{
-				StartNewProperty("Size");
+				ImGui.PropertyTableStartNewProperty("Size");
 				float size = camera.OrthographicHeight;
 				if (ImGui.DragFloat("##Size", &size, 0.1f))
 					camera.OrthographicHeight = size;
 				
-				StartNewProperty("Near");
+				ImGui.PropertyTableStartNewProperty("Near");
 				float near = camera.OrthographicNearPlane;
 				if (ImGui.DragFloat("##Near", &near, 0.1f))
 					camera.OrthographicNearPlane = near;
 				
-				StartNewProperty("Far");
+				ImGui.PropertyTableStartNewProperty("Far");
 				float far = camera.OrthographicFarPlane;
 				if (ImGui.DragFloat("##Far", &far, 0.1f))
 					camera.OrthographicFarPlane = far;
 			}
 			
-			StartNewProperty("Fixed Aspect Ratio");
+			ImGui.PropertyTableStartNewProperty("Fixed Aspect Ratio");
 			bool fixedAspectRatio = camera.FixedAspectRatio;
 			if (ImGui.Checkbox("##Fixed Aspect Ratio", &fixedAspectRatio))
 				camera.FixedAspectRatio = fixedAspectRatio;
 
 			if (fixedAspectRatio)
 			{
-				StartNewProperty("Aspect Ratio");
+				ImGui.PropertyTableStartNewProperty("Aspect Ratio");
 				float aspect = camera.AspectRatio;
 				if (ImGui.DragFloat("##Aspect Ratio", &aspect, 0.1f))
 					camera.AspectRatio = aspect;
@@ -400,11 +373,11 @@ namespace GlitchyEditor.EditWindows
 		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriteRendererComponent* spriteRendererComponent)
 		{
 			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(spriteRendererComponent.Color);
-			StartNewProperty("Color");
+			ImGui.PropertyTableStartNewProperty("Color");
 			if (ImGui.ColorEdit4("##Color", ref spriteColor))
 				spriteRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
 			
-			StartNewProperty("Texture");
+			ImGui.PropertyTableStartNewProperty("Texture");
 			ImGui.Button("...");
 
 			if (ImGui.BeginDragDropTarget())
@@ -423,18 +396,18 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropTarget();
 			}
 
-			StartNewProperty("UV Transform");
+			ImGui.PropertyTableStartNewProperty("UV Transform");
 			ImGui.Float4Editor("##UV Transform", ref spriteRendererComponent.UvTransform, resetValues: float4(0, 0, 1, 1));
 		}
 
 		private static void ShowCircleRendererComponentEditor(Entity entity, CircleRendererComponent* circleRendererComponent)
 		{
 			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(circleRendererComponent.Color);
-			StartNewProperty("Color");
+			ImGui.PropertyTableStartNewProperty("Color");
 			if (ImGui.ColorEdit4("##Color", ref spriteColor))
 				circleRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
 			
-			StartNewProperty("Texture");
+			ImGui.PropertyTableStartNewProperty("Texture");
 			ImGui.Button("...");
 
 			if (ImGui.BeginDragDropTarget())
@@ -453,10 +426,10 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropTarget();
 			}
 
-			StartNewProperty("UV Transform");
+			ImGui.PropertyTableStartNewProperty("UV Transform");
 			ImGui.Float4Editor("##UV Transform", ref circleRendererComponent.UvTransform, resetValues: float4(0, 0, 1, 1));
 			
-			StartNewProperty("Inner Radius");
+			ImGui.PropertyTableStartNewProperty("Inner Radius");
 			ImGui.DragFloat("##Inner Radius", &circleRendererComponent.InnerRadius, 0.1f, 0.0f, 1.0f);
 		}
 		
@@ -479,7 +452,7 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowTextRendererComponentEditor(Entity entity, TextRendererComponent* textRendererComponent)
 		{
-			StartNewProperty("Rich text");
+			ImGui.PropertyTableStartNewProperty("Rich text");
 
 			ImGui.AttachTooltip("If checked, the text will be interpreted as rich text.");
 
@@ -491,7 +464,7 @@ namespace GlitchyEditor.EditWindows
 				textRendererComponent.NeedsRebuild = true;
 			}
 
-			StartNewProperty("Text");
+			ImGui.PropertyTableStartNewProperty("Text");
 
 			String text = textRendererComponent.[Friend]_text;
 
@@ -516,21 +489,21 @@ namespace GlitchyEditor.EditWindows
 				textRendererComponent.NeedsRebuild = true;
 			}
 
-			StartNewProperty("Font Size");
+			ImGui.PropertyTableStartNewProperty("Font Size");
 
 			if (ImGui.DragFloat("##fontSize", &textRendererComponent.FontSize))
 			{
 				textRendererComponent.NeedsRebuild = true;
 			}
 
-			StartNewProperty("Color");
+			ImGui.PropertyTableStartNewProperty("Color");
 
 			if (ImGui.ColorEdit4("##color", ref textRendererComponent.Color))
 			{
 				textRendererComponent.NeedsRebuild = true;
 			}
 
-			StartNewProperty("Horizontal Alignment");
+			ImGui.PropertyTableStartNewProperty("Horizontal Alignment");
 
 			if (ImGui.EnumCombo("##horAlign", ref textRendererComponent.HorizontalAlignment))
 			{
@@ -540,7 +513,7 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
 		{
-			StartNewProperty("Material");
+			ImGui.PropertyTableStartNewProperty("Material");
 			
 			Material material = meshRendererComponent.Material;
 
@@ -574,7 +547,7 @@ namespace GlitchyEditor.EditWindows
 			const String[?] bodyTypeStrings = .("Static", "Dynamic", "Kinematic");
 			String bodyTypeName = bodyTypeStrings[rigidBodyComponent.BodyType.Underlying];
 			
-			StartNewProperty("Type");
+			ImGui.PropertyTableStartNewProperty("Type");
 			if (ImGui.BeginCombo("##Type", bodyTypeName.CStr()))
 			{
 				for (int i = 0; i < 3; i++)
@@ -594,14 +567,14 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			bool isFixedRotation = rigidBodyComponent.FixedRotation;
-			StartNewProperty("Fixed Rotation");
+			ImGui.PropertyTableStartNewProperty("Fixed Rotation");
 			if (ImGui.Checkbox("##Fixed Rotation", &isFixedRotation))
 			{
 				rigidBodyComponent.FixedRotation = isFixedRotation;
 			}
 
 			float gravityScale = rigidBodyComponent.GravityScale;
-			StartNewProperty("Gravity Scale");
+			ImGui.PropertyTableStartNewProperty("Gravity Scale");
 			if (ImGui.DragFloat("##Gravity Scale", &gravityScale))
 			{
 				rigidBodyComponent.GravityScale = gravityScale;
@@ -611,32 +584,32 @@ namespace GlitchyEditor.EditWindows
 		private static void ShowBoxCollider2DComponentEditor(Entity entity, BoxCollider2DComponent* boxCollider)
 		{
 			float2 offset = boxCollider.Offset;
-			StartNewProperty("Offset");
+			ImGui.PropertyTableStartNewProperty("Offset");
 			if (ImGui.Float2Editor("##Offset", ref offset, .Zero, 0.1f))
 				boxCollider.Offset = offset;
 
 			float2 size = boxCollider.Size;
-			StartNewProperty("Size");
+			ImGui.PropertyTableStartNewProperty("Size");
 			if (ImGui.Float2Editor("##Size", ref size, .Zero, 0.1f, float2(0.01f, 0.01f), float.PositiveInfinity.XX))
 				boxCollider.Size = size;
 			
 			float density = boxCollider.Density;
-			StartNewProperty("Density");
+			ImGui.PropertyTableStartNewProperty("Density");
 			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f))
 				boxCollider.Density = density;
 			
 			float friction = boxCollider.Friction;
-			StartNewProperty("Friction");
+			ImGui.PropertyTableStartNewProperty("Friction");
 			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f))
 				boxCollider.Friction = friction;
 
 			float restitution = boxCollider.Restitution;
-			StartNewProperty("Restitution");
+			ImGui.PropertyTableStartNewProperty("Restitution");
 			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f))
 				boxCollider.Restitution = restitution;
 
 			float restitutionThreshold = boxCollider.RestitutionThreshold;
-			StartNewProperty("Restitution Threshold");
+			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
 			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f))
 				boxCollider.RestitutionThreshold = restitutionThreshold;
 		}
@@ -644,32 +617,32 @@ namespace GlitchyEditor.EditWindows
 		private static void ShowCircleCollider2DComponentEditor(Entity entity, CircleCollider2DComponent* circleCollider)
 		{
 			float2 offset = circleCollider.Offset;
-			StartNewProperty("Offset");
+			ImGui.PropertyTableStartNewProperty("Offset");
 			if (ImGui.Float2Editor("##Offset", ref offset, .Zero, 0.1f))
 				circleCollider.Offset = offset;
 
 			float radius = circleCollider.Radius;
-			StartNewProperty("Radius");
+			ImGui.PropertyTableStartNewProperty("Radius");
 			if (ImGui.DragFloat("##Radius", &radius, 0.0f, 0.1f))
 				circleCollider.Radius = radius;
 			
 			float density = circleCollider.Density;
-			StartNewProperty("Density");
+			ImGui.PropertyTableStartNewProperty("Density");
 			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f))
 				circleCollider.Density = density;
 			
 			float friction = circleCollider.Friction;
-			StartNewProperty("Friction");
+			ImGui.PropertyTableStartNewProperty("Friction");
 			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f))
 				circleCollider.Friction = friction;
 
 			float restitution = circleCollider.Restitution;
-			StartNewProperty("Restitution");
+			ImGui.PropertyTableStartNewProperty("Restitution");
 			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f))
 				circleCollider.Restitution = restitution;
 
 			float restitutionThreshold = circleCollider.RestitutionThreshold;
-			StartNewProperty("Restitution Threshold");
+			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
 			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f))
 				circleCollider.RestitutionThreshold = restitutionThreshold;
 		}
@@ -689,11 +662,11 @@ namespace GlitchyEditor.EditWindows
 		private static void ShowPolygonCollider2DComponentEditor(Entity entity, PolygonCollider2DComponent* polygonCollider)
 		{
 			float2 offset = polygonCollider.Offset;
-			StartNewProperty("Offset");
+			ImGui.PropertyTableStartNewProperty("Offset");
 			if (ImGui.Float2Editor("Offset", ref offset, .Zero, 0.1f))
 				polygonCollider.Offset = offset;
 
-			StartNewRow();
+			ImGui.PropertyTableStartNewRow();
 
 			bool isOpen = ImGui.TreeNodeEx("Vertices", .AllowOverlap | .SpanAllColumns);
 
@@ -727,12 +700,12 @@ namespace GlitchyEditor.EditWindows
 			// If isOpen is true, show list of vertices
 			if (isOpen)
 			{
-				StartNewProperty("Show Vertex gizmos");
+				ImGui.PropertyTableStartNewProperty("Show Vertex gizmos");
 				ImGui.Checkbox("##Show Vertex gizmos", &_editVerticesPolygonCollider2D);
 
 				for (int i < polygonCollider.VertexCount)
 				{
-					StartNewProperty(scope $"{i}");
+					ImGui.PropertyTableStartNewProperty(scope $"{i}");
 					ImGui.Float2Editor(scope $"##{i}", ref polygonCollider.Vertices[i]);
 				}
 
@@ -740,22 +713,22 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			float density = polygonCollider.Density;
-			StartNewProperty("Density");
+			ImGui.PropertyTableStartNewProperty("Density");
 			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f))
 				polygonCollider.Density = density;
 			
 			float friction = polygonCollider.Friction;
-			StartNewProperty("Friction");
+			ImGui.PropertyTableStartNewProperty("Friction");
 			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f))
 				polygonCollider.Friction = friction;
 
 			float restitution = polygonCollider.Restitution;
-			StartNewProperty("Restitution");
+			ImGui.PropertyTableStartNewProperty("Restitution");
 			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f))
 				polygonCollider.Restitution = restitution;
 
 			float restitutionThreshold = polygonCollider.RestitutionThreshold;
-			StartNewProperty("Restitution Threshold");
+			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
 			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f))
 				polygonCollider.RestitutionThreshold = restitutionThreshold;
 		}
@@ -768,7 +741,7 @@ namespace GlitchyEditor.EditWindows
 
 			char8* scriptLabel = scriptComponent.ScriptClassName.ToScopeCStr!() ?? "Select Script...";
 			
-			StartNewProperty("Script");
+			ImGui.PropertyTableStartNewProperty("Script");
 			if (ImGui.Button(scriptLabel))
 				ImGui.OpenPopup("SelectScript");
 
@@ -803,7 +776,7 @@ namespace GlitchyEditor.EditWindows
 
 			String typeName = strings[light.LightType.Underlying];
 			
-			StartNewProperty("Type");
+			ImGui.PropertyTableStartNewProperty("Type");
 			if (ImGui.BeginCombo("##Type", typeName.CStr()))
 			{
 				for (int i = 0; i < 3; i++)
@@ -823,19 +796,19 @@ namespace GlitchyEditor.EditWindows
 			}
 			
 			ColorRGB color = ColorRGB.LinearToSRGB(light.Color);
-			StartNewProperty("Color");
+			ImGui.PropertyTableStartNewProperty("Color");
 			if (ImGui.ColorEdit3("##Color", ref color))
 				light.Color = ColorRGB.SRgbToLinear(color);
 
 			float illuminance = light.Illuminance;
-			StartNewProperty("Illuminance");
+			ImGui.PropertyTableStartNewProperty("Illuminance");
 			if (ImGui.DragFloat("##Illuminance", &illuminance, 0.1f, 0.0f, float.MaxValue))
 				light.Illuminance = illuminance;
 		}
 
 		private static void ShowMeshComponentEditor(Entity entity, MeshComponent* meshComponent)
 		{
-			StartNewProperty("Mesh");
+			ImGui.PropertyTableStartNewProperty("Mesh");
 
 			GeometryBinding mesh = meshComponent.Mesh;
 

@@ -6,7 +6,7 @@
 		_isSrgb = false
 	},
 	Processor = "TextureProcessor",
-	ProcessorConfig = (GlitchyEditor.Assets.Importers.TextureProcessorConfig){
+	ProcessorConfig = (GlitchyEditor.Assets.Processors.TextureProcessorConfig){
 		_generateMipMaps = .No,
 		_samplerStateDescription = {
 			MinFilter = .Point,
