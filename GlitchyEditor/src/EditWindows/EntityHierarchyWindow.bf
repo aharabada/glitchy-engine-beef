@@ -35,6 +35,8 @@ namespace GlitchyEditor.EditWindows
 
 		/// Gets the number of entities that are currently selected.
 		public int SelectionSize => _selectedEntityIds.Count;
+		
+		public Event<EventHandler<List<UUID>>> SelectionChanged ~ _.Dispose();
 
 		/// Returns the Entity at the given index or null if it doesn't exist.
 		public Result<Entity> GetSelectedEntity(int index)
@@ -102,6 +104,8 @@ namespace GlitchyEditor.EditWindows
 		public void ClearEntitySelection()
 		{
 			_selectedEntityIds.Clear();
+
+			SelectionChanged(this, _selectedEntityIds);
 		}
 
 		/// Selects the given entity.
@@ -113,13 +117,20 @@ namespace GlitchyEditor.EditWindows
 				ClearEntitySelection();
 
 			_selectedEntityIds.Add(entity.UUID);
+			
+			SelectionChanged(this, _selectedEntityIds);
 		}
 
 		/// Deselects the given entity.
 		/// @param entity The entity to deselect.
 		public bool DeselectEntity(Entity entity)
 		{
-			return _selectedEntityIds.Remove(entity.UUID);
+			bool removed = _selectedEntityIds.Remove(entity.UUID);
+
+			if (removed)
+				SelectionChanged(this, _selectedEntityIds);
+
+			return removed;
 		}
 
 		/// Returns whether or not the given entity is currently selected.

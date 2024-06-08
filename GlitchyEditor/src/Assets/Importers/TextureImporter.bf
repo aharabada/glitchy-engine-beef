@@ -6,7 +6,6 @@ using GlitchyEngine.Content;
 using GlitchyEngine;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
-using System.Threading;
 using GlitchyEditor.Assets.Processors;
 using ImGui;
 
@@ -68,7 +67,6 @@ class TextureImporter : IAssetImporter
 
 	public Result<ImportedResource> Import(StringView fullFileName, AssetIdentifier assetIdentifier, AssetImporterConfig config)
 	{
-		Thread.Sleep(1000);
 
 		Log.EngineLogger.AssertDebug(config is TextureImporterConfig);
 

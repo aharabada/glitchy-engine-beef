@@ -1444,11 +1444,8 @@ namespace GlitchyEditor
 			
 			if(ImGui.BeginMenu("View", true))
 			{
-				if(ImGui.MenuItem(ComponentEditWindow.s_WindowTitle))
-					_editor.ComponentEditWindow.Open = true;
-
 				if(ImGui.MenuItem(ContentBrowserWindow.s_WindowTitle))
-					_editor.ComponentEditWindow.Open = true;
+					_editor.ContentBrowserWindow.Open = true;
 				
 				if(ImGui.MenuItem(EditorViewportWindow.s_WindowTitle))
 					_editor.SceneViewportWindow.Open = true;
@@ -1459,8 +1456,8 @@ namespace GlitchyEditor
 				if(ImGui.MenuItem(GameViewportWindow.s_WindowTitle))
 					_editor.GameViewportWindow.Open = true;
 
-				if(ImGui.MenuItem(PropertiesWindow.s_WindowTitle))
-					_editor.PropertiesWindow.Open = true;
+				if(ImGui.MenuItem(InspectorWindow.s_WindowTitle))
+					_editor.InspectorWindow.Open = true;
 
 				if(ImGui.MenuItem(AssetViewer.s_WindowTitle))
 					_editor.AssetViewer.Open = true;

@@ -15,56 +15,11 @@ namespace GlitchyEditor.EditWindows
 {
 	using internal GlitchyEngine.World.TransformComponent;
 
-	class ComponentEditWindow : EditorWindow
+	class ComponentEditWindow
 	{
-		public const String s_WindowTitle = "Components";
-
-		private EntityHierarchyWindow _entityHierarchyWindow;
-
-		private List<(Type, ComponentAttribute attribute)> _componentTypes = new .() ~ delete _;
-
-		public this(EntityHierarchyWindow entityHierarchyWindow)
-		{
-			_entityHierarchyWindow = entityHierarchyWindow;
-
-			for (let type in Type.Types)
-			{
-				if (let componentAttribute = type.GetCustomAttribute<ComponentAttribute>())
-				{
-					_componentTypes.Add((type, componentAttribute));
-				}
-			}
-		}
-
-		protected override void InternalShow()
-		{
-			ImGui.SetNextWindowSizeConstraints(.(200, 200), .(-1, -1));
-
-			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
-			{
-				ImGui.PopStyleVar();
-				ImGui.End();
-				return;
-			}
-
-			if (_entityHierarchyWindow.SelectionSize == 1)
-			{
-				Result<Entity> entityResult = _entityHierarchyWindow.GetSelectedEntity(0);
-
-				if (entityResult case .Ok(let selectedEntity))
-					ShowComponents(selectedEntity);
-			}
-			else
-			{
-				_editVerticesPolygonCollider2D = false;
-			}
-
-			ImGui.End();
-		}
-
 		private static uint32 TableId;
 
-		private void ShowComponents(Entity entity)
+		public static void ShowComponents(Entity entity)
 		{
 			float cellPaddingY = ImGui.GetTextLineHeight() / 3.0f;
 
@@ -112,7 +67,7 @@ namespace GlitchyEditor.EditWindows
 			ShowAddComponentButton(entity);
 		}
 
-		public void DrawSceneGUI(Entity entity)
+		public static void DrawSceneGUI(Entity entity)
 		{
 			DrawComponenSceneGUI<PolygonCollider2DComponent>(entity, => ShowPolygonColliderSceneGUI);
 		}

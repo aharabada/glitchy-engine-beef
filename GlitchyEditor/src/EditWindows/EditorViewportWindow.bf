@@ -339,7 +339,7 @@ namespace GlitchyEditor.EditWindows
 				parentView = parentTransformCmp.WorldTransform.Invert();
 			}
 
-			_editor.ComponentEditWindow.DrawSceneGUI(entity);
+			ComponentEditWindow.DrawSceneGUI(entity);
 			
 			float3 snap = (float3)_snap;
 			if (_gizmoType.HasFlag(.ROTATE))

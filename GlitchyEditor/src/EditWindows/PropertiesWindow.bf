@@ -5,6 +5,7 @@ using GlitchyEngine.Content;
 using System.Reflection;
 using GlitchyEngine;
 using GlitchyEditor.Assets;
+using GlitchyEngine.Core;
 
 namespace GlitchyEditor.EditWindows;
 
@@ -21,6 +22,8 @@ class PropertiesWindow : EditorWindow
 	private append String _selectedFileName = .();
 
 	private AssetHandle _currentAssetHandle;
+
+	private SelectedObject _selectedObject;
 
 	public this(Editor editor)
 	{
@@ -93,74 +96,5 @@ class PropertiesWindow : EditorWindow
 
 		if (!hasChanges)
 			ImGui.EndDisabled();
-
-		/*if (_currentPropertiesEditor?.Asset != assetFile)
-		{
-			delete _currentPropertiesEditor;
-			_currentPropertiesEditor = _editor.ContentManager.GetNewPropertiesEditor(assetFile);
-		}	 
-
-		if (assetFile == null)
-			return;
-		
-		Asset asset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
-
-		// We need the actual asset for preview and sometimes for editing
-		if (asset?.Identifier != assetFile.AssetFile.Identifier)
-		{
-			//_currentAssetHandle = _editor.ContentManager.LoadAsset(assetFile.AssetFile.Identifier);
-		}
-
-		// TODO: allow changing AssetLoader
-		// assetFile.AssetConfig.AssetLoade
-
-		// TODO: ignore file
-		/*ImGui.Checkbox("Ignore", &assetFile.AssetConfig.IgnoreFile);
-		
-		if (ImGui.IsItemHovered())
-			ImGui.SetTooltip("If checked this file will be ignored and not treated as an asset.");*/
-
-		ShowPropertiesEditor(assetFile);
-
-		ImGui.Separator();
-		*/
-		// TODO: preview asset
-	}
-
-	private void ShowPropertiesEditor(AssetFile assetFile)
-	{
-		return;
-
-		if (_currentPropertiesEditor == null)
-			return;
-		
-		_currentPropertiesEditor.ShowEditor();
-
-		bool assetConfigChanged = assetFile.AssetConfig.Config.Changed;
-		bool hasAssetSaver = (_editor.ContentManager.[Friend]GetAssetLoader(assetFile) is IAssetSaver);
-
-		// If the asset can't be saved and it's config didn't change disable save button
-		if (!hasAssetSaver && !assetConfigChanged)
-		{
-			ImGui.BeginDisabled();
-			defer:: { ImGui.EndDisabled(); }
-		}
-
-		if (ImGui.Button("Save"))
-		{
-			// Only save config if it changed
-			if (assetConfigChanged)
-			{
-				assetFile.SaveAssetConfig();
-			}
-
-			// If the asset type has an asset saver, also save the asset
-			// TODO: Check whether or not the asset was changed?
-			if (hasAssetSaver)
-			{
-				Asset asset = _editor.ContentManager.GetAsset(null, _currentAssetHandle);
-				_editor.ContentManager.SaveAsset(asset);
-			}
-		}
 	}
 }

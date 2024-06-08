@@ -23,7 +23,7 @@ namespace GlitchyEditor
 		private EditorViewportWindow _sceneViewportWindow ~ delete _;
 		private GameViewportWindow _gameViewportWindow ~ delete _;
 		private ContentBrowserWindow _contentBrowserWindow ~ delete _;
-		private PropertiesWindow _propertiesWindow ~ delete _;
+		private InspectorWindow _inspectorWindow ~ delete _;
 		private AssetViewer _assetViewer ~ delete _;
 		private LogWindow _logWindow ~ delete _;
 
@@ -55,7 +55,7 @@ namespace GlitchyEditor
 		public EditorViewportWindow SceneViewportWindow => _sceneViewportWindow;
 		public GameViewportWindow GameViewportWindow => _gameViewportWindow;
 		public ContentBrowserWindow ContentBrowserWindow => _contentBrowserWindow;
-		public PropertiesWindow PropertiesWindow => _propertiesWindow;
+		public InspectorWindow InspectorWindow => _inspectorWindow;
 		public AssetViewer AssetViewer => _assetViewer;
 		public LogWindow LogWindow => _logWindow;
 
@@ -93,9 +93,9 @@ namespace GlitchyEditor
 			_sceneViewportWindow = new EditorViewportWindow(this);
 			_gameViewportWindow = new GameViewportWindow(this);
 			_entityHierarchyWindow = new EntityHierarchyWindow(this, _scene);
-			_componentEditWindow = new ComponentEditWindow(_entityHierarchyWindow);
+			_componentEditWindow = new ComponentEditWindow();
 			_contentBrowserWindow = new ContentBrowserWindow((.)Application.Get().ContentManager, _thumbnailManager);
-			_propertiesWindow = new PropertiesWindow(this);
+			_inspectorWindow = new InspectorWindow(this);
 			_assetViewer = new AssetViewer((.)Application.Get().ContentManager);
 			_logWindow = new LogWindow();
 		}
@@ -105,9 +105,9 @@ namespace GlitchyEditor
 			_sceneViewportWindow.Show();
 			_gameViewportWindow.Show();
 			_entityHierarchyWindow.Show();
-			_componentEditWindow.Show();
+			//_componentEditWindow.Show();
 			_contentBrowserWindow.Show();
-			_propertiesWindow.Show();
+			_inspectorWindow.Show();
 			_assetViewer.Show();
 			_logWindow.Show();
 		}

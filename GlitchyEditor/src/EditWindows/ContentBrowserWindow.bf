@@ -79,6 +79,11 @@ namespace GlitchyEditor.EditWindows
 		bool _showNewFile = false;
 		AssetCreator _newFileCreator = null;
 
+		char8[256] _filesFilter = .();
+		bool _searchEverywhere;
+		
+		public Event<EventHandler<StringView>> OnFileSelected ~ _.Dispose();
+
 		public this(EditorContentManager contentManager, AssetThumbnailManager thumbnailManager)
 		{
 			_manager = contentManager;
@@ -188,8 +193,15 @@ namespace GlitchyEditor.EditWindows
 			ImGui.End();
 		}
 
-		char8[256] _filesFilter = .();
-		bool _searchEverywhere;
+		private void SelectFile(StringView fullFileName)
+		{
+			if (_selectedFile == fullFileName)
+				return;
+
+			_selectedFile.Set(fullFileName);
+
+			OnFileSelected(this, _selectedFile);
+		}
 
 		private void DrawSearchBar()
 		{
@@ -517,7 +529,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				if (_selectedFile != entry->Path)
 				{
-					_selectedFile.Set(entry->Path);
+					SelectFile(entry->Path);
 					_assetToRename.Clear();
 				}
 			}
@@ -617,7 +629,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				if (_selectedFile != entry->Path)
 				{
-					_selectedFile.Set(entry->Path);
+					SelectFile(entry->Path);
 					_assetToRename.Clear();
 				}
 			}
