@@ -59,8 +59,8 @@ class EditorContentManager : IContentManager
 
 	public void QueueAssetReload(AssetHandle assetHandle)
 	{
-		// The asset isn't loaded, so we don't need to reload.
-		if (!_handleToAsset.ContainsKey(assetHandle))
+		// If the asset isn't loaded we don't care about reloading it. Also don't reload twice
+		if (!_handleToAsset.ContainsKey(assetHandle) || _reloadQueue.Contains(assetHandle))
 			return;
 
 		_reloadQueue.Add(assetHandle);
@@ -642,7 +642,7 @@ class EditorContentManager : IContentManager
 			_handleToAsset.Add(handle, loadedAsset);
 			_identiferToHandle.Add(loadedAsset.Identifier, handle);
 
-			SetReference!(file.[Friend]_loadedAsset, loadedAsset);
+			file.[Friend]_loadedAsset = loadedAsset;
 		}
 
 		return handle;

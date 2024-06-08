@@ -90,4 +90,9 @@ public class AssetIdentifier
 
 		assetIdentifier.EnsureNullTerminator();
 	}
+
+	public override void ToString(String strBuffer)
+	{
+		strBuffer.Append(FullIdentifier);
+	}
 }
