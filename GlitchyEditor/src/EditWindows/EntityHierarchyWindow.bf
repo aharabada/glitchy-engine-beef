@@ -161,7 +161,7 @@ namespace GlitchyEditor.EditWindows
 
 					if (entityResult case .Ok(let entity))
 					{
-						new PropertiesWindow(_editor, .Entity(entity));
+						new PropertiesWindow(_editor, .Entity(entity.UUID));
 					}
 				}
 			}

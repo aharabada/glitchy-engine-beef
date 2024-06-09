@@ -116,6 +116,8 @@ namespace GlitchyEngine.World
 		 */
 		public void RemoveEntity(EcsEntity entity)
 		{
+			Log.EngineLogger.AssertDebug(IsValid(entity));
+
 			var listEntity = ref _entities[entity.Index];
 			if(entity != listEntity.ID)
 				return;
@@ -176,6 +178,8 @@ namespace GlitchyEngine.World
 		 */
 		public T* AssignComponent<T>(EcsEntity entity, T value = T()) where T : struct, new
 		{
+			Log.EngineLogger.AssertDebug(IsValid(entity));
+
 			if(entity.Index > _entities.Count)
 				return null;
 
@@ -213,6 +217,8 @@ namespace GlitchyEngine.World
 		 */
 		public void RemoveComponent<T>(EcsEntity entity) where T : struct, new
 		{
+			Log.EngineLogger.AssertDebug(IsValid(entity));
+
 			if(entity.Index > _entities.Count)
 				return;
 
@@ -233,6 +239,8 @@ namespace GlitchyEngine.World
 
 		public void RemoveComponent<T>(EcsEntity entity) where T : struct, new, IDisposableComponent
 		{
+			Log.EngineLogger.AssertDebug(IsValid(entity));
+
 			if(entity.Index > _entities.Count)
 				return;
 
@@ -257,6 +265,8 @@ namespace GlitchyEngine.World
 		/// Returns whether or not the given entity has the specified component.
 		public bool HasComponent<T>(EcsEntity entity) where T : struct, new
 		{
+			Log.EngineLogger.AssertDebug(IsValid(entity));
+
 			var listEntity = ref _entities[entity.Index];
 			if(entity != listEntity.ID)
 				return false;
@@ -270,6 +280,8 @@ namespace GlitchyEngine.World
 
 		public T* GetComponent<T>(EcsEntity entity) where T : struct, new
 		{
+			Log.EngineLogger.AssertDebug(IsValid(entity));
+
 			var listEntity = ref _entities[entity.Index];
 			if(entity != listEntity.ID)
 				return null;

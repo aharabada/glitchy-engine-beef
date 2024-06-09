@@ -15,7 +15,7 @@ enum SelectedObject
 {
 	case None;
 	case Asset(AssetHandle AssetHandle);
-	case Entity(Entity entity);
+	case Entity(UUID entityId);
 }
 
 class InspectorWindow : EditorWindow
@@ -66,7 +66,7 @@ class InspectorWindow : EditorWindow
 
 			if (entityResult case .Ok(let selectedEntity))
 			{
-				_selectedObject = .Entity(selectedEntity);
+				_selectedObject = .Entity(selectedEntity.UUID);
 				return;
 			}
 		}
@@ -91,7 +91,23 @@ class InspectorWindow : EditorWindow
 		ImGui.Checkbox("Lock", &_lockCurrentSelection);
 		ImGui.Separator();
 
+		DeselectIfInvalid();
+
 		ShowSelectedObject(_selectedObject, _editor);
+	}
+
+	private void DeselectIfInvalid()
+	{
+		if (_selectedObject case .Entity(let entityId) &&
+			_editor.CurrentScene.GetEntityByID(entityId) case .Err)
+		{
+			_selectedObject = .None;
+		}
+		else if (_selectedObject case .Asset(let assetHandle) &&
+			_editor.ContentManager.AssetHierarchy.GetNodeFromAssetHandle(assetHandle) case .Err)
+		{
+			_selectedObject = .None;
+		}
 	}
 
 	public static void ShowSelectedObject(SelectedObject object, Editor editor)
@@ -100,17 +116,24 @@ class InspectorWindow : EditorWindow
 		{
 			ShowAssetProperties(assetHandle, editor);
 		}
-		else if (object case .Entity(let entity))
+		else if (object case .Entity(let entityId))
 		{
-			ShowEntityProperties(entity);
+			ShowEntityProperties(entityId, editor);
 		}
 	}
 
 	private static void ShowAssetProperties(AssetHandle assetHandle, Editor editor)
 	{
-		TreeNode<AssetNode> assetNode = TrySilent!(editor.ContentManager.AssetHierarchy.GetNodeFromAssetHandle(assetHandle));
+		Result<TreeNode<AssetNode>> assetNode = editor.ContentManager.AssetHierarchy.GetNodeFromAssetHandle(assetHandle);
 
-		AssetFile assetFile = assetNode->AssetFile;
+		if (assetNode case .Err)
+		{
+			ImGui.TextWrapped($"ERROR!\n\nAsset {assetHandle} doesn't exist.");
+
+			return;
+		}
+
+		AssetFile assetFile = assetNode->Value.AssetFile;
 
 		if (ImGui.BeginPropertyTable("asset_properties", ImGui.GetID("asset_properties")))
 		{
@@ -137,8 +160,17 @@ class InspectorWindow : EditorWindow
 			ImGui.EndDisabled();
 	}
 
-	private static void ShowEntityProperties(Entity entity)
+	private static void ShowEntityProperties(UUID entityId, Editor editor)
 	{
-		ComponentEditWindow.ShowComponents(entity);
+		Result<Entity> entityResult = editor.CurrentScene.GetEntityByID(entityId);
+
+		if (entityResult case .Ok(let entity))
+		{
+			ComponentEditWindow.ShowComponents(entity);
+		}
+		else
+		{
+			ImGui.TextWrapped($"ERROR!\n\nEntity {entityId} doesn't exist.");
+		}
 	}
 }
