@@ -21,6 +21,22 @@ class PropertiesWindow : ClosableWindow
 
 	protected override void InternalShow()
 	{
+		UpdateTitle();
+
 		InspectorWindow.ShowSelectedObject(_selectedObject, _editor);
+	}
+
+	private void UpdateTitle()
+	{
+		if (_selectedObject case .Entity(let entityId) &&
+			_editor.CurrentScene.GetEntityByID(entityId) case .Ok(let entity))
+		{
+			WindowTitle = scope $"Properties: {entity.Name}";
+		}
+		else if (_selectedObject case .Asset(let assetHandle) &&
+			_editor.ContentManager.AssetHierarchy.GetNodeFromAssetHandle(assetHandle) case .Ok(let assetNode))
+		{
+			WindowTitle = scope $"Properties: {assetNode->AssetFile?.AssetFile?.Identifier}";
+		}
 	}
 }
