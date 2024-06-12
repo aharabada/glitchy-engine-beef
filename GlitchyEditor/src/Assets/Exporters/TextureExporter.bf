@@ -4,11 +4,14 @@ using GlitchyEngine.Renderer;
 using GlitchyEditor.Assets.Processors;
 using GlitchyEngine;
 using GlitchyEditor.Assets.Importers;
+using GlitchyEngine.Content;
 namespace GlitchyEditor.Assets.Exporters;
 
 
 class TextureExporter : IAssetExporter
 {
+	public static AssetType ExportedAssetType => .Texture;
+
 	public AssetExporterConfig CreateDefaultConfig()
 	{
 		return new AssetExporterConfig();

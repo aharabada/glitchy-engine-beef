@@ -140,16 +140,18 @@ class AssetFile
 		
 		GenerateAssetHandle();
 
-		var assetPipeline = _contentManager.GetDefaultProcessors(fileExtension);
+		IAssetImporter assetImporter = _contentManager.GetAssetImporter(fileExtension);
+		IAssetProcessor assetProcessor = ?; //_contentManager.GetAssetProcessor(assetImporter.);
+		IAssetExporter assetExporter = ?; //_contentManager.GetAssetProcessor(assetImporter.);
 
 		// TODO!
 		//if (assetPipeline case .Err)
 		//	return;
 
 		var assetLoader = _contentManager.GetDefaultAssetLoader(fileExtension);
-
+		
 		// We don't have a loader -> we don't need a config
-		if (assetLoader == null && assetPipeline case .Err)
+		if (assetLoader == null && assetImporter == null)
 			return;
 
 		if (assetLoader != null)
@@ -162,16 +164,16 @@ class AssetFile
 		}
 
 		_assetConfig.Importer = new String();
-		assetPipeline?.Importer?.GetType()?.GetName(_assetConfig.Importer);
-		_assetConfig.ImporterConfig = assetPipeline?.Importer.CreateDefaultConfig();
+		assetImporter?.GetType()?.GetName(_assetConfig.Importer);
+		_assetConfig.ImporterConfig = assetImporter?.CreateDefaultConfig();
 
 		_assetConfig.Processor = new String();
-		assetPipeline?.Processor?.GetType()?.GetName(_assetConfig.Processor);
-		_assetConfig.ProcessorConfig = assetPipeline?.Processor.CreateDefaultConfig();
+		assetProcessor?.GetType()?.GetName(_assetConfig.Processor);
+		_assetConfig.ProcessorConfig = assetProcessor.CreateDefaultConfig();
 
 		_assetConfig.Exporter = new String();
-		assetPipeline?.Exporter?.GetType()?.GetName(_assetConfig.Exporter);
-		_assetConfig.ExporterConfig = assetPipeline?.Exporter.CreateDefaultConfig();
+		assetExporter?.GetType()?.GetName(_assetConfig.Exporter);
+		_assetConfig.ExporterConfig = assetExporter.CreateDefaultConfig();
 
 		SaveAssetConfig();
 	}

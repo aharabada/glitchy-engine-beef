@@ -27,7 +27,7 @@ public class SubAsset
 {
 	public AssetNode Asset;
 	public String Name ~ delete _;
-	//public String AssetInternalPath ~ delete _;
+	public AssetIdentifier Identifier ~ delete _;
 
 	public Texture2D PreviewImage ~ _?.ReleaseRef();
 }

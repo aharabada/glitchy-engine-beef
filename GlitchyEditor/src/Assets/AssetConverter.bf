@@ -5,6 +5,8 @@ using System;
 using System.IO;
 using GlitchyEngine.Content;
 using GlitchyEditor.Assets.Processors;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace GlitchyEditor.Assets;
 
@@ -14,6 +16,8 @@ class AssetConverter
 
 	private EditorContentManager _contentManager;
 
+	private Dictionary<AssetFile, Task> _processingAssets ~ delete _;
+
 	public this(EditorContentManager contentManager)
 	{
 		_contentManager = contentManager;
@@ -21,10 +25,10 @@ class AssetConverter
 
 	public void QueueForProcessing(AssetFile assetFile, bool isBlocking = false)
 	{
-		if (!isBlocking)
-			_queue.Add(assetFile);
-		else
+		if (isBlocking)
 			Process(assetFile);
+		else
+			_queue.Add(assetFile);
 	}
 
 	public void Update()
@@ -44,7 +48,6 @@ class AssetConverter
 	{
 		IAssetImporter importer = _contentManager.GetAssetImporter(assetFile);
 		IAssetProcessor processor = _contentManager.GetAssetProcessor(assetFile);
-		IAssetExporter exporter = _contentManager.GetAssetExporter(assetFile);
 
 		if (importer == null)
 		{
@@ -55,12 +58,6 @@ class AssetConverter
 		if (processor == null)
 		{
 			Log.EngineLogger.Error("Processor is null!");
-			return;
-		}
-		
-		if (exporter == null)
-		{
-			Log.EngineLogger.Error("Exporter is null!");
 			return;
 		}
 
@@ -75,7 +72,10 @@ class AssetConverter
 
 		defer { delete importResult.Value; }
 
-		Result<ProcessedResource> processResult = processor.Process(importResult.Value, assetFile.AssetConfig.ProcessorConfig);
+		List<ProcessedResource> resources = scope .();
+		defer { ClearAndDeleteItems!(resources); }
+
+		Result<void> processResult = processor.Process(importResult.Value, assetFile.AssetConfig.ProcessorConfig, resources);
 		
 		if (processResult case .Err)
 		{
@@ -83,16 +83,30 @@ class AssetConverter
 			return;
 		}
 
-		defer { delete processResult.Value; }
+		for (ProcessedResource resource in resources)
+		{
+			TrySilent!(ExportResource(assetFile, resource));
+		}
+	}
+
+	private Result<void> ExportResource(AssetFile assetFile, ProcessedResource resource)
+	{
+		IAssetExporter exporter = _contentManager.GetAssetExporter(resource.AssetType);
+
+		if (exporter == null)
+		{
+			Log.EngineLogger.Error($"No exporter for asset type {resource.AssetType}!");
+			return .Err;
+		}
 
 		MemoryStream memoryStream = scope .();
 
-		Result<void> exportResult = exporter.Export(memoryStream, processResult.Value, assetFile.AssetConfig.ExporterConfig);
+		Result<void> exportResult = exporter.Export(memoryStream, resource, assetFile.AssetConfig.ExporterConfig);
 
 		if (exportResult case .Err)
 		{
 			Log.EngineLogger.Error("Failed to export asset!");
-			return;
+			return .Err;
 		}
 
 		CachedAsset assetInfo = scope CachedAsset();
@@ -100,11 +114,14 @@ class AssetConverter
 		assetInfo.CreationTimestamp = DateTime.UtcNow;
 		assetInfo.Compression = assetFile.AssetConfig.ExporterConfig.Compression;
 		assetInfo.AssetIdentifier = new AssetIdentifier(assetFile.AssetFile.Identifier);
-		assetInfo.AssetType = processResult.Value.AssetType;
+		assetInfo.AssetType = resource.AssetType;
 
 		if (_contentManager.AssetCache.SaveAsset(assetInfo, memoryStream.Memory) case .Err)
 		{
 			Log.EngineLogger.Error("Failed to write asset to cache.");
+			return .Err;
 		}
+
+		return .Ok;
 	}
 }

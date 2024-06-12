@@ -137,9 +137,9 @@ class InspectorWindow : EditorWindow
 
 		if (ImGui.BeginPropertyTable("asset_properties", ImGui.GetID("asset_properties")))
 		{
-			assetFile.AssetConfig?.ImporterConfig?.ShowEditor();
-			assetFile.AssetConfig?.ProcessorConfig?.ShowEditor();
-			assetFile.AssetConfig?.ExporterConfig?.ShowEditor();
+			assetFile.AssetConfig?.ImporterConfig?.ShowEditor(assetFile);
+			assetFile.AssetConfig?.ProcessorConfig?.ShowEditor(assetFile);
+			assetFile.AssetConfig?.ExporterConfig?.ShowEditor(assetFile);
 
 			ImGui.EndTable();
 			

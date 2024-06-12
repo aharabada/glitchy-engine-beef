@@ -23,13 +23,13 @@ abstract class Config
 		return true;
 	}
 	
-	public abstract void ShowEditor();
+	public abstract void ShowEditor(AssetFile assetFile);
 }
 
 [BonTarget, BonPolyRegister]
 class AssetImporterConfig : Config
 {
-	public override void ShowEditor()
+	public override void ShowEditor(AssetFile assetFile)
 	{
 
 	}
@@ -38,7 +38,7 @@ class AssetImporterConfig : Config
 [BonTarget, BonPolyRegister]
 class AssetProcessorConfig : Config
 {
-	public override void ShowEditor()
+	public override void ShowEditor(AssetFile assetFile)
 	{
 
 	}
@@ -56,7 +56,7 @@ class AssetExporterConfig : Config
 		set => SetIfChanged(ref _compression, value);
 	}
 	
-	public override void ShowEditor()
+	public override void ShowEditor(AssetFile assetFile)
 	{
 		ImGui.PropertyTableStartNewProperty("Compression");
 		ImGui.AttachTooltip("Specifies the compression method used to compress the processed asset.");

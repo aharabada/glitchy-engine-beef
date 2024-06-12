@@ -219,9 +219,13 @@ class EditorContentManager : IContentManager
 	};
 
 	private append List<IAssetImporter> _assetImporters = .() ~ ClearAndDeleteItems!(_);
+	private append Dictionary<StringView, IAssetImporter> _extensionToAssetImporter = .();
 	private append List<IAssetProcessor> _assetProcessors = .() ~ ClearAndDeleteItems!(_);
-	private append List<IAssetExporter> _assetExporters = .() ~ ClearAndDeleteItems!(_);
+	private append Dictionary<Type, IAssetProcessor> _importedResourceToAssetProcessor = .();
+	//private append List<IAssetExporter> _assetExporters = .() ~ ClearAndDeleteItems!(_);
 	private append Dictionary<StringView, (IAssetImporter Importer, IAssetProcessor Processor, IAssetExporter Exporter)> _defaultAssetProcessors = .() ~ delete:append _;
+
+	private append Dictionary<AssetType, IAssetExporter> _assetExporters = .() ~ ClearDictionaryAndDeleteValues!(_);
 
 	public void RegisterAssetLoader<T>() where T : new, class, IAssetLoader
 	{
@@ -242,7 +246,11 @@ class EditorContentManager : IContentManager
 		_assetImporters.Add(assetImporter);
 
 		for (StringView ext in T.FileExtensions)
-			_supportedExtensions.Add(new String(ext));
+		{
+			String fileExtension = new String(ext);
+			_supportedExtensions.Add(fileExtension);
+			_extensionToAssetImporter.Add(fileExtension, assetImporter);
+		}
 	}
 
 	public void RegisterAssetProcessor<T>() where T : new, class, IAssetProcessor
@@ -256,7 +264,29 @@ class EditorContentManager : IContentManager
 	{
 		T assetExporter = new T();
 
-		_assetExporters.Add(assetExporter);
+		Log.EngineLogger.AssertDebug(_assetExporters.ContainsKey(T.ExportedAssetType), "Cannot register multiple exporters for one asset type.");
+
+		_assetExporters.Add(T.ExportedAssetType, assetExporter);
+	}
+
+	public IAssetImporter GetAssetImporter(StringView fileExtension)
+	{
+		if (_extensionToAssetImporter.TryGetValue(fileExtension, let importer))
+		{
+			return importer;
+		}
+
+		return null;
+	}
+
+	public IAssetImporter GetAssetProcessor(Type importedResourceType)
+	{
+		if (_extensionToAssetImporter.TryGetValue(fileExtension, let importer))
+		{
+			return importer;
+		}
+
+		return null;
 	}
 
 	public void SetAsDefaultAssetLoader<T>(params Span<StringView> fileExtensions) where T : IAssetLoader
@@ -332,14 +362,15 @@ class EditorContentManager : IContentManager
 				}
 			}
 
-			for (var i in _assetExporters)
+			// TODO: How do we get the exporter for the config?
+			/*for (var i in _assetExporters)
 			{
 				if (i.GetType() == typeof(TExport))
 				{
 					exporter = i;
 					break;
 				}
-			}
+			}*/
 
 			_defaultAssetProcessors[foundExtension] = (importer, processor, exporter);
 		}
@@ -756,7 +787,7 @@ class EditorContentManager : IContentManager
 
 		return result;
 	}
-
+	/*
 	public IAssetExporter GetAssetExporter(AssetFile file)
 	{
 		IAssetExporter result = null;
@@ -775,6 +806,16 @@ class EditorContentManager : IContentManager
 		}
 
 		return result;
+	}
+	*/
+	public IAssetExporter GetAssetExporter(AssetType assetType)
+	{
+		if (_assetExporters.TryGetValue(assetType, let exporter))
+		{
+			return exporter;
+		}
+
+		return null;
 	}
 
 	public enum SaveAssetError

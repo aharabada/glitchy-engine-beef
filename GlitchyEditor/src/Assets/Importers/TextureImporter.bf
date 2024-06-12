@@ -40,7 +40,7 @@ class TextureImporterConfig : AssetImporterConfig
 		set => SetIfChanged(ref _isSrgb, value);
 	}
 
-	public override void ShowEditor()
+	public override void ShowEditor(AssetFile assetFile)
 	{
 		ImGui.PropertyTableStartNewProperty("Is sRGB");
 		ImGui.AttachTooltip("If checked, the texture will be forced to be imported as sRGB. Refer to the documentation for an detailed explanation what you should do here.");

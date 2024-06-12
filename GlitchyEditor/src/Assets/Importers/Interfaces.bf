@@ -12,19 +12,28 @@ interface IAssetImporter
 
 	AssetImporterConfig CreateDefaultConfig();
 
+	/// The type that ImportedResource returns.
+	static Type ProcessedAssetType { get; }
+
 	Result<ImportedResource> Import(StringView fullFileName, AssetIdentifier assetIdentifier, AssetImporterConfig config);
 }
 
 interface IAssetProcessor
 {
 	AssetProcessorConfig CreateDefaultConfig();
+	
+	/// The asset type that this processor can process.
+	static Type ProcessedAssetType { get; }
 
-	Result<ProcessedResource> Process(ImportedResource importedResource, AssetProcessorConfig config);
+	Result<void> Process(ImportedResource importedResource, AssetProcessorConfig config, List<ProcessedResource> outProcessedResources);
 }
 
 interface IAssetExporter
 {
 	AssetExporterConfig CreateDefaultConfig();
+
+	/// The asset type that this exporter can export.
+	static AssetType ExportedAssetType { get; }
 
 	Result<void> Export(Stream stream, ProcessedResource processedObject, AssetExporterConfig config);
 }

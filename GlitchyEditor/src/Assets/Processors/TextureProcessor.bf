@@ -5,6 +5,8 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Content;
 using GlitchyEngine;
 using ImGui;
+using System.Collections;
+using GlitchyEngine.Math;
 
 namespace GlitchyEditor.Assets.Processors;
 
@@ -16,14 +18,27 @@ enum GenerateMipMaps
 	Kaiser
 }
 
+enum TextureType
+{
+	Texture,
+	Sprite
+}
+
+
 [BonTarget, BonPolyRegister]
 class TextureProcessorConfig : AssetProcessorConfig
 {
 	[BonInclude]
-	private GenerateMipMaps _generateMipMaps;
+	private GenerateMipMaps _generateMipMaps = .No;
 	
 	[BonInclude]
 	private SamplerStateDescription _samplerStateDescription = .();
+	
+	[BonInclude]
+	private TextureType _textureType = .Texture;
+
+	[BonInclude]
+	private List<SpriteDesc> _sprites = new .() ~ DeleteContainerAndItems!(_);
 
 	public GenerateMipMaps GenerateMipMaps
 	{
@@ -36,9 +51,64 @@ class TextureProcessorConfig : AssetProcessorConfig
 		get => _samplerStateDescription;
 		set => SetIfChanged(ref _samplerStateDescription, value);
 	}
-
-	public override void ShowEditor()
+	
+	public TextureType TextureType
 	{
+		get => _textureType;
+		set => SetIfChanged(ref _textureType, value);
+	}
+
+	public List<SpriteDesc> Sprites => _sprites;
+
+	public override void ShowEditor(AssetFile assetFile)
+	{
+		if (ImGui.BeginPopupModal("Apply Changes", null, .AlwaysAutoResize))
+		{
+			ImGui.Text("The changes have to be applied before you can open the sprite editor.\nDo you want to apply the changes and continue?");
+
+			if (ImGui.Button("Apply"))
+			{
+				assetFile.SaveAssetConfig();
+				ImGui.CloseCurrentPopup();
+
+				new SpriteEditor(Editor.Instance, assetFile.AssetConfig.AssetHandle);
+			}
+
+			ImGui.SameLine();
+
+			if (ImGui.Button("Cancel"))
+			{
+				ImGui.CloseCurrentPopup();
+			}
+			
+			ImGui.EndPopup();
+		}
+
+		ImGui.PropertyTableStartNewProperty("Texture Type");
+
+		TextureType textureType = _textureType;
+		if (ImGui.EnumCombo("##textureType", ref textureType))
+		{
+			TextureType = textureType;
+		}
+
+		ImGui.PropertyTableStartNewRow();
+
+		if (textureType == .Sprite)
+		{
+			if (ImGui.Button("Open Sprite Editor..."))
+			{
+				if (_changed)
+				{
+					ImGui.OpenPopup("Apply Changes");
+				}
+				else
+				{
+					new SpriteEditor(Editor.Instance, assetFile.AssetConfig.AssetHandle);
+				}
+			}
+		}
+
 		ImGui.PropertyTableStartNewProperty("Generate Mip Maps", "Specifies the algorithm used to generate mip maps for this texture.");
 
 		ImGui.BeginDisabled();
@@ -155,6 +225,14 @@ class TextureProcessorConfig : AssetProcessorConfig
 			ImGui.TreePop();
 		}
 	}
+}
+
+public class SpriteDesc
+{
+	public String Name ~ delete _;
+	public int2 TopLeft;
+	public int2 Size;
+	public AssetHandle AssetHandle;
 }
 
 class ProcessedTexture : ProcessedResource
@@ -276,22 +354,46 @@ class ProcessedTexture : ProcessedResource
 	}
 }
 
+class ProcessedSprite : ProcessedResource
+{
+	public override AssetType AssetType => .Sprite;
+
+	private AssetHandle _texture;
+
+	private int2 _topLeft;
+	private int2 _size;
+
+	public AssetHandle Texture => _texture;
+
+	public int2 TopLeft => _topLeft;
+	public int2 Size => _size;
+
+	public this(AssetIdentifier ownAssetIdentifier, AssetHandle texture, int2 topLeft, int2 size) : base(ownAssetIdentifier)
+	{
+		_texture = texture;
+		_topLeft = topLeft;
+		_size = size;
+	}
+}
+
 class TextureProcessor : IAssetProcessor
 {
+	public static Type ProcessedAssetType => typeof(ImportedTexture);
+
 	public AssetProcessorConfig CreateDefaultConfig()
 	{
 		return new TextureProcessorConfig();
 	}
 
-	public Result<ProcessedResource> Process(ImportedResource importedObject, AssetProcessorConfig config)
+	public Result<void> Process(ImportedResource importedObject, AssetProcessorConfig config, List<ProcessedResource> outProcessedResources)
 	{
 		Log.EngineLogger.AssertDebug(config is TextureProcessorConfig);
 		Log.EngineLogger.AssertDebug(importedObject is ImportedTexture);
 
-		return Try!(ProcessTexture(importedObject as ImportedTexture, config as TextureProcessorConfig));
+		return Try!(ProcessTexture(importedObject as ImportedTexture, config as TextureProcessorConfig, outProcessedResources));
 	}
 
-	private Result<ProcessedTexture> ProcessTexture(ImportedTexture importedTexture, TextureProcessorConfig config)
+	private Result<void> ProcessTexture(ImportedTexture importedTexture, TextureProcessorConfig config, List<ProcessedResource> outProcessedResources)
 	{
 		ProcessedTexture processedTexture = new ProcessedTexture(new AssetIdentifier(importedTexture.AssetIdentifier.FullIdentifier));
 
@@ -322,8 +424,31 @@ class TextureProcessor : IAssetProcessor
 		}
 
 		// TODO: Pack to BC-Format or what ever was selected.
+		if (config.TextureType == .Sprite)
+		{
+		}
 
-		return processedTexture;
+		return .Ok;
+	}
+
+	private void CreateSprites(ProcessedTexture processedTexture, TextureProcessorConfig config, List<ProcessedResource> outProcessedResources)
+	{
+		if (processedTexture.Dimension != .Texture2D)
+		{
+			Log.ClientLogger.Error("Only 2D textures can be used as sprites.");
+			return;
+		}
+
+		if (config.Sprites.Count == 0)
+		{
+			/*ProcessedSprite sprite = new ProcessedSprite(processedTexture.);
+
+			processedTexture.Sprites.Add(new SpriteDesc(){
+				Name = new String("Sprite"),
+				TopLeft = .(0, 0),
+				Size = .((.)processedTexture.Width, (.)processedTexture.Height)
+			});*/
+		}
 	}
 
 	private int CalculateMipMapCount(int width, int height, int depth)
