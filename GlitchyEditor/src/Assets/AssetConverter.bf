@@ -46,36 +46,21 @@ class AssetConverter
 
 	private void Process(AssetFile assetFile)
 	{
-		IAssetImporter importer = _contentManager.GetAssetImporter(assetFile);
-		IAssetProcessor processor = _contentManager.GetAssetProcessor(assetFile);
+		Result<ImportedResource> importResult = ImportResource(assetFile);
 
-		if (importer == null)
-		{
-			Log.EngineLogger.Error("Importer is null!");
-			return;
-		}
-		
-		if (processor == null)
-		{
-			Log.EngineLogger.Error("Processor is null!");
-			return;
-		}
+		ImportedResource importedResource = null;
+		defer { delete importedResource; }
 
-		Result<ImportedResource> importResult = importer.Import(assetFile.AssetFile.Path,
-			assetFile.AssetFile.Identifier, assetFile.AssetConfig.ImporterConfig);
-
-		if (importResult case .Err)
+		if (!(importResult case .Ok(out importedResource)))
 		{
 			Log.EngineLogger.Error("Failed to import asset!");
 			return;
 		}
 
-		defer { delete importResult.Value; }
+		List<ProcessedResource> processedResources = scope .();
+		defer { ClearAndDeleteItems!(processedResources); }
 
-		List<ProcessedResource> resources = scope .();
-		defer { ClearAndDeleteItems!(resources); }
-
-		Result<void> processResult = processor.Process(importResult.Value, assetFile.AssetConfig.ProcessorConfig, resources);
+		Result<void> processResult = ProcessResource(assetFile, importedResource, processedResources);
 		
 		if (processResult case .Err)
 		{
@@ -83,10 +68,39 @@ class AssetConverter
 			return;
 		}
 
-		for (ProcessedResource resource in resources)
+		for (ProcessedResource resource in processedResources)
 		{
-			TrySilent!(ExportResource(assetFile, resource));
+			if (ExportResource(assetFile, resource) case .Err)
+			{
+				Log.EngineLogger.Error("Failed to export asset.");
+			}
 		}
+	}
+
+	private Result<ImportedResource> ImportResource(AssetFile assetFile)
+	{
+		IAssetImporter importer = _contentManager.GetAssetImporter(assetFile);
+
+		if (importer == null)
+		{
+			Log.EngineLogger.Error("Importer is null!");
+			return .Err;
+		}
+
+		return importer.Import(assetFile.AssetFile.Path, assetFile.AssetFile.Identifier, assetFile.AssetConfig);
+	}
+
+	private Result<void> ProcessResource(AssetFile assetFile, ImportedResource importedResource, List<ProcessedResource> outProcessedResources)
+	{
+		IAssetProcessor processor = _contentManager.GetAssetProcessor(importedResource.GetType());
+
+		if (processor == null)
+		{
+			Log.EngineLogger.Error($"No asset processor for type {importedResource.GetType()} found.");
+			return .Err;
+		}
+
+		return processor.Process(importedResource, assetFile.AssetConfig, outProcessedResources);
 	}
 
 	private Result<void> ExportResource(AssetFile assetFile, ProcessedResource resource)
@@ -101,7 +115,7 @@ class AssetConverter
 
 		MemoryStream memoryStream = scope .();
 
-		Result<void> exportResult = exporter.Export(memoryStream, resource, assetFile.AssetConfig.ExporterConfig);
+		Result<void> exportResult = exporter.Export(memoryStream, resource, assetFile.AssetConfig);
 
 		if (exportResult case .Err)
 		{
@@ -109,11 +123,16 @@ class AssetConverter
 			return .Err;
 		}
 
+		if (assetFile.AssetConfig.ExporterConfig == null)
+		{
+			assetFile.AssetConfig.ExporterConfig = new AssetExporterConfig();
+		}
+
 		CachedAsset assetInfo = scope CachedAsset();
-		assetInfo.Handle = assetFile.AssetConfig.AssetHandle;
+		assetInfo.Handle = resource.AssetHandle;
 		assetInfo.CreationTimestamp = DateTime.UtcNow;
 		assetInfo.Compression = assetFile.AssetConfig.ExporterConfig.Compression;
-		assetInfo.AssetIdentifier = new AssetIdentifier(assetFile.AssetFile.Identifier);
+		assetInfo.AssetIdentifier = new AssetIdentifier(resource.AssetIdentifier);
 		assetInfo.AssetType = resource.AssetType;
 
 		if (_contentManager.AssetCache.SaveAsset(assetInfo, memoryStream.Memory) case .Err)
@@ -121,6 +140,8 @@ class AssetConverter
 			Log.EngineLogger.Error("Failed to write asset to cache.");
 			return .Err;
 		}
+
+		assetFile.SaveAssetConfigIfChanged();
 
 		return .Ok;
 	}

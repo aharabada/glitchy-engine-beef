@@ -17,7 +17,7 @@ class TextureExporter : IAssetExporter
 		return new AssetExporterConfig();
 	}
 
-	public Result<void> Export(Stream stream, ProcessedResource processedResource, AssetExporterConfig config)
+	public Result<void> Export(Stream stream, ProcessedResource processedResource, AssetConfig config)
 	{
 		Log.EngineLogger.AssertDebug(processedResource is ProcessedTexture);
 

@@ -2,36 +2,10 @@
 	AssetLoader = null,
 	Config = null,
 	Importer = "TextureImporter",
-	ImporterConfig = (GlitchyEditor.Assets.Importers.TextureImporterConfig){
-		_isSrgb = false
-	},
-	Processor = "TextureProcessor",
-	ProcessorConfig = (GlitchyEditor.Assets.Processors.TextureProcessorConfig){
-		_generateMipMaps = .No,
-		_samplerStateDescription = {
-			MinFilter = .Linear,
-			MagFilter = .Linear,
-			MipFilter = .Linear,
-			FilterMode = .Default,
-			ComparisonFunction = .Never,
-			AddressModeU = .Clamp,
-			AddressModeV = .Clamp,
-			AddressModeW = .Clamp,
-			MipLODBias = 0,
-			MipMinLOD = -3.40282347e+38,
-			MipMaxLOD = 3.40282347e+38,
-			MaxAnisotropy = 1,
-			BorderColor = {
-				R = 1,
-				G = 1,
-				B = 1,
-				A = 1
-			}
-		}
-	},
-	Exporter = "TextureExporter",
-	ExporterConfig = {
-		_compression = .LZ4
-	},
-	AssetHandle = 17972970543152031508
+	ImporterConfig = null,
+	Processor = null,
+	ProcessorConfig = null,
+	Exporter = null,
+	ExporterConfig = null,
+	AssetHandle = 17408033053158961990
 }

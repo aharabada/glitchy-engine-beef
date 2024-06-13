@@ -6,6 +6,7 @@ using GlitchyEngine.Content;
 using GlitchyEngine;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
+//using System.Threading;
 using GlitchyEditor.Assets.Processors;
 using ImGui;
 
@@ -53,22 +54,29 @@ class TextureImporterConfig : AssetImporterConfig
 	}
 }
 
-
 class TextureImporter : IAssetImporter
 {
 	private static readonly List<StringView> _fileExtensions = new .(){".png", ".dds"} ~ delete _;
 
 	public static List<StringView> FileExtensions => _fileExtensions;
+	
+	public static Type ProcessedAssetType => typeof(ImportedTexture);
 
 	public AssetImporterConfig CreateDefaultConfig()
 	{
 		return new TextureImporterConfig();
 	}
 
-	public Result<ImportedResource> Import(StringView fullFileName, AssetIdentifier assetIdentifier, AssetImporterConfig config)
+	public Result<ImportedResource> Import(StringView fullFileName, AssetIdentifier assetIdentifier, AssetConfig config)
 	{
+		//Thread.Sleep(1000);
 
-		Log.EngineLogger.AssertDebug(config is TextureImporterConfig);
+		TextureImporterConfig textureImporterConfig = config.ImporterConfig as TextureImporterConfig;
+		
+		if (textureImporterConfig == null)
+		{
+			config.ImporterConfig = textureImporterConfig = new TextureImporterConfig();
+		}
 
 		ImportedTexture importedData = new ImportedTexture(new AssetIdentifier(assetIdentifier.FullIdentifier));
 
@@ -76,7 +84,7 @@ class TextureImporter : IAssetImporter
 		FileStream stream = scope FileStream();
 		Try!(stream.Open(fullFileName, .Read, .Read));
 
-		Result<void> importResult = ImportTexture(stream, importedData, (TextureImporterConfig)config);
+		Result<void> importResult = ImportTexture(stream, importedData, (TextureImporterConfig)textureImporterConfig);
 
 		stream.Close();
 

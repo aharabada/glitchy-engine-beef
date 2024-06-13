@@ -23,7 +23,8 @@ namespace GlitchyEditor
 		protected override IContentManager InitContentManager()
 		{
 			_contentManager = new EditorContentManager();
-			
+
+			// TODO: Get rid of legacy loaders
 			_contentManager.RegisterAssetLoader<ModelAssetLoader>();
 			_contentManager.SetAsDefaultAssetLoader<ModelAssetLoader>(".glb", ".gltf");
 			_contentManager.SetAssetPropertiesEditor<ModelAssetLoader>(=> ModelAssetPropertiesEditor.Factory);
@@ -40,8 +41,8 @@ namespace GlitchyEditor
 			_contentManager.RegisterAssetProcessor<TextureProcessor>();
 			_contentManager.RegisterAssetExporter<TextureExporter>();
 
-			_contentManager.ConfigureDefaultProcessing<TextureImporter, TextureProcessor, TextureExporter>(".png", ".dds");
-			
+			_contentManager.RegisterAssetExporter<SpriteExporter>();
+
 			_contentManager.SetGlobalAssetCacheDirectory(".cache");
 			_contentManager.SetResourcesDirectory("Resources");
 

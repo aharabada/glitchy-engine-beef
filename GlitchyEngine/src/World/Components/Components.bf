@@ -45,7 +45,7 @@ namespace GlitchyEngine.World
 	[Component("Sprite Renderer")]
 	struct SpriteRendererComponent
 	{
-		public AssetHandle<Texture2D> Sprite = .Invalid;
+		public AssetHandle Sprite = .Invalid;
 
 		public ColorRGBA Color = .White;
 		public float4 UvTransform = .(0, 0, 1, 1);

@@ -105,6 +105,19 @@ namespace GlitchyEngine.Content
 
 			return (T)asset;
 		}
+
+		/// Loads the specified asset with the given contentManager or the current applications content manager.
+		public static Asset GetAsset(AssetHandle handle, IContentManager contentManager = null)
+		{
+			var contentManager;
+
+			if (contentManager == null)
+				contentManager = Application.Instance.ContentManager;
+
+			Asset asset = contentManager.GetAsset(null, handle);
+
+			return asset;
+		}
 		
 		public static AssetHandle ManageAsset(Asset asset, IContentManager contentManager = null)
 		{

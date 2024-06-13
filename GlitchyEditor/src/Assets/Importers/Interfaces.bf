@@ -15,7 +15,7 @@ interface IAssetImporter
 	/// The type that ImportedResource returns.
 	static Type ProcessedAssetType { get; }
 
-	Result<ImportedResource> Import(StringView fullFileName, AssetIdentifier assetIdentifier, AssetImporterConfig config);
+	Result<ImportedResource> Import(StringView fullFileName, AssetIdentifier assetIdentifier, AssetConfig config);
 }
 
 interface IAssetProcessor
@@ -25,7 +25,7 @@ interface IAssetProcessor
 	/// The asset type that this processor can process.
 	static Type ProcessedAssetType { get; }
 
-	Result<void> Process(ImportedResource importedResource, AssetProcessorConfig config, List<ProcessedResource> outProcessedResources);
+	Result<void> Process(ImportedResource importedResource, AssetConfig config, List<ProcessedResource> outProcessedResources);
 }
 
 interface IAssetExporter
@@ -35,5 +35,5 @@ interface IAssetExporter
 	/// The asset type that this exporter can export.
 	static AssetType ExportedAssetType { get; }
 
-	Result<void> Export(Stream stream, ProcessedResource processedObject, AssetExporterConfig config);
+	Result<void> Export(Stream stream, ProcessedResource processedObject, AssetConfig config);
 }

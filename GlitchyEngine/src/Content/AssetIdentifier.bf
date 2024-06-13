@@ -35,13 +35,13 @@ public class AssetIdentifier
 	[AllowAppend]
 	public this(StringView assetIdentifier, StringView subAssetIdentifier)
 	{
-		String identifier = append String(assetIdentifier.Length + 1 + subAssetIdentifier.Length);
-		identifier.AppendF($"{assetIdentifier}:{subAssetIdentifier}");
+		String fullIdentifier = append String(assetIdentifier.Length + 1 + subAssetIdentifier.Length);
+		fullIdentifier.AppendF($"{assetIdentifier}:{subAssetIdentifier}");
 
-		Fixup(identifier);
+		Fixup(fullIdentifier);
 
+		_fullIdentifier = fullIdentifier;
 		_subassetSeperator = _fullIdentifier.IndexOf(':', 0);
-
 	}
 
 	public static StringView operator implicit(AssetIdentifier identifier) => identifier.FullIdentifier;

@@ -63,7 +63,7 @@ class AssetFile
 
 	public EditorContentManager ContentManager => _contentManager;
 
-	public bool UseNewAssetPipeline => _assetConfig?.ImporterConfig != null;
+	public bool UseNewAssetPipeline => _assetConfig?.Importer != null;
 
 	[AllowAppend]
 	public this(EditorContentManager contentManager, AssetNode assetNode)
@@ -141,8 +141,8 @@ class AssetFile
 		GenerateAssetHandle();
 
 		IAssetImporter assetImporter = _contentManager.GetAssetImporter(fileExtension);
-		IAssetProcessor assetProcessor = ?; //_contentManager.GetAssetProcessor(assetImporter.);
-		IAssetExporter assetExporter = ?; //_contentManager.GetAssetProcessor(assetImporter.);
+		//IAssetProcessor assetProcessor = ?; //_contentManager.GetAssetProcessor(assetImporter.);
+		//IAssetExporter assetExporter = ?; //_contentManager.GetAssetProcessor(assetImporter.);
 
 		// TODO!
 		//if (assetPipeline case .Err)
@@ -165,16 +165,7 @@ class AssetFile
 
 		_assetConfig.Importer = new String();
 		assetImporter?.GetType()?.GetName(_assetConfig.Importer);
-		_assetConfig.ImporterConfig = assetImporter?.CreateDefaultConfig();
-
-		_assetConfig.Processor = new String();
-		assetProcessor?.GetType()?.GetName(_assetConfig.Processor);
-		_assetConfig.ProcessorConfig = assetProcessor.CreateDefaultConfig();
-
-		_assetConfig.Exporter = new String();
-		assetExporter?.GetType()?.GetName(_assetConfig.Exporter);
-		_assetConfig.ExporterConfig = assetExporter.CreateDefaultConfig();
-
+		
 		SaveAssetConfig();
 	}
 
@@ -195,6 +186,17 @@ class AssetFile
 		_assetConfig = newAssetConfig;
 	}
 
+	public void SaveAssetConfigIfChanged()
+	{
+		if (_assetConfig.Config?.Changed == true ||
+			_assetConfig.ImporterConfig?.Changed == true ||
+			_assetConfig.ProcessorConfig?.Changed == true ||
+			_assetConfig.ExporterConfig?.Changed == true)
+		{
+			SaveAssetConfig();
+		}
+	}
+
 	public void SaveAssetConfig()
 	{
 		//BonEnvironment bonEnv = scope .();
@@ -206,6 +208,9 @@ class AssetFile
 		Bon.SerializeIntoFile(_assetConfig, _assetConfigPath);
 
 		_assetConfig.Config?.[Friend]_changed = false;
+		_assetConfig.ImporterConfig?.[Friend]_changed = false;
+		_assetConfig.ProcessorConfig?.[Friend]_changed = false;
+		_assetConfig.ExporterConfig?.[Friend]_changed = false;
 
 		gBonEnv.serializeFlags = oldFlags;
 	}

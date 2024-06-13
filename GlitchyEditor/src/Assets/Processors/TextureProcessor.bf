@@ -60,6 +60,12 @@ class TextureProcessorConfig : AssetProcessorConfig
 
 	public List<SpriteDesc> Sprites => _sprites;
 
+	public void AddSprite(SpriteDesc sprite)
+	{
+		_sprites.Add(sprite);
+		_changed = true;
+	}
+
 	public override void ShowEditor(AssetFile assetFile)
 	{
 		if (ImGui.BeginPopupModal("Apply Changes", null, .AlwaysAutoResize))
@@ -227,11 +233,18 @@ class TextureProcessorConfig : AssetProcessorConfig
 	}
 }
 
+[BonTarget]
+enum TextureCoordinates
+{
+	case Pixel(int2 Min, int2 Max);
+	case Relative(float2 Offset, float2 Size);
+}
+
+[BonTarget]
 public class SpriteDesc
 {
 	public String Name ~ delete _;
-	public int2 TopLeft;
-	public int2 Size;
+	public TextureCoordinates TextureCoordinates;
 	public AssetHandle AssetHandle;
 }
 
@@ -308,7 +321,7 @@ class ProcessedTexture : ProcessedResource
 
 	public TextureSurface[,] Surfaces;
 
-	public this(AssetIdentifier ownAssetIdentifier) : base(ownAssetIdentifier)
+	public this(AssetIdentifier ownAssetIdentifier, AssetHandle assetHandle) : base(ownAssetIdentifier, assetHandle)
 	{
 
 	}
@@ -358,21 +371,18 @@ class ProcessedSprite : ProcessedResource
 {
 	public override AssetType AssetType => .Sprite;
 
-	private AssetHandle _texture;
+	private AssetHandle Handle;
 
-	private int2 _topLeft;
-	private int2 _size;
+	private float4 _textureCoordinates;
 
-	public AssetHandle Texture => _texture;
+	public AssetHandle TextureHandle => Handle;
 
-	public int2 TopLeft => _topLeft;
-	public int2 Size => _size;
+	public float4 TextureCoordinates => _textureCoordinates;
 
-	public this(AssetIdentifier ownAssetIdentifier, AssetHandle texture, int2 topLeft, int2 size) : base(ownAssetIdentifier)
+	public this(AssetIdentifier ownAssetIdentifier, AssetHandle assetHandle, AssetHandle textureHandle, float4 textureCoordinates) : base(ownAssetIdentifier, assetHandle)
 	{
-		_texture = texture;
-		_topLeft = topLeft;
-		_size = size;
+		Handle = textureHandle;
+		_textureCoordinates = textureCoordinates;
 	}
 }
 
@@ -385,17 +395,23 @@ class TextureProcessor : IAssetProcessor
 		return new TextureProcessorConfig();
 	}
 
-	public Result<void> Process(ImportedResource importedObject, AssetProcessorConfig config, List<ProcessedResource> outProcessedResources)
+	public Result<void> Process(ImportedResource importedObject, AssetConfig config, List<ProcessedResource> outProcessedResources)
 	{
-		Log.EngineLogger.AssertDebug(config is TextureProcessorConfig);
 		Log.EngineLogger.AssertDebug(importedObject is ImportedTexture);
 
-		return Try!(ProcessTexture(importedObject as ImportedTexture, config as TextureProcessorConfig, outProcessedResources));
+		TextureProcessorConfig textureProcessorConfig = config.ProcessorConfig as TextureProcessorConfig;
+
+		if (textureProcessorConfig == null)
+		{
+			config.ProcessorConfig = textureProcessorConfig = new TextureProcessorConfig();
+		}
+
+		return Try!(ProcessTexture(importedObject as ImportedTexture, config, textureProcessorConfig, outProcessedResources));
 	}
 
-	private Result<void> ProcessTexture(ImportedTexture importedTexture, TextureProcessorConfig config, List<ProcessedResource> outProcessedResources)
+	private Result<void> ProcessTexture(ImportedTexture importedTexture, AssetConfig assetConfig, TextureProcessorConfig textureConfig, List<ProcessedResource> outProcessedResources)
 	{
-		ProcessedTexture processedTexture = new ProcessedTexture(new AssetIdentifier(importedTexture.AssetIdentifier.FullIdentifier));
+		ProcessedTexture processedTexture = new ProcessedTexture(new AssetIdentifier(importedTexture.AssetIdentifier.FullIdentifier), assetConfig.AssetHandle);
 
 		processedTexture.Dimension = importedTexture.TextureInfo.Dimension;
 		processedTexture.PixelFormat = (.)importedTexture.TextureInfo.PixelFormat;
@@ -404,7 +420,7 @@ class TextureProcessor : IAssetProcessor
 		processedTexture.Height = importedTexture.TextureInfo.Height;
 		processedTexture.Depth = importedTexture.TextureInfo.Depth;
 		
-		processedTexture.SamplerStateDescription = config.SamplerStateDescription;
+		processedTexture.SamplerStateDescription = textureConfig.SamplerStateDescription;
 
 		processedTexture.SetSurfaceCount(importedTexture.TextureInfo.ArraySize, importedTexture.TextureInfo.MipMapCount);
 
@@ -416,22 +432,25 @@ class TextureProcessor : IAssetProcessor
 			processedTexture.Surfaces[loadedSurface.ArrayIndex * (processedTexture.IsCubeMap ? 6 : 1) + loadedSurface.CubeFace, loadedSurface.MipLevel] = surface;
 		}
 
-		if (!(config.GenerateMipMaps case .No))
+		if (!(textureConfig.GenerateMipMaps case .No))
 		{
 			// TODO: Unpack BC-Formats to RGBA
 
-			GenerateMipMaps(processedTexture, config);
+			GenerateMipMaps(processedTexture, textureConfig);
 		}
 
+		outProcessedResources.Add(processedTexture);
+
 		// TODO: Pack to BC-Format or what ever was selected.
-		if (config.TextureType == .Sprite)
+		if (textureConfig.TextureType == .Sprite)
 		{
+			CreateSprites(processedTexture, textureConfig, outProcessedResources);
 		}
 
 		return .Ok;
 	}
 
-	private void CreateSprites(ProcessedTexture processedTexture, TextureProcessorConfig config, List<ProcessedResource> outProcessedResources)
+	private void CreateSprites(ProcessedTexture processedTexture, TextureProcessorConfig textureConfig, List<ProcessedResource> outProcessedResources)
 	{
 		if (processedTexture.Dimension != .Texture2D)
 		{
@@ -439,15 +458,41 @@ class TextureProcessor : IAssetProcessor
 			return;
 		}
 
-		if (config.Sprites.Count == 0)
+		if (textureConfig.Sprites.Count == 0)
 		{
-			/*ProcessedSprite sprite = new ProcessedSprite(processedTexture.);
-
-			processedTexture.Sprites.Add(new SpriteDesc(){
+			textureConfig.AddSprite(new SpriteDesc(){
 				Name = new String("Sprite"),
-				TopLeft = .(0, 0),
-				Size = .((.)processedTexture.Width, (.)processedTexture.Height)
-			});*/
+				// TODO: Maybe add a switch for pixel perfect or relative texture coordinates
+				TextureCoordinates = .Pixel(.(0, 0), .((.)processedTexture.Width, (.)processedTexture.Height)),
+				// TODO: Get handle from central authority (contentmanager?)
+				AssetHandle = AssetHandle()
+			});
+		}
+
+		float2 textureResolution = .(processedTexture.Width, processedTexture.Height);
+
+		for (SpriteDesc spriteDesc in textureConfig.Sprites)
+		{
+			float4 textureCoordinates = .();
+
+			if (spriteDesc.TextureCoordinates case .Pixel(let min, let max))
+			{
+				textureCoordinates = float4((float2)min / textureResolution, (float2)max / textureResolution);
+			}
+			else if (spriteDesc.TextureCoordinates case .Relative(let offset, let size))
+			{
+				textureCoordinates = .(offset, size);
+			}
+			else
+			{
+				Log.EngineLogger.Error($"Unknown texture coordinate type {spriteDesc.TextureCoordinates}");
+				return;
+			}
+
+			ProcessedSprite sprite = new ProcessedSprite(new AssetIdentifier(processedTexture.AssetIdentifier, spriteDesc.Name), spriteDesc.AssetHandle, processedTexture.AssetHandle,
+				textureCoordinates);
+
+			outProcessedResources.Add(sprite);
 		}
 	}
 

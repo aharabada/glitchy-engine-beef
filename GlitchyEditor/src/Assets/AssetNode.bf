@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Content;
+
 namespace GlitchyEditor.Assets;
 
 // TODO: Why exactly are AssetFile and AssetNode separated?

@@ -198,15 +198,6 @@ class EditorContentManager : IContentManager
 		return null;
 	}
 
-	// TODO: This type sucks!
-	public Result<(IAssetImporter Importer, IAssetProcessor Processor, IAssetExporter Exporter)> GetDefaultProcessors(StringView fileExtension)
-	{
-		if (_defaultAssetProcessors.TryGetValue(fileExtension, let value))
-			return value;
-
-		return .Err;
-	}
-
 	private append List<String> _supportedExtensions = .() ~ ClearAndDeleteItems!(_);
 	private append List<IAssetLoader> _assetLoaders = .() ~ ClearAndDeleteItems!(_);
 	private append Dictionary<StringView, IAssetLoader> _defaultAssetLoaders = .();
@@ -220,12 +211,8 @@ class EditorContentManager : IContentManager
 
 	private append List<IAssetImporter> _assetImporters = .() ~ ClearAndDeleteItems!(_);
 	private append Dictionary<StringView, IAssetImporter> _extensionToAssetImporter = .();
-	private append List<IAssetProcessor> _assetProcessors = .() ~ ClearAndDeleteItems!(_);
-	private append Dictionary<Type, IAssetProcessor> _importedResourceToAssetProcessor = .();
-	//private append List<IAssetExporter> _assetExporters = .() ~ ClearAndDeleteItems!(_);
-	private append Dictionary<StringView, (IAssetImporter Importer, IAssetProcessor Processor, IAssetExporter Exporter)> _defaultAssetProcessors = .() ~ delete:append _;
-
-	private append Dictionary<AssetType, IAssetExporter> _assetExporters = .() ~ ClearDictionaryAndDeleteValues!(_);
+	private append Dictionary<Type, IAssetProcessor> _importedResourceToAssetProcessor = .() ~ ClearDictionaryAndDeleteValues!(_);
+	private append Dictionary<AssetType, IAssetExporter> _assetTypeToAssetExporter = .() ~ ClearDictionaryAndDeleteValues!(_);
 
 	public void RegisterAssetLoader<T>() where T : new, class, IAssetLoader
 	{
@@ -242,7 +229,6 @@ class EditorContentManager : IContentManager
 	public void RegisterAssetImporter<T>() where T : new, class, IAssetImporter
 	{
 		T assetImporter = new T();
-
 		_assetImporters.Add(assetImporter);
 
 		for (StringView ext in T.FileExtensions)
@@ -255,18 +241,16 @@ class EditorContentManager : IContentManager
 
 	public void RegisterAssetProcessor<T>() where T : new, class, IAssetProcessor
 	{
-		T assetProcessor = new T();
+		Log.EngineLogger.AssertDebug(!_importedResourceToAssetProcessor.ContainsKey(T.ProcessedAssetType), "Cannot register multiple processor for the same imported resource type.");
 
-		_assetProcessors.Add(assetProcessor);
+		_importedResourceToAssetProcessor.Add(T.ProcessedAssetType, new T());
 	}
 
 	public void RegisterAssetExporter<T>() where T : new, class, IAssetExporter
 	{
-		T assetExporter = new T();
+		Log.EngineLogger.AssertDebug(!_assetTypeToAssetExporter.ContainsKey(T.ExportedAssetType), "Cannot register multiple exporters for one asset type.");
 
-		Log.EngineLogger.AssertDebug(_assetExporters.ContainsKey(T.ExportedAssetType), "Cannot register multiple exporters for one asset type.");
-
-		_assetExporters.Add(T.ExportedAssetType, assetExporter);
+		_assetTypeToAssetExporter.Add(T.ExportedAssetType, new T());
 	}
 
 	public IAssetImporter GetAssetImporter(StringView fileExtension)
@@ -278,12 +262,42 @@ class EditorContentManager : IContentManager
 
 		return null;
 	}
-
-	public IAssetImporter GetAssetProcessor(Type importedResourceType)
+	
+	public IAssetImporter GetAssetImporter(AssetFile file)
 	{
-		if (_extensionToAssetImporter.TryGetValue(fileExtension, let importer))
+		IAssetImporter result = null;
+
+		String typeName = scope .(128);
+
+		for (IAssetImporter importer in _extensionToAssetImporter.Values)
 		{
-			return importer;
+			importer.GetType().GetName(typeName..Clear());
+
+			if (typeName == file.AssetConfig.Importer)
+			{
+				result = importer;
+				break;
+			}
+		}
+
+		return result;
+	}
+
+	public IAssetProcessor GetAssetProcessor(Type importedResourceType)
+	{
+		if (_importedResourceToAssetProcessor.TryGetValue(importedResourceType, let processor))
+		{
+			return processor;
+		}
+
+		return null;
+	}
+
+	public IAssetExporter GetAssetExporter(AssetType assetType)
+	{
+		if (_assetTypeToAssetExporter.TryGetValue(assetType, let exporter))
+		{
+			return exporter;
 		}
 
 		return null;
@@ -315,64 +329,6 @@ class EditorContentManager : IContentManager
 					break;
 				}
 			}
-		}
-	}
-
-	public void ConfigureDefaultProcessing<TImport, TProcess, TExport>(params Span<StringView> fileExtensions) where TImport : IAssetImporter where TProcess : IAssetProcessor where TExport : IAssetExporter
-	{
-		for (var ext in fileExtensions)
-		{
-			// Find file extension in registered file extensions
-			String foundExtension = null;
-
-			for (var supportedExt in _supportedExtensions)
-			{
-				if (supportedExt == ext)
-				{
-					foundExtension = supportedExt;
-					break;
-				}
-			}
-
-			Log.EngineLogger.Assert(foundExtension != null, "File Extension is not registered.");
-
-			//IAssetImporter importer = _assetImporters.Where((i) => i.GetType() == typeof(TImport)).First();
-			//IAssetProcessor processor = _assetProcessors.Where((i) => i.GetType() == typeof(TProcess)).First();
-			//IAssetExporter exporter = _assetExporters.Where((i) => i.GetType() == typeof(TExport)).First();
-
-			IAssetImporter importer = null;
-			IAssetProcessor processor = null;
-			IAssetExporter exporter = null;
-
-			for (var i in _assetImporters)
-			{
-				if (i.GetType() == typeof(TImport))
-				{
-					importer = i;
-					break;
-				}
-			}
-			
-			for (var i in _assetProcessors)
-			{
-				if (i.GetType() == typeof(TProcess))
-				{
-					processor = i;
-					break;
-				}
-			}
-
-			// TODO: How do we get the exporter for the config?
-			/*for (var i in _assetExporters)
-			{
-				if (i.GetType() == typeof(TExport))
-				{
-					exporter = i;
-					break;
-				}
-			}*/
-
-			_defaultAssetProcessors[foundExtension] = (importer, processor, exporter);
 		}
 	}
 	
@@ -602,7 +558,7 @@ class EditorContentManager : IContentManager
 
 		if (resultNode case .Err)
 		{
-			Log.EngineLogger.Error($"Could not find asset with handle {handle}.");
+			Log.EngineLogger.Error($"Could not find asset with handle {handle} in hierarchy.");
 			return .Invalid;
 		}
 		
@@ -746,76 +702,6 @@ class EditorContentManager : IContentManager
 		}
 
 		return assetLoader;
-	}
-
-	public IAssetImporter GetAssetImporter(AssetFile file)
-	{
-		IAssetImporter result = null;
-
-		String typeName = scope .(128);
-
-		for (IAssetImporter importer in _assetImporters)
-		{
-			importer.GetType().GetName(typeName..Clear());
-
-			if (typeName == file.AssetConfig.Importer)
-			{
-				result = importer;
-				break;
-			}
-		}
-
-		return result;
-	}
-
-	public IAssetProcessor GetAssetProcessor(AssetFile file)
-	{
-		IAssetProcessor result = null;
-
-		String typeName = scope .(128);
-
-		for (IAssetProcessor processor in _assetProcessors)
-		{
-			processor.GetType().GetName(typeName..Clear());
-
-			if (typeName == file.AssetConfig.Processor)
-			{
-				result = processor;
-				break;
-			}
-		}
-
-		return result;
-	}
-	/*
-	public IAssetExporter GetAssetExporter(AssetFile file)
-	{
-		IAssetExporter result = null;
-
-		String typeName = scope .(128);
-
-		for (IAssetExporter exporter in _assetExporters)
-		{
-			exporter.GetType().GetName(typeName..Clear());
-
-			if (typeName == file.AssetConfig.Exporter)
-			{
-				result = exporter;
-				break;
-			}
-		}
-
-		return result;
-	}
-	*/
-	public IAssetExporter GetAssetExporter(AssetType assetType)
-	{
-		if (_assetExporters.TryGetValue(assetType, let exporter))
-		{
-			return exporter;
-		}
-
-		return null;
 	}
 
 	public enum SaveAssetError
@@ -1057,6 +943,7 @@ class EditorContentManager : IContentManager
 	
 	// TODO: obviously use a map or something...
 	TextureLoader textureLoader = new .() ~ delete _;
+	SpriteLoader spriteLoader = new .() ~ delete _;
 
 	private IProcessedAssetLoader GetLoader(AssetType assetType)
 	{
@@ -1064,6 +951,8 @@ class EditorContentManager : IContentManager
 		{
 		case .Texture:
 			return textureLoader;
+		case .Sprite:
+			return spriteLoader;
 		default:
 			return null;
 		}

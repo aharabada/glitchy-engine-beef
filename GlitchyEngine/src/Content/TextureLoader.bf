@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
+using System.Threading;
 
 namespace GlitchyEngine.Content;
 
@@ -72,6 +73,8 @@ class TextureLoader : IProcessedAssetLoader
 		{
 			result.SamplerState = samplerState;
 		}
+
+		//Thread.Sleep(1000);
 
 		return result;
 	}

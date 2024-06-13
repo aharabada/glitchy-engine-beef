@@ -1091,7 +1091,22 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawSprite(Matrix transform, SpriteRendererComponent* spriteRenderer, uint32 entityId)
 		{
-			DrawQuad(transform, spriteRenderer.Sprite.Get() ?? s_whiteTexture, spriteRenderer.Color, spriteRenderer.UvTransform, entityId);
+			Asset asset = Content.GetAsset(spriteRenderer.Sprite);
+
+			Texture2D spriteTexture = null;
+			float4 uvTransform = spriteRenderer.UvTransform;
+
+			if (Texture2D texture = asset as Texture2D)
+			{
+				spriteTexture = texture;
+			}
+			else if (Sprite sprite = asset as Sprite)
+			{
+				spriteTexture = Content.GetAsset<Texture2D>(sprite.TextureHandle);
+				uvTransform = sprite.TextureCoordinates;
+			}
+
+			DrawQuad(transform, spriteTexture ?? s_whiteTexture, spriteRenderer.Color, uvTransform, entityId);
 		}
 
 		public static void DrawCircle(Matrix transform, CircleRendererComponent* spriteRenderer, uint32 entityId)
