@@ -216,7 +216,7 @@ namespace GlitchyEngine.World
 		}
 
 		/// Copy POD components that don't need any extra care.
-		private static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new
+		public static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new
 		{
 			if (source.TryGetComponent<TComponent>(let sourceComponent))
 			{
@@ -232,7 +232,7 @@ namespace GlitchyEngine.World
 		}
 
 		/// Copy components that have custom copy methods.
-		private static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new, ICopyComponent<TComponent>
+		public static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new, ICopyComponent<TComponent>
 		{
 			if (source.TryGetComponent<TComponent>(let sourceComponent))
 			{

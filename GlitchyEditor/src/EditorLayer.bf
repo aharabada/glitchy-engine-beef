@@ -362,7 +362,7 @@ namespace GlitchyEditor
 
 		private void InitEditor()
 		{
-			_editor = new Editor(_editorScene, _contentManager, _thumbnailManager);
+			_editor = new Editor(_editorScene, _editorScene, _contentManager, _thumbnailManager);
 			_editor.SceneViewportWindow.ViewportSizeChanged.Add(new (s, e) => EditorViewportSizeChanged(s, e));
 			_editor.GameViewportWindow.ViewportSizeChanged.Add(new (s, e) => GameViewportSizeChanged(s, e));
 			_editor.CurrentCamera = &_camera;
@@ -983,6 +983,7 @@ namespace GlitchyEditor
 
 			SetReference!(_editorScene, scene);
 			_editor.CurrentScene = _editorScene;
+			_editor.EditorScene = _editorScene;
 			SetReference!(_activeScene, _editorScene);
 
 			if (_editorScene != null)

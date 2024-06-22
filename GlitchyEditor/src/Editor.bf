@@ -11,7 +11,8 @@ namespace GlitchyEditor
 {
 	class Editor
 	{
-		private Scene _scene;
+		private Scene _activeScene;
+		private Scene _editorScene;
 
 		private EditorContentManager _contentManager;
 		private AssetThumbnailManager _thumbnailManager;
@@ -31,15 +32,21 @@ namespace GlitchyEditor
 
 		public Scene CurrentScene
 		{
-			get => _scene;
+			get => _activeScene;
 			set
 			{
-				if (_scene == value)
+				if (_activeScene == value)
 					return;
 
-				_scene = value;
-				_entityHierarchyWindow.SetContext(_scene);
+				_activeScene = value;
+				_entityHierarchyWindow.SetContext(_activeScene);
 			}
+		}
+
+		public Scene EditorScene
+		{
+			get => _editorScene;
+			set => _editorScene = value;
 		}
 
 		public EditorContentManager ContentManager => _contentManager;
@@ -73,12 +80,13 @@ namespace GlitchyEditor
 		public static Editor Instance => s_Instance;
 
 		/// Creates a new editor for the given world
-		public this(Scene scene, EditorContentManager contentManager, AssetThumbnailManager thumbnailManager)
+		public this(Scene activeScene, Scene editorScene, EditorContentManager contentManager, AssetThumbnailManager thumbnailManager)
 		{
 			Log.EngineLogger.AssertDebug(s_Instance == null, "Cannot create a second instance of a singleton.");
 			s_Instance = this;
 
-			_scene = scene;
+			_activeScene = activeScene;
+			_editorScene = editorScene;
 			_contentManager = contentManager;
 			_thumbnailManager = thumbnailManager;
 
@@ -94,7 +102,7 @@ namespace GlitchyEditor
 		{
 			_sceneViewportWindow = new EditorViewportWindow(this);
 			_gameViewportWindow = new GameViewportWindow(this);
-			_entityHierarchyWindow = new EntityHierarchyWindow(this, _scene);
+			_entityHierarchyWindow = new EntityHierarchyWindow(this, _activeScene);
 			_componentEditWindow = new ComponentEditWindow();
 			_contentBrowserWindow = new ContentBrowserWindow(this, (.)Application.Instance.ContentManager, _thumbnailManager);
 			_inspectorWindow = new InspectorWindow(this);

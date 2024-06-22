@@ -31,6 +31,7 @@ namespace GlitchyEditor
 		public SubTexture2D File_Shader ~ _.ReleaseRef();
 		public SubTexture2D Entity_Visible ~ _.ReleaseRef();
 		public SubTexture2D Entity_Hidden ~ _.ReleaseRef();
+		public SubTexture2D Save ~ _.ReleaseRef();
 
 		public static EditorIcons Instance => _editorIcons;
 
@@ -67,6 +68,7 @@ namespace GlitchyEditor
 			File_Shader = GetNextGridTexture(ref pen, iconSize);
 			Entity_Visible = GetNextGridTexture(ref pen, iconSize);
 			Entity_Hidden = GetNextGridTexture(ref pen, iconSize);
+			Save = GetNextGridTexture(ref pen, iconSize);
 		}
 
 		public ~this()

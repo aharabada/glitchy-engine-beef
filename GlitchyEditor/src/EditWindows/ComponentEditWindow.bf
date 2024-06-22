@@ -116,9 +116,17 @@ namespace GlitchyEditor.EditWindows
 
 			bool nodeOpen = ImGui.CollapsingHeader(header.CStr(), .DefaultOpen | .AllowOverlap | .Framed | .SpanFullWidth);
 
+			ImGui.PushID(header.CStr());
+			defer { ImGui.PopID(); }
+
+			float positionX = ImGui.GetWindowContentRegionMax().x;
+			
+			float2 buttonSize = (.)ImGui.CalcTextSize("...");
+
 			if (showComponentContextMenu != null)
 			{
-				ImGui.SameLine(ImGui.GetWindowContentRegionMax().x - ImGui.CalcTextSize("...").x - 2 * ImGui.GetStyle().FramePadding.x);
+				positionX -= buttonSize.X + 2 * ImGui.GetStyle().FramePadding.x;
+				ImGui.SameLine(positionX);
 
 				if (ImGui.SmallButton("..."))
 				{
@@ -131,6 +139,79 @@ namespace GlitchyEditor.EditWindows
 					
 					ImGui.EndPopup();
 				}
+			}
+
+			if (ImGui.BeginPopupModal("Create new entity?###CopyNewEntityToEditor"))
+			{
+				//ImGui.Text("This entity only exists in play mode. Do you want to copy only this component, or all components?");
+				ImGui.Text("This entity only exists in play mode. Saving will create an entity that only contains this component.");
+
+				//if (ImGui.Button("Copy only this component"))
+				if (ImGui.Button("Ok"))
+				{
+					Entity editorEntity = Editor.Instance.EditorScene.CreateEntity(entity.Name, entity.UUID);
+
+					Scene.CopyComponent<TComponent>(entity, editorEntity);
+
+					if (typeof(TComponent) == typeof(ScriptComponent))
+					{
+						// TODO: Copy script data into editor
+						// TODO: Somehow get the scriptserializer used to serialize the editor scene
+						//scriptSerializer.SerializeScriptInstance(((ScriptComponent*)component).Instance);
+					}
+
+					ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.SameLine();
+
+				// TODO!
+				/*if (ImGui.Button("Copy all components"))
+				{
+					ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.SameLine();
+				*/
+
+				if (ImGui.Button("Cancel"))
+				{
+					ImGui.CloseCurrentPopup();
+				}
+
+				ImGui.EndPopup();
+			}
+
+			if (ScriptEngine.ApplicationInfo.IsInPlayMode)
+			{
+				positionX -= buttonSize.X + 1 * ImGui.GetStyle().FramePadding.x;
+				ImGui.SameLine(positionX);
+
+				float2 imageButtonSize = (.)buttonSize;
+				imageButtonSize.X -= ImGui.GetStyle().FramePadding.x * 2;
+				imageButtonSize.Y -= ImGui.GetStyle().FramePadding.y * 2;
+
+				//if (ImGui.ImageButton("save", EditorIcons.Instance.Save, (.)imageButtonSize))
+				if (ImGui.SmallButton("Save"))
+				{
+					if (Entity editorEntity = Editor.Instance.EditorScene.GetEntityByID(entity.UUID))
+					{
+						Scene.CopyComponent<TComponent>(entity, editorEntity);
+
+						if (typeof(TComponent) == typeof(ScriptComponent))
+						{
+							// TODO: Copy script data into editor
+							// TODO: Somehow get the scriptserializer used to serialize the editor scene
+							//scriptSerializer.SerializeScriptInstance(((ScriptComponent*)component).Instance);
+						}
+					}
+					else
+					{
+						ImGui.OpenPopup("###CopyNewEntityToEditor");
+					}
+				}
+
+				ImGui.AttachTooltip("Save component to edit mode.");
 			}
 
 			if (nodeOpen && ImGui.BeginPropertyTable("properties", TableId))
