@@ -353,7 +353,7 @@ namespace GlitchyEditor.EditWindows
 			}
 			
 			ImGui.PropertyTableStartNewProperty("Rotation");
-			if (ImGui.Float3Editor("##Rotation", ref rotationEuler, resetValues: .Zero, dragSpeed: 0.1f, componentEnabled: componentEditable, format: .("%.3f°",)))
+			if (ImGui.Float3Editor("##Rotation", ref rotationEuler, resetValues: .Zero, dragSpeed: 0.1f, componentEnabled: componentEditable, format: .("%.3g°",)))
 			{
 				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
 				
@@ -405,46 +405,46 @@ namespace GlitchyEditor.EditWindows
 			{
 				ImGui.PropertyTableStartNewProperty("Fov Y");
 				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
-				if (ImGui.DragFloat("##Fov Y", &fovY, 0.1f, format: "%.3f°"))
+				if (ImGui.DragFloat("##Fov Y", &fovY, 0.1f, format: "%.3g°"))
 					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
 				
 				ImGui.PropertyTableStartNewProperty("Near");
 				float near = camera.PerspectiveNearPlane;
-				if (ImGui.DragFloat("##Near", &near, 0.1f))
+				if (ImGui.DragFloat("##Near", &near, 0.1f, format: "%.3g"))
 					camera.PerspectiveNearPlane = near;
 				
 				ImGui.PropertyTableStartNewProperty("Far");
 				float far = camera.PerspectiveFarPlane;
-				if (ImGui.DragFloat("##Far", &far, 0.1f))
+				if (ImGui.DragFloat("##Far", &far, 0.1f, format: "%.3g"))
 					camera.PerspectiveFarPlane = far;
 			}
 			else if (camera.ProjectionType == .InfinitePerspective)
 			{
 				ImGui.PropertyTableStartNewProperty("Vertical FOV");
 				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
-				if (ImGui.DragFloat("##Vertical FOV", &fovY, 0.1f, format: "%.3f°"))
+				if (ImGui.DragFloat("##Vertical FOV", &fovY, 0.1f, format: "%.3g°"))
 					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
 				
 				ImGui.PropertyTableStartNewProperty("Near");
 				float near = camera.PerspectiveNearPlane;
-				if (ImGui.DragFloat("##Near", &near, 0.1f))
+				if (ImGui.DragFloat("##Near", &near, 0.1f, format: "%.3g"))
 					camera.PerspectiveNearPlane = near;
 			}
 			else if (camera.ProjectionType == .Orthographic)
 			{
 				ImGui.PropertyTableStartNewProperty("Size");
 				float size = camera.OrthographicHeight;
-				if (ImGui.DragFloat("##Size", &size, 0.1f))
+				if (ImGui.DragFloat("##Size", &size, 0.1f, format: "%.3g"))
 					camera.OrthographicHeight = size;
 				
 				ImGui.PropertyTableStartNewProperty("Near");
 				float near = camera.OrthographicNearPlane;
-				if (ImGui.DragFloat("##Near", &near, 0.1f))
+				if (ImGui.DragFloat("##Near", &near, 0.1f, format: "%.3g"))
 					camera.OrthographicNearPlane = near;
 				
 				ImGui.PropertyTableStartNewProperty("Far");
 				float far = camera.OrthographicFarPlane;
-				if (ImGui.DragFloat("##Far", &far, 0.1f))
+				if (ImGui.DragFloat("##Far", &far, 0.1f, format: "%.3g"))
 					camera.OrthographicFarPlane = far;
 			}
 			
@@ -457,7 +457,7 @@ namespace GlitchyEditor.EditWindows
 			{
 				ImGui.PropertyTableStartNewProperty("Aspect Ratio");
 				float aspect = camera.AspectRatio;
-				if (ImGui.DragFloat("##Aspect Ratio", &aspect, 0.1f))
+				if (ImGui.DragFloat("##Aspect Ratio", &aspect, 0.1f, format: "%.3g"))
 					camera.AspectRatio = aspect;
 			}
 		}
@@ -522,7 +522,7 @@ namespace GlitchyEditor.EditWindows
 			ImGui.Float4Editor("##UV Transform", ref circleRendererComponent.UvTransform, resetValues: float4(0, 0, 1, 1));
 			
 			ImGui.PropertyTableStartNewProperty("Inner Radius");
-			ImGui.DragFloat("##Inner Radius", &circleRendererComponent.InnerRadius, 0.1f, 0.0f, 1.0f);
+			ImGui.DragFloat("##Inner Radius", &circleRendererComponent.InnerRadius, 0.1f, 0.0f, 1.0f, format: "%.3g");
 		}
 		
 		static int InputTextCallback(ImGui.InputTextCallbackData* data)
@@ -583,7 +583,7 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.PropertyTableStartNewProperty("Font Size");
 
-			if (ImGui.DragFloat("##fontSize", &textRendererComponent.FontSize))
+			if (ImGui.DragFloat("##fontSize", &textRendererComponent.FontSize, format: "%.3g"))
 			{
 				textRendererComponent.NeedsRebuild = true;
 			}
@@ -667,7 +667,7 @@ namespace GlitchyEditor.EditWindows
 
 			float gravityScale = rigidBodyComponent.GravityScale;
 			ImGui.PropertyTableStartNewProperty("Gravity Scale");
-			if (ImGui.DragFloat("##Gravity Scale", &gravityScale))
+			if (ImGui.DragFloat("##Gravity Scale", &gravityScale, format: "%.3g"))
 			{
 				rigidBodyComponent.GravityScale = gravityScale;
 			}
@@ -687,22 +687,22 @@ namespace GlitchyEditor.EditWindows
 			
 			float density = boxCollider.Density;
 			ImGui.PropertyTableStartNewProperty("Density");
-			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f, format: "%.3g"))
 				boxCollider.Density = density;
 			
 			float friction = boxCollider.Friction;
 			ImGui.PropertyTableStartNewProperty("Friction");
-			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f, format: "%.3g"))
 				boxCollider.Friction = friction;
 
 			float restitution = boxCollider.Restitution;
 			ImGui.PropertyTableStartNewProperty("Restitution");
-			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f, format: "%.3g"))
 				boxCollider.Restitution = restitution;
 
 			float restitutionThreshold = boxCollider.RestitutionThreshold;
 			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
-			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, format: "%.3g"))
 				boxCollider.RestitutionThreshold = restitutionThreshold;
 		}
 
@@ -715,27 +715,27 @@ namespace GlitchyEditor.EditWindows
 
 			float radius = circleCollider.Radius;
 			ImGui.PropertyTableStartNewProperty("Radius");
-			if (ImGui.DragFloat("##Radius", &radius, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Radius", &radius, 0.0f, 0.1f, format: "%.3g"))
 				circleCollider.Radius = radius;
 			
 			float density = circleCollider.Density;
 			ImGui.PropertyTableStartNewProperty("Density");
-			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f, format: "%.3g"))
 				circleCollider.Density = density;
 			
 			float friction = circleCollider.Friction;
 			ImGui.PropertyTableStartNewProperty("Friction");
-			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f, format: "%.3g"))
 				circleCollider.Friction = friction;
 
 			float restitution = circleCollider.Restitution;
 			ImGui.PropertyTableStartNewProperty("Restitution");
-			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f, format: "%.3g"))
 				circleCollider.Restitution = restitution;
 
 			float restitutionThreshold = circleCollider.RestitutionThreshold;
 			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
-			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, format: "%.3g"))
 				circleCollider.RestitutionThreshold = restitutionThreshold;
 		}
 
@@ -806,22 +806,22 @@ namespace GlitchyEditor.EditWindows
 
 			float density = polygonCollider.Density;
 			ImGui.PropertyTableStartNewProperty("Density");
-			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f, format: "%.3g"))
 				polygonCollider.Density = density;
 			
 			float friction = polygonCollider.Friction;
 			ImGui.PropertyTableStartNewProperty("Friction");
-			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f, format: "%.3g"))
 				polygonCollider.Friction = friction;
 
 			float restitution = polygonCollider.Restitution;
 			ImGui.PropertyTableStartNewProperty("Restitution");
-			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f, format: "%.3g"))
 				polygonCollider.Restitution = restitution;
 
 			float restitutionThreshold = polygonCollider.RestitutionThreshold;
 			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
-			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f))
+			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, format: "%.3g"))
 				polygonCollider.RestitutionThreshold = restitutionThreshold;
 		}
 
@@ -894,7 +894,7 @@ namespace GlitchyEditor.EditWindows
 
 			float illuminance = light.Illuminance;
 			ImGui.PropertyTableStartNewProperty("Illuminance");
-			if (ImGui.DragFloat("##Illuminance", &illuminance, 0.1f, 0.0f, float.MaxValue))
+			if (ImGui.DragFloat("##Illuminance", &illuminance, 0.1f, 0.0f, float.MaxValue, format: "%.3g"))
 				light.Illuminance = illuminance;
 		}
 

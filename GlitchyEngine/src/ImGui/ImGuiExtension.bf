@@ -324,7 +324,7 @@ namespace ImGui
 
 				SameLine();
 
-				char8* format = "%.3f";
+				char8* format = "%.3g";
 				
 				if (!numberFormat[i].IsWhiteSpace)
 				{
