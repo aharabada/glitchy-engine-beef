@@ -52,6 +52,8 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
+		public StringView WindowTitleWithId => _windowTitleId;
+
 		public this(Editor editor, StringView windowTitle = "Window")
 		{
 			_windowId = ++_nextWindowId;

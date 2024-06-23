@@ -16,6 +16,7 @@ enum SelectedObject
 	case None;
 	case Asset(AssetHandle AssetHandle);
 	case Entity(UUID entityId);
+	case Component(UUID entityId, Type componentType);
 }
 
 class InspectorWindow : EditorWindow
@@ -120,6 +121,10 @@ class InspectorWindow : EditorWindow
 		{
 			ShowEntityProperties(entityId, editor);
 		}
+		else if (object case .Component(let entityId, let componentType))
+		{
+			ShowEntityProperties(entityId, editor, componentType);
+		}
 	}
 
 	private static void ShowAssetProperties(AssetHandle assetHandle, Editor editor)
@@ -160,13 +165,13 @@ class InspectorWindow : EditorWindow
 			ImGui.EndDisabled();
 	}
 
-	private static void ShowEntityProperties(UUID entityId, Editor editor)
+	private static void ShowEntityProperties(UUID entityId, Editor editor, Type componentType = null)
 	{
 		Result<Entity> entityResult = editor.CurrentScene.GetEntityByID(entityId);
 
 		if (entityResult case .Ok(let entity))
 		{
-			ComponentEditWindow.ShowComponents(entity);
+			ComponentEditWindow.ShowComponents(entity, componentType);
 		}
 		else
 		{

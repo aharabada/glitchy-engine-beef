@@ -19,7 +19,7 @@ namespace GlitchyEditor.EditWindows
 	{
 		private static uint32 TableId;
 
-		public static void ShowComponents(Entity entity)
+		public static void ShowComponents(Entity entity, Type componentType = null)
 		{
 			float cellPaddingY = ImGui.GetTextLineHeight() / 3.0f;
 
@@ -27,28 +27,28 @@ namespace GlitchyEditor.EditWindows
 
 			TableId = ImGui.GetID("properties");
 
-			if (ImGui.BeginTableEx("properties", TableId, 2, .SizingStretchSame | .BordersInner | .Resizable))
+			if (componentType == null && ImGui.BeginTableEx("properties", TableId, 2, .SizingStretchSame | .BordersInner | .Resizable))
 			{
 				ShowNameComponentEditor(entity);
 
 				ImGui.EndTable();
 			}
 
-			ShowComponentEditor<TransformComponent>("Transform", entity, => ShowTransformComponentEditor);
-			ShowComponentEditor<CameraComponent>("Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
+			ShowComponentEditor<TransformComponent>(componentType, "Transform", entity, => ShowTransformComponentEditor);
+			ShowComponentEditor<CameraComponent>(componentType, "Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
 			
-			ShowComponentEditor<SpriteRendererComponent>("Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriteRendererComponent>);
-			ShowComponentEditor<CircleRendererComponent>("Circle Renderer", entity, => ShowCircleRendererComponentEditor, => ShowComponentContextMenu<CircleRendererComponent>);
-			ShowComponentEditor<TextRendererComponent>("Text Renderer", entity, => ShowTextRendererComponentEditor, => ShowComponentContextMenu<TextRendererComponent>);
+			ShowComponentEditor<SpriteRendererComponent>(componentType, "Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriteRendererComponent>);
+			ShowComponentEditor<CircleRendererComponent>(componentType, "Circle Renderer", entity, => ShowCircleRendererComponentEditor, => ShowComponentContextMenu<CircleRendererComponent>);
+			ShowComponentEditor<TextRendererComponent>(componentType, "Text Renderer", entity, => ShowTextRendererComponentEditor, => ShowComponentContextMenu<TextRendererComponent>);
 
-			ShowComponentEditor<MeshRendererComponent>("Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
-			ShowComponentEditor<LightComponent>("Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
-			ShowComponentEditor<MeshComponent>("Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
+			ShowComponentEditor<MeshRendererComponent>(componentType, "Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
+			ShowComponentEditor<LightComponent>(componentType, "Light", entity, => ShowLightComponentEditor, => ShowComponentContextMenu<LightComponent>);
+			ShowComponentEditor<MeshComponent>(componentType, "Mesh", entity, => ShowMeshComponentEditor, => ShowComponentContextMenu<MeshComponent>);
 
-			ShowComponentEditor<Rigidbody2DComponent>("Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
-			ShowComponentEditor<BoxCollider2DComponent>("Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
-			ShowComponentEditor<CircleCollider2DComponent>("Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
-			ShowComponentEditor<PolygonCollider2DComponent>("Polygon collider 2D", entity, => ShowPolygonCollider2DComponentEditor, => ShowComponentContextMenu<PolygonCollider2DComponent>);
+			ShowComponentEditor<Rigidbody2DComponent>(componentType, "Rigidbody 2D", entity, => ShowRigidBody2DComponentEditor, => ShowComponentContextMenu<Rigidbody2DComponent>);
+			ShowComponentEditor<BoxCollider2DComponent>(componentType, "Box collider 2D", entity, => ShowBoxCollider2DComponentEditor, => ShowComponentContextMenu<BoxCollider2DComponent>);
+			ShowComponentEditor<CircleCollider2DComponent>(componentType, "Circle collider 2D", entity, => ShowCircleCollider2DComponentEditor, => ShowComponentContextMenu<CircleCollider2DComponent>);
+			ShowComponentEditor<PolygonCollider2DComponent>(componentType, "Polygon collider 2D", entity, => ShowPolygonCollider2DComponentEditor, => ShowComponentContextMenu<PolygonCollider2DComponent>);
 
 			ScriptComponent:
 			{
@@ -59,12 +59,15 @@ namespace GlitchyEditor.EditWindows
 					scriptComponentName = scope:ScriptComponent $"Script ({scriptComponent.ScriptClassName})";
 				}
 
-				ShowComponentEditor<ScriptComponent>(scriptComponentName, entity, => ShowScriptComponentEditor, => ShowComponentContextMenu<ScriptComponent>);
+				ShowComponentEditor<ScriptComponent>(componentType, scriptComponentName, entity, => ShowScriptComponentEditor, => ShowComponentContextMenu<ScriptComponent>);
 			}
 
 			ImGui.PopStyleVar();
 
-			ShowAddComponentButton(entity);
+			if (componentType == null)
+			{
+				ShowAddComponentButton(entity);
+			}
 		}
 
 		public static void DrawSceneGUI(Entity entity)
@@ -107,18 +110,66 @@ namespace GlitchyEditor.EditWindows
 				entity.RemoveComponent<TComponent>();
 		}
 
-		private static void ShowComponentEditor<TComponent>(String header, Entity entity, function void(Entity, TComponent*) showComponentEditor, function void(Entity, TComponent*) showComponentContextMenu = null) where TComponent: struct, new
+		private static void ShowOnlyComponent<TComponent>(UUID entityId, function void(Entity, TComponent*) showComponentEditor) where TComponent: struct, new
 		{
-			if (!entity.HasComponent<TComponent>())
+			if (Entity entity = Editor.Instance.CurrentScene.GetEntityByID(entityId))
+			{
+				if (entity.TryGetComponent<TComponent>(let component))
+				{
+					if (ImGui.BeginPropertyTable("properties", TableId))
+					{
+						if (entity.TryGetComponent<TComponent>(let actualComponent))
+							showComponentEditor(entity, actualComponent);
+		
+						ImGui.EndTable();
+					}
+				}
+				else
+				{
+					ImGui.TextWrapped($"ERROR!\n\nEntity {entity.Name} doesn't have a component of type {nameof(TComponent)}.");
+				}
+			}
+			else
+			{
+				ImGui.TextWrapped($"ERROR!\n\nEntity {entityId} doesn't exist.");
+			}
+		}
+
+		static PropertiesWindow window = null;
+
+		private static void ShowComponentEditor<TComponent>(Type soloType, String header, Entity entity, function void(Entity, TComponent*) showComponentEditor, function void(Entity, TComponent*) showComponentContextMenu = null) where TComponent: struct, new
+		{
+			if ((soloType != null && soloType != typeof(TComponent)) || !entity.HasComponent<TComponent>())
 				return;
 
 			TComponent* component = entity.GetComponent<TComponent>();
 
-			bool nodeOpen = ImGui.CollapsingHeader(header.CStr(), .DefaultOpen | .AllowOverlap | .Framed | .SpanFullWidth);
+			bool nodeOpen = (soloType != null) || ImGui.CollapsingHeader(header.CStr(), .DefaultOpen | .AllowOverlap | .Framed | .SpanFullWidth);
 			
 			ImGui.PushID(header.CStr());
 			defer { ImGui.PopID(); }
 			
+			if (ImGui.IsItemActive() && ImGui.IsMouseDragging(.Left) && ImGui.GetIO().KeyAlt && window == null)
+			{
+				window = new PropertiesWindow(Editor.Instance, .Component(entity.UUID, typeof(TComponent)));
+				window.WindowTitle = header;
+			}
+			else if (!ImGui.GetIO().KeyAlt)
+			{
+				window = null;
+			}
+
+			if (window != null)
+			{
+				ImGui.SetWindowFocus(window.WindowTitleWithId.ToScopeCStr!());
+
+				ImGui.Vec2 position = ImGui.GetMousePos();
+				position.y -= ImGui.GetTextLineHeight() / 2.0f;
+				position.x -= 100.0f;
+
+				ImGui.SetWindowPos(window.WindowTitleWithId.ToScopeCStr!(), position);
+			}
+
 			if (showComponentContextMenu != null && ImGui.IsItemClicked(.Right))
 			{
 				ImGui.OpenPopup("component_popup");
