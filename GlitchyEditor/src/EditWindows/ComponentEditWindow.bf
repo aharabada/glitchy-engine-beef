@@ -115,20 +115,28 @@ namespace GlitchyEditor.EditWindows
 			TComponent* component = entity.GetComponent<TComponent>();
 
 			bool nodeOpen = ImGui.CollapsingHeader(header.CStr(), .DefaultOpen | .AllowOverlap | .Framed | .SpanFullWidth);
-
+			
 			ImGui.PushID(header.CStr());
 			defer { ImGui.PopID(); }
+			
+			if (showComponentContextMenu != null && ImGui.IsItemClicked(.Right))
+			{
+				ImGui.OpenPopup("component_popup");
+			}
 
 			float positionX = ImGui.GetWindowContentRegionMax().x;
 			
-			float2 buttonSize = (.)ImGui.CalcTextSize("...");
+			float2 buttonSize = ImGui.GetTextLineHeight().XX;
+			
+			ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
 
 			if (showComponentContextMenu != null)
 			{
-				positionX -= buttonSize.X + 2 * ImGui.GetStyle().FramePadding.x;
+				positionX -= buttonSize.X + ImGui.GetStyle().FramePadding.x;
 				ImGui.SameLine(positionX);
+				positionX -= ImGui.GetStyle().FramePadding.x;
 
-				if (ImGui.SmallButton("..."))
+				if (ImGui.ImageButton("save", EditorIcons.Instance.Icon_ContextMenu, (.)buttonSize))
 				{
 					ImGui.OpenPopup("component_popup");
 				}
@@ -141,11 +149,40 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 
+			if (ScriptEngine.ApplicationInfo.IsInPlayMode)
+			{
+				positionX -= buttonSize.X + ImGui.GetStyle().FramePadding.x;
+				ImGui.SameLine(positionX);
+
+				if (ImGui.ImageButton("save", EditorIcons.Instance.Icon_Save, (.)buttonSize))
+				{
+					if (Entity editorEntity = Editor.Instance.EditorScene.GetEntityByID(entity.UUID))
+					{
+						Scene.CopyComponent<TComponent>(entity, editorEntity);
+
+						if (typeof(TComponent) == typeof(ScriptComponent))
+						{
+							// TODO: Copy script data into editor
+							// TODO: Somehow get the scriptserializer used to serialize the editor scene
+							//scriptSerializer.SerializeScriptInstance(((ScriptComponent*)component).Instance);
+						}
+					}
+					else
+					{
+						ImGui.OpenPopup("###CopyNewEntityToEditor");
+					}
+				}
+
+				ImGui.AttachTooltip("Save the component to edit mode");
+			}
+
+			ImGui.PopStyleColor();
+			
 			if (ImGui.BeginPopupModal("Create new entity?###CopyNewEntityToEditor"))
 			{
 				//ImGui.Text("This entity only exists in play mode. Do you want to copy only this component, or all components?");
-				ImGui.Text("This entity only exists in play mode. Saving will create an entity that only contains this component.");
-
+				ImGui.Text("This entity only exists in play mode.\nSaving will create an entity that only contains this component in edit mode.");
+				
 				//if (ImGui.Button("Copy only this component"))
 				if (ImGui.Button("Ok"))
 				{
@@ -180,38 +217,6 @@ namespace GlitchyEditor.EditWindows
 				}
 
 				ImGui.EndPopup();
-			}
-
-			if (ScriptEngine.ApplicationInfo.IsInPlayMode)
-			{
-				positionX -= buttonSize.X + 1 * ImGui.GetStyle().FramePadding.x;
-				ImGui.SameLine(positionX);
-
-				float2 imageButtonSize = (.)buttonSize;
-				imageButtonSize.X -= ImGui.GetStyle().FramePadding.x * 2;
-				imageButtonSize.Y -= ImGui.GetStyle().FramePadding.y * 2;
-
-				//if (ImGui.ImageButton("save", EditorIcons.Instance.Save, (.)imageButtonSize))
-				if (ImGui.SmallButton("Save"))
-				{
-					if (Entity editorEntity = Editor.Instance.EditorScene.GetEntityByID(entity.UUID))
-					{
-						Scene.CopyComponent<TComponent>(entity, editorEntity);
-
-						if (typeof(TComponent) == typeof(ScriptComponent))
-						{
-							// TODO: Copy script data into editor
-							// TODO: Somehow get the scriptserializer used to serialize the editor scene
-							//scriptSerializer.SerializeScriptInstance(((ScriptComponent*)component).Instance);
-						}
-					}
-					else
-					{
-						ImGui.OpenPopup("###CopyNewEntityToEditor");
-					}
-				}
-
-				ImGui.AttachTooltip("Save component to edit mode.");
 			}
 
 			if (nodeOpen && ImGui.BeginPropertyTable("properties", TableId))

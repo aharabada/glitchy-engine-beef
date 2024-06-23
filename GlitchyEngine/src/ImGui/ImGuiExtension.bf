@@ -113,17 +113,17 @@ namespace ImGui
 	
 		public static extern void Image(TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 tint_col = Vec4.Ones, Vec4 border_col = Vec4.Zero);
 	
-		public static bool ImageButton(char8* id, SubTexture2D subTexture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
+		public static bool ImageButton(char8* id, SubTexture2D subTexture, Vec2 imageSize, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
 		{
 			if (uv0 != .Zero || uv1 != .Ones)
 				Runtime.NotImplemented();
 	
 			float2 v = (.)subTexture.TexCoords.XY + subTexture.TexCoords.ZW;
 	
-			return ImageButton(id, subTexture.Texture.GetViewBinding(), size, (.)subTexture.TexCoords.XY, (.)v, bg_col, tint_col);
+			return ImageButton(id, subTexture.Texture.GetViewBinding(), imageSize, (.)subTexture.TexCoords.XY, (.)v, bg_col, tint_col);
 		}
 
-		public static extern bool ImageButton(char8* id, TextureViewBinding textureViewBinding, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones);
+		public static extern bool ImageButton(char8* id, TextureViewBinding textureViewBinding, Vec2 imageSize, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones);
 
 		public static bool ImageButtonEx(uint32 id, SubTexture2D subTexture, Vec2 size, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
 		{
