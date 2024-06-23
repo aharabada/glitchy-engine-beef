@@ -194,6 +194,9 @@ class EditorSettings
 	[Setting("Editor", "Switch to Editor on pause", "If checked the editor will automatically switch to the \"Editor\" window when the game is being paused."), BonInclude]
 	public bool SwitchToEditorOnPause = false;
 	
+	[Setting("Editor", "Clear log on play", "If checked the message log will be cleared when the play-mode is entered."), BonInclude]
+	public bool ClearLogOnPlay = true;
+
 	[BonInclude]
 	private List<String> _recentProjects ~ DeleteContainerAndItems!(_);
 

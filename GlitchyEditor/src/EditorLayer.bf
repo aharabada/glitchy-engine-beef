@@ -818,6 +818,9 @@ namespace GlitchyEditor
 		private void OnScenePlay()
 		{
 			Log.EngineLogger.AssertDebug(_scriptSerializer.SerializedObjectCount == 0, "Somehow some entities are serialized.");
+			
+			if (Application.Instance.Settings.EditorSettings.ClearLogOnPlay)
+				Editor.Instance.LogWindow.ClearLog();
 
 			_scriptSerializer.SerializeScriptInstances();
 			
