@@ -353,7 +353,7 @@ namespace GlitchyEditor.EditWindows
 			}
 			
 			ImGui.PropertyTableStartNewProperty("Rotation");
-			if (ImGui.Float3Editor("##Rotation", ref rotationEuler, resetValues: .Zero, dragSpeed: 0.1f, componentEnabled: componentEditable, format: .("%.3g°",)))
+			if (ImGui.Float3Editor("##Rotation", ref rotationEuler, resetValues: .Zero, dragSpeed: 0.1f, componentEnabled: componentEditable, format: .("0.#####°",)))
 			{
 				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
 				

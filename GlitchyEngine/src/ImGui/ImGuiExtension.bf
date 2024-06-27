@@ -324,22 +324,32 @@ namespace ImGui
 
 				SameLine();
 
-				char8* format = "%.3g";
+				StringView format = "0.#####";
 				
 				if (!numberFormat[i].IsWhiteSpace)
 				{
 					// Look if we have a format for the specific index
-					format = numberFormat[i].ToScopeCStr!:componentLoop();
+					format = numberFormat[i];
 				}
 				else if (!numberFormat[0].IsWhiteSpace)
 				{
 					// Try to take the first number format
-					format = numberFormat[0].ToScopeCStr!:componentLoop();
+					format = numberFormat[0];
+				}
+
+				if (!format.StartsWith("%"))
+				{
+					String str = scope:componentLoop .();
+
+					value[i].ToString(str, scope .(format), null);
+
+					format = str;
 				}
 
 				PushItemWidth(dragFloatWidth);
 
-				if (DragFloat(componentIds[i], &value[i], dragSpeed, minValue[i], maxValue[i], format))
+				if (DragFloat(componentIds[i], &value[i], dragSpeed, minValue[i], maxValue[i],
+					format.ToScopeCStr!:componentLoop(), flags: .NoRoundToFormat))
 				{
 					changed = true;
 				}

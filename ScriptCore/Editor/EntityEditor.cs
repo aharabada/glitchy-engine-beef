@@ -276,6 +276,27 @@ internal class EntityEditor
 
             var value = (T)reference!;
 
+            if (format == null && value is float || value is double || value is Half)
+            {
+                format = "0.#####";
+            }
+
+            if (!format.StartsWith("%"))
+            {
+                if (value is float f)
+                {
+                    format = f.ToString(format);
+                }
+                else if (value is double d)
+                {
+                    format = d.ToString(format);
+                }
+                else if (value is Half h)
+                {
+                    format = h.ToString(format);
+                }
+            }
+
             if (range?.Slider == true)
             {
                 if (ImGui.SliderScalar(fieldId, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max), format))
