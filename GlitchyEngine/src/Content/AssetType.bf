@@ -4,5 +4,6 @@ enum AssetType : uint16
 {
 	Unknown,
 	Texture,
-	Sprite
+	Sprite,
+	Shader
 }
