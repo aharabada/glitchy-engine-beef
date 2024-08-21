@@ -38,6 +38,8 @@ namespace GlitchyEngine.Renderer
 		}
 
 		// TODO: finish implementation (like BufferCollection)
+		public ResourceEntry* this[int idx] => _idxToBuf[idx];
+		public ResourceEntry* this[String name] => _strToBuf[name];
 
 		public void Add(String name, uint32 index, TextureViewBinding texture, TextureDimension dimension)
 		{

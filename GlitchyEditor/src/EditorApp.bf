@@ -45,7 +45,7 @@ namespace GlitchyEditor
 			
 			_contentManager.RegisterAssetImporter<ShaderImporter>();
 			_contentManager.RegisterAssetProcessor<ShaderProcessor>();
-			//_contentManager.RegisterAssetExporter<ShaderEx>();
+			_contentManager.RegisterAssetExporter<ShaderExporter>();
 
 			_contentManager.SetGlobalAssetCacheDirectory(".cache");
 			_contentManager.SetResourcesDirectory("Resources");

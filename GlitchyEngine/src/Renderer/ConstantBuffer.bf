@@ -74,11 +74,26 @@ namespace GlitchyEngine.Renderer
 
 		public BufferVariableCollection Variables => _variables;
 
+		/// Gets a span to the rawData held on the CPU.
+		public Span<uint8> RawData => rawData;
+
 		protected this() {}
+
+		public this(StringView name, int64 size)
+		{
+			_name = new String(name);
+			rawData = new uint8[size];
+			ConstructBuffer();
+		}
 
 		protected internal void AddVariable(BufferVariable ownVariable)
 		{
 			_variables.Add(ownVariable);
+		}
+
+		public void AddVariable(StringView name, uint64 offset, uint64 sizeInBytes, bool isUsed, ShaderVariableType type, uint8 rows, uint8 columns, uint64 arraySize)
+		{
+			_variables.Add(new BufferVariable(name, this, type, columns, rows, (uint32)offset, (uint32)sizeInBytes, (uint32)arraySize, isUsed));
 		}
 
 		/**
@@ -96,9 +111,9 @@ namespace GlitchyEngine.Renderer
 		/**
 		 * Uploads the date to the GPU.
 		 */
-		public void Update()
+		public Result<void> Update()
 		{
-			PlatformSetData(rawData.CArray(), (uint32)rawData.Count, 0, .WriteDiscard);
+			return PlatformSetData(rawData.CArray(), (uint32)rawData.Count, 0, .WriteDiscard);
 		}
 	}
 

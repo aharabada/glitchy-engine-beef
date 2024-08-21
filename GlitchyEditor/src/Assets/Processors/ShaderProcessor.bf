@@ -10,14 +10,59 @@ namespace GlitchyEditor.Assets.Processors;
 
 class ProcessedShader : ProcessedResource
 {
+	public struct TextureEntry
+	{
+		public StringView Name;
+		public TextureDimension TextureDimension;
+		public int32 VertexShaderBindPoint;
+		public int32 PixelShaderBindPoint;
+
+		public static readonly TextureEntry Default = .() {
+			Name = null,
+			TextureDimension = .Unknown,
+			VertexShaderBindPoint = -1,
+			PixelShaderBindPoint = -1
+		};
+	}
+
+	public struct ConstantBufferEntry
+	{
+		public ReflectedConstantBuffer ConstantBuffer;
+		public int32 VertexShaderBindPoint;
+		public int32 PixelShaderBindPoint;
+
+		public static readonly Self Default = .() {
+			ConstantBuffer = null,
+			VertexShaderBindPoint = -1,
+			PixelShaderBindPoint = -1,
+		};
+	}
+
 	public override AssetType AssetType => .Shader;
 
 	public CompiledShader VertexShader ~ delete _;
 	public CompiledShader PixelShader ~ delete _;
 
+	Dictionary<StringView, ConstantBufferEntry> _constantBuffers = new .() ~ delete _; // Only delete container, Buffers come from shaders
+	
+	Dictionary<StringView, TextureEntry> _textures = new .() ~ delete _;
+
+	public Dictionary<StringView, ConstantBufferEntry> ConstantBuffers => _constantBuffers;
+	public Dictionary<StringView, TextureEntry> Textures => _textures;
+
 	public this(AssetIdentifier ownAssetIdentifier, AssetHandle assetHandle) : base(ownAssetIdentifier, assetHandle)
 	{
 
+	}
+
+	public void AddConstantBuffer(ConstantBufferEntry buffer)
+	{
+		_constantBuffers.Add(buffer.ConstantBuffer.Name, buffer);
+	}
+
+	public void AddTextureEntry(TextureEntry textureEntry)
+	{
+		_textures.Add(textureEntry.Name, textureEntry);
 	}
 }
 
@@ -72,23 +117,20 @@ class ShaderProcessor : IAssetProcessor
 		String psName = scope String();
 
 		Dictionary<StringView, ShaderVariable> variables = scope .();
-		Dictionary<String, String> engineBuffers = scope .();
+		List<String> bufferNames = scope .();
+		// Name in Shader -> Name in Engine
+		Dictionary<StringView, StringView> engineBuffers = scope .();
 
 		defer
 		{
 			ClearDictionaryAndDeleteValues!(variables);
-
-			for (let (key, value) in engineBuffers)
-			{
-				delete key;
-				delete value;
-			}
+			ClearAndDeleteItems!(bufferNames);
 		}
 
 		String code = new String(importedShader.HlslCode);
 		defer { delete code; }
 
-		Try!(ProcessFileContent(code, vsName, psName, variables, engineBuffers));
+		Try!(ProcessFileContent(code, vsName, psName, variables, bufferNames, engineBuffers));
 
 		if (String.IsNullOrWhiteSpace(vsName) && String.IsNullOrWhiteSpace(psName))
 		{
@@ -100,16 +142,108 @@ class ShaderProcessor : IAssetProcessor
 
 		Try!(CompileAndReflect(vsName, psName, importedShader, code, processedShader));
 
-		Try!(MergeResources(processedShader));
+		Try!(MergeResources(processedShader, variables, engineBuffers));
 
 		outProcessedResources.Add(processedShader);
 
 		return .Ok;
 	}
 
-	private static Result<void> MergeResources(ProcessedShader processedShader)
+	private static Result<void> MergeResources(ProcessedShader processedShader, 
+		Dictionary<StringView, ShaderVariable> variables,
+		Dictionary<StringView, StringView> engineBuffers)
 	{
+		Try!(MergeConstantBuffers(processedShader, variables, engineBuffers));
+		Try!(MergeTextures(processedShader));
 
+		return .Ok;
+	}
+
+	private static Result<void> MergeConstantBuffers(ProcessedShader processedShader, 
+		Dictionary<StringView, ShaderVariable> variables,
+		Dictionary<StringView, StringView> engineBuffers)
+	{
+		HashSet<StringView> bufferNames = scope .();
+
+		void AddBufferNames(CompiledShader shader)
+		{
+			for (StringView name in shader.ConstantBuffers.Keys)
+			{
+				bufferNames.Add(name);
+			}
+		}
+
+		AddBufferNames(processedShader.VertexShader);
+		AddBufferNames(processedShader.PixelShader);
+
+		for (StringView bufferName in bufferNames)
+		{
+			Result<ReflectedConstantBuffer> vsBufferResult = processedShader.VertexShader.ConstantBuffers.GetValue(bufferName);
+			Result<ReflectedConstantBuffer> psBufferResult = processedShader.PixelShader.ConstantBuffers.GetValue(bufferName);
+			
+			ProcessedShader.ConstantBufferEntry constantBufferEntry = .Default;
+
+			if (vsBufferResult case .Ok(let vsBuffer) && psBufferResult case .Ok(let psBuffer))
+			{
+				// Choose larger buffer
+				constantBufferEntry.ConstantBuffer = (vsBuffer.Size >= psBuffer.Size) ? vsBuffer : psBuffer;
+				constantBufferEntry.VertexShaderBindPoint = (.)vsBuffer.BindPoint;
+				constantBufferEntry.PixelShaderBindPoint = (.)psBuffer.BindPoint;
+			}
+			else if (vsBufferResult case .Ok(let vsBuffer))
+			{
+				constantBufferEntry.ConstantBuffer = vsBuffer;
+				constantBufferEntry.VertexShaderBindPoint = (.)vsBuffer.BindPoint;
+			}
+			else if (psBufferResult case .Ok(let psBuffer))
+			{
+				constantBufferEntry.ConstantBuffer = psBuffer;
+				constantBufferEntry.PixelShaderBindPoint = (.)psBuffer.BindPoint;
+			}
+
+			Log.EngineLogger.Assert(constantBufferEntry.ConstantBuffer != null);
+			Log.EngineLogger.Assert(constantBufferEntry.VertexShaderBindPoint > -1 || constantBufferEntry.PixelShaderBindPoint > -1);
+
+			if (engineBuffers.TryGetValue(constantBufferEntry.ConstantBuffer.Name, let engineBufferName))
+			{
+				constantBufferEntry.ConstantBuffer.EngineBufferName = engineBufferName;
+			}
+
+			processedShader.AddConstantBuffer(constantBufferEntry);
+		}
+
+		return .Ok;
+	}
+	
+	static ref ProcessedShader.TextureEntry AddOrGetTextureEntry(ProcessedShader processedShader, ReflectedTexture reflectedTexture)
+	{
+		if (!processedShader.Textures.ContainsKey(reflectedTexture.Name))
+		{
+			ProcessedShader.TextureEntry textureEntry = .Default;
+			textureEntry.Name = reflectedTexture.Name;
+			textureEntry.TextureDimension = reflectedTexture.TextureDimension;
+
+			processedShader.Textures.Add(textureEntry.Name, textureEntry);
+		}
+
+		ref ProcessedShader.TextureEntry entry = ref processedShader.Textures[reflectedTexture.Name];
+
+		return ref entry;
+	}
+
+	private static Result<void> MergeTextures(ProcessedShader processedShader)
+	{
+		for (let (textureName, reflectedTexture) in processedShader.VertexShader.Textures)
+		{
+			ref ProcessedShader.TextureEntry textureEntry = ref AddOrGetTextureEntry(processedShader, reflectedTexture);
+			textureEntry.VertexShaderBindPoint = (int32)reflectedTexture.BindPoint;
+		}
+
+		for (let (textureName, reflectedTexture) in processedShader.PixelShader.Textures)
+		{
+			ref ProcessedShader.TextureEntry textureEntry = ref AddOrGetTextureEntry(processedShader, reflectedTexture);
+			textureEntry.PixelShaderBindPoint = (int32)reflectedTexture.BindPoint;
+		}
 
 		return .Ok;
 	}
@@ -143,7 +277,9 @@ class ShaderProcessor : IAssetProcessor
 		return ShaderCompiler.CompileAndReflectShader(code, importedShader.AssetIdentifier, vsName, "ps_5_0", .());
 	}
 
-	private static Result<void> ProcessFileContent(String fileContent, String outVsName, String outPsName, Dictionary<StringView, ShaderVariable> outVarDescs, Dictionary<String, String> outEngineBuffers)
+	private static Result<void> ProcessFileContent(String fileContent, String outVsName, String outPsName,
+		Dictionary<StringView, ShaderVariable> outVarDescs,
+		List<String> outBufferNames, Dictionary<StringView, StringView> outEngineBuffers)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
@@ -176,7 +312,7 @@ class ShaderProcessor : IAssetProcessor
 				case "EditorVariable":
 					Try!(ProcessEditorVariables(arguments, outVarDescs));
 				case "EngineBuffer":
-					Try!(ProcessEngineBuffer(arguments, outEngineBuffers));
+					Try!(ProcessEngineBuffer(arguments, outBufferNames, outEngineBuffers));
 				default:
 					continue;
 				}
@@ -273,7 +409,8 @@ class ShaderProcessor : IAssetProcessor
 		return .Ok((startOfLine, endOfLine));
 	}
 
-	private static Result<void> ProcessEngineBuffer(Dictionary<StringView, StringView> arguments, Dictionary<String, String> outEngineBuffers)
+	private static Result<void> ProcessEngineBuffer(Dictionary<StringView, StringView> arguments, 
+		List<String> outBufferNames, Dictionary<StringView, StringView> outEngineBuffers)
 	{
 		String nameInEngine = null;
 		String nameInShader = null;
@@ -306,7 +443,9 @@ class ShaderProcessor : IAssetProcessor
 			return .Err;
 		}
 
-		outEngineBuffers.Add(nameInEngine, nameInShader);
+		outBufferNames.Add(nameInShader);
+		outBufferNames.Add(nameInEngine);
+		outEngineBuffers.Add(nameInShader, nameInEngine);
 
 		return .Ok;
 	}

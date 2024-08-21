@@ -36,6 +36,7 @@ namespace GlitchyEngine.Renderer
 				output[i] = .(input[i].SemanticName, input[i].SemanticIndex, (.)input[i].Format, input[i].InputSlot, input[i].AlignedByteOffset, (.)input[i].InputSlotClass, input[i].InstanceDataStepRate);
 		}
 
+		/// This should happen during shader compilation!
 		/// Validates or gets the validated input layout for the given vertexshader.
 		internal ID3D11InputLayout* GetNativeVertexLayout(ID3DBlob* vertexShaderCode)
 		{

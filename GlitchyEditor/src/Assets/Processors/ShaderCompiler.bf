@@ -35,6 +35,11 @@ class CompiledShader
 	private Dictionary<StringView, ReflectedConstantBuffer> _buffers = new .() ~ DeleteDictionaryAndValues!(_);
 	private Dictionary<StringView, ReflectedTexture> _textures = new .() ~ DeleteDictionaryAndValues!(_);
 
+	public Dictionary<StringView, ReflectedConstantBuffer> ConstantBuffers => _buffers;
+	public Dictionary<StringView, ReflectedTexture> Textures => _textures;
+
+	public extern Span<uint8> Blob {get;}
+
 	public void AddConstantBuffer(ReflectedConstantBuffer buffer)
 	{
 		_buffers.Add(buffer.Name, buffer);
@@ -49,16 +54,27 @@ class CompiledShader
 class ReflectedConstantBuffer
 {
 	private String _name ~ delete _;
+	private String _engineBufferName ~ delete _;
 
 	public int Size;
+
+	public int BindPoint;
 
 	public StringView Name
 	{
 		get => _name;
 		set => String.NewOrSet!(_name, value);
 	}
+
+	public StringView EngineBufferName
+	{
+		get => _engineBufferName;
+		set => String.NewOrSet!(_engineBufferName, value);
+	}
 	
 	private Dictionary<StringView, ReflectedConstantBufferVariable> _variables = new .() ~ DeleteDictionaryAndValues!(_);
+
+	public Dictionary<StringView, ReflectedConstantBufferVariable> Variables => _variables;
 
 	public void AddVariable(ReflectedConstantBufferVariable vaiable)
 	{
@@ -115,6 +131,8 @@ class ReflectedConstantBufferVariable
 extension CompiledShader
 {
 	internal ID3DBlob* _shaderBlob;
+
+	public override Span<uint8> Blob => Span<uint8>((uint8*)_shaderBlob.GetBufferPointer(), (int)_shaderBlob.GetBufferSize());
 }
 
 class ShaderCompiler
@@ -226,6 +244,7 @@ extension ShaderCompiler
 			switch(bindDesc.Type)
 			{
 			case .ConstantBuffer:
+				//var bufferReflection = reflection.GetConstantBufferByName(bindDesc.Name);
 				var bufferReflection = reflection.GetConstantBufferByName(bindDesc.Name);
 
 				bufferReflection.GetDescription(let bufferDesc);
@@ -233,7 +252,7 @@ extension ShaderCompiler
 				// ConstantBuffer
 				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
 				{
-					ReflectedConstantBuffer cbuffer = Try!(ReflectConstantBuffer(bufferReflection));
+					ReflectedConstantBuffer cbuffer = Try!(ReflectConstantBuffer(bindDesc, bufferReflection));
 					shader.AddConstantBuffer(cbuffer);
 				}
 			case .Texture:
@@ -261,8 +280,7 @@ extension ShaderCompiler
 
 				shader.AddTexture(new ReflectedTexture(StringView(bindDesc.Name), bindDesc.BindPoint, textureDimension));
 			case .Sampler:
-				// TODO: do we have to do something for samplers?
-				// i.e. can we get default values?
+				// There is nothing to do for samplers
 			default:
 				Log.EngineLogger.Warning($"Unhandled shader resource type: \"{bindDesc.Type}\"");
 			}
@@ -271,7 +289,7 @@ extension ShaderCompiler
 		return .Ok;
 	}
 
-	private static Result<ReflectedConstantBuffer> ReflectConstantBuffer(ID3D11ShaderReflectionConstantBuffer* bufferReflection)
+	private static Result<ReflectedConstantBuffer> ReflectConstantBuffer(ShaderInputBindDescription bindDesc, ID3D11ShaderReflectionConstantBuffer* bufferReflection)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
@@ -284,6 +302,7 @@ extension ShaderCompiler
 
 		buffer.Name = StringView(bufferDescription.Name);
 		buffer.Size = bufferDescription.Size;
+		buffer.BindPoint = bindDesc.BindPoint;
 		buffer.RawData = new uint8[buffer.Size];
 
 		for(uint32 v = 0; v < bufferDescription.Variables; v++)

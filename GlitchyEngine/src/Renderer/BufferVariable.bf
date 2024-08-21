@@ -38,8 +38,9 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		internal uint8* firstByte => _constantBuffer.rawData.CArray() + _offset;
 
-		public this(ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 elements, bool isUsed)
+		public this(StringView name, ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 elements, bool isUsed)
 		{
+			_name = new String(name);
 			_constantBuffer = constantBuffer..AddRef();
 			_type = type;
 			_columns = columns;

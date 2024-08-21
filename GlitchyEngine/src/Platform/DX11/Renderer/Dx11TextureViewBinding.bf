@@ -29,5 +29,7 @@ namespace GlitchyEngine.Renderer
 			_nativeShaderResourceView?.Release();
 			_nativeSamplerState?.Release();
 		}
+
+		public static override TextureViewBinding CreateDefault() => .(null, null);
 	}
 }

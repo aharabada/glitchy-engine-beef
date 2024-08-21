@@ -2,6 +2,7 @@ using System;
 
 namespace GlitchyEngine.Renderer
 {
+	// TODO: I hate this. It is a reference counting struct?!
 	/// Represents a reference to a texture that can be used as shader input resource.
 	public struct TextureViewBinding : IRefCounted, IDisposable
 	{
@@ -10,6 +11,8 @@ namespace GlitchyEngine.Renderer
 
 		public extern void AddRef();
 		public extern void Release();
+
+		public static extern TextureViewBinding CreateDefault();
 
 		public void Dispose() => Release();
 	}

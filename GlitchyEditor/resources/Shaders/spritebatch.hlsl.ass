@@ -1,5 +1,13 @@
 {
 	AssetLoader = "EffectAssetLoader",
 	Config = (GlitchyEditor.Assets.EffectAssetLoaderConfig){}/* No reflection data for GlitchyEditor.Assets.EffectAssetLoaderConfig. Add [BonTarget] or force it */,
-	AssetHandle = 14473519405124742382
+	Importer = "ShaderImporter",
+	ImporterConfig = null,
+	Processor = null,
+	ProcessorConfig = null,
+	Exporter = null,
+	ExporterConfig = {
+		_compression = .None
+	},
+	AssetHandle = 959631876667366082
 }

@@ -26,7 +26,7 @@ class TextureExporter : IAssetExporter
 		/*
 
 		File Format:
-		TextureType (1 byte)
+		Texture Dimension (1 byte)
 		Pixel Format (4 bytes)
 		Width of larges mip-slice (4 bytes)
 		Height of larges mip-slice (4 bytes)

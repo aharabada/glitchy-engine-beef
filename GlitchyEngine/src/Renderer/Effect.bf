@@ -65,7 +65,7 @@ public class Effect : Asset
 		}
 	}
 
-	Dictionary<String, TextureEntry> _textures ~ delete _;
+	Dictionary<String, TextureEntry> _textures ~ DeleteDictionaryAndKeys!(_);
 
 	public Dictionary<String, TextureEntry> Textures => _textures;
 
@@ -99,7 +99,8 @@ public class Effect : Asset
 
 		MergeResources();
 	}
-
+	
+	[Obsolete("", false)]
 	public this(Stream data, StringView assetIdentifier, IContentManager contentManager)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
@@ -113,6 +114,13 @@ public class Effect : Asset
 		Compile(fileContent, assetIdentifier, vsName, psName, contentManager);
 
 		MergeResources();
+	}
+
+	public this()
+	{
+		_bufferCollection = new BufferCollection();
+		_variables = new BufferVariableCollection(false);
+		_textures = new Dictionary<String, TextureEntry>();
 	}
 
 	public ~this()
@@ -668,7 +676,7 @@ public class Effect : Asset
 			}
 
 			// save entry
-			_textures[shaderEntry.Name] = entry;
+			_textures[new String(shaderEntry.Name)] = entry;
 		}
 	}
 }

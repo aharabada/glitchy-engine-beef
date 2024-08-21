@@ -11,6 +11,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using GlitchyEditor.Assets.Importers;
 using GlitchyEngine.Core;
+using GlitchyEngine.Content.Loaders;
 
 using internal GlitchyEngine.Content.Asset;
 
@@ -944,6 +945,7 @@ class EditorContentManager : IContentManager
 	// TODO: obviously use a map or something...
 	TextureLoader textureLoader = new .() ~ delete _;
 	SpriteLoader spriteLoader = new .() ~ delete _;
+	ShaderLoader shaderLoader = new .() ~ delete _;
 
 	private IProcessedAssetLoader GetLoader(AssetType assetType)
 	{
@@ -953,6 +955,8 @@ class EditorContentManager : IContentManager
 			return textureLoader;
 		case .Sprite:
 			return spriteLoader;
+		case .Shader:
+			return shaderLoader;
 		default:
 			return null;
 		}
