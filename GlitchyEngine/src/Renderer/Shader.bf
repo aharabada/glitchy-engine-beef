@@ -43,19 +43,6 @@ namespace GlitchyEngine.Renderer
 
 		public ShaderType ShaderType => _shaderType;
 
-		[AllowAppend]
-		public this(StringView code, StringView? fileName, String entryPoint, IContentManager contentManager, ShaderDefine[] macros = null)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			// Todo: append as soon as it's fixed.
-			//let buffers = new BufferCollection();
-			_buffers = new BufferCollection();
-			_textures = new ShaderTextureCollection();
-
-			CompileFromSource(code, fileName, entryPoint, contentManager);
-		}
-
 		public this()
 		{
 			_buffers = new BufferCollection();
@@ -64,6 +51,8 @@ namespace GlitchyEngine.Renderer
 
 		public static Result<Shader> CreateFromBlob(Span<uint8> shaderBlob, ShaderType shaderType)
 		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			Shader shader = null;
 
 			defer
@@ -96,8 +85,6 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 		}
-
-		public abstract void CompileFromSource(StringView code, StringView? fileName, String entryPoint, IContentManager contentManager, ShaderDefine[] macros = null);
 
 		protected abstract Result<void> InternalCreateFromBlob(Span<uint8> blob);
 	}

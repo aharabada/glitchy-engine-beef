@@ -33,10 +33,6 @@ namespace GlitchyEditor
 			_contentManager.SetAsDefaultAssetLoader<MaterialAssetLoader>(".mat");
 			_contentManager.SetAssetPropertiesEditor<MaterialAssetLoader>(=> MaterialAssetPropertiesEditor.Factory);
 			
-			_contentManager.RegisterAssetLoader<EffectAssetLoader>();
-			_contentManager.SetAsDefaultAssetLoader<EffectAssetLoader>(".hlsl");
-			_contentManager.SetAssetPropertiesEditor<EffectAssetLoader>(=> EffectAssetPropertiesEditor.Factory);
-
 			_contentManager.RegisterAssetImporter<TextureImporter>();
 			_contentManager.RegisterAssetProcessor<TextureProcessor>();
 			_contentManager.RegisterAssetExporter<TextureExporter>();
