@@ -187,7 +187,13 @@ namespace GlitchyEngine.Renderer
 		{
 			if (_currentInputLayout == null)
 			{
-				_currentInputLayout = _currentVertexLayout.GetNativeVertexLayout(_currentVertexShader.nativeCode);
+				ID3D11InputLayout* newInputLayout = _currentVertexLayout.GetNativeVertexLayout(_currentVertexShader);
+
+				if (newInputLayout == _currentInputLayout)
+					return;
+
+				_currentInputLayout.Release();
+				_currentInputLayout = newInputLayout;
 				_currentInputLayout.AddRef();
 				
 				using (ContextMonitor.Enter())
