@@ -1,25 +1,15 @@
 #if GE_GRAPHICS_DX11
 
 using System;
-using GlitchyEngine.Renderer;
-using DirectX.Common;
-using DirectX.D3D11;
-using DirectX.D3DCompiler;
-using DirectX.D3D11Shader;
 using System.IO;
-using GlitchyEngine.Content;
 using System.Collections;
-
-using internal GlitchyEngine.Renderer;
-using internal GlitchyEngine.Platform.DX11;
-
-using System;
-using GlitchyEngine.Renderer;
-using DirectX.D3D11;
-using DirectX.D3DCompiler;
-using GlitchyEngine.Platform.DX11;
-using GlitchyEngine.Content;
 using DirectX.Common;
+using DirectX.D3D11;
+using DirectX.D3D11Shader;
+using DirectX.D3DCompiler;
+using GlitchyEngine.Content;
+using GlitchyEngine.Renderer;
+using GlitchyEngine.Platform.DX11;
 
 using internal GlitchyEngine.Renderer;
 using internal GlitchyEngine.Platform.DX11;
