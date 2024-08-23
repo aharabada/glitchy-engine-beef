@@ -51,7 +51,7 @@ namespace GlitchyEngine.Renderer
 				ToNativeLayout(_elements, nativeElements);
 
 				var result = NativeDevice.CreateInputLayout(nativeElements.CArray(), (.)nativeElements.Count,
-					vertexShader.nativeCode.GetBufferPointer(), vertexShader.nativeCode.GetBufferSize(), &layout);
+					vertexShader.nativeCode.Ptr, (uint32)vertexShader.nativeCode.Count, &layout);
 				if(result.Failed)
 				{
 					Log.EngineLogger.Error($"Failed to create D3D11 input layout: Message({(int)result}): {result}");

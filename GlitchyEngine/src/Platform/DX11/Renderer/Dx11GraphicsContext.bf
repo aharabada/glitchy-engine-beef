@@ -192,7 +192,7 @@ namespace GlitchyEngine.Renderer
 				if (newInputLayout == _currentInputLayout)
 					return;
 
-				_currentInputLayout.Release();
+				_currentInputLayout?.Release();
 				_currentInputLayout = newInputLayout;
 				_currentInputLayout.AddRef();
 				

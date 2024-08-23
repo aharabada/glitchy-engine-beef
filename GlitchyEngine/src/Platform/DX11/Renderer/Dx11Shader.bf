@@ -23,19 +23,31 @@ namespace GlitchyEngine.Renderer
 		/**
 		 * Internal compiled code of the shader.
 		 */
-		internal ID3DBlob* nativeCode ~ _?.Release();
+		internal uint8[] nativeCode ~ delete _;
 		
 		protected override Result<void> InternalCreateFromBlob(Span<uint8> blob)
 		{
 			HResult shaderCreationResult = HResult.S_FALSE;
 
-			// TODO Temporary, because we need to generate the vertex layout from it!
-			D3DCompiler.D3DCreateBlob((.)blob.Length, &nativeCode);
-			Internal.MemCpy(nativeCode.GetBufferPointer(), blob.Ptr, blob.Length);
-
 			switch (_shaderType)
 			{
 			case .Vertex:
+				// We need to hold on to the code for the vertex input layout
+				ID3DBlob* signatureBlob = null;
+				HResult getInputSignatureResult = D3DCompiler.D3DGetInputSignatureBlob(blob.Ptr, (uint)blob.Length, &signatureBlob);
+
+				if (getInputSignatureResult.Failed)
+				{
+					Log.EngineLogger.Error($"Failed to get the vertex input signature from the shader: {getInputSignatureResult} ({(int)getInputSignatureResult})");
+					return .Err;
+				}
+
+				Span<uint8> signatureBlobSpan = .((uint8*)signatureBlob.GetBufferPointer(), (int)signatureBlob.GetBufferSize());
+				nativeCode = new uint8[signatureBlobSpan.Length];
+				signatureBlobSpan.CopyTo(nativeCode);
+
+				signatureBlob.Release();
+				
 				shaderCreationResult = NativeDevice.CreateVertexShader(blob.Ptr, (uint)blob.Length, null, (ID3D11VertexShader**)&nativeShader);
 			case .Pixel:
 				shaderCreationResult = NativeDevice.CreatePixelShader(blob.Ptr, (uint)blob.Length, null, (ID3D11PixelShader**)&nativeShader);
