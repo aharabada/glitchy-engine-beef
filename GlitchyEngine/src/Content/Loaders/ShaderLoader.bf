@@ -34,6 +34,7 @@ class ShaderLoader : IProcessedAssetLoader
 			Try!(stream.TryRead(vsData));
 
 			vertexShader = (VertexShader)Try!(Shader.CreateFromBlob(vsData, .Vertex));
+			effect.[Friend]VertexShader = vertexShader;
 		}
 
 		if (psDataSize > 0)
@@ -42,8 +43,9 @@ class ShaderLoader : IProcessedAssetLoader
 			Try!(stream.TryRead(psData));
 
 			pixelShader = (PixelShader)Try!(Shader.CreateFromBlob(psData, .Pixel));
+			effect.[Friend]PixelShader = pixelShader;
 		}
-		
+
 		uint16 textureCount = Try!(stream.Read<uint16>());
 
 		for (int i < textureCount)
@@ -77,32 +79,39 @@ class ShaderLoader : IProcessedAssetLoader
 
 		for (int i < bufferCount)
 		{
-			int64 bufferSize = Try!(stream.Read<int64>());
+			Try!(LoadBuffer(stream, effect));
+		}
 
-			int32 vertexShaderBindPoint = Try!(stream.Read<int32>());
-			int32 pixelShaderBindPoint = Try!(stream.Read<int32>());
+		return effect;
+	}
 
-			int16 bufferNameLength = Try!(stream.Read<int16>());
-			String bufferName = scope String(bufferNameLength);
-			stream.ReadStrSized32(bufferNameLength, bufferName);
+	private static Result<void> LoadBuffer(Stream stream, Effect effect)
+	{
+		int64 bufferSize = Try!(stream.Read<int64>());
 
-			int16 engineBufferNameLength = Try!(stream.Read<int16>());
-			String engineBufferName = null;
+		int32 vertexShaderBindPoint = Try!(stream.Read<int32>());
+		int32 pixelShaderBindPoint = Try!(stream.Read<int32>());
 
-			if (engineBufferNameLength > 0)
-			{
-				scope String(engineBufferNameLength);
-				stream.ReadStrSized32(engineBufferNameLength, engineBufferName);
+		int16 bufferNameLength = Try!(stream.Read<int16>());
+		String bufferName = scope String(bufferNameLength);
+		stream.ReadStrSized32(bufferNameLength, bufferName);
 
-				// TODO: Engine buffers currently do nothing. The bind points for each engine buffer are hardcoded.
-				// It only marks the buffer as engine buffer, preventing the variables from becomming accessible.
-				//effect.[Friend]_engineBuffers.Add()
-			}
-			
+		int16 engineBufferNameLength = Try!(stream.Read<int16>());
+		String engineBufferName = null;
+
+		if (engineBufferNameLength > 0)
+		{
+			scope String(engineBufferNameLength);
+			stream.ReadStrSized32(engineBufferNameLength, engineBufferName);
+
+			// TODO: Engine buffers currently do nothing. The bind points for each engine buffer are hardcoded.
+			// It only marks the buffer as engine buffer, preventing the variables from becomming accessible.
+			//effect.[Friend]_engineBuffers.Add()
+		}
+
+		using (ConstantBuffer buffer = new ConstantBuffer(bufferName, bufferSize))
+		{
 			uint16 variableCount = Try!(stream.Read<uint16>());
-
-			ConstantBuffer buffer = new ConstantBuffer(bufferName, bufferSize);
-			defer buffer.ReleaseRef();
 
 			for (int v < variableCount)
 			{
@@ -113,7 +122,7 @@ class ShaderLoader : IProcessedAssetLoader
 				uint8 rows = Try!(stream.Read<uint8>());
 				uint8 columns = Try!(stream.Read<uint8>());
 				uint64 arraySize = Try!(stream.Read<uint64>());
-	
+
 				int16 variableNameLength = Try!(stream.Read<int16>());
 				String variableName = scope String(variableNameLength);
 				stream.ReadStrSized32(variableNameLength, variableName);
@@ -126,10 +135,10 @@ class ShaderLoader : IProcessedAssetLoader
 			Try!(buffer.Update());
 
 			if (vertexShaderBindPoint != -1)
-				vertexShader.Buffers.Add(vertexShaderBindPoint, buffer.Name, buffer);
-			
+				effect.VertexShader.Buffers.Add(vertexShaderBindPoint, buffer.Name, buffer);
+
 			if (pixelShaderBindPoint != -1)
-				pixelShader.Buffers.Add(pixelShaderBindPoint, buffer.Name, buffer);
+				effect.PixelShader.Buffers.Add(pixelShaderBindPoint, buffer.Name, buffer);
 
 			// TODO: Allow binding buffers to different indices? Does this theoretically work with textures?
 			let tempBindPoint = (vertexShaderBindPoint != -1) ? vertexShaderBindPoint : pixelShaderBindPoint;
@@ -141,9 +150,6 @@ class ShaderLoader : IProcessedAssetLoader
 			}
 		}
 
-		effect.[Friend]VertexShader = vertexShader;
-		effect.[Friend]PixelShader = pixelShader;
-
-		return effect;
+		return .Ok;
 	}
 }

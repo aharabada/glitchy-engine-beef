@@ -6,20 +6,6 @@ using GlitchyEngine.Content;
 
 namespace GlitchyEngine.Renderer
 {
-	public struct ShaderDefine
-	{
-		public String Name;
-		public String Definition;
-
-		public this() => this = default;
-
-		public this(String name, String definition)
-		{
-			Name = name;
-			Definition = definition;
-		}
-	}
-
 	public enum ShaderType
 	{
 		Unknown,
@@ -28,8 +14,7 @@ namespace GlitchyEngine.Renderer
 	}
 
 	// TODO: We may not even need the distinction between shader types anymore (maybe just as an enum)
-	public abstract class
-		Shader : RefCounter
+	public abstract class Shader : RefCounter
 	{
 		protected internal BufferCollection _buffers ~ _.ReleaseRef();//:append _;
 

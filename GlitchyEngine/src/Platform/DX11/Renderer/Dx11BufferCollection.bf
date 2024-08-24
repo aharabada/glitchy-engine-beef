@@ -8,18 +8,17 @@ namespace GlitchyEngine.Renderer
 {
 	extension BufferCollection
 	{
+		public static override int MaxBufferSlotCount => DirectX.D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT;
+
 		internal ID3D11Buffer*[DirectX.D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] nativeBuffers;
 
 		internal void PlatformFetchNativeBuffers()
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			// Clear
-			nativeBuffers = .();
-
 			for(let buffer in _buffers)
 			{
-				nativeBuffers[buffer.Index] = buffer.Buffer.nativeBuffer;
+				nativeBuffers[@buffer] = buffer.Buffer?.nativeBuffer;
 			}
 		}
 	}

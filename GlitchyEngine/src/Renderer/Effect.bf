@@ -7,18 +7,6 @@ using GlitchyEngine.Content;
 
 namespace GlitchyEngine.Renderer;
 
-public enum TextureDimension
-{
-	Unknown,
-	Texture1D,
-	Texture2D,
-	Texture3D,
-	TextureCube,
-	Texture1DArray,
-	Texture2DArray,
-	TextureCubeArray
-}
-
 public class Effect : Asset
 {
 	internal VertexShader _vs ~ _?.ReleaseRef();
@@ -43,7 +31,6 @@ public class Effect : Asset
 		delete _;
 	};
 
-	protected Dictionary<String, String> _engineBuffers = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
 
 	BufferCollection _bufferCollection ~ _.ReleaseRef();
 

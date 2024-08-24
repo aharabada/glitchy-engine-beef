@@ -334,10 +334,7 @@ namespace GlitchyEngine.Renderer
 				_ps_FirstTexture = _firstTexture;
 				_ps_BoundTextures = _textureCount;
 
-				for (var buffer in shader?.Buffers)
-				{
-					_psBuffers[buffer.Index] = buffer.Buffer.nativeBuffer;
-				}
+				_psBuffers = shader.Buffers.nativeBuffers;
 
 				//NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
 
@@ -351,11 +348,8 @@ namespace GlitchyEngine.Renderer
 					NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
 					NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
 				}
-
-				for (var buffer in shader?.Buffers)
-				{
-					_vsBuffers[buffer.Index] = buffer.Buffer.nativeBuffer;
-				}
+				
+				_vsBuffers = shader.Buffers.nativeBuffers;
 
 				//NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
 

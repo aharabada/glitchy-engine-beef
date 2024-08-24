@@ -41,7 +41,7 @@ namespace GlitchyEngine.Renderer
 		public this(StringView name, ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 elements, bool isUsed)
 		{
 			_name = new String(name);
-			_constantBuffer = constantBuffer..AddRef();
+			_constantBuffer = constantBuffer; // Only hold a weak reference. This variable has to die with the buffer
 			_type = type;
 			_columns = columns;
 			_rows = rows;

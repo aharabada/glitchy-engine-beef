@@ -4,14 +4,15 @@ using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
-	public class BufferCollection : RefCounter, IEnumerable<(String Name, int Index, Buffer Buffer)>
+	public class BufferCollection : RefCounter, IEnumerable<(String Name, Buffer Buffer)>
 	{
-		public typealias BufferEntry = (String Name, int Index, Buffer Buffer);
+		public static extern int MaxBufferSlotCount { get; }
 
-		List<BufferEntry> _buffers ~ DeleteBufferEntries!(_);
+		public typealias BufferEntry = (String Name, Buffer Buffer);
 
-		Dictionary<String, BufferEntry*> _strToBuf ~ delete _; //delete:append _;
-		Dictionary<int, BufferEntry*> _idxToBuf ~ delete _; //delete:append _;
+		BufferEntry[] _buffers ~ DeleteBufferEntries!(_);
+
+		Dictionary<StringView, BufferEntry*> _strToBuf ~ delete _;
 
 		[AllowAppend]
 		public this()
@@ -19,13 +20,11 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileResourceFunction!();
 
 			// Todo: append allocate as soon as it's fixed
-			let buffers = new List<BufferEntry>();
-			let strToBuf = new Dictionary<String, BufferEntry*>();
-			let idxToBuf = new Dictionary<int, BufferEntry*>();
+			let buffers = new BufferEntry[MaxBufferSlotCount];
+			let strToBuf = new Dictionary<StringView, BufferEntry*>();
 
 			_buffers = buffers;
 			_strToBuf = strToBuf;
-			_idxToBuf = idxToBuf;
 		}
 
 		public ~this()
@@ -33,7 +32,7 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileResourceFunction!();
 		}
 		
-		mixin DeleteBufferEntries(List<BufferEntry> entries)
+		mixin DeleteBufferEntries(BufferEntry[] entries)
 		{
 			if(entries == null)
 				return;
@@ -41,13 +40,13 @@ namespace GlitchyEngine.Renderer
 			for(let entry in entries)
 			{
 				delete entry.Name;
-				entry.Buffer.ReleaseRef();
+				entry.Buffer?.ReleaseRef();
 			}
 
 			delete entries;
 		}
 
-		public Buffer this[int idx] => _idxToBuf[idx].Buffer;
+		public Buffer this[int slot] => _buffers[slot].Buffer;
 		public Buffer this[String name] => _strToBuf[name].Buffer;
 		
 		public Buffer TryGetBuffer(String name)
@@ -55,15 +54,13 @@ namespace GlitchyEngine.Renderer
 			return TryGetBufferEntry(name)?.Buffer;
 		}
 		
-		public Buffer TryGetBuffer(int index)
+		public Buffer TryGetBuffer(int slot)
 		{
-			return TryGetBufferEntry(index)?.Buffer;
+			return TryGetBufferEntry(slot)?.Buffer;
 		}
 
 		public BufferEntry* TryGetBufferEntry(String name)
 		{
-			Debug.Profiler.ProfileResourceFunction!();
-
 			if(_strToBuf.TryGetValue(name, let buffer))
 			{
 				return buffer;
@@ -72,16 +69,12 @@ namespace GlitchyEngine.Renderer
 			return null;
 		}
 
-		public BufferEntry* TryGetBufferEntry(int index)
+		public BufferEntry* TryGetBufferEntry(int slot)
 		{
-			Debug.Profiler.ProfileResourceFunction!();
+			if (slot < 0 || slot >= _buffers.Count)
+				return null;
 
-			if(_idxToBuf.TryGetValue(index, let buffer))
-			{
-				return buffer;
-			}
-
-			return null;
+			return &_buffers[slot];
 		}
 
 		/**
@@ -90,18 +83,12 @@ namespace GlitchyEngine.Renderer
 		 * @param buffer The new buffer.
 		 * @returns True, if the buffer was replaced successfully; false, otherwise.
 		 */
-		public bool TryReplaceBuffer(int idx, Buffer buffer)
+		public bool TryReplaceBuffer(int slot, Buffer buffer)
 		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			if(_idxToBuf.TryGetValue(idx, let bufferEntry))
+			BufferEntry* bufferEntry = TryGetBufferEntry(slot);
+			if(bufferEntry != null)
 			{
-				Log.EngineLogger.Assert(idx == bufferEntry.Index);
-
-				bufferEntry.Buffer.ReleaseRef();
-
-				buffer.AddRef();
-				bufferEntry.Buffer = buffer;
+				SetReference!(bufferEntry.Buffer, buffer);
 
 				return true;
 			}
@@ -119,8 +106,6 @@ namespace GlitchyEngine.Renderer
 		 */
 		public bool TryReplaceBuffer(String name, Buffer buffer)
 		{
-			Debug.Profiler.ProfileResourceFunction!();
-
 			if(_strToBuf.TryGetValue(name, let bufferEntry))
 			{
 				Log.EngineLogger.AssertDebug(name == bufferEntry.Name);
@@ -135,23 +120,14 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public void Add(int index, String name, Buffer buffer)
+		public void Add(int slot, StringView name, Buffer buffer)
 		{
-			Add((name, index, buffer));
-		}
+			ref BufferEntry bufferEntry = ref _buffers[slot];
 
-		public void Add(BufferEntry entry)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
+			SetReference!(bufferEntry.Buffer, buffer);
+			String.NewOrSet!(bufferEntry.Name, name);
 
-			BufferEntry copy = (new String(entry.Name), entry.Index, entry.Buffer..AddRef());
-
-			_buffers.Add(copy);
-
-			BufferEntry* copyRef = &_buffers.Back;
-
-			_strToBuf.Add(copy.Name, copyRef);
-			_idxToBuf.Add(copy.Index, copyRef);
+			_strToBuf.Add(bufferEntry.Name, &bufferEntry);
 		}
 
 		/**
@@ -196,7 +172,7 @@ namespace GlitchyEngine.Renderer
 			return null;
 		}
 
-		public List<BufferEntry>.Enumerator GetEnumerator()
+		public Span<BufferEntry>.Enumerator GetEnumerator()
 		{
 			return _buffers.GetEnumerator();
 		}
