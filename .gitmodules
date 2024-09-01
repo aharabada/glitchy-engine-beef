@@ -34,3 +34,6 @@
 [submodule "vendor/ImGui.NET"]
 	path = vendor/ImGui.NET
 	url = https://github.com/aharabada/ImGui.NET.git
+[submodule "GlitchyEngine/vendor/Ultralight-beef"]
+	path = GlitchyEngine/vendor/Ultralight-beef
+	url = git@github.com:kumikumi/Ultralight-beef.git

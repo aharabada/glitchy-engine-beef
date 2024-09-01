@@ -18,6 +18,7 @@ namespace GlitchyEditor
 			Log.EngineLogger = new EditorLogger() { IsEngineLogger = true };
 
 			PushLayer(new EditorLayer(args, _contentManager));
+			PushLayer(new UltralightLayer());
 		}
 
 		protected override IContentManager InitContentManager()
