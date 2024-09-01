@@ -57,7 +57,7 @@ class UltralightLayer : Layer
 	
 	private static bool done = false;
 
-	private static void onFinishLoading(void* user_data, ULView caller,
+	private static void OnFinishLoading(void* user_data, ULView caller,
 			uint64 frame_id, bool is_main_frame, ULString url)
 	{
 		///
@@ -75,35 +75,33 @@ class UltralightLayer : Layer
 	private void RenderToPng()
 	{
 		///
-		/// Setup our config. The config can be used to customize various
-		/// options within the renderer and WebCore module.
+		/// Setup our config.
 		///
-		/// Our config uses 2x DPI scale and "Arial" as the default font.
-		///
+		/// @note:
+		///   We don't set any config options in this sample but you could set your own options here.
+		/// 
 		ULConfig config = ulCreateConfig();
 
-		ulConfigSetDeviceScale(config, 2.0);
-
-		ULString font_family = ulCreateString("Arial");
-		ulConfigSetFontFamilyStandard(config, font_family);
-		ulDestroyString(font_family);
-
 		///
-		/// We need to tell config where our resources are so it can load our
-		/// bundled certificate chain and make HTTPS requests.
+		/// We must provide our own Platform API handlers since we're not using ulCreateApp().
 		///
-		ULString resource_path = ulCreateString("./resources/");
-		ulConfigSetResourcePath(config, resource_path);
-		ulDestroyString(resource_path);
-
+		/// The Platform API handlers we can set are:
 		///
-		/// Make sure the GPU renderer is disabled so we can render to an offscreen
-		/// pixel buffer surface. (This is disabled by default, so not needed here)
+		/// |                   | ulCreateRenderer() | ulCreateApp() |
+		/// |-------------------|--------------------|---------------|
+		/// | FileSystem        | **Required**       | *Provided*    |
+		/// | FontLoader        | **Required**       | *Provided*    |
+		/// | Clipboard         |  *Optional*        | *Provided*    |
+		/// | GPUDriver         |  *Optional*        | *Provided*    |
+		/// | Logger            |  *Optional*        | *Provided*    |
+		/// | SurfaceDefinition |  *Provided*        | *Provided*    |
 		///
-		ulConfigSetUseGPURenderer(config, false);
-
+		/// The only Platform API handlers we are required to provide are file system and font loader.
 		///
-		/// Use AppCore's font loader singleton to load fonts from the OS.
+		/// In this sample we will use AppCore's font loader and file system via
+		/// ulEnablePlatformFontLoader() and ulEnablePlatformFileSystem() respectively.
+		///
+		/// You can replace these with your own implementations later.
 		///
 		ulEnablePlatformFontLoader();
 
@@ -124,31 +122,41 @@ class UltralightLayer : Layer
 		///
 		/// Create our renderer using the Config we just set up.
 		///
-		/// The Renderer singleton maintains the lifetime of the library and
-		/// is required before creating any Views. It should outlive any Views.
+		/// The Renderer singleton maintains the lifetime of the library and is required before creating
+		/// any Views. It should outlive any Views.
+		/// 
+		/// You should set up any platform handlers before creating this.
 		///
 		ULRenderer renderer = ulCreateRenderer(config);
+
+		ulDestroyConfig(config);
 
 		///
 		/// Create our View.
 		///
 		/// Views are sized containers for loading and displaying web content.
 		///
-		ULView view = ulCreateView(renderer, 1600, 1600, false, null, false);
+		/// Let's set a 2x DPI scale and disable GPU acceleration so we can render to a bitmap.
+		///
+		ULViewConfig view_config = ulCreateViewConfig();
+		ulViewConfigSetInitialDeviceScale(view_config, 2.0);
+		ulViewConfigSetIsAccelerated(view_config, false);
+
+		ULView view = ulCreateView(renderer, 1600, 800, view_config, null);
+
+		ulDestroyViewConfig(view_config);
 
 		///
 		/// Register OnFinishLoading() callback with our View.
 		///
-		ulViewSetFinishLoadingCallback(view, => onFinishLoading, null);
+		ulViewSetFinishLoadingCallback(view, => OnFinishLoading, null);
 
 		///
-		/// Load a string of HTML into our View. (For code readability, the string
-		/// is defined in the htmlString() function at the bottom of this file)
+		/// Load a local HTML file into the View (uses the file system defined above).
 		///
-		/// **Note**:
-		///   This operation may not complete immediately-- we will call
-		///   Renderer::Update continuously and wait for the OnFinishLoading event
-		///   before rendering our View.
+		/// @note:
+		///   This operation may not complete immediately-- we will call ulUpdate() continuously
+		///   and wait for the OnFinishLoading event before rendering our View.
 		///
 		/// Views can also load remote URLs, try replacing the code below with:
 		///
@@ -156,24 +164,31 @@ class UltralightLayer : Layer
 		///   ulViewLoadURL(view, url_string);
 		///   ulDestroyString(url_string);
 		///
-		ULString html_string = ulCreateString(htmlString);
-		ulViewLoadHTML(view, html_string);
-		ulDestroyString(html_string);
+		ULString url_string = ulCreateString("file:///page.html");
+		ulViewLoadURL(view, url_string);
+		ulDestroyString(url_string);
 
-		Log.ClientLogger.Info("Waiting for page to load...");
+		Log.ClientLogger.Info("Starting Run(), waiting for page to load...");
 
 		///
-		/// Continuously update our Renderer until our done flag is set to true.
+		/// Continuously update until OnFinishLoading() is called below (which sets done = true).
 		///
-		/// **Note**:
-		///   Calling Renderer::Update handles any pending network requests,
-		///   resource loads, and JavaScript timers.
+		/// @note:
+		///   Calling ulUpdate() handles any pending network requests, resource loads, and
+		///   JavaScript timers.
 		///
 		while (!done)
 		{
-			ulUpdate(renderer);
-			ulRender(renderer);
+		  ulUpdate(renderer);
 		}
+
+		///
+		/// Render our View.
+		///
+		/// @note:
+		///   Calling ulRender will render any dirty Views to their respective Surfaces.
+		/// 
+		ulRender(renderer);
 
 		///
 		/// Get our View's rendering surface.
@@ -183,25 +198,16 @@ class UltralightLayer : Layer
 		///
 		/// Get the underlying bitmap.
 		///
-		/// @note  We're using the default surface definition which is BitmapSurface,
-		///        you can override the surface implementation via
-		///        ulPlatformSetSurfaceDefinition()
+		/// @note  We're using the default surface definition which is BitmapSurface, you can override
+		///        the surface implementation via ulPlatformSetSurfaceDefinition()
 		///
 		ULBitmap bitmap = ulBitmapSurfaceGetBitmap(surface);
-
-		///
-		/// The renderer uses a BGRA pixel format but PNG expects RGBA format,
-		/// let's convert the format by swapping Red and Blue channels.
-		///
-		ulBitmapSwapRedBlueChannels(bitmap);
-
+		  
 		///
 		/// Write our bitmap to a PNG in the current working directory.
 		///
 		ulBitmapWritePNG(bitmap, "result.png");
-
+		  
 		Log.ClientLogger.Info("Saved a render of our page to result.png.");
-
-		Log.ClientLogger.Info("Finished.");
 	}
 }
