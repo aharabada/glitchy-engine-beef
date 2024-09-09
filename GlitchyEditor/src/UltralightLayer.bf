@@ -1,213 +1,312 @@
 using System;
 using GlitchyEngine;
+using Ultralight;
 using Ultralight.CAPI;
+using GlitchyEngine.Renderer;
+using GlitchyEngine.Math;
+using GlitchyEngine.Events;
+using GlitchyEngine.ImGui;
+using ImGui;
 
 namespace GlitchyEditor;
 
 class UltralightLayer : Layer
 {
-	public const String htmlString =
-		"""
-		<html>
-		  <head>
-		    <style type="text/css">
-		      body {
-		        margin: 0;
-		        padding: 0;
-		        overflow: hidden;
-		        color: black;
-		        font-family: Arial;
-		        background: linear-gradient(-45deg, #acb4ff, #f5d4e2);
-		        display: flex;
-		        justify-content: center;
-		        align-items: center;
-		      }
-		      div {
-		        width: 350px;
-		        height: 350px;
-		        text-align: center;
-		        border-radius: 25px;
-		        background: linear-gradient(-45deg, #e5eaf9, #f9eaf6);
-		        box-shadow: 0 7px 18px -6px #8f8ae1;
-		      }
-		      h1 {
-		        padding: 1em;
-		      }
-		      p {
-		        background: white;
-		        padding: 2em;
-		        margin: 40px;
-		        border-radius: 25px;
-		      }
-		    </style>
-		  </head>
-		  <body>
-		    <div>
-		      <h1>Hello World!</h1>
-		      <p>Welcome to Ultralight!</p>
-		    </div>
-		  </body>
-		</html>
-		""";
-
 	public this()
 	{
-		RenderToPng();
-	}
-	
-	private static bool done = false;
-
-	private static void OnFinishLoading(void* user_data, ULView caller,
-			uint64 frame_id, bool is_main_frame, ULString url)
-	{
-		///
-		/// Our page is done when the main frame is finished loading.
-		///
-		if (is_main_frame)
-		{
-			///
-			/// Set our done flag to true to exit the Run loop.
-			///
-			done = true;
-		}
+		NoApp();
+		//RenderApp();
 	}
 
-	private void RenderToPng()
+	private static void OnAppUpdate(void* user_data)
 	{
+		//UltralightLayer layer = (UltralightLayer)Internal.UnsafeCastToObject(user_data);
+		//layer.OnAppUpdate();
+	}
+
+	private static void OnClose(void* user_data, ULWindow window)
+	{
+		Log.ClientLogger.Info("OnClose...");
+		ulAppQuit(app);
+	}
+
+	private static void OnResize(void* user_data, ULWindow window, uint32 width, uint32 height)
+	{
+		Log.ClientLogger.Info($"OnResize: {width} {height}");
+		ulOverlayResize(overlay, width, height);
+	}
+
+	///
+	/// This callback is bound to a JavaScript function on the page.
+	///
+	static JSValueRef GetMessage(JSContextRef ctx, JSObjectRef fn, JSObjectRef thisObject, uint32 argumentCount, JSValueRef* arguments, JSValueRef* exception) {
+	  ///
+	  /// Create a JavaScript String from a C-string, initialize it with our
+	  /// welcome message.
+	  ///
+	  JSStringRef str = JSStringCreateWithUTF8CString("Hello from Beef!");
+
+	  ///
+	  /// Create a garbage-collected JSValue using the String we just created.
+	  ///
+	  ///  **Note**:
+	  ///    Both JSValueRef and JSObjectRef types are garbage-collected types. (And actually,
+	  ///    JSObjectRef is just a typedef of JSValueRef, they share definitions).
+	  ///
+	  ///    The garbage collector in JavaScriptCore periodically scans the entire stack to check if
+	  ///    there are any active JSValueRefs, and marks those with no references for destruction.
+	  ///
+	  ///    If you happen to store a JSValueRef/JSObjectRef in heap memory or in memory unreachable
+	  ///    by the stack-based garbage-collector, you should explicitly call JSValueProtect() and
+	  ///    JSValueUnprotect() on the reference to ensure it is kept alive.
+	  ///
+	  JSValueRef value = JSValueMakeString(ctx, str);
+
+	  ///
+	  /// Release the string we created earlier (we only Release what we Create).
+	  ///
+	  JSStringRelease(str);
+
+	  return value;
+	}
+
+	private static void OnDOMReady(void* user_data, ULView caller, uint64 frame_id, bool is_main_frame, ULString url)
+	{
+		Log.ClientLogger.Info("OnDOMReady");
 		///
-		/// Setup our config.
+		/// Acquire the page's JavaScript execution context.
 		///
-		/// @note:
-		///   We don't set any config options in this sample but you could set your own options here.
-		/// 
+		/// This locks the JavaScript context so we can modify it safely on this thread, we need to
+		/// unlock it when we're done via ulViewUnlockJSContext().
+		///
+		JSContextRef ctx = ulViewLockJSContext(view);
+
+		///
+		/// Create a JavaScript String containing the name of our callback.
+		///
+		JSStringRef name = JSStringCreateWithUTF8CString("GetMessage");
+
+		///
+		/// Create a garbage-collected JavaScript function that is bound to our native C callback 
+		/// 'GetMessage()'.
+		///
+		JSObjectRef func = JSObjectMakeFunctionWithCallback(ctx, name, => GetMessage);
+
+		///
+		/// Store our function in the page's global JavaScript object so that it is accessible from the
+		/// page as 'GetMessage()'.
+		///
+		/// The global JavaScript object is also known as 'window' in JS.
+		///
+		JSObjectSetProperty(ctx, JSContextGetGlobalObject(ctx), name, func, 0, null);
+
+		///
+		/// Release the JavaScript String we created earlier.
+		///
+		JSStringRelease(name);
+
+		///
+		/// Unlock the JS context so other threads can modify JavaScript state.
+		///
+		ulViewUnlockJSContext(view);
+	}
+
+	ULRenderer renderer;
+
+	private void NoApp()
+	{
 		ULConfig config = ulCreateConfig();
 
-		///
-		/// We must provide our own Platform API handlers since we're not using ulCreateApp().
-		///
-		/// The Platform API handlers we can set are:
-		///
-		/// |                   | ulCreateRenderer() | ulCreateApp() |
-		/// |-------------------|--------------------|---------------|
-		/// | FileSystem        | **Required**       | *Provided*    |
-		/// | FontLoader        | **Required**       | *Provided*    |
-		/// | Clipboard         |  *Optional*        | *Provided*    |
-		/// | GPUDriver         |  *Optional*        | *Provided*    |
-		/// | Logger            |  *Optional*        | *Provided*    |
-		/// | SurfaceDefinition |  *Provided*        | *Provided*    |
-		///
-		/// The only Platform API handlers we are required to provide are file system and font loader.
-		///
-		/// In this sample we will use AppCore's font loader and file system via
-		/// ulEnablePlatformFontLoader() and ulEnablePlatformFileSystem() respectively.
-		///
-		/// You can replace these with your own implementations later.
-		///
 		ulEnablePlatformFontLoader();
 
-		///
-		/// Use AppCore's file system singleton to load file:/// URLs from the OS.
-		///
-		ULString base_dir = ulCreateString("./assets/");
-		ulEnablePlatformFileSystem(base_dir);
-		ulDestroyString(base_dir);
+		ULString fileSystemPath = ulCreateString(@"D:\Development\Projects\Beef\GlitchyEngine\GlitchyEditor\assets");
+		ulEnablePlatformFileSystem(fileSystemPath);
+		ulDestroyString(fileSystemPath);
 
-		///
-		/// Use AppCore's default logger to write the log file to disk.
-		///
-		ULString log_path = ulCreateString("./ultralight.log");
-		ulEnableDefaultLogger(log_path);
-		ulDestroyString(log_path);
+		/*ULString styleSheet = ulCreateString("body { background: purple; }");
+		ulConfigSetUserStylesheet(config, styleSheet);
+		ulDestroyString(styleSheet);*/
 
-		///
-		/// Create our renderer using the Config we just set up.
-		///
-		/// The Renderer singleton maintains the lifetime of the library and is required before creating
-		/// any Views. It should outlive any Views.
-		/// 
-		/// You should set up any platform handlers before creating this.
-		///
-		ULRenderer renderer = ulCreateRenderer(config);
+		renderer = ulCreateRenderer(config);
 
-		ulDestroyConfig(config);
+		CreateView();
+	}
 
-		///
-		/// Create our View.
-		///
-		/// Views are sized containers for loading and displaying web content.
-		///
-		/// Let's set a 2x DPI scale and disable GPU acceleration so we can render to a bitmap.
-		///
-		ULViewConfig view_config = ulCreateViewConfig();
-		ulViewConfigSetInitialDeviceScale(view_config, 2.0);
-		ulViewConfigSetIsAccelerated(view_config, false);
+	Texture2D texture ~ _.ReleaseRef();
 
-		ULView view = ulCreateView(renderer, 1600, 800, view_config, null);
+	private void CopybitmapToTexture(ULBitmap bitmap)
+	{
+		void* pixels = ulBitmapLockPixels(bitmap);
 
-		ulDestroyViewConfig(view_config);
+		uint32 width = ulBitmapGetWidth(bitmap);
+		uint32 height = ulBitmapGetHeight(bitmap);
+		uint32 stride = ulBitmapGetRowBytes(bitmap);
 
-		///
-		/// Register OnFinishLoading() callback with our View.
-		///
-		ulViewSetFinishLoadingCallback(view, => OnFinishLoading, null);
+		Span<Color> colors = Span<Color>((.)pixels, 500 * 500);
 
-		///
-		/// Load a local HTML file into the View (uses the file system defined above).
-		///
-		/// @note:
-		///   This operation may not complete immediately-- we will call ulUpdate() continuously
-		///   and wait for the OnFinishLoading event before rendering our View.
-		///
-		/// Views can also load remote URLs, try replacing the code below with:
-		///
-		///   ULString url_string = ulCreateString("https://en.wikipedia.org");
-		///   ulViewLoadURL(view, url_string);
-		///   ulDestroyString(url_string);
-		///
-		ULString url_string = ulCreateString("file:///page.html");
-		ulViewLoadURL(view, url_string);
-		ulDestroyString(url_string);
+		texture.SetData<uint32>((.)pixels, 0, 0, width, height, 0, 0);
 
-		Log.ClientLogger.Info("Starting Run(), waiting for page to load...");
+		ulBitmapUnlockPixels(bitmap);
+	}
 
-		///
-		/// Continuously update until OnFinishLoading() is called below (which sets done = true).
-		///
-		/// @note:
-		///   Calling ulUpdate() handles any pending network requests, resource loads, and
-		///   JavaScript timers.
-		///
-		while (!done)
-		{
-		  ulUpdate(renderer);
-		}
+	public override void Update(GameTime gameTime)
+	{
+		ulUpdate(renderer);
 
-		///
-		/// Render our View.
-		///
-		/// @note:
-		///   Calling ulRender will render any dirty Views to their respective Surfaces.
-		/// 
 		ulRender(renderer);
 
+		ULBitmapSurface surface = ulViewGetSurface(view);
+
+		if (surface != null && !ulIntRectIsEmpty(ulSurfaceGetDirtyBounds(surface)))
+		{
+			CopybitmapToTexture(ulBitmapSurfaceGetBitmap(surface));
+			ulSurfaceClearDirtyBounds(surface);
+		}
+	}
+
+	private void CreateView()
+	{
+		ULViewConfig viewConfig = ulCreateViewConfig();
+		ulViewConfigSetIsAccelerated(viewConfig, false);
+	  
+		view = ulCreateView(renderer, 500, 500, viewConfig, null);
+
+		ulDestroyViewConfig(viewConfig);
+		
+		ULString url = ulCreateString("file:///app.html");
+		ulViewLoadURL(view, url);
+		ulDestroyString(url);
+
+		//surface = ulViewGetSurface(view);
+
+		// TODO: Dynamic
+		Texture2DDesc desc = .(500, 500, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
+
+		texture = new Texture2D(desc);
+		texture.[Friend]Identifier = .("TestTexture");
+
+		Application.Instance.ContentManager.ManageAsset(texture);
+	}
+
+	public override void OnEvent(GlitchyEngine.Events.Event event)
+	{
+		EventDispatcher dispatcher = EventDispatcher(event);
+
+		dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
+
+			/*
+			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
+			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
+			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));*/
+		
+	}
+
+	private bool OnImGuiRender(ImGuiRenderEvent event)
+	{
+		if (ImGui.Begin("Testlul"))
+		{
+			ImGui.Image(texture, .(500, 500));
+
+		}
+		ImGui.End();
+
+		return false;
+	}	
+	
+	static ULApp app;
+	static ULWindow window;
+	static ULOverlay overlay;
+	static ULView view;
+
+	private void RenderApp()
+	{
 		///
-		/// Get our View's rendering surface.
+		/// Create default settings/config
 		///
-		ULSurface surface = ulViewGetSurface(view);
+		ULSettings settings = ulCreateSettings();
+		ulSettingsSetForceCPURenderer(settings, true);
+		ULConfig config = ulCreateConfig();
+
+		ULString fileSystemPath = ulCreateString(@"D:\Development\Projects\Beef\GlitchyEngine\GlitchyEditor\assets");
+		ulSettingsSetFileSystemPath(settings, fileSystemPath);
+		ulDestroyString(fileSystemPath);
+		
+		///
+		/// Create our App
+		///
+		app = ulCreateApp(settings, config);
+		
+		///
+		/// Register a callback to handle app update logic.
+		///
+		ulAppSetUpdateCallback(app, => OnAppUpdate, null);
+		
+		///
+		/// Done using settings/config, make sure to destroy anything we create
+		///
+		ulDestroySettings(settings);
+		ulDestroyConfig(config);
+		
+		///
+		/// Create our window, make it 500x500 with a titlebar and resize handles.
+		///
+		window = ulCreateWindow(ulAppGetMainMonitor(app), 500, 500, false,
+			(uint32)(ULWindowFlags.kWindowFlags_Titled | ULWindowFlags.kWindowFlags_Resizable));
 
 		///
-		/// Get the underlying bitmap.
+		/// Set our window title.
 		///
-		/// @note  We're using the default surface definition which is BitmapSurface, you can override
-		///        the surface implementation via ulPlatformSetSurfaceDefinition()
+		ulWindowSetTitle(window, "Ultralight Sample 6 - Intro to C API");
+		
 		///
-		ULBitmap bitmap = ulBitmapSurfaceGetBitmap(surface);
-		  
+		/// Register a callback to handle window close.
 		///
-		/// Write our bitmap to a PNG in the current working directory.
+		ulWindowSetCloseCallback(window, => OnClose, null);
+		
 		///
-		ulBitmapWritePNG(bitmap, "result.png");
-		  
-		Log.ClientLogger.Info("Saved a render of our page to result.png.");
+		/// Register a callback to handle window resize.
+		///
+		ulWindowSetResizeCallback(window, => OnResize, null);
+		
+		///
+		/// Create an overlay same size as our window at 0,0 (top-left) origin. Overlays also create an
+		/// HTML view for us to display content in.
+		///
+		/// **Note**:
+		///     Ownership of the view remains with the overlay since we don't explicitly create it.
+		///
+		overlay = ulCreateOverlay(window, ulWindowGetWidth(window), ulWindowGetHeight(window), 0, 0);
+		
+		///
+		/// Get the overlay's view.
+		///
+		view = ulOverlayGetView(overlay);
+		
+		///
+		/// Register a callback to handle our view's DOMReady event. We will use this event to setup any
+		/// JavaScript <-> C bindings and initialize our page.
+		///
+		ulViewSetDOMReadyCallback(view, => OnDOMReady, null);
+
+		ulViewSetFailLoadingCallback(view, (user_data, caller, frame_id, is_main_frame, url, description, error_domain, error_code) => {
+		   Log.ClientLogger.Error("Errorrr");
+		}, null);
+		
+		///
+		/// Load a file from the FileSystem.
+		///
+		///  **IMPORTANT**: Make sure `file:///` has three (3) forward slashes.
+		///
+		///  **Note**: You can configure the base path for the FileSystem in the Settings we passed to
+		///            ulCreateApp earlier.
+		///
+		ULString url = ulCreateString("file:///app.html");
+
+		var v = ulStringGetData(url);
+
+		ulViewLoadURL(view, url);
+		ulDestroyString(url);
+		
+		ulAppRun(app);
 	}
 }
