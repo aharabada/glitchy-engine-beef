@@ -47,14 +47,12 @@ namespace GlitchyEngine.Renderer
 
 			ReleaseAndNullify();
 
-			if(_description.IsSwapchainTarget)
+			if(_description.SwapChain != null)
 			{
 				// TODO: if the engine supports multiple windows it has to support multiple swap chains.
 
-				// kinda dirty...
-				var context = GraphicsContext.Get();
-
-				context.SwapChain.GetBackbuffer(out _nativeTexture);
+				// Still dirty, we need to be able to pass in which swap chain to use!
+				_description.SwapChain.GetBackbuffer(out _nativeTexture);
 
 				CreateViews();
 			}
@@ -99,8 +97,9 @@ namespace GlitchyEngine.Renderer
 		private void CreateViews()
 		{
 			Debug.Profiler.ProfileResourceFunction!();
-			
-			if(_description.IsSwapchainTarget)
+
+			// TODO: Why did we branch here?
+			/*if(_description.Swapchain != null)
 			{
 				var result = NativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
 				Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
@@ -111,7 +110,7 @@ namespace GlitchyEngine.Renderer
 				result = NativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
 				Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
 			}
-			else
+			else*/
 			{
 				var result = NativeDevice.CreateShaderResourceView(_nativeTexture, null, &_nativeResourceView);
 				Log.EngineLogger.Assert(result.Succeeded, "Failed to create resource view");
@@ -372,11 +371,9 @@ namespace GlitchyEngine.Renderer
 					if (target.IsSwapchainTarget)
 					{
 						// TODO: if the engine supports multiple windows it has to support multiple swap chains.
-		
-						// kinda dirty...
-						var context = GraphicsContext.Get();
-		
-						context.SwapChain.GetBackbuffer(out _nativeTextures[i]);
+
+						// Still dirty, we need to be able to pass in which swap chain to use!
+						Application.Instance.MainWindow.SwapChain.GetBackbuffer(out _nativeTextures[i]);
 					}
 					else
 					{

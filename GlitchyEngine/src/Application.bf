@@ -14,7 +14,7 @@ namespace GlitchyEngine
 	{
 		static Application s_Instance = null;
 
-		private Window _window;
+		private Window _mainWindow;
 		private RendererAPI _rendererApi;
 
 		private bool _running = true;
@@ -25,6 +25,10 @@ namespace GlitchyEngine
 #if IMGUI
 		private ImGuiLayer _imGuiLayer;
 #endif
+		
+		private GraphicsContext _immediateGraphicsContext ~ _?.ReleaseRef();
+
+		public GraphicsContext ImmediateContext => _immediateGraphicsContext;
 
 		private GameTime _gameTime;
 		
@@ -34,7 +38,7 @@ namespace GlitchyEngine
 		private append Monitor _jobQueueMutex = .();
 
 		public bool IsRunning => _running;
-		public Window Window => _window;
+		public Window MainWindow => _mainWindow;
 
 		public IContentManager ContentManager => _contentManager;
 
@@ -61,9 +65,17 @@ namespace GlitchyEngine
 
 			WindowDescription windowDesc = .Default;
 			windowDesc.Icon = "Resources/Textures/GlitchyEngineIcon.ico";
+			
+			if (GraphicsContext.Get() == null)
+			{
+				_immediateGraphicsContext = new GraphicsContext(null, true);
+				_immediateGraphicsContext.Init();
+			}
 
-			_window = new Window(windowDesc);
-			_window.EventCallback = new => OnEvent;
+			_mainWindow = new Window(windowDesc);
+			_mainWindow.EventCallback = new => OnEvent;
+
+			_immediateGraphicsContext.CurrentWindow = _mainWindow;
 
 			Input.Init();
 			
@@ -71,7 +83,7 @@ namespace GlitchyEngine
 
 			// TODO: RenderAPI in RenderCommand initialisieren?
 			_rendererApi = new RendererAPI();
-			_rendererApi.Context = _window.Context;
+			_rendererApi.Context = _immediateGraphicsContext;
 
 			SamplerStateManager.Init();
 
@@ -110,7 +122,7 @@ namespace GlitchyEngine
 			delete _layerStack;
 
 			delete _rendererApi;
-			delete _window;
+			delete _mainWindow;
 			
 			delete _gameTime;
 
@@ -178,7 +190,7 @@ namespace GlitchyEngine
 						layer.Update(_gameTime);
 				}
 				
-				_window.Update();
+				_mainWindow.Update();
 				
 				if(allowFrame)
 				{
@@ -186,7 +198,7 @@ namespace GlitchyEngine
 					_imGuiLayer.ImGuiRender();
 #endif
 	
-					_window.Context.SwapChain.Present();
+					_mainWindow.SwapChain.Present();
 				}
 			}
 		}

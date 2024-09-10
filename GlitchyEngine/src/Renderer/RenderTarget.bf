@@ -17,10 +17,11 @@ namespace GlitchyEngine.Renderer
 		public uint32 SampleCount;
 		public uint32 SampleQuality;
 		public DepthStencilFormat DepthStencilFormat;
-		public bool IsSwapchainTarget;
+		/// If not null, the render target will represent the specified swap chains back buffer.
+		public SwapChain SwapChain;
 
 		public this(Format pixelFormat, uint32 width, uint32 height, uint32 arraySize = 1, uint32 mipLevels = 1,
-			DepthStencilFormat depthStencilFormat = .Unknown, CPUAccessFlags cpuAccess = .None, uint32 sampleCount = 1, uint32 sampleQuality = 0, bool isSwapchainTarget = false)
+			DepthStencilFormat depthStencilFormat = .Unknown, CPUAccessFlags cpuAccess = .None, uint32 sampleCount = 1, uint32 sampleQuality = 0, SwapChain swapChain = null)
 		{
 			PixelFormat = pixelFormat;
 			Width = width;
@@ -33,7 +34,7 @@ namespace GlitchyEngine.Renderer
 			SampleCount = sampleCount;
 			SampleQuality = sampleQuality;
 
-			IsSwapchainTarget = isSwapchainTarget;
+			SwapChain = swapChain;
 		}
 	}
 

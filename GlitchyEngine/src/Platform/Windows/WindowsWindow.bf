@@ -23,7 +23,7 @@ namespace GlitchyEngine
 		const String WindowClassName = "GlitchyEngineWindow";
 
 		private Windows.HInstance _instanceHandle;
-		private Windows.HWnd _windowHandle;
+		internal Windows.HWnd _windowHandle;
 
 		private WindowClassExW _windowClass;
 
@@ -36,10 +36,6 @@ namespace GlitchyEngine
 		private bool _isVSync = true;
 
 		private bool _isActive;
-
-		private GraphicsContext _graphicsContext ~ _?.ReleaseRef();
-
-		public override GraphicsContext Context => _graphicsContext;
 
 		public override int32 MinWidth
 		{
@@ -230,9 +226,9 @@ namespace GlitchyEngine
 				_windowHandle = CreateWindowExW(.None, _windowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
 					CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
 			}
-			
-			_graphicsContext = new GraphicsContext(_windowHandle);
-			_graphicsContext.Init();
+
+			_swapChain = new SwapChain(this);
+			_swapChain.Init();
 
 			void* myPtr = Internal.UnsafeCastToPtr(this);
 			SetWindowLongPtrW(_windowHandle, GWL_USERDATA, (int)myPtr);
@@ -300,10 +296,10 @@ namespace GlitchyEngine
 
 					if(window._clientRect.Width != 0 && window._clientRect.Height != 0)
 					{
-						window._graphicsContext.SwapChain.Width = (.)window._clientRect.Width;
-						window._graphicsContext.SwapChain.Height = (.)window._clientRect.Height;
+						window._swapChain.Width = (.)window._clientRect.Width;
+						window._swapChain.Height = (.)window._clientRect.Height;
 	
-						window._graphicsContext.SwapChain.ApplyChanges();
+						window._swapChain.ApplyChanges();
 					}
 
 					WindowResizeEvent event = scope WindowResizeEvent(window._clientRect.Width, window._clientRect.Height, window._isResizingOrMoving);

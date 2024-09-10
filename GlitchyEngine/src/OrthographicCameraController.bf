@@ -38,8 +38,9 @@ namespace GlitchyEngine
 		public void Update(GameTime gameTime)
 		{
 			Debug.Profiler.ProfileFunction!();
-
-			if(Application.Get().Window.IsActive)
+			
+			// TODO: Don't check the main window instead check the editor view window
+			if(Application.Instance.MainWindow.IsActive)
 			{
 				float3 movement = .();
 

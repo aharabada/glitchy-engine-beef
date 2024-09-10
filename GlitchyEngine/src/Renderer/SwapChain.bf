@@ -3,8 +3,9 @@ namespace GlitchyEngine.Renderer
 	public class SwapChain
 	{
 		private GraphicsContext _context;
+		private Window _window;
 
-		private bool _changed;
+		private bool _changed = true;
 
 		private uint32 _width, _height;
 
@@ -15,6 +16,8 @@ namespace GlitchyEngine.Renderer
 		public RenderTarget2D _backBuffer ~ _?.ReleaseRef();
 
 		public GraphicsContext Context => _context;
+
+		public Window Window => _window;
 
 		/**
 		 * Gets or Sets the backbuffers width.
@@ -76,6 +79,11 @@ namespace GlitchyEngine.Renderer
 		}
 
 		public RenderTarget2D BackBuffer => _backBuffer;
+
+		public this(Window window)
+		{
+			_window = window;
+		}
 
 		public extern void Init();
 

@@ -118,7 +118,7 @@ namespace GlitchyEditor
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
-			Application.Get().Window.IsVSync = true;
+			Application.Get().MainWindow.IsVSync = true;
 
 			ScriptEngine.ApplicationInfo.IsEditor = true;
 
@@ -306,7 +306,7 @@ namespace GlitchyEditor
 
 		private void InitGraphics()
 		{
-			_context = Application.Get().Window.Context..AddRef();
+			_context = Application.Instance.ImmediateContext..AddRef();
 			
 			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(rsDesc);
@@ -471,7 +471,7 @@ namespace GlitchyEditor
 			RenderCommand.SetRenderTarget(null, 0, true);
 			RenderCommand.BindRenderTargets();
 
-			RenderCommand.SetViewport(_context.SwapChain.BackbufferViewport);
+			RenderCommand.SetViewport(Application.Instance.MainWindow.SwapChain.BackbufferViewport);
 		}
 
 		private void DebugDraw3D()
@@ -583,7 +583,7 @@ namespace GlitchyEditor
 				title.AppendF($" | {_editorScene.Name}");
 			}
 
-			Application.Instance.Window.Title = title;
+			Application.Instance.MainWindow.Title = title;
 		}
 
 #region Project Management

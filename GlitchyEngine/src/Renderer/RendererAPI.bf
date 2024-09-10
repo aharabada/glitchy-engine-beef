@@ -28,7 +28,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			var actualRt = (renderTarget ?? GraphicsContext.Get().SwapChain.BackBuffer);
+			var actualRt = (renderTarget ?? GraphicsContext.Get().CurrentWindow.SwapChain.BackBuffer);
 
 			if(options.HasFlag(.Color))
 				Clear(actualRt, color);

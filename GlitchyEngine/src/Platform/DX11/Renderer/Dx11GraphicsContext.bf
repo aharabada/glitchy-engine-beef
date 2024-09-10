@@ -19,10 +19,6 @@ namespace GlitchyEngine.Renderer
 	/// DirectX 11 specific implementation of the GraphicsContext
 	extension GraphicsContext
 	{
-		private SwapChain _swapChain;
-
-		internal Windows.HWnd nativeWindowHandle;
-
 		/// Gets whether or not the DX11 device is initialized.
 		//internal bool IsDx11Initialized => nativeDevice != null;
 		//internal ID3D11Device* nativeDevice => NativeDevice;
@@ -30,7 +26,7 @@ namespace GlitchyEngine.Renderer
 
 		//internal ID3D11Debug* debugDevice => DebugDevice;
 
-		public override SwapChain SwapChain => _swapChain;
+		//public override SwapChain SwapChain => _mainWindow.SwapChain;
 
 		private const uint32 MaxRTVCount = DirectX.D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT;
 
@@ -41,22 +37,9 @@ namespace GlitchyEngine.Renderer
 
 		//public static override uint32 MaxRenderTargetCount() => MaxRTVCount;
 
-		public this(Windows.HWnd windowHandle)
-		{
-			Debug.Profiler.ProfileFunction!();
-
-			nativeWindowHandle = windowHandle;
-
-			_swapChain = new SwapChain(this);
-
-			s_GraphicsContext = this;
-		}
-
 		public ~this()
 		{
 			Debug.Profiler.ProfileFunction!();
-
-			delete _swapChain;
 
 			Dx11Release();
 		}
@@ -65,57 +48,12 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			Dx11Init();
-
-			SwapChain.Init();
-		}
-
-		/**
-		 * Initializes the Device and ImmediateContext.
-		 */
-		/*
-		void InitDevice()
-		{
-			if(!IsDx11Initialized)
+			if (_immediateContext)
 			{
-				Log.EngineLogger.Trace("Creating D3D11 Device and Context...");
-				
-				DeviceCreationFlags deviceFlags = .None;
-#if DEBUG
-				deviceFlags |= .Debug;
-#endif
-
-				FeatureLevel[] levels = scope .(.Level_11_0);
-
-				FeatureLevel deviceLevel = ?;
-				var deviceResult = D3D11.CreateDevice(null, .Hardware, 0, deviceFlags, levels, &nativeDevice, &deviceLevel, &nativeContext);
-				Log.EngineLogger.Assert(deviceResult.Succeeded, scope $"Failed to create D3D11 Device. Message({(int32)deviceResult}): {deviceResult}");
-
-#if DEBUG	
-				if(nativeDevice.QueryInterface<ID3D11Debug>(out debugDevice).Succeeded)
-				{
-					ID3D11InfoQueue* infoQueue;
-					if(nativeDevice.QueryInterface<ID3D11InfoQueue>(out infoQueue).Succeeded)
-					{
-						infoQueue.SetBreakOnSeverity(.Corruption, true);
-						infoQueue.SetBreakOnSeverity(.Error, true);
-
-						infoQueue.Release();
-					}
-				}
-#endif
-
-				Log.EngineLogger.Trace($"D3D11 Device and Context created (Feature level: {deviceLevel})");
-			}
-			else
-			{
-				// We created a second GraphicsContext (for some reason?) just increment references.
-				nativeDevice.AddRef();
-				nativeContext.AddRef();
-				debugDevice.AddRef();
+				s_GraphicsContext = this;
+				Dx11Init();
 			}
 		}
-		*/
 
 		private ID3D11DepthStencilView* _depthStencilTarget;
 		private ID3D11RenderTargetView*[MaxRTVCount] _renderTargets;
@@ -132,11 +70,11 @@ namespace GlitchyEngine.Renderer
 
 		public override void SetRenderTarget(RenderTarget2D renderTarget, int slot, bool setDepthTarget)
 		{
-			_renderTargets[slot] = (renderTarget ?? _swapChain.BackBuffer)._nativeRenderTargetView;
+			_renderTargets[slot] = (renderTarget ?? _currentWindow.SwapChain.BackBuffer)._nativeRenderTargetView;
 
 			if(slot == 0 && setDepthTarget)
 			{
-				SetDepthStencilTarget((renderTarget ?? _swapChain.BackBuffer).DepthStencilTarget);
+				SetDepthStencilTarget((renderTarget ?? _currentWindow.SwapChain.BackBuffer).DepthStencilTarget);
 			}
 		}
 
@@ -168,7 +106,7 @@ namespace GlitchyEngine.Renderer
 		{
 			using (ContextMonitor.Enter())
 			{
-				NativeContext.ClearRenderTargetView((renderTarget ?? _swapChain.BackBuffer)._nativeRenderTargetView, color);
+				NativeContext.ClearRenderTargetView((renderTarget ?? _currentWindow.SwapChain.BackBuffer)._nativeRenderTargetView, color);
 			}
 		}
 

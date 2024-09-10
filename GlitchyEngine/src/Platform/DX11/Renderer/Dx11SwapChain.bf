@@ -10,6 +10,8 @@ using internal GlitchyEngine.Platform.DX11;
 
 namespace GlitchyEngine.Renderer
 {
+	using internal GlitchyEngine;
+
 	public extension SwapChain
 	{
 		internal DirectX.DXGI.IDXGIDevice* nativeDxgiDevice;
@@ -34,7 +36,7 @@ namespace GlitchyEngine.Renderer
 
 		void SetResolutionFromWindow()
 		{
-			DirectX.Windows.Winuser.GetClientRect(_context.nativeWindowHandle, let rect);
+			DirectX.Windows.Winuser.GetClientRect(_window._windowHandle, let rect);
 
 			Width = (.)(rect.Right - rect.Left);
 			Height = (.)(rect.Bottom - rect.Top);
@@ -68,7 +70,7 @@ namespace GlitchyEngine.Renderer
 
 			uint32 backBufferCount = 2;
 			Format backBufferFormat = .R8G8B8A8_UNorm;
-			Format backBufferViewFormat = .R8G8B8A8_UNorm; // _SRGB
+			// TODO: Allow this: Format backBufferViewFormat = .R8G8B8A8_UNorm_SRGB;
 
 			if(nativeSwapChain != null)
 			{
@@ -101,7 +103,7 @@ namespace GlitchyEngine.Renderer
 				SwapChainFullscreenDescription fsSwapChainDesc = .();
 				fsSwapChainDesc.Windowed = true;
 
-				var createResult = factory.CreateSwapChainForHwnd((.)NativeDevice, _context.nativeWindowHandle, ref swDesc, &fsSwapChainDesc, null, &nativeSwapChain);
+				var createResult = factory.CreateSwapChainForHwnd((.)NativeDevice, _window._windowHandle, ref swDesc, &fsSwapChainDesc, null, &nativeSwapChain);
 				if(createResult.Failed)
 				{
 					Log.EngineLogger.Error($"Failed to create swap chain. Message({(int)createResult}):{createResult}");
@@ -112,7 +114,7 @@ namespace GlitchyEngine.Renderer
 
 			RenderTarget2DDescription desc = .(backBufferFormat, _width, _height);
 			desc.DepthStencilFormat = _depthStencilFormat;
-			desc.IsSwapchainTarget = true;
+			desc.SwapChain = this;
 
 			// Todo: perhaps just update the render target
 			_backBuffer = new RenderTarget2D(desc);
@@ -132,7 +134,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			nativeSwapChain.Present(Application.Get().Window.IsVSync ? 1 : 0, .None);
+			nativeSwapChain.Present(_window.IsVSync ? 1 : 0, .None);
 		}
 	}
 }

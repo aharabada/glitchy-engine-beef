@@ -27,10 +27,14 @@ namespace GlitchyEngine
 
 	public class Window
 	{
+		private SwapChain _swapChain ~ delete _;
+
 		public delegate void EventCallback(Event e);
 
 		protected EventCallback _eventCallback ~ delete _;
-		
+
+		public SwapChain SwapChain => _swapChain;
+
 		public extern this(WindowDescription windowDescription);
 
 		/**
@@ -87,11 +91,6 @@ namespace GlitchyEngine
 		 * Gets or Sets whether or not the application uses VSync
 		 */
 		public extern bool IsVSync {get; set;}
-		
-		/**
-		 * Gets the windows graphics context.
-		 */
-		public extern GraphicsContext Context {get;}
 
 		/**
 		 * Gets a pointer to the platform specific window representation.

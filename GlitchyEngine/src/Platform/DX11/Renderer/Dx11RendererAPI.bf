@@ -39,7 +39,7 @@ namespace GlitchyEngine.Renderer
 
 		private mixin RtOrBackbuffer(RenderTarget2D renderTarget)
 		{
-			renderTarget ?? _context.SwapChain.BackBuffer
+			renderTarget ?? _context.CurrentWindow.SwapChain.BackBuffer
 		}
 
 		public override void Clear(RenderTarget2D renderTarget, ColorRGBA color)

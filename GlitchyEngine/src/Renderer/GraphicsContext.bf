@@ -8,10 +8,24 @@ namespace GlitchyEngine.Renderer
 	{
 		private static GraphicsContext s_GraphicsContext;
 		public static GraphicsContext Get() => s_GraphicsContext;
+		
+		private Window _currentWindow;
 
-		public extern SwapChain SwapChain {get;}
+		private bool _immediateContext;
+
+		public Window CurrentWindow
+		{
+			get => _currentWindow;
+			set => _currentWindow = value;
+		}
 
 		protected extern void PlatformConstruct();
+
+		public this(Window currentWindow, bool immediateContext = false)
+		{
+			_currentWindow = currentWindow;
+			_immediateContext = immediateContext;
+		}
 
 		/**
 		 * The maximum number of simultaneous rendertargets supported. 

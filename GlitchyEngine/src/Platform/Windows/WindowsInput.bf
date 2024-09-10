@@ -194,7 +194,7 @@ namespace GlitchyEngine
 
 		public override static void SetMousePosition(int2 pos)
 		{
-			HWnd windowHandle = (HWnd)(int)Application.Get().Window.NativeWindow;
+			HWnd windowHandle = (HWnd)(int)Application.Get().MainWindow.NativeWindow;
 
 			var pos;
 
@@ -213,7 +213,7 @@ namespace GlitchyEngine
 
 		public override static void Impl_NewFrame()
 		{
-			Window window = Application.Get().Window;
+			Window window = Application.Get().MainWindow;
 
 			Debug.Profiler.ProfileFunction!();
 
@@ -260,7 +260,7 @@ namespace GlitchyEngine
 
 		public override static void Impl_EndFrame()
 		{
-			Application.Get().Window.[Friend]_rawMouseMovementAccumulator = .Zero;
+			Application.Get().MainWindow.[Friend]_rawMouseMovementAccumulator = .Zero;
 		}
 	}
 }
