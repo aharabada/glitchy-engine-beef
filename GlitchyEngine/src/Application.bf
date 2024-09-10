@@ -15,6 +15,9 @@ namespace GlitchyEngine
 		static Application s_Instance = null;
 
 		private Window _mainWindow;
+
+		private append List<Window> _windows = .();
+
 		private RendererAPI _rendererApi;
 
 		private bool _running = true;
@@ -52,6 +55,8 @@ namespace GlitchyEngine
 		public static Application Instance => s_Instance;
 
 		public Settings Settings {get; private set;} = new .() ~ delete _;
+
+		public List<Window> Windows => _windows;
 
 		public this()
 		{
@@ -122,7 +127,11 @@ namespace GlitchyEngine
 			delete _layerStack;
 
 			delete _rendererApi;
-			delete _mainWindow;
+
+			while (!_windows.IsEmpty)
+			{
+				delete _windows.Back;
+			}
 			
 			delete _gameTime;
 
@@ -197,8 +206,11 @@ namespace GlitchyEngine
 #if IMGUI
 					_imGuiLayer.ImGuiRender();
 #endif
-	
-					_mainWindow.SwapChain.Present();
+
+					for (Window window in _windows)
+					{
+						window.SwapChain.Present();
+					}
 				}
 			}
 		}

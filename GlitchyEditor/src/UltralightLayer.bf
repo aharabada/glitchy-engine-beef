@@ -12,10 +12,67 @@ namespace GlitchyEditor;
 
 class UltralightLayer : Layer
 {
+	Window windoww ~ delete _;
+
+	int2 cursorPosition;
+
 	public this()
 	{
 		NoApp();
 		//RenderApp();
+
+		WindowDescription windowDesc = .Default;
+		windowDesc.Icon = "Resources/Textures/GlitchyEngineIcon.ico";
+		windowDesc.Title = "Test";
+
+		windoww = new Window(windowDesc);
+		windoww.EventCallback = new => EventHandler;
+	}
+
+	private void EventHandler(Event e)
+	{
+		EventDispatcher dispatcher = EventDispatcher(e);
+
+		dispatcher.Dispatch<MouseMovedEvent>(scope => MouseMoved);
+		dispatcher.Dispatch<MouseButtonPressedEvent>(scope (e) => MousePressed(e, true));
+		dispatcher.Dispatch<MouseButtonReleasedEvent>(scope (e) => MousePressed(e, false));
+	}
+
+	private bool MouseMoved(MouseMovedEvent e)
+	{
+		if (e.Window == windoww)
+		{
+			Log.EngineLogger.Warning($"{e.PositionX}");
+			ULMouseEvent evt = ulCreateMouseEvent(.kMouseEventType_MouseMoved, e.PositionX, e.PositionY, .kMouseButton_None);
+			ulViewFireMouseEvent(view, evt);
+			ulDestroyMouseEvent(evt);
+
+			cursorPosition = .(e.PositionX, e.PositionY);
+		}
+
+		return false;
+	}
+
+	private bool MousePressed(MouseButtonEvent e, bool press)
+	{
+		if (e.Window == windoww)
+		{
+			ULMouseButton button = .kMouseButton_None;
+
+			switch (e.MouseButton)
+			{
+			case .LeftButton: button = .kMouseButton_Left;
+			case .RightButton: button = .kMouseButton_Right;
+			case .MiddleButton: button = .kMouseButton_Middle;
+			default: button = .kMouseButton_None;
+			}
+
+			ULMouseEvent evt = ulCreateMouseEvent(press ? .kMouseEventType_MouseDown : .kMouseEventType_MouseUp, cursorPosition.X, cursorPosition.Y, button);
+			ulViewFireMouseEvent(view, evt);
+			ulDestroyMouseEvent(evt);
+		}
+
+		return false;
 	}
 
 	private static void OnAppUpdate(void* user_data)
@@ -162,6 +219,13 @@ class UltralightLayer : Layer
 			CopybitmapToTexture(ulBitmapSurfaceGetBitmap(surface));
 			ulSurfaceClearDirtyBounds(surface);
 		}
+
+		Render();
+	}
+
+	private void Render()
+	{
+		RenderCommand.Clear(windoww.SwapChain.BackBuffer, .Color | .Depth, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
 	}
 
 	private void CreateView()
@@ -170,6 +234,8 @@ class UltralightLayer : Layer
 		ulViewConfigSetIsAccelerated(viewConfig, false);
 	  
 		view = ulCreateView(renderer, 500, 500, viewConfig, null);
+
+		ulViewSetDOMReadyCallback(view, => OnDOMReady, null);
 
 		ulDestroyViewConfig(viewConfig);
 		

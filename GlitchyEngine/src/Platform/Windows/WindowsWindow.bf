@@ -162,6 +162,8 @@ namespace GlitchyEngine
 			_minMaxInfo.MaximumTrackingSize.x = int32.MaxValue;
 			_minMaxInfo.MaximumTrackingSize.y = int32.MaxValue;
 
+			Application.Instance.Windows.Add(this);
+
 			Init(desc);
 		}
 
@@ -181,7 +183,10 @@ namespace GlitchyEngine
 				Log.EngineLogger.Error($"Failed to destroy window: Message ({(int)res}): {res}");
 			}
 
+			// TODO manage window classes somehow
 			UnregisterClass(WindowClassName.ToScopedNativeWChar!(), _instanceHandle);
+
+			Application.Instance.Windows.Remove(this);
 		}
 
 		[LinkName(.C)]
@@ -217,7 +222,7 @@ namespace GlitchyEngine
 			{
 				uint32 lastError = GetLastError();
 				Log.EngineLogger.Error($"Failed to register window class. Message({(int)lastError}): {(HResult)lastError}");
-				Runtime.FatalError("Failed to register window class");
+				//Runtime.FatalError("Failed to register window class");
 			}
 
 			{
@@ -381,34 +386,34 @@ namespace GlitchyEngine
 				// Left mouse button
 			case WM_LBUTTONDOWN:
 				{
-					var event = scope MouseButtonPressedEvent(.LeftButton);
+					var event = scope MouseButtonPressedEvent(window, .LeftButton);
 					window._eventCallback(event);
 				}
 			case WM_LBUTTONUP:
 				{
-					var event = scope MouseButtonReleasedEvent(.LeftButton);
+					var event = scope MouseButtonReleasedEvent(window, .LeftButton);
 					window._eventCallback(event);
 				}
 				// Right mouse button
 			case WM_RBUTTONDOWN:
 				{
-					var event = scope MouseButtonPressedEvent(.RightButton);
+					var event = scope MouseButtonPressedEvent(window, .RightButton);
 					window._eventCallback(event);
 				}
 			case WM_RBUTTONUP:
 				{
-					var event = scope MouseButtonReleasedEvent(.RightButton);
+					var event = scope MouseButtonReleasedEvent(window, .RightButton);
 					window._eventCallback(event);
 				}
 				// Middle mouse button
 			case WM_MBUTTONDOWN:
 				{
-					var event = scope MouseButtonPressedEvent(.MiddleButton);
+					var event = scope MouseButtonPressedEvent(window, .MiddleButton);
 					window._eventCallback(event);
 				}
 			case WM_MBUTTONUP:
 				{
-					var event = scope MouseButtonReleasedEvent(.MiddleButton);
+					var event = scope MouseButtonReleasedEvent(window, .MiddleButton);
 					window._eventCallback(event);
 				}
 				// X button
@@ -420,7 +425,7 @@ namespace GlitchyEngine
 					else
 						button = .XButton2;
 
-					var event = scope MouseButtonPressedEvent(button);
+					var event = scope MouseButtonPressedEvent(window, button);
 					window._eventCallback(event);
 				}
 			case WM_XBUTTONUP:
@@ -431,7 +436,7 @@ namespace GlitchyEngine
 					else
 						button = .XButton2;
 
-					var event = scope MouseButtonReleasedEvent(button);
+					var event = scope MouseButtonReleasedEvent(window, button);
 					window._eventCallback(event);
 				}
 				// Vertical scrolling
@@ -453,8 +458,8 @@ namespace GlitchyEngine
 			case WM_MOUSEMOVE:
 				{
 					SplitHighAndLowOrder!(lParam, let x, let y);
-
-					var event = scope MouseMovedEvent(x, y);
+					
+					var event = scope MouseMovedEvent(window, x, y);
 					window._eventCallback(event);
 				}
 			case WM_INPUT:
@@ -470,8 +475,8 @@ namespace GlitchyEngine
 							RAWINPUT* raw = (.)rawData.CArray();
 							if (raw.Header.Type == RIM_TYPEMOUSE)
 							{
-								var event = scope MouseMovedEvent(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
-								window._eventCallback(event);
+								var event = scope MouseMovedEvent(window, raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);
+								//window._eventCallback(event);
 
 								// We accumulate the raw movements an collect them once each frame in WindowsInput.Impl_NewFrame()
 								window._rawMouseMovementAccumulator += int2(raw.Data.Mouse.lLastX, raw.Data.Mouse.lLastY);

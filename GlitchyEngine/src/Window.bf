@@ -31,7 +31,7 @@ namespace GlitchyEngine
 
 		public delegate void EventCallback(Event e);
 
-		protected EventCallback _eventCallback ~ delete _;
+		protected EventCallback _eventCallback = new => DefaultEventHandler ~ delete _;
 
 		public SwapChain SwapChain => _swapChain;
 
@@ -105,7 +105,11 @@ namespace GlitchyEngine
 		public EventCallback EventCallback
 		{
 			get => _eventCallback;
-			set => _eventCallback = value;
+			set
+			{
+				delete _eventCallback;
+				_eventCallback = value;
+			}
 		}
 
 		public extern void Update();
@@ -114,5 +118,10 @@ namespace GlitchyEngine
 		 * Sets the Icon of the window to the given file.
 		 */
 		public extern Result<void> SetIcon(StringView filePath);
+
+		private void DefaultEventHandler(Event e)
+		{
+			Log.EngineLogger.Error($"No event handler registered for window.");
+		}
 	}
 }
