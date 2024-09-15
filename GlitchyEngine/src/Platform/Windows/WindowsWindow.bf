@@ -259,7 +259,8 @@ namespace GlitchyEngine
 			// Determine whether or not the window is currently active
 			_isActive = GetActiveWindow() == _windowHandle;
 
-			SetIcon(desc.Icon);
+			if (!desc.Icon.IsEmpty)
+				SetIcon(desc.Icon);
 		}
 
 		private bool _isResizingOrMoving;
