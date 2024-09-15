@@ -15,7 +15,9 @@ namespace GlitchyEditor;
 
 class UltralightLayer : Layer
 {
-	Window windoww ~ delete _;
+	Window window ~ delete _;
+	
+	static ULView view;
 
 	int2 cursorPosition;
 
@@ -27,15 +29,12 @@ class UltralightLayer : Layer
 		windowDesc.Icon = "Resources/Textures/GlitchyEngineIcon.ico";
 		windowDesc.Title = "Test";
 
-		windoww = new Window(windowDesc);
-		windoww.EventCallback = new => EventHandler;
+		window = new Window(windowDesc);
+		window.EventCallback = new => EventHandler;
 
 		_copyEffect = Content.LoadAsset("Resources/Shaders/Copy.hlsl");
 
-		
 		NoApp();
-		//RenderApp();
-
 	}
 
 	private void EventHandler(Event e)
@@ -49,8 +48,8 @@ class UltralightLayer : Layer
 		dispatcher.Dispatch<KeyReleasedEvent>(scope (e) => KeyEvent(e, false, 0));
 		dispatcher.Dispatch<KeyTypedEvent>(scope (e) => CharTypedEvent(e));
 		dispatcher.Dispatch<WindowCloseEvent>(scope (e) => {
-			delete windoww;
-			windoww = null;
+			delete window;
+			window = null;
 			return true;
 		});
 
@@ -143,24 +142,6 @@ class UltralightLayer : Layer
 		ulDestroyMouseEvent(evt);
 
 		return true;
-	}
-
-	private static void OnAppUpdate(void* user_data)
-	{
-		//UltralightLayer layer = (UltralightLayer)Internal.UnsafeCastToObject(user_data);
-		//layer.OnAppUpdate();
-	}
-
-	private static void OnClose(void* user_data, ULWindow window)
-	{
-		Log.ClientLogger.Info("OnClose...");
-		ulAppQuit(app);
-	}
-
-	private static void OnResize(void* user_data, ULWindow window, uint32 width, uint32 height)
-	{
-		Log.ClientLogger.Info($"OnResize: {width} {height}");
-		ulOverlayResize(overlay, width, height);
 	}
 
 	///
@@ -290,30 +271,18 @@ class UltralightLayer : Layer
 		ulBitmapUnlockPixels(bitmap);
 	}
 
-	//bool needsResize = true;
-
 	private void CreateTexture()
 	{
-		if (texture != null && (texture.Width == windoww.SwapChain.Width && texture.Height == windoww.SwapChain.Height))
+		if (texture?.Width == window.SwapChain.Width && texture?.Height == window.SwapChain.Height)
 			return;
 	
-
-		Texture2DDesc desc = .(windoww.SwapChain.Width, windoww.SwapChain.Height, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
+		Texture2DDesc desc = .(window.SwapChain.Width, window.SwapChain.Height, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
 
 		Texture2D newTexture = new Texture2D(desc);
-		//newTexture.[Friend]Identifier = .("Window Target");
 		newTexture.SamplerState = SamplerStateManager.PointClamp;
-
-		//Application.Instance.ContentManager.ManageAsset(texture);
 
 		texture?.ReleaseRef();
 		texture = newTexture;
-
-		ULIntRect bounds = ULIntRect();
-		bounds.bottom = 0;
-		bounds.left = 0;
-		bounds.top = (.)desc.Height;
-		bounds.bottom = (.)desc.Width;
 	}
 
 	bool ResizeWindow(WindowResizeEvent windowResizeEvent)
@@ -343,15 +312,15 @@ class UltralightLayer : Layer
 
 	private void Render()
 	{
-		if (windoww == null)
+		if (window == null)
 			return;
 
-		RenderCommand.Clear(windoww.SwapChain.BackBuffer, .Color, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
+		RenderCommand.Clear(window.SwapChain.BackBuffer, .Color, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
 		
 		RenderCommand.UnbindRenderTargets();
-		RenderCommand.SetRenderTarget(windoww.SwapChain.BackBuffer);
+		RenderCommand.SetRenderTarget(window.SwapChain.BackBuffer);
 		RenderCommand.BindRenderTargets();
-		RenderCommand.SetViewport(windoww.SwapChain.BackbufferViewport);
+		RenderCommand.SetViewport(window.SwapChain.BackbufferViewport);
 
 		Effect copy = Content.GetAsset<Effect>(_copyEffect);
 		copy.SetTexture("Texture", texture);
@@ -366,14 +335,14 @@ class UltralightLayer : Layer
 		ULViewConfig viewConfig = ulCreateViewConfig();
 		ulViewConfigSetIsAccelerated(viewConfig, false);
 	  
-		view = ulCreateView(renderer, windoww.SwapChain.Width, windoww.SwapChain.Height, viewConfig, null);
+		view = ulCreateView(renderer, window.SwapChain.Width, window.SwapChain.Height, viewConfig, null);
 
 		ulViewSetDOMReadyCallback(view, => OnDOMReady, null);
 
 		ulDestroyViewConfig(viewConfig);
 
 		ulViewSetFailLoadingCallback(view, (user_data, caller, frame_id, is_main_frame, url, description, error_domain, error_code) => {
-		   Log.ClientLogger.Error("Errorrr");
+		   Log.ClientLogger.Error("Error");
 		}, null);
 
 		ULString url = ulCreateString("file:///app.html");
@@ -381,138 +350,5 @@ class UltralightLayer : Layer
 		ulDestroyString(url);
 
 		CreateTexture();
-
-		//surface = ulViewGetSurface(view);
-
-		// TODO: Dynamic
-		/*Texture2DDesc desc = .(500, 500, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
-
-		texture = new Texture2D(desc);
-		texture.[Friend]Identifier = .("TestTexture");
-		texture.SamplerState = SamplerStateManager.PointClamp;
-
-		Application.Instance.ContentManager.ManageAsset(texture);*/
-	}
-
-	public override void OnEvent(GlitchyEngine.Events.Event event)
-	{
-		EventDispatcher dispatcher = EventDispatcher(event);
-
-		dispatcher.Dispatch<ImGuiRenderEvent>(scope (e) => OnImGuiRender(e));
-
-			/*
-			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
-			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
-			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));*/
-		
-	}
-
-	private bool OnImGuiRender(ImGuiRenderEvent event)
-	{
-		if (ImGui.Begin("Testlul"))
-		{
-			//ImGui.Image(texture, .(500, 500));
-
-		}
-		ImGui.End();
-
-		return false;
-	}	
-	
-	static ULApp app;
-	static ULWindow window;
-	static ULOverlay overlay;
-	static ULView view;
-
-	private void RenderApp()
-	{
-		///
-		/// Create default settings/config
-		///
-		ULSettings settings = ulCreateSettings();
-		ulSettingsSetForceCPURenderer(settings, true);
-		ULConfig config = ulCreateConfig();
-
-		ULString fileSystemPath = ulCreateString(@"D:\Development\Projects\Beef\GlitchyEngine\GlitchyEditor\assets");
-		ulSettingsSetFileSystemPath(settings, fileSystemPath);
-		ulDestroyString(fileSystemPath);
-		
-		///
-		/// Create our App
-		///
-		app = ulCreateApp(settings, config);
-		
-		///
-		/// Register a callback to handle app update logic.
-		///
-		ulAppSetUpdateCallback(app, => OnAppUpdate, null);
-		
-		///
-		/// Done using settings/config, make sure to destroy anything we create
-		///
-		ulDestroySettings(settings);
-		ulDestroyConfig(config);
-		
-		///
-		/// Create our window, make it 500x500 with a titlebar and resize handles.
-		///
-		window = ulCreateWindow(ulAppGetMainMonitor(app), 500, 500, false,
-			(uint32)(ULWindowFlags.kWindowFlags_Titled | ULWindowFlags.kWindowFlags_Resizable));
-
-		///
-		/// Set our window title.
-		///
-		ulWindowSetTitle(window, "Ultralight Sample 6 - Intro to C API");
-		
-		///
-		/// Register a callback to handle window close.
-		///
-		ulWindowSetCloseCallback(window, => OnClose, null);
-		
-		///
-		/// Register a callback to handle window resize.
-		///
-		ulWindowSetResizeCallback(window, => OnResize, null);
-		
-		///
-		/// Create an overlay same size as our window at 0,0 (top-left) origin. Overlays also create an
-		/// HTML view for us to display content in.
-		///
-		/// **Note**:
-		///     Ownership of the view remains with the overlay since we don't explicitly create it.
-		///
-		overlay = ulCreateOverlay(window, ulWindowGetWidth(window), ulWindowGetHeight(window), 0, 0);
-		
-		///
-		/// Get the overlay's view.
-		///
-		view = ulOverlayGetView(overlay);
-		
-		///
-		/// Register a callback to handle our view's DOMReady event. We will use this event to setup any
-		/// JavaScript <-> C bindings and initialize our page.
-		///
-		ulViewSetDOMReadyCallback(view, => OnDOMReady, null);
-
-		ulViewSetFailLoadingCallback(view, (user_data, caller, frame_id, is_main_frame, url, description, error_domain, error_code) => {
-		   Log.ClientLogger.Error("Errorrr");
-		}, null);
-		
-		///
-		/// Load a file from the FileSystem.
-		///
-		///  **IMPORTANT**: Make sure `file:///` has three (3) forward slashes.
-		///
-		///  **Note**: You can configure the base path for the FileSystem in the Settings we passed to
-		///            ulCreateApp earlier.
-		///
-		ULString url = ulCreateString("file:///app.html");
-
-		var v = ulStringGetData(url);
-
-		ulViewLoadURL(view, url);
-		ulDestroyString(url);
-		
-		ulAppRun(app);
 	}
 }
