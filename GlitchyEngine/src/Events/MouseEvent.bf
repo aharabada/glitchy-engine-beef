@@ -4,7 +4,6 @@ namespace GlitchyEngine.Events
 {
 	public class MouseMovedEvent : Event, IEvent
 	{
-		private Window _window;
 		private int32 _mouseX, _mouseY;
 
 		public override EventType EventType => .MouseMoved;
@@ -15,14 +14,11 @@ namespace GlitchyEngine.Events
 
 		public static EventType StaticType => .MouseMoved;
 
-		public Window Window => _window;
-
 		public int32 PositionX => _mouseX;
 		public int32 PositionY => _mouseY;
 
-		public this(Window window, int32 x, int32 y)
+		public this(int32 x, int32 y)
 		{
-			_window = window;
 			_mouseX = x;
 			_mouseY = y;
 		}
@@ -99,18 +95,14 @@ namespace GlitchyEngine.Events
 
 	public abstract class MouseButtonEvent : Event
 	{
-		protected Window _window;
 		protected MouseButton _mouseButton;
 
 		public override EventCategory Category => .Input | .Mouse;
 
-		public Window Window => _window;
-
 		public MouseButton MouseButton => _mouseButton;
 
-		protected this(Window window, MouseButton mouseButton)
+		protected this(MouseButton mouseButton)
 		{
-			_window = window;
 			_mouseButton = mouseButton;
 		}
 	}
@@ -123,7 +115,7 @@ namespace GlitchyEngine.Events
 
 		public static EventType StaticType => .MouseButtonPressed;
 
-		public this(Window window, MouseButton mouseButton) : base(window, mouseButton) {  }
+		public this(MouseButton mouseButton) : base(mouseButton) {  }
 
 		public override void ToString(String strBuffer)
 		{
@@ -140,7 +132,7 @@ namespace GlitchyEngine.Events
 
 		public static EventType StaticType => .MouseButtonReleased;
 
-		public this(Window window, MouseButton mouseButton) : base(window, mouseButton) {  }
+		public this(MouseButton mouseButton) : base(mouseButton) {  }
 
 		public override void ToString(String strBuffer)
 		{

@@ -21,11 +21,12 @@ namespace GlitchyEngine
 	public extension Window
 	{
 		const String WindowClassName = "GlitchyEngineWindow";
+		static readonly char16[?] WindowClassNameW = WindowClassName.ToConstNativeW();
 
-		private Windows.HInstance _instanceHandle;
+		private static WindowClassExW WindowClass;
+
+		private static Windows.HInstance _instanceHandle;
 		internal Windows.HWnd _windowHandle;
-
-		private WindowClassExW _windowClass;
 
 		private WindowRectangle _clientRect;
 
@@ -183,14 +184,49 @@ namespace GlitchyEngine
 				Log.EngineLogger.Error($"Failed to destroy window: Message ({(int)res}): {res}");
 			}
 
-			// TODO manage window classes somehow
-			UnregisterClass(WindowClassName.ToScopedNativeWChar!(), _instanceHandle);
-
 			Application.Instance.Windows.Remove(this);
+		}
+
+		static ~this()
+		{
+#unwarn
+			UnregisterClass(WindowClass.ClassName, _instanceHandle);
 		}
 
 		[LinkName(.C)]
 		static extern HWnd GetActiveWindow();
+
+		private void CreateWindowClass(StringView iconPath)
+		{
+			_instanceHandle = (.)GetModuleHandleW(null);
+
+			WindowClass = .();
+			WindowClass.Style = .HorizontalRedrawOnChange | .VerticalRedrawOnChange;
+			WindowClass.WindowProcedure = => MessageHandler;
+			WindowClass.HInstance = (.)_instanceHandle;
+
+			if (iconPath.Ptr != null)
+			{
+				Debug.Profiler.ProfileScope!("LoadIcon");
+
+				WindowClass.Icon = LoadImageW(0, iconPath.ToScopedNativeWChar!(), .Icon, 0, 0, .LoadFromFile);
+			}
+			else
+				WindowClass.Icon = 0;
+
+			WindowClass.Cursor = LoadCursorW(0, IDC_ARROW);
+			WindowClass.BackgroundBrush = (HBRUSH)SystemColor.WindowFrame;
+
+#unwarn
+			WindowClass.ClassName = &WindowClassNameW;
+
+			if (RegisterClassExW(ref WindowClass) == 0)
+			{
+				uint32 lastError = GetLastError();
+				Log.EngineLogger.Error($"Failed to register window class. Message({(int)lastError}): {(HResult)lastError}");
+				Runtime.FatalError("Failed to register window class");
+			}
+		}
 
 		private void Init(WindowDescription desc)
 		{
@@ -198,37 +234,15 @@ namespace GlitchyEngine
 
 			Log.EngineLogger.Trace($"Creating window \"{desc.Title}\" ({desc.Width}, {desc.Height})...");
 
-			_instanceHandle = (.)GetModuleHandleW(null);
-
-			_windowClass = .();
-			_windowClass.Style = .HorizontalRedrawOnChange | .VerticalRedrawOnChange;
-			_windowClass.WindowProcedure = => MessageHandler;
-			_windowClass.HInstance = (.)_instanceHandle;
-
-			if (desc.Icon.Ptr != null)
+			if (WindowClass == default)
 			{
-				Debug.Profiler.ProfileScope!("LoadIcon");
-
-				_windowClass.Icon = LoadImageW(0, desc.Icon.ToScopedNativeWChar!(), .Icon, 0, 0, .LoadFromFile);
-			}
-			else
-				_windowClass.Icon = 0;
-
-			_windowClass.Cursor = LoadCursorW(0, IDC_ARROW);
-			_windowClass.BackgroundBrush = (HBRUSH)SystemColor.WindowFrame;
-			_windowClass.ClassName = WindowClassName.ToScopedNativeWChar!();
-
-			if (RegisterClassExW(ref _windowClass) == 0)
-			{
-				uint32 lastError = GetLastError();
-				Log.EngineLogger.Error($"Failed to register window class. Message({(int)lastError}): {(HResult)lastError}");
-				//Runtime.FatalError("Failed to register window class");
+				CreateWindowClass(desc.Icon);
 			}
 
 			{
 				Debug.Profiler.ProfileScope!("CreateWindow");
 
-				_windowHandle = CreateWindowExW(.None, _windowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
+				_windowHandle = CreateWindowExW(.None, WindowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
 					CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
 			}
 
@@ -244,6 +258,8 @@ namespace GlitchyEngine
 
 			// Determine whether or not the window is currently active
 			_isActive = GetActiveWindow() == _windowHandle;
+
+			SetIcon(desc.Icon);
 		}
 
 		private bool _isResizingOrMoving;
@@ -252,7 +268,7 @@ namespace GlitchyEngine
 		[CLink]
 		static extern IntBool IsWindowUnicode(HWND whnd);
 
-		public Result<void> SetIcon(StringView filePath)
+		public override Result<void> SetIcon(StringView filePath)
 		{
 			HICON hIcon = LoadImageW(0, filePath.ToScopedNativeWChar!(), .Icon, 0, 0, .LoadFromFile);
 			if (hIcon == 0)
@@ -386,34 +402,34 @@ namespace GlitchyEngine
 				// Left mouse button
 			case WM_LBUTTONDOWN:
 				{
-					var event = scope MouseButtonPressedEvent(window, .LeftButton);
+					var event = scope MouseButtonPressedEvent(.LeftButton);
 					window._eventCallback(event);
 				}
 			case WM_LBUTTONUP:
 				{
-					var event = scope MouseButtonReleasedEvent(window, .LeftButton);
+					var event = scope MouseButtonReleasedEvent(.LeftButton);
 					window._eventCallback(event);
 				}
 				// Right mouse button
 			case WM_RBUTTONDOWN:
 				{
-					var event = scope MouseButtonPressedEvent(window, .RightButton);
+					var event = scope MouseButtonPressedEvent(.RightButton);
 					window._eventCallback(event);
 				}
 			case WM_RBUTTONUP:
 				{
-					var event = scope MouseButtonReleasedEvent(window, .RightButton);
+					var event = scope MouseButtonReleasedEvent(.RightButton);
 					window._eventCallback(event);
 				}
 				// Middle mouse button
 			case WM_MBUTTONDOWN:
 				{
-					var event = scope MouseButtonPressedEvent(window, .MiddleButton);
+					var event = scope MouseButtonPressedEvent(.MiddleButton);
 					window._eventCallback(event);
 				}
 			case WM_MBUTTONUP:
 				{
-					var event = scope MouseButtonReleasedEvent(window, .MiddleButton);
+					var event = scope MouseButtonReleasedEvent(.MiddleButton);
 					window._eventCallback(event);
 				}
 				// X button
@@ -425,7 +441,7 @@ namespace GlitchyEngine
 					else
 						button = .XButton2;
 
-					var event = scope MouseButtonPressedEvent(window, button);
+					var event = scope MouseButtonPressedEvent(button);
 					window._eventCallback(event);
 				}
 			case WM_XBUTTONUP:
@@ -436,7 +452,7 @@ namespace GlitchyEngine
 					else
 						button = .XButton2;
 
-					var event = scope MouseButtonReleasedEvent(window, button);
+					var event = scope MouseButtonReleasedEvent(button);
 					window._eventCallback(event);
 				}
 				// Vertical scrolling
@@ -459,10 +475,10 @@ namespace GlitchyEngine
 				{
 					SplitHighAndLowOrder!(lParam, let x, let y);
 					
-					var event = scope MouseMovedEvent(window, x, y);
+					var event = scope MouseMovedEvent(x, y);
 					window._eventCallback(event);
 				}
-			case WM_INPUT:
+			/*case WM_INPUT:
 				{
 					uint32 dataSize = ?;
 					GetRawInputData((.)lParam, RID_INPUT, null, &dataSize, sizeof(RAWINPUTHEADER));
@@ -483,7 +499,7 @@ namespace GlitchyEngine
 							}
 						}
 					}
-				}
+				}*/
 
 				// Todo: DirectInput
 

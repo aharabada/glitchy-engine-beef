@@ -7,6 +7,8 @@ using GlitchyEngine.Math;
 using GlitchyEngine.Events;
 using GlitchyEngine.ImGui;
 using ImGui;
+using System.Text;
+using GlitchyEngine.System;
 
 namespace GlitchyEditor;
 
@@ -36,43 +38,101 @@ class UltralightLayer : Layer
 		dispatcher.Dispatch<MouseMovedEvent>(scope => MouseMoved);
 		dispatcher.Dispatch<MouseButtonPressedEvent>(scope (e) => MousePressed(e, true));
 		dispatcher.Dispatch<MouseButtonReleasedEvent>(scope (e) => MousePressed(e, false));
+		dispatcher.Dispatch<KeyPressedEvent>(scope (e) => KeyEvent(e, true, e.RepeatCount));
+		dispatcher.Dispatch<KeyReleasedEvent>(scope (e) => KeyEvent(e, false, 0));
+		dispatcher.Dispatch<KeyTypedEvent>(scope (e) => CharTypedEvent(e));
+		dispatcher.Dispatch<WindowCloseEvent>(scope (e) => {
+			delete windoww;
+			windoww = null;
+			return true;
+		});
+	}
+
+	private bool CharTypedEvent(KeyTypedEvent e)
+	{
+		String s = scope String();
+		s.Append(e.Char);
+
+		ULString str = ulCreateString(s.CStr());
+
+		ULKeyEvent event = ulCreateKeyEvent(.kKeyEventType_Char,
+			0, 0, 0, str, str, false, false, false);
+
+		ulDestroyString(str);
+
+		ulViewFireKeyEvent(view, event);
+		ulDestroyKeyEvent(event);
+
+		return true;
+	}
+
+	private bool KeyEvent(KeyEvent e, bool pressed, int repeatCount)
+	{
+		bool isRepeat = repeatCount > 1;
+
+		ULKeyCode keyCode = (ULKeyCode)e.KeyCode;
+
+		ULString str = ulCreateString(keyCode.GetKeyIdentifier());
+
+		ULKeyboardModifier modifier = 0;
+
+		if (Input.IsKeyPressed(.Control))
+			modifier |= .kMod_CtrlKey;
+		
+		if (Input.IsKeyPressed(.Alt))
+			modifier |= .kMod_AltKey;
+
+		if (Input.IsKeyPressed(.Shift))
+			modifier |= .kMod_ShiftKey;
+		
+		if (Input.IsKeyPressed(.Home))
+			modifier |= .kMod_MetaKey;
+
+		ULKeyEvent event = ulCreateKeyEvent(pressed ? .kKeyEventType_RawKeyDown : .kKeyEventType_KeyUp,
+			(uint32)modifier, (int32)keyCode, 0, str, str, false, isRepeat, false);
+
+		ulDestroyString(str);
+
+		for (int i < repeatCount)
+		{
+			ulViewFireKeyEvent(view, event);
+		}
+		
+		ulDestroyKeyEvent(event);
+
+		return true;
 	}
 
 	private bool MouseMoved(MouseMovedEvent e)
 	{
-		if (e.Window == windoww)
-		{
-			Log.EngineLogger.Warning($"{e.PositionX}");
-			ULMouseEvent evt = ulCreateMouseEvent(.kMouseEventType_MouseMoved, e.PositionX, e.PositionY, .kMouseButton_None);
-			ulViewFireMouseEvent(view, evt);
-			ulDestroyMouseEvent(evt);
+		Log.EngineLogger.Warning($"{e.PositionX}");
 
-			cursorPosition = .(e.PositionX, e.PositionY);
-		}
+		ULMouseEvent evt = ulCreateMouseEvent(.kMouseEventType_MouseMoved, e.PositionX, e.PositionY, .kMouseButton_None);
+		ulViewFireMouseEvent(view, evt);
+		ulDestroyMouseEvent(evt);
 
-		return false;
+		cursorPosition = .(e.PositionX, e.PositionY);
+
+		return true;
 	}
 
 	private bool MousePressed(MouseButtonEvent e, bool press)
 	{
-		if (e.Window == windoww)
+		ULMouseButton button = .kMouseButton_None;
+
+		switch (e.MouseButton)
 		{
-			ULMouseButton button = .kMouseButton_None;
-
-			switch (e.MouseButton)
-			{
-			case .LeftButton: button = .kMouseButton_Left;
-			case .RightButton: button = .kMouseButton_Right;
-			case .MiddleButton: button = .kMouseButton_Middle;
-			default: button = .kMouseButton_None;
-			}
-
-			ULMouseEvent evt = ulCreateMouseEvent(press ? .kMouseEventType_MouseDown : .kMouseEventType_MouseUp, cursorPosition.X, cursorPosition.Y, button);
-			ulViewFireMouseEvent(view, evt);
-			ulDestroyMouseEvent(evt);
+		case .LeftButton: button = .kMouseButton_Left;
+		case .RightButton: button = .kMouseButton_Right;
+		case .MiddleButton: button = .kMouseButton_Middle;
+		default: button = .kMouseButton_None;
 		}
 
-		return false;
+		ULMouseEvent evt = ulCreateMouseEvent(press ? .kMouseEventType_MouseDown : .kMouseEventType_MouseUp, cursorPosition.X, cursorPosition.Y, button);
+		ulViewFireMouseEvent(view, evt);
+		ulDestroyMouseEvent(evt);
+
+		return true;
 	}
 
 	private static void OnAppUpdate(void* user_data)
@@ -170,6 +230,24 @@ class UltralightLayer : Layer
 
 	ULRenderer renderer;
 
+	private static void InitClipboard()
+	{
+		ULClipboard clipboard = .();
+		clipboard.clear = () => Clipboard.Clear();
+
+		clipboard.read_plain_text = (s) => {
+			String text = scope .();
+			Clipboard.Read(text);
+			ulStringAssignCString(s, text);
+		};
+
+		clipboard.write_plain_text = (s) => {
+			Clipboard.Set(StringView(ulStringGetData(s)));
+		};
+
+		ulPlatformSetClipboard(clipboard);
+	}
+
 	private void NoApp()
 	{
 		ULConfig config = ulCreateConfig();
@@ -180,9 +258,7 @@ class UltralightLayer : Layer
 		ulEnablePlatformFileSystem(fileSystemPath);
 		ulDestroyString(fileSystemPath);
 
-		/*ULString styleSheet = ulCreateString("body { background: purple; }");
-		ulConfigSetUserStylesheet(config, styleSheet);
-		ulDestroyString(styleSheet);*/
+		InitClipboard();
 
 		renderer = ulCreateRenderer(config);
 
@@ -225,6 +301,9 @@ class UltralightLayer : Layer
 
 	private void Render()
 	{
+		if (windoww == null)
+			return;
+
 		RenderCommand.Clear(windoww.SwapChain.BackBuffer, .Color | .Depth, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
 	}
 
@@ -238,7 +317,11 @@ class UltralightLayer : Layer
 		ulViewSetDOMReadyCallback(view, => OnDOMReady, null);
 
 		ulDestroyViewConfig(viewConfig);
-		
+
+		ulViewSetFailLoadingCallback(view, (user_data, caller, frame_id, is_main_frame, url, description, error_domain, error_code) => {
+		   Log.ClientLogger.Error("Errorrr");
+		}, null);
+
 		ULString url = ulCreateString("file:///app.html");
 		ulViewLoadURL(view, url);
 		ulDestroyString(url);
