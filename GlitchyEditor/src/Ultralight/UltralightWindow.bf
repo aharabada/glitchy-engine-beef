@@ -9,27 +9,67 @@ using Ultralight.CAPI;
 
 namespace GlitchyEditor.Ultralight;
 
-class UltralightWindow
+abstract class UltralightWindow
 {
-	private Window _window ~ delete _;
+	protected Window _window ~ delete _;
 
-	private ULView _view;
+	protected ULView _view;
 
 	private int2 _cursorPosition;
 	
 	private Texture2D _texture ~ _.ReleaseRef();
 
-	public this()
+	protected this(StringView title = "GlitchyEngine ♥ Ultralight", StringView startUrl = "file:///app.html")
 	{
 		WindowDescription windowDesc = .Default;
-		windowDesc.Title = "GlitchyEngine ♥ Ultralight";
+		windowDesc.Title = title;
 
 		_window = new Window(windowDesc);
 		_window.EventCallback = new => EventHandler;
 
-		CreateView();
+		Init(startUrl);
 	}
+
+#region Init
+
+	private void Init(StringView startUrl)
+	{
+		InitView();
+
+		InitCallbacks();
+
+		LoadUrl(startUrl);
+
+		CreateTexture();
+	}
+
+	private void InitView()
+	{
+		ULViewConfig viewConfig = ulCreateViewConfig();
+		ulViewConfigSetIsAccelerated(viewConfig, false);
+	  
+		_view = ulCreateView(UltralightLayer.renderer, _window.SwapChain.Width, _window.SwapChain.Height, viewConfig, null);
+
+		ulDestroyViewConfig(viewConfig);
+	}
+
+	private void InitCallbacks()
+	{
+		void* userData = Internal.UnsafeCastToPtr(this);
+
+		ulViewSetDOMReadyCallback(_view, => OnDOMReady, userData);
+		ulViewSetFailLoadingCallback(_view, => OnFailedLoading, userData);
+	}
+
+#endregion Init
 	
+	protected void LoadUrl(StringView targetUrl)
+	{
+		ULString url = ulCreateString(targetUrl.ToScopeCStr!());
+		ulViewLoadURL(_view, url);
+		ulDestroyString(url);
+	}
+
 	private void CopybitmapToTexture(ULBitmap bitmap)
 	{
 		void* pixels = ulBitmapLockPixels(bitmap);
@@ -44,7 +84,7 @@ class UltralightWindow
 		ulBitmapUnlockPixels(bitmap);
 	}
 
-	public void Render()
+	private void CopyToImmediateTexture()
 	{
 		ULBitmapSurface surface = ulViewGetSurface(_view);
 
@@ -53,12 +93,15 @@ class UltralightWindow
 			CopybitmapToTexture(ulBitmapSurfaceGetBitmap(surface));
 			ulSurfaceClearDirtyBounds(surface);
 		}
+	}
 
+	private void CopyToBackBuffer()
+	{
 		if (_window == null)
 			return;
-		
+
 		RenderCommand.Clear(_window.SwapChain.BackBuffer, .Color, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
-		
+
 		RenderCommand.UnbindRenderTargets();
 		RenderCommand.SetRenderTarget(_window.SwapChain.BackBuffer);
 		RenderCommand.BindRenderTargets();
@@ -72,27 +115,27 @@ class UltralightWindow
 		FullscreenQuad.Draw();
 	}
 
-	private void CreateView()
+	public void Render()
 	{
-		ULViewConfig viewConfig = ulCreateViewConfig();
-		ulViewConfigSetIsAccelerated(viewConfig, false);
-	  
-		_view = ulCreateView(UltralightLayer.renderer, _window.SwapChain.Width, _window.SwapChain.Height, viewConfig, null);
-
-		ulViewSetDOMReadyCallback(_view, => OnDOMReady, Internal.UnsafeCastToPtr(this));
-
-		ulDestroyViewConfig(viewConfig);
-
-		ulViewSetFailLoadingCallback(_view, (user_data, caller, frame_id, is_main_frame, url, description, error_domain, error_code) => {
-		   Log.ClientLogger.Error("Error");
-		}, null);
-
-		ULString url = ulCreateString("file:///app.html");
-		ulViewLoadURL(_view, url);
-		ulDestroyString(url);
-
-		CreateTexture();
+		CopyToImmediateTexture();
+		CopyToBackBuffer();
 	}
+
+	private void CreateTexture()
+	{
+		if (_texture?.Width == _window.SwapChain.Width && _texture?.Height == _window.SwapChain.Height)
+			return;
+
+		Texture2DDesc desc = .(_window.SwapChain.Width, _window.SwapChain.Height, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
+
+		Texture2D newTexture = new Texture2D(desc);
+		newTexture.SamplerState = SamplerStateManager.PointClamp;
+
+		_texture?.ReleaseRef();
+		_texture = newTexture;
+	}
+
+#region Events
 
 	private void EventHandler(Event e)
 	{
@@ -112,27 +155,13 @@ class UltralightWindow
 
 		dispatcher.Dispatch<WindowResizeEvent>(scope => ResizeWindow);
 	}
-	
+
 	bool ResizeWindow(WindowResizeEvent windowResizeEvent)
 	{
 		CreateTexture();
 		ulViewResize(_view, (uint32)windowResizeEvent.Width, (uint32)windowResizeEvent.Height);
 
 		return true;
-	}
-	
-	private void CreateTexture()
-	{
-		if (_texture?.Width == _window.SwapChain.Width && _texture?.Height == _window.SwapChain.Height)
-			return;
-
-		Texture2DDesc desc = .(_window.SwapChain.Width, _window.SwapChain.Height, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
-
-		Texture2D newTexture = new Texture2D(desc);
-		newTexture.SamplerState = SamplerStateManager.PointClamp;
-
-		_texture?.ReleaseRef();
-		_texture = newTexture;
 	}
 
 	private bool CharTypedEvent(KeyTypedEvent e)
@@ -192,8 +221,6 @@ class UltralightWindow
 
 	private bool MouseMoved(MouseMovedEvent e)
 	{
-		Log.EngineLogger.Warning($"{e.PositionX}");
-
 		ULMouseEvent evt = ulCreateMouseEvent(.kMouseEventType_MouseMoved, e.PositionX, e.PositionY,
 			Input.IsMouseButtonPressed(.LeftButton) ? .kMouseButton_Left : .kMouseButton_None);
 		ulViewFireMouseEvent(_view, evt);
@@ -222,40 +249,10 @@ class UltralightWindow
 
 		return true;
 	}
-	
-	///
-	/// This callback is bound to a JavaScript function on the page.
-	///
-	static JSValueRef GetMessage(JSContextRef ctx, JSObjectRef fn, JSObjectRef thisObject, uint32 argumentCount, JSValueRef* arguments, JSValueRef* exception) {
-		///
-		/// Create a JavaScript String from a C-string, initialize it with our
-		/// welcome message.
-		///
-		JSStringRef str = JSStringCreateWithUTF8CString("Hello from Beef!");
-		
-		///
-		/// Create a garbage-collected JSValue using the String we just created.
-		///
-		///  **Note**:
-		///    Both JSValueRef and JSObjectRef types are garbage-collected types. (And actually,
-		///    JSObjectRef is just a typedef of JSValueRef, they share definitions).
-		///
-		///    The garbage collector in JavaScriptCore periodically scans the entire stack to check if
-		///    there are any active JSValueRefs, and marks those with no references for destruction.
-		///
-		///    If you happen to store a JSValueRef/JSObjectRef in heap memory or in memory unreachable
-		///    by the stack-based garbage-collector, you should explicitly call JSValueProtect() and
-		///    JSValueUnprotect() on the reference to ensure it is kept alive.
-		///
-		JSValueRef value = JSValueMakeString(ctx, str);
-		
-		///
-		/// Release the string we created earlier (we only Release what we Create).
-		///
-		JSStringRelease(str);
-		
-		return value;
-	}
+
+#endregion Events
+
+#region Ultralight Callbacks
 
 	private static void OnDOMReady(void* user_data, ULView caller, uint64 frame_id, bool is_main_frame, ULString url)
 	{
@@ -263,43 +260,18 @@ class UltralightWindow
 		window.OnDOMReady(caller, frame_id, is_main_frame, url);
 	}
 
-	protected virtual void OnDOMReady(ULView caller, uint64 frame_id, bool is_main_frame, ULString url)
+	protected virtual void OnDOMReady(ULView caller, uint64 frame_id, bool is_main_frame, ULString url) { }
+	
+	private static void OnFailedLoading(void* user_data, C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url, C_String* description, C_String* error_domain, int32 error_code)
 	{
-		///
-		/// Acquire the page's JavaScript execution context.
-		///
-		/// This locks the JavaScript context so we can modify it safely on this thread, we need to
-		/// unlock it when we're done via ulViewUnlockJSContext().
-		///
-		JSContextRef ctx = ulViewLockJSContext(_view);
-
-		///
-		/// Create a JavaScript String containing the name of our callback.
-		///
-		JSStringRef name = JSStringCreateWithUTF8CString("GetMessage");
-
-		///
-		/// Create a garbage-collected JavaScript function that is bound to our native C callback 
-		/// 'GetMessage()'.
-		///
-		JSObjectRef func = JSObjectMakeFunctionWithCallback(ctx, name, => GetMessage);
-
-		///
-		/// Store our function in the page's global JavaScript object so that it is accessible from the
-		/// page as 'GetMessage()'.
-		///
-		/// The global JavaScript object is also known as 'window' in JS.
-		///
-		JSObjectSetProperty(ctx, JSContextGetGlobalObject(ctx), name, func, 0, null);
-
-		///
-		/// Release the JavaScript String we created earlier.
-		///
-		JSStringRelease(name);
-
-		///
-		/// Unlock the JS context so other threads can modify JavaScript state.
-		///
-		ulViewUnlockJSContext(_view);
+		UltralightWindow window = (UltralightWindow)Internal.UnsafeCastToObject(user_data);
+		window.OnFailedLoading(caller, frame_id, is_main_frame, url, description, error_domain, error_code);
 	}
+	
+	protected virtual void OnFailedLoading(C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url, C_String* description, C_String* error_domain, int32 error_code)
+	{
+		Log.EngineLogger.Error("Error while loading view.");
+	}
+
+#endregion Ultralight Callbacks
 }

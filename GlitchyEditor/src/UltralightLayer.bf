@@ -17,15 +17,23 @@ class UltralightLayer : Layer
 
 	private List<UltralightWindow> _windows = new .() ~ DeleteContainerAndItems!(_);
 
+	public UltralightEntityHierarchyWindow EntityHierarchyWindow;
+
+	private static Self _instance;
+
+	public static Self Instance => _instance;
+
 	public this()
 	{
+		_instance = this;
+
 		InitUltralight();
 
-		_windows.Add(new UltralightWindow());
+		EntityHierarchyWindow = new UltralightEntityHierarchyWindow();
+		_windows.Add(EntityHierarchyWindow);
 
 		_copyEffect = Content.LoadAsset("Resources/Shaders/Copy.hlsl");
 	}
-
 	private static void InitClipboard()
 	{
 		ULClipboard clipboard = .();
