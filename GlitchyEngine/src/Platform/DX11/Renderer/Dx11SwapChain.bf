@@ -112,6 +112,14 @@ namespace GlitchyEngine.Renderer
 				factory.Release();
 			}
 
+			if (_width == 0 || _height == 0)
+			{
+				nativeSwapChain.GetDescription1(let desc);
+
+				_width = desc.Width;
+				_height = desc.Height;
+			}
+
 			RenderTarget2DDescription desc = .(backBufferFormat, _width, _height);
 			desc.DepthStencilFormat = _depthStencilFormat;
 			desc.SwapChain = this;
