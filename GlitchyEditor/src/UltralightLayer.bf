@@ -9,6 +9,7 @@ using GlitchyEngine.ImGui;
 using ImGui;
 using System.Text;
 using GlitchyEngine.System;
+using GlitchyEngine.Content;
 
 namespace GlitchyEditor;
 
@@ -18,17 +19,23 @@ class UltralightLayer : Layer
 
 	int2 cursorPosition;
 
+	private AssetHandle<Effect> _copyEffect;
+
 	public this()
 	{
-		NoApp();
-		//RenderApp();
-
 		WindowDescription windowDesc = .Default;
 		windowDesc.Icon = "Resources/Textures/GlitchyEngineIcon.ico";
 		windowDesc.Title = "Test";
 
 		windoww = new Window(windowDesc);
 		windoww.EventCallback = new => EventHandler;
+
+		_copyEffect = Content.LoadAsset("Resources/Shaders/Copy.hlsl");
+
+		
+		NoApp();
+		//RenderApp();
+
 	}
 
 	private void EventHandler(Event e)
@@ -46,6 +53,8 @@ class UltralightLayer : Layer
 			windoww = null;
 			return true;
 		});
+
+		dispatcher.Dispatch<WindowResizeEvent>(scope => ResizeWindow);
 	}
 
 	private bool CharTypedEvent(KeyTypedEvent e)
@@ -107,7 +116,8 @@ class UltralightLayer : Layer
 	{
 		Log.EngineLogger.Warning($"{e.PositionX}");
 
-		ULMouseEvent evt = ulCreateMouseEvent(.kMouseEventType_MouseMoved, e.PositionX, e.PositionY, .kMouseButton_None);
+		ULMouseEvent evt = ulCreateMouseEvent(.kMouseEventType_MouseMoved, e.PositionX, e.PositionY,
+			Input.IsMouseButtonPressed(.LeftButton) ? .kMouseButton_Left : .kMouseButton_None);
 		ulViewFireMouseEvent(view, evt);
 		ulDestroyMouseEvent(evt);
 
@@ -275,11 +285,43 @@ class UltralightLayer : Layer
 		uint32 height = ulBitmapGetHeight(bitmap);
 		uint32 stride = ulBitmapGetRowBytes(bitmap);
 
-		Span<Color> colors = Span<Color>((.)pixels, 500 * 500);
-
 		texture.SetData<uint32>((.)pixels, 0, 0, width, height, 0, 0);
 
 		ulBitmapUnlockPixels(bitmap);
+	}
+
+	//bool needsResize = true;
+
+	private void CreateTexture()
+	{
+		if (texture != null && (texture.Width == windoww.SwapChain.Width && texture.Height == windoww.SwapChain.Height))
+			return;
+	
+
+		Texture2DDesc desc = .(windoww.SwapChain.Width, windoww.SwapChain.Height, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
+
+		Texture2D newTexture = new Texture2D(desc);
+		//newTexture.[Friend]Identifier = .("Window Target");
+		newTexture.SamplerState = SamplerStateManager.PointClamp;
+
+		//Application.Instance.ContentManager.ManageAsset(texture);
+
+		texture?.ReleaseRef();
+		texture = newTexture;
+
+		ULIntRect bounds = ULIntRect();
+		bounds.bottom = 0;
+		bounds.left = 0;
+		bounds.top = (.)desc.Height;
+		bounds.bottom = (.)desc.Width;
+	}
+
+	bool ResizeWindow(WindowResizeEvent windowResizeEvent)
+	{
+		CreateTexture();
+		ulViewResize(view, (uint32)windowResizeEvent.Width, (uint32)windowResizeEvent.Height);
+
+		return true;
 	}
 
 	public override void Update(GameTime gameTime)
@@ -304,7 +346,19 @@ class UltralightLayer : Layer
 		if (windoww == null)
 			return;
 
-		RenderCommand.Clear(windoww.SwapChain.BackBuffer, .Color | .Depth, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
+		RenderCommand.Clear(windoww.SwapChain.BackBuffer, .Color, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
+		
+		RenderCommand.UnbindRenderTargets();
+		RenderCommand.SetRenderTarget(windoww.SwapChain.BackBuffer);
+		RenderCommand.BindRenderTargets();
+		RenderCommand.SetViewport(windoww.SwapChain.BackbufferViewport);
+
+		Effect copy = Content.GetAsset<Effect>(_copyEffect);
+		copy.SetTexture("Texture", texture);
+		copy.ApplyChanges();
+		copy.Bind();
+
+		FullscreenQuad.Draw();
 	}
 
 	private void CreateView()
@@ -312,7 +366,7 @@ class UltralightLayer : Layer
 		ULViewConfig viewConfig = ulCreateViewConfig();
 		ulViewConfigSetIsAccelerated(viewConfig, false);
 	  
-		view = ulCreateView(renderer, 500, 500, viewConfig, null);
+		view = ulCreateView(renderer, windoww.SwapChain.Width, windoww.SwapChain.Height, viewConfig, null);
 
 		ulViewSetDOMReadyCallback(view, => OnDOMReady, null);
 
@@ -326,15 +380,18 @@ class UltralightLayer : Layer
 		ulViewLoadURL(view, url);
 		ulDestroyString(url);
 
+		CreateTexture();
+
 		//surface = ulViewGetSurface(view);
 
 		// TODO: Dynamic
-		Texture2DDesc desc = .(500, 500, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
+		/*Texture2DDesc desc = .(500, 500, .B8G8R8A8_UNorm, usage: .Default, cpuAccess: .Write);
 
 		texture = new Texture2D(desc);
 		texture.[Friend]Identifier = .("TestTexture");
+		texture.SamplerState = SamplerStateManager.PointClamp;
 
-		Application.Instance.ContentManager.ManageAsset(texture);
+		Application.Instance.ContentManager.ManageAsset(texture);*/
 	}
 
 	public override void OnEvent(GlitchyEngine.Events.Event event)
@@ -354,7 +411,7 @@ class UltralightLayer : Layer
 	{
 		if (ImGui.Begin("Testlul"))
 		{
-			ImGui.Image(texture, .(500, 500));
+			//ImGui.Image(texture, .(500, 500));
 
 		}
 		ImGui.End();
