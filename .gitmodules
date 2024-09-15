@@ -36,4 +36,4 @@
 	url = https://github.com/aharabada/ImGui.NET.git
 [submodule "GlitchyEngine/vendor/Ultralight-beef"]
 	path = GlitchyEngine/vendor/Ultralight-beef
-	url = git@github.com:kumikumi/Ultralight-beef.git
+	url = https://github.com/aharabada/Ultralight-beef.git
