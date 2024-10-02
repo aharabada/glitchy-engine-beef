@@ -4,7 +4,7 @@ namespace GlitchyEditor.Ultralight;
 
 class UltralightEntityHierarchyWindow : UltralightWindow
 {
-	public this() : base("Entity Hierarchy", "file:///app.html")
+	public this() : base("Entity Hierarchy", "file:///pages/EntityHierarchy.html")
 	{
 
 	}
