@@ -59,6 +59,8 @@ abstract class UltralightWindow
 
 		ulViewSetDOMReadyCallback(_view, => OnDOMReady, userData);
 		ulViewSetFailLoadingCallback(_view, => OnFailedLoading, userData);
+
+		ulViewSetAddConsoleMessageCallback(_view, => OnAddConsoleMessage, userData);
 	}
 
 #endregion Init
@@ -271,6 +273,37 @@ abstract class UltralightWindow
 	protected virtual void OnFailedLoading(C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url, C_String* description, C_String* error_domain, int32 error_code)
 	{
 		Log.EngineLogger.Error("Error while loading view.");
+	}
+
+	private static void OnAddConsoleMessage(void* user_data, C_View* caller, ULMessageSource source, ULMessageLevel level, C_String* message, uint32 line_number, uint32 column_number, C_String* source_id)
+	{
+		UltralightWindow window = (UltralightWindow)Internal.UnsafeCastToObject(user_data);
+		window.OnAddConsoleMessage(caller, source, level, message, line_number, column_number, source_id);
+	}
+	
+	protected virtual void OnAddConsoleMessage(C_View* caller, ULMessageSource source, ULMessageLevel level, C_String* message, uint32 line_number, uint32 column_number, C_String* source_id)
+	{
+		GlitchLog.LogLevel logLevel = .Info;
+
+		switch (level)
+		{
+		case .kMessageLevel_Debug:
+			logLevel = .Debug;
+		case .kMessageLevel_Info:
+			logLevel = .Info;
+		case .kMessageLevel_Warning:
+			logLevel = .Warning;
+		case .kMessageLevel_Error:
+			logLevel = .Error;
+		default:
+			logLevel = .Info;
+		}
+
+		StringView messageView = .(ulStringGetData(message), ulStringGetLength(message));
+		StringView sourceIdView = .(ulStringGetData(source_id), ulStringGetLength(source_id));
+		String prettyMessage = scope $"Ultralight ({source}) from \"{sourceIdView}\" in Line: {line_number}, Column: {column_number}. Message: {messageView}";
+
+		Log.ClientLogger.Log(logLevel, prettyMessage);
 	}
 
 #endregion Ultralight Callbacks

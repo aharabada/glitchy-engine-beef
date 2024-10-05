@@ -4,7 +4,8 @@ namespace GlitchyEditor.Ultralight;
 
 class UltralightEntityHierarchyWindow : UltralightWindow
 {
-	public this() : base("Entity Hierarchy", "file:///pages/EntityHierarchy.html")
+	public this() : base("Entity Hierarchy", "file:///react-ui-prototype/dist/index.html")
+	//public this() : base("Entity Hierarchy", "file:///another-react-test/index.html")
 	{
 
 	}
