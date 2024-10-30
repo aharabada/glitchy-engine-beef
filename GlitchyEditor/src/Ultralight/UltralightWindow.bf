@@ -25,7 +25,7 @@ abstract class UltralightWindow
 	{
 		WindowDescription windowDesc = .Default;
 		windowDesc.Title = title;
-		windowDesc.WindowStyle = .Borderless;
+		windowDesc.WindowStyle = .CustomTitle;
 
 		_window = new Window(windowDesc);
 		_window.EventCallback = new => EventHandler;
@@ -327,11 +327,9 @@ abstract class UltralightWindow
 			cursor = .ResizeNorthWestSouthEast;
 
 		case .kCursor_ColumnResize:
-			// TODO use cursor file
 			cursor = .ResizeColumn;
 
 		case .kCursor_RowResize:
-			// TODO use cursor file
 			cursor = .ResizeRow;
 
 		case .kCursor_MiddlePanning:

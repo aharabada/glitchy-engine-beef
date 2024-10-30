@@ -11,6 +11,7 @@ using System.Diagnostics;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using DirectX.Windows.Winuser.RawInput;
+using System.Collections;
 using static System.Windows;
 
 using internal GlitchyEngine;
@@ -634,11 +635,36 @@ namespace GlitchyEngine.UI
 			_title = new String(titleSpan);
 		}
 
+		[CLink]
+		private static extern HCURSOR LoadCursorFromFileW(LPCWSTR lpFileName);
+		
+		[CLink]
+		private static extern IntBool DestroyCursor(HCURSOR hCursor);
+
+		private static HCURSOR ResizeColumnCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR VerticalTextCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR ColResizeCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR RowResizeCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR CellCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR AliasCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR CopyCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR ZoomInCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR ZoomOutCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR GrabCursor = 0 ~ DestroyCursor(_);
+		private static HCURSOR GrabbingCursor = 0 ~ DestroyCursor(_);
+
 		public override Result<void> SetCursor(CursorImage cursorImage)
 		{
 			LPCTSTR cursor = null;
+			Handle hCursor = 0;
 
-			// Firefox cursors: https://hg.mozilla.org/mozilla-central/file/tip/widget/windows/res
+			void UseCustomCursor(ref HCURSOR cursor, StringView path)
+			{
+				if (cursor == 0)
+					cursor = LoadCursorFromFileW(path.ToScopedNativeWChar!());
+
+				hCursor = cursor;
+			}
 
 			switch (cursorImage)
 			{
@@ -673,12 +699,10 @@ namespace GlitchyEngine.UI
 				cursor = Winuser.IDC_SIZENWSE;
 
 			case .ResizeColumn:
-				// TODO use cursor file
-				cursor = Winuser.IDC_SIZEWE;
+				UseCustomCursor(ref ColResizeCursor, "Resources/Cursors/col_resize.cur");
 
 			case .ResizeRow:
-				// TODO use cursor file
-				cursor = Winuser.IDC_SIZENS;
+				UseCustomCursor(ref RowResizeCursor, "Resources/Cursors/row_resize.cur");
 
 			case .PanMiddle:
 				cursor = Winuser.MAKEINTRESOURCEW(32654);
@@ -703,16 +727,17 @@ namespace GlitchyEngine.UI
 				cursor = Winuser.IDC_SIZEALL;
 
 			case .VerticalText:
-				// TODO
+				UseCustomCursor(ref VerticalTextCursor, "Resources/Cursors/vertical_text.cur");
 
 			case .Cell:
-				// TODO
+				UseCustomCursor(ref CellCursor, "Resources/Cursors/cell.cur");
 
 			case .ContextMenu:
 				// TODO
+				cursor = Winuser.IDC_ARROW;
 
 			case .Alias:
-				// TODO
+				UseCustomCursor(ref AliasCursor, "Resources/Cursors/aliasb.cur");
 
 			case .Progress:
 				cursor = Winuser.IDC_APPSTARTING;
@@ -721,26 +746,30 @@ namespace GlitchyEngine.UI
 				cursor = Winuser.IDC_NO;
 
 			case .Copy:
+				UseCustomCursor(ref CopyCursor, "Resources/Cursors/copy.cur");
+
+			case .ZoomIn:
+				UseCustomCursor(ref ZoomInCursor, "Resources/Cursors/zoom_in.cur");
+			case .ZoomOut:
+				UseCustomCursor(ref ZoomOutCursor, "Resources/Cursors/zoom_out.cur");
+
+			case .Grab:
+				UseCustomCursor(ref GrabCursor, "Resources/Cursors/grab.cur");
+			case .Grabbing:
+				UseCustomCursor(ref GrabbingCursor, "Resources/Cursors/grabbing.cur");
+
+			case .Custom:
 				// TODO
+				cursor = Winuser.IDC_ARROW;
 
 			case .None:
 				cursor = null;
-
-			case .ZoomIn:
-				// TODO
-
-			case .ZoomOut:
-
-			case .Grab:
-				// TODO
-			case .Grabbing:
-				// TODO
-
-			case .Custom:
-				// TODO: Use cursor file specified by user
 			}
 
-			var hCursor = Winuser.LoadCursorW((.)0, cursor);
+			if (hCursor == 0)
+			{
+				hCursor = Winuser.LoadCursorW((.)0, cursor);
+			}
 
 			_cursor = hCursor;
 			Winuser.SetCursor(hCursor);
