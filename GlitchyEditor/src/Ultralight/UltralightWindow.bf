@@ -6,14 +6,16 @@ using GlitchyEngine.Content;
 using GlitchyEngine.Renderer;
 using Ultralight;
 using Ultralight.CAPI;
+using DirectX.Windows;
+using GlitchyEngine.UI;
 
 namespace GlitchyEditor.Ultralight;
 
 abstract class UltralightWindow
 {
-	protected Window _window ~ delete _;
+	protected internal Window _window ~ delete _;
 
-	protected ULView _view;
+	protected internal ULView _view;
 
 	private int2 _cursorPosition;
 	
@@ -23,6 +25,7 @@ abstract class UltralightWindow
 	{
 		WindowDescription windowDesc = .Default;
 		windowDesc.Title = title;
+		windowDesc.WindowStyle = .Borderless;
 
 		_window = new Window(windowDesc);
 		_window.EventCallback = new => EventHandler;
@@ -43,11 +46,12 @@ abstract class UltralightWindow
 		CreateTexture();
 	}
 
-	private void InitView()
+	protected virtual void InitView()
 	{
 		ULViewConfig viewConfig = ulCreateViewConfig();
 		ulViewConfigSetIsAccelerated(viewConfig, false);
-	  
+		ulViewConfigSetIsTransparent(viewConfig, true);
+
 		_view = ulCreateView(UltralightLayer.renderer, _window.SwapChain.Width, _window.SwapChain.Height, viewConfig, null);
 
 		ulDestroyViewConfig(viewConfig);
@@ -61,6 +65,8 @@ abstract class UltralightWindow
 		ulViewSetFailLoadingCallback(_view, => OnFailedLoading, userData);
 
 		ulViewSetAddConsoleMessageCallback(_view, => OnAddConsoleMessage, userData);
+
+		ulViewSetChangeCursorCallback(_view, => OnChangeCursor, userData);
 	}
 
 #endregion Init
@@ -279,6 +285,116 @@ abstract class UltralightWindow
 	{
 		UltralightWindow window = (UltralightWindow)Internal.UnsafeCastToObject(user_data);
 		window.OnAddConsoleMessage(caller, source, level, message, line_number, column_number, source_id);
+	}
+
+
+	private static void OnChangeCursor(void* userData, C_View* caller, ULCursor ulCursor)
+	{
+		UltralightWindow window = (UltralightWindow)Internal.UnsafeCastToObject(userData);
+
+		CursorImage cursor;
+
+		switch (ulCursor)
+		{
+		case .kCursor_Pointer:
+			cursor = .Pointer;
+
+		case .kCursor_Cross:
+			cursor = .Crosshair;
+
+		case .kCursor_Hand:
+			cursor = .Hand;
+
+		case .kCursor_IBeam:
+			cursor = .IBeam;
+
+		case .kCursor_Wait:
+			cursor = .Wait;
+
+		case .kCursor_Help:
+			cursor = .Help;
+
+		case .kCursor_EastResize, .kCursor_WestResize, .kCursor_EastWestResize:
+			cursor = .ResizeEastWest;
+
+		case .kCursor_NorthResize, .kCursor_SouthResize, .kCursor_NorthSouthResize:
+			cursor = .ResizeNorthSouth;
+
+		case .kCursor_NorthEastResize, .kCursor_SouthWestResize, .kCursor_NorthEastSouthWestResize:
+			cursor = .ResizeNorthEastSouthWest;
+
+		case .kCursor_NorthWestResize, .kCursor_SouthEastResize, .kCursor_NorthWestSouthEastResize:
+			cursor = .ResizeNorthWestSouthEast;
+
+		case .kCursor_ColumnResize:
+			// TODO use cursor file
+			cursor = .ResizeColumn;
+
+		case .kCursor_RowResize:
+			// TODO use cursor file
+			cursor = .ResizeRow;
+
+		case .kCursor_MiddlePanning:
+			cursor = .PanMiddle;
+		case .kCursor_EastPanning:
+			cursor = .PanEast;
+		case .kCursor_WestPanning:
+			cursor = .PanWest;
+		case .kCursor_NorthPanning:
+			cursor = .PanNorth;
+		case .kCursor_SouthPanning:
+			cursor = .PanSouth;
+		case .kCursor_NorthEastPanning:
+			cursor = .PanNorthEast;
+		case .kCursor_NorthWestPanning:
+			cursor = .PanNorthWest;
+		case .kCursor_SouthEastPanning:
+			cursor = .PanSouthEast;
+		case .kCursor_SouthWestPanning:
+			cursor = .PanSouthWest;
+
+		case .kCursor_Move:
+			cursor = .Move;
+
+		case .kCursor_VerticalText:
+			cursor = .VerticalText;
+
+		case .kCursor_Cell:
+			cursor = .Cell;
+
+		case .kCursor_ContextMenu:
+			cursor = .ContextMenu;
+
+		case .kCursor_Alias:
+			cursor = .Alias;
+
+		case .kCursor_Progress:
+			cursor = .Progress;
+
+		case .kCursor_NoDrop, .kCursor_NotAllowed:
+			cursor = .NotAllowed;
+
+		case .kCursor_Copy:
+			cursor = .Copy;
+
+		case .kCursor_None:
+			cursor = .None;
+
+		case .kCursor_ZoomIn:
+			cursor = .ZoomIn;
+		case .kCursor_ZoomOut:
+			cursor = .ZoomOut;
+
+		case .kCursor_Grab:
+			cursor = .Grab;
+		case .kCursor_Grabbing:
+			cursor = .Grabbing;
+
+		case .kCursor_Custom:
+			cursor = .Custom;
+		}
+
+		window._window.SetCursor(cursor);
 	}
 	
 	protected virtual void OnAddConsoleMessage(C_View* caller, ULMessageSource source, ULMessageLevel level, C_String* message, uint32 line_number, uint32 column_number, C_String* source_id)

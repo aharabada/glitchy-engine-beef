@@ -3,23 +3,31 @@ using GlitchyEngine.Events;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 
-namespace GlitchyEngine
+namespace GlitchyEngine.UI
 {
+	enum WindowStyle
+	{
+		Normal,
+		Borderless
+	}
+
 	public struct WindowDescription
 	{
 		public uint32 Width;
 		public uint32 Height;
 		public StringView Title;
 		public StringView Icon;
+		public WindowStyle WindowStyle;
 
 		public this() => this = default;
 
-		public this(uint32 width, uint32 height, StringView title, StringView icon = default)
+		public this(uint32 width, uint32 height, StringView title, StringView icon = default, WindowStyle windowStyle = .Normal)
 		{
 			Width = width;
 			Height = height;
 			Title = title;
 			Icon = icon;
+			WindowStyle = windowStyle;
 		}
 
 		public static readonly WindowDescription Default => .(1280, 720, "Glitchy Engine")
@@ -118,6 +126,8 @@ namespace GlitchyEngine
 		 * Sets the Icon of the window to the given file.
 		 */
 		public extern Result<void> SetIcon(StringView filePath);
+
+		public extern Result<void> SetCursor(CursorImage cursorImage);
 
 		private void DefaultEventHandler(Event e)
 		{

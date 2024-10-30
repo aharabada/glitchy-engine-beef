@@ -15,7 +15,7 @@ using static System.Windows;
 
 using internal GlitchyEngine;
 
-namespace GlitchyEngine
+namespace GlitchyEngine.UI
 {
 	/// The windows specific Window implementation
 	public extension Window
@@ -37,6 +37,8 @@ namespace GlitchyEngine
 		private bool _isVSync = true;
 
 		private bool _isActive;
+
+		private HCURSOR _cursor;
 
 		public override int32 MinWidth
 		{
@@ -228,6 +230,9 @@ namespace GlitchyEngine
 			}
 		}
 
+		[LinkName(.C)]
+		static extern Windows.IntBool SetLayeredWindowAttributes(HWND hwnd, uint32 crKey, uint8 bAlpha, DWORD dwFlags);
+
 		private void Init(WindowDescription desc)
 		{
 			Debug.Profiler.ProfileFunction!();
@@ -242,7 +247,18 @@ namespace GlitchyEngine
 			{
 				Debug.Profiler.ProfileScope!("CreateWindow");
 
-				_windowHandle = CreateWindowExW(.None, WindowClass.ClassName, desc.Title.ToScopedNativeWChar!(), .WS_OVERLAPPEDWINDOW | .WS_VISIBLE,
+				DirectX.Windows.WindowStyles style = .WS_VISIBLE;
+
+				switch (desc.WindowStyle)
+				{
+				case .Normal:
+					style |= .WS_OVERLAPPEDWINDOW | .WS_VISIBLE;
+				case .Borderless:
+					style |= .WS_POPUP | .WS_THICKFRAME | .WS_CAPTION | .WS_SYSMENU | .WS_MAXIMIZEBOX | .WS_MINIMIZEBOX;
+				}
+
+				_windowHandle = CreateWindowExW(.None, WindowClass.ClassName, desc.Title.ToScopedNativeWChar!(),
+					style,
 					CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
 			}
 
@@ -522,6 +538,14 @@ namespace GlitchyEngine
 					delete window._title;
 					window._title = null;
 				}
+			case WM_SETCURSOR:
+				if (GetLowOrder(lParam) == /*HTCLIENT*/ 1)
+				{
+				    Winuser.SetCursor(window._cursor);
+
+				    return 1;
+				}
+				break;
 			case WM_SYSCOMMAND:
 				{
 					/* Remove beeping sound when ALT + some key is pressed. */
@@ -608,6 +632,120 @@ namespace GlitchyEngine
 			GetWindowTextW(_windowHandle, chars.CArray(), length);
 
 			_title = new String(titleSpan);
+		}
+
+		public override Result<void> SetCursor(CursorImage cursorImage)
+		{
+			LPCTSTR cursor = null;
+
+			// Firefox cursors: https://hg.mozilla.org/mozilla-central/file/tip/widget/windows/res
+
+			switch (cursorImage)
+			{
+			case .Pointer:
+				cursor = Winuser.IDC_ARROW;
+
+			case .Crosshair:
+				cursor = Winuser.IDC_CROSS;
+
+			case .Hand:
+				cursor = Winuser.IDC_HAND;
+
+			case .IBeam:
+				cursor = Winuser.IDC_IBEAM;
+
+			case .Wait:
+				cursor = Winuser.IDC_WAIT;
+
+			case .Help:
+				cursor = Winuser.IDC_HELP;
+
+			case .ResizeEastWest:
+				cursor = Winuser.IDC_SIZEWE;
+
+			case .ResizeNorthSouth:
+				cursor = Winuser.IDC_SIZENS;
+
+			case .ResizeNorthEastSouthWest:
+				cursor = Winuser.IDC_SIZENESW;
+
+			case .ResizeNorthWestSouthEast:
+				cursor = Winuser.IDC_SIZENWSE;
+
+			case .ResizeColumn:
+				// TODO use cursor file
+				cursor = Winuser.IDC_SIZEWE;
+
+			case .ResizeRow:
+				// TODO use cursor file
+				cursor = Winuser.IDC_SIZENS;
+
+			case .PanMiddle:
+				cursor = Winuser.MAKEINTRESOURCEW(32654);
+			case .PanEast:
+				cursor = Winuser.MAKEINTRESOURCEW(32658);
+			case .PanWest:
+				cursor = Winuser.MAKEINTRESOURCEW(32657);
+			case .PanNorth:
+				cursor = Winuser.MAKEINTRESOURCEW(32655);
+			case .PanSouth:
+				cursor = Winuser.MAKEINTRESOURCEW(32656);
+			case .PanNorthEast:
+				cursor = Winuser.MAKEINTRESOURCEW(32660);
+			case .PanNorthWest:
+				cursor = Winuser.MAKEINTRESOURCEW(32659);
+			case .PanSouthEast:
+				cursor = Winuser.MAKEINTRESOURCEW(32662);
+			case .PanSouthWest:
+				cursor = Winuser.MAKEINTRESOURCEW(32661);
+
+			case .Move:
+				cursor = Winuser.IDC_SIZEALL;
+
+			case .VerticalText:
+				// TODO
+
+			case .Cell:
+				// TODO
+
+			case .ContextMenu:
+				// TODO
+
+			case .Alias:
+				// TODO
+
+			case .Progress:
+				cursor = Winuser.IDC_APPSTARTING;
+
+			case .NotAllowed:
+				cursor = Winuser.IDC_NO;
+
+			case .Copy:
+				// TODO
+
+			case .None:
+				cursor = null;
+
+			case .ZoomIn:
+				// TODO
+
+			case .ZoomOut:
+
+			case .Grab:
+				// TODO
+			case .Grabbing:
+				// TODO
+
+			case .Custom:
+				// TODO: Use cursor file specified by user
+			}
+
+			var hCursor = Winuser.LoadCursorW((.)0, cursor);
+
+			_cursor = hCursor;
+			Winuser.SetCursor(hCursor);
+
+			return .Ok;
 		}
 	}
 }

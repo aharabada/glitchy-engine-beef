@@ -2,9 +2,9 @@ using Ultralight.CAPI;
 
 namespace GlitchyEditor.Ultralight;
 
-class UltralightEntityHierarchyWindow : UltralightWindow
+class UltralightMainWindow : UltralightWindow
 {
-	public this() : base("Entity Hierarchy", "file:///react-ui-prototype/dist/index.html")
+	public this() : base("Glitchy Engine", "file:///dist/index.html") // "file:///react-ui-prototype/dist/index.html"
 	//public this() : base("Entity Hierarchy", "file:///another-react-test/index.html")
 	{
 
@@ -57,7 +57,7 @@ class UltralightEntityHierarchyWindow : UltralightWindow
 		///
 		/// Create a JavaScript String containing the name of our callback.
 		///
-		JSStringRef name = JSStringCreateWithUTF8CString("GetMessage");
+		JSStringRef name = JSStringCreateWithUTF8CString("OnCreateEntityClick");
 
 		///
 		/// Create a garbage-collected JavaScript function that is bound to our native C callback 

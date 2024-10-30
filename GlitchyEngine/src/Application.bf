@@ -1,5 +1,6 @@
 using System;
 using GlitchyEngine.Events;
+using GlitchyEngine.UI;
 using GlitchyEngine.ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Debug;

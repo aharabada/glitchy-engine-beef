@@ -17,7 +17,7 @@ class UltralightLayer : Layer
 
 	private List<UltralightWindow> _windows = new .() ~ DeleteContainerAndItems!(_);
 
-	public UltralightEntityHierarchyWindow EntityHierarchyWindow;
+	public UltralightMainWindow EntityHierarchyWindow;
 
 	private static Self _instance;
 
@@ -29,7 +29,7 @@ class UltralightLayer : Layer
 
 		InitUltralight();
 
-		EntityHierarchyWindow = new UltralightEntityHierarchyWindow();
+		EntityHierarchyWindow = new UltralightMainWindow();
 		_windows.Add(EntityHierarchyWindow);
 
 		_copyEffect = Content.LoadAsset("Resources/Shaders/Copy.hlsl");
@@ -55,6 +55,8 @@ class UltralightLayer : Layer
 	private void InitUltralight()
 	{
 		ULConfig config = ulCreateConfig();
+
+		//ulConfigSetUserStylesheet(config);
 
 		ULString logPath = ulCreateString(@"D:\Development\Projects\Beef\GlitchyEngine\GlitchyEditor\ul.log");
 		ulEnableDefaultLogger(logPath);
