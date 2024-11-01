@@ -8,7 +8,8 @@ namespace GlitchyEngine.UI
 	enum WindowStyle
 	{
 		Normal,
-		Borderless
+		Borderless,
+		CustomTitle
 	}
 
 	public struct WindowDescription

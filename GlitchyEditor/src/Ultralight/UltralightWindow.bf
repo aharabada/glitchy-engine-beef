@@ -60,9 +60,10 @@ abstract class UltralightWindow
 	private void InitCallbacks()
 	{
 		void* userData = Internal.UnsafeCastToPtr(this);
-
-		ulViewSetDOMReadyCallback(_view, => OnDOMReady, userData);
+		
 		ulViewSetFailLoadingCallback(_view, => OnFailedLoading, userData);
+		ulViewSetWindowObjectReadyCallback(_view, => OnWindowObjectReady, userData);
+		ulViewSetDOMReadyCallback(_view, => OnDOMReady, userData);
 
 		ulViewSetAddConsoleMessageCallback(_view, => OnAddConsoleMessage, userData);
 
@@ -235,12 +236,15 @@ abstract class UltralightWindow
 		ulDestroyMouseEvent(evt);
 
 		_cursorPosition = .(e.PositionX, e.PositionY);
+		Log.EngineLogger.Warning($"{_cursorPosition.X} {_cursorPosition.Y}");
 
 		return true;
 	}
 
 	private bool MousePressed(MouseButtonEvent e, bool press)
 	{
+		Log.ClientLogger.Warning($"{e.MouseButton} {press}");
+
 		ULMouseButton button = .kMouseButton_None;
 
 		switch (e.MouseButton)
@@ -261,6 +265,14 @@ abstract class UltralightWindow
 #endregion Events
 
 #region Ultralight Callbacks
+	
+	private static void OnWindowObjectReady(void* user_data, ULView caller, uint64 frame_id, bool is_main_frame, ULString url)
+	{
+		UltralightWindow window = (UltralightWindow)Internal.UnsafeCastToObject(user_data);
+		window.OnWindowObjectReady(caller, frame_id, is_main_frame, url);
+	}
+
+	protected virtual void OnWindowObjectReady(ULView caller, uint64 frame_id, bool is_main_frame, ULString url) { }
 
 	private static void OnDOMReady(void* user_data, ULView caller, uint64 frame_id, bool is_main_frame, ULString url)
 	{
@@ -269,7 +281,7 @@ abstract class UltralightWindow
 	}
 
 	protected virtual void OnDOMReady(ULView caller, uint64 frame_id, bool is_main_frame, ULString url) { }
-	
+
 	private static void OnFailedLoading(void* user_data, C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url, C_String* description, C_String* error_domain, int32 error_code)
 	{
 		UltralightWindow window = (UltralightWindow)Internal.UnsafeCastToObject(user_data);

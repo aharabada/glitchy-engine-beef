@@ -41,6 +41,18 @@ namespace GlitchyEngine.UI
 
 		private HCURSOR _cursor;
 
+		private WindowStyle _windowStyle;
+
+		enum TitleBarButton
+		{
+			Minimize,
+			Maximize,
+			Close,
+			None
+		}
+
+		private TitleBarButton _hoveredTitleBarButton;
+
 		public override int32 MinWidth
 		{
 			get => _minMaxInfo.MinimumTrackingSize.x;
@@ -217,7 +229,7 @@ namespace GlitchyEngine.UI
 			else
 				WindowClass.Icon = 0;
 
-			WindowClass.Cursor = LoadCursorW(0, IDC_ARROW);
+			_cursor = WindowClass.Cursor = LoadCursorW(0, IDC_ARROW);
 			WindowClass.BackgroundBrush = (HBRUSH)SystemColor.WindowFrame;
 
 #unwarn
@@ -234,6 +246,19 @@ namespace GlitchyEngine.UI
 		[LinkName(.C)]
 		static extern Windows.IntBool SetLayeredWindowAttributes(HWND hwnd, uint32 crKey, uint8 bAlpha, DWORD dwFlags);
 
+		[CRepr]
+		enum DpiAwarenessContext {
+		    Invalid = -1,
+		    Unaware = 0,
+		    SystemAware = 1,
+		    PerMonitorAware = 2
+		}
+
+		Handle DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = (.)-4;
+
+		[CLink]
+		static extern Windows.IntBool SetProcessDpiAwarenessContext(HANDLE value);
+
 		private void Init(WindowDescription desc)
 		{
 			Debug.Profiler.ProfileFunction!();
@@ -242,6 +267,12 @@ namespace GlitchyEngine.UI
 
 			if (WindowClass == default)
 			{
+				// Support high-dpi screens
+				if (!SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+				{
+					Log.EngineLogger.Error("Could not set DPI awareness.");
+				}
+
 				CreateWindowClass(desc.Icon);
 			}
 
@@ -250,25 +281,30 @@ namespace GlitchyEngine.UI
 
 				DirectX.Windows.WindowStyles style = .WS_VISIBLE;
 
+				_windowStyle = desc.WindowStyle;
+
 				switch (desc.WindowStyle)
 				{
 				case .Normal:
 					style |= .WS_OVERLAPPEDWINDOW | .WS_VISIBLE;
 				case .Borderless:
 					style |= .WS_POPUP | .WS_THICKFRAME | .WS_CAPTION | .WS_SYSMENU | .WS_MAXIMIZEBOX | .WS_MINIMIZEBOX;
+				case .CustomTitle:
+					style |= .WS_THICKFRAME   // required for a standard resizeable window
+						    | .WS_SYSMENU      // Explicitly ask for the titlebar to support snapping via Win + ← / Win + →
+						    | .WS_MAXIMIZEBOX  // Add maximize button to support maximizing via mouse dragging to the top of the screen
+						    | .WS_MINIMIZEBOX;  // Add minimize button to support minimizing by clicking on the taskbar icon
 				}
-
-				_windowHandle = CreateWindowExW(.None, WindowClass.ClassName, desc.Title.ToScopedNativeWChar!(),
+				
+				void* selfPointer = Internal.UnsafeCastToPtr(this);
+				_windowHandle = CreateWindowExW(.WS_EX_APPWINDOW, WindowClass.ClassName, desc.Title.ToScopedNativeWChar!(),
 					style,
-					CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, null);
+					CW_USEDEFAULT, CW_USEDEFAULT, desc.Width, desc.Height, 0, 0, (.)_instanceHandle, selfPointer);
 			}
 
 			_swapChain = new SwapChain(this);
 			_swapChain.Init();
-
-			void* myPtr = Internal.UnsafeCastToPtr(this);
-			SetWindowLongPtrW(_windowHandle, GWL_USERDATA, (int)myPtr);
-
+			
 			LoadWindowRectangle();
 
 			Log.EngineLogger.Trace($"Created window \"{Title}\" ({Width}, {Height})");
@@ -300,6 +336,26 @@ namespace GlitchyEngine.UI
 
 		internal int2 _rawMouseMovementAccumulator;
 
+		[CLink]
+		private static extern IntBool InvalidateRect(HWND hWnd, in DirectX.Math.Rectangle lpRect, IntBool bErase);
+
+		[CRepr]
+		private struct CreateStructW
+		{
+			public LPVOID    lpCreateParams;
+			public HINSTANCE hInstance;
+			public HMENU     hMenu;
+			public HWND      hwndParent;
+			public int       cy;
+			public int       cx;
+			public int       y;
+			public int       x;
+			public LONG      style;
+			public LPCWSTR   lpszName;
+			public LPCWSTR   lpszClass;
+			public DWORD     dwExStyle;
+		}
+
 		private static LRESULT MessageHandler(HWND hwnd, uint32 uMsg, WPARAM wParam, LPARAM lParam)
 		{
 			void* windowPtr = (void*)GetWindowLongPtrW(hwnd, GWL_USERDATA);
@@ -307,7 +363,18 @@ namespace GlitchyEngine.UI
 			
 			if (window == null)
 			{
-				return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+				if (uMsg == WM_CREATE)
+				{
+					// The pointer to our beef window is passed via lpParam of CreateWindowExW
+					CreateStructW* createStruct = (CreateStructW*)(void*)lParam;
+					void* windowPointer = createStruct.lpCreateParams;
+					window = (Window)Internal.UnsafeCastToObject(windowPointer);
+					SetWindowLongPtrW(hwnd, GWL_USERDATA, (int)windowPointer);
+				}
+				else
+				{
+					return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+				}
 			}
 
 			ImGui.ImGuiImplWin32.WndProcHandler(hwnd, uMsg, wParam, lParam);
@@ -333,7 +400,7 @@ namespace GlitchyEngine.UI
 
 					SplitHighAndLowOrder!(lParam, out window._clientRect.Width, out window._clientRect.Height);
 
-					if(window._clientRect.Width != 0 && window._clientRect.Height != 0)
+					if(window._swapChain != null && window._clientRect.Width != 0 && window._clientRect.Height != 0)
 					{
 						window._swapChain.Width = (.)window._clientRect.Width;
 						window._swapChain.Height = (.)window._clientRect.Height;
@@ -379,6 +446,12 @@ namespace GlitchyEngine.UI
 				 
 			case 0x0006: //WM_ACTIVATE
 				{
+					if (window._windowStyle == .CustomTitle)
+					{
+						DirectX.Math.Rectangle title_bar_rect = win32_titlebar_rect(hwnd);
+						InvalidateRect(hwnd, title_bar_rect, false);
+					}
+
 					SplitHighAndLowOrder!((int64)wParam, let lowWParam, let highWParam);
 
 					bool isActivate = lowWParam > 0;
@@ -418,10 +491,30 @@ namespace GlitchyEngine.UI
 				////
 
 				// Left mouse button
+			case 0x00A1 /* WM_NCLBUTTONDOWN */:
+				// Custom title windows need to handle mouse events outside of client area.
+				if (window._windowStyle == .CustomTitle)
+				{
+					var event = scope MouseButtonPressedEvent(.LeftButton);
+					window._eventCallback(event);
+
+					// if hovering a button
+					return 0;
+				}
 			case WM_LBUTTONDOWN:
 				{
 					var event = scope MouseButtonPressedEvent(.LeftButton);
 					window._eventCallback(event);
+				}
+			case 0x00A2 /* WM_NCLBUTTONUP */:
+				// Custom title windows need to handle mouse events outside of client area.
+				if (window._windowStyle == .CustomTitle)
+				{
+					var event = scope MouseButtonReleasedEvent(.LeftButton);
+					window._eventCallback(event);
+
+					// if hovering a button
+					return 0;
 				}
 			case WM_LBUTTONUP:
 				{
@@ -489,11 +582,29 @@ namespace GlitchyEngine.UI
 					var event = scope MouseScrolledEvent(rotation, 0);
 					window._eventCallback(event);
 				}
+			case 0x00A0 /*WM_NCMOUSEMOVE*/:
+				// Custom title windows need to handle mouse events outside of client area.
+				if (window._windowStyle == .CustomTitle)
+					fallthrough;
 			case WM_MOUSEMOVE:
 				{
+					// If the mouse gets into the client area then no title bar buttons are hovered
+					// so need to reset the hover state
+					if (window._windowStyle == .CustomTitle && window._hoveredTitleBarButton != .None)
+					{
+						DirectX.Math.Rectangle title_bar_rect = win32_titlebar_rect(hwnd);
+						// You could do tighter invalidation here but probably doesn't matter
+						InvalidateRect(hwnd, title_bar_rect, false);
+						window._hoveredTitleBarButton = .None;
+					}
+
 					SplitHighAndLowOrder!(lParam, let x, let y);
+
+					DirectX.Windows.POINT p = .(x, y);
+
+					ScreenToClient(hwnd, &p);
 					
-					var event = scope MouseMovedEvent(x, y);
+					var event = scope MouseMovedEvent(p.x, p.y);
 					window._eventCallback(event);
 				}
 			/*case WM_INPUT:
@@ -561,10 +672,150 @@ namespace GlitchyEngine.UI
 
 					return 0;
 				}
+				/**
+				 * Removes the Windowframe
+				 */
+			case WM_NCCALCSIZE:
+				if (window._windowStyle != .CustomTitle)
+					break;
+
+				if (wParam == 0)
+					break;
+
+				uint32 dpi = GetDpiForWindow(hwnd);
+
+				int32 frame_x = GetSystemMetricsForDpi(SM_CXFRAME, dpi);
+				int32 frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
+				int32 padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+
+				NCCALCSIZE_PARAMS* sizeParams = (NCCALCSIZE_PARAMS*)(void*)lParam;
+				Rect* requested_client_rect = &sizeParams.rgrc[0];
+
+				requested_client_rect.right -= frame_x + padding;
+				requested_client_rect.left += frame_x + padding;
+				requested_client_rect.bottom -= frame_y + padding;
+
+				if (win32_window_is_maximized(hwnd)) {
+				  requested_client_rect.top += padding;
+				}
+
+				return 0;
+			case WM_CREATE:
+				if (window._windowStyle != .CustomTitle)
+					break;
+
+				GetWindowRect(hwnd, let size_rect);
+
+				// Inform the application of the frame change to force redrawing with the new
+				// client area that is extended into the title bar
+				SetWindowPos(
+				  hwnd, 0,
+				  size_rect.Left, size_rect.Top,
+				  size_rect.Right - size_rect.Left, size_rect.Bottom - size_rect.Top,
+				  0x0020 | 0x0002 | 0x0001 /*SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE*/
+				);
+			case 0x0084: /* WM_NCHITTEST */
+				if (window._windowStyle != .CustomTitle)
+					break;
+				
+				// Let the default procedure handle resizing areas
+				LRESULT hit = DefWindowProcW(hwnd, uMsg, wParam, lParam);
+				switch (hit)
+				{
+				case 0 /* HTNOWHERE */,
+					10 /* HTLEFT */,
+					11 /* HTRIGHT */,
+					12 /* HTTOP */,
+					13 /* HTTOPLEFT */,
+					14 /* HTTOPRIGHT */,
+					15 /* HTBOTTOM */,
+					16 /* HTBOTTOMLEFT */,
+					17 /* HTBOTTOMRIGHT */:
+					return hit;
+				}
+
+				// Check if hover button is on maximize to support SnapLayout on Windows 11
+				if (window._hoveredTitleBarButton == .Maximize) {
+				  return 9 /* HTMAXBUTTON */;
+				}
+
+				// Looks like adjustment happening in NCCALCSIZE is messing with the detection
+				// of the top hit area so manually fixing that.
+				uint32 dpi = GetDpiForWindow(hwnd);
+				int frame_y = GetSystemMetricsForDpi(SM_CYFRAME, dpi);
+				int padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
+				POINT cursor_point = .();
+
+				SplitHighAndLowOrder(lParam, out cursor_point.x, out cursor_point.y);
+				ScreenToClient(hwnd, &cursor_point);
+				if (cursor_point.y > 0 && cursor_point.y < frame_y + padding) {
+				  return 12 /* HTTOP */;
+				}
+
+				// Since we are drawing our own caption, this needs to be a custom test
+				if (cursor_point.y < win32_titlebar_rect(hwnd).Bottom) {
+				  return 2 /* HTCAPTION */;
+				}
+
+				return 1 /* HTCLIENT */;
 			}
 
 			return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 		}
+
+		static bool win32_window_is_maximized(HWND handle)
+		{
+			WINDOWPLACEMENT placement = .();
+			placement.length = sizeof(WINDOWPLACEMENT);
+			if (GetWindowPlacement(handle, &placement))
+			{
+				return placement.showCmd == SW_SHOWMAXIMIZED;
+			}
+			return false;
+		}
+
+		[CRepr]
+		struct WINDOWPLACEMENT
+		{
+		    public uint32 length;
+		    public uint32 flags;
+		    public uint32 showCmd;
+		    public POINT ptMinPosition;
+		    public POINT ptMaxPosition;
+		    public Rect rcNormalPosition;
+		}
+
+		[CLink]
+		private static extern IntBool GetWindowPlacement(HWND hWnd, WINDOWPLACEMENT* lpwndpl);
+
+		[CRepr]
+		private struct NCCALCSIZE_PARAMS
+		{
+		    public Rect[3] rgrc;
+		    public WINDOWPOS* lppos;
+		}
+		
+		[CRepr]
+		struct WINDOWPOS
+		{
+		    public HWND hwnd;
+		    public HWND hwndInsertAfter;
+		    public int32 x;
+		    public int32 y;
+		    public int32 cx;
+		    public int32 cy;
+		    public uint32 flags;
+		}
+
+		[CLink]
+		private static extern uint32 GetDpiForWindow(HWND hwnd);
+
+		[CLink]
+		private static extern int32 GetSystemMetricsForDpi(int32 nIndex, uint32 dpi);
+
+		private const int32 SM_CXFRAME = 32;
+		private const int32 SM_CYFRAME = 33;
+		private const int32 SM_CXPADDEDBORDER = 92;
 
 		/**
 		 * Converts the wParam and lParam of a WM_KEYDOWN or WM_KEYUP message to the corresponding engine keycode.
@@ -587,6 +838,51 @@ namespace GlitchyEngine.UI
 			default:
 				return key;
 			}
+		}
+
+		struct SIZE
+		{
+			public LONG cx;
+			public LONG cy;
+		};
+
+		[CLink, Import("UxTheme.lib")]
+		private static extern Handle OpenThemeData(HWND hwnd, LPCWSTR pszClassList);
+
+		[CLink, Import("UxTheme.lib")]
+		private static extern HResult CloseThemeData(Handle hTheme);
+
+		enum ThemeSize
+		{
+		    Min,             // minimum size
+		    True,            // size without stretching
+		    Draw             // size that theme mgr will use to draw part
+		};
+
+		[CLink, Import("UxTheme.lib")]
+		private static extern HResult GetThemePartSize(Handle hTheme, Handle hdc, int32 iPartId, int32 iStateId, Rect* prc, ThemeSize eSize, SIZE* psz);
+
+		static int32 win32_dpi_scale(int32 value, uint32 dpi)
+		{
+			return (int32)((float)value * dpi / 96);
+		}
+
+		// Adopted from:
+		// https://github.com/oberth/custom-chrome/blob/master/source/gui/window_helper.hpp#L52-L64
+		static DirectX.Math.Rectangle win32_titlebar_rect(HWND handle)
+		{
+		    SIZE title_bar_size = .();
+		    const int top_and_bottom_borders = 2;
+		    Handle theme = OpenThemeData(handle, "WINDOW".ToScopedNativeWChar!());
+		    uint32 dpi = GetDpiForWindow(handle);
+		    GetThemePartSize(theme, 0, 1/*WP_CAPTION*/, 1/*CS_ACTIVE*/, null, .True, &title_bar_size);
+		    CloseThemeData(theme);
+
+		    int32 height = win32_dpi_scale(title_bar_size.cy, dpi) + top_and_bottom_borders;
+
+		    GetClientRect(handle, var rect);
+		    rect.Bottom = rect.Top + height;
+		    return rect;
 		}
 
 		public override void Update()
