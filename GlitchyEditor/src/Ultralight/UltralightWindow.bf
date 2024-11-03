@@ -109,17 +109,7 @@ abstract class UltralightWindow
 
 		RenderCommand.Clear(_window.SwapChain.BackBuffer, .Color, .(0.7f, 0.2f, 0.2f), 1.0f, 0);
 
-		RenderCommand.UnbindRenderTargets();
-		RenderCommand.SetRenderTarget(_window.SwapChain.BackBuffer);
-		RenderCommand.BindRenderTargets();
-		RenderCommand.SetViewport(_window.SwapChain.BackbufferViewport);
-
-		Effect copy = Content.GetAsset<Effect>(UltralightLayer._copyEffect);
-		copy.SetTexture("Texture", _texture);
-		copy.ApplyChanges();
-		copy.Bind();
-
-		FullscreenQuad.Draw();
+		Blit.Blit(_texture, _window.SwapChain.BackBuffer, viewport: _window.SwapChain.BackbufferViewport);
 	}
 
 	public void Render()

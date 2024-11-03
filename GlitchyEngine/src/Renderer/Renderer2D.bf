@@ -414,6 +414,8 @@ namespace GlitchyEngine.Renderer
 
 			FontRenderer.Init();
 
+			Blit.Init();
+
 #if DEBUG
 			s_initialized = true;
 #endif

@@ -13,8 +13,6 @@ class UltralightLayer : Layer
 {
 	public static ULRenderer renderer;
 	
-	public static AssetHandle<Effect> _copyEffect;
-
 	private List<UltralightWindow> _windows = new .() ~ DeleteContainerAndItems!(_);
 
 	public UltralightMainWindow EntityHierarchyWindow;
@@ -31,8 +29,6 @@ class UltralightLayer : Layer
 
 		EntityHierarchyWindow = new UltralightMainWindow();
 		_windows.Add(EntityHierarchyWindow);
-
-		_copyEffect = Content.LoadAsset("Resources/Shaders/Copy.hlsl");
 	}
 	private static void InitClipboard()
 	{
