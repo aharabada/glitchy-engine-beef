@@ -83,12 +83,10 @@ abstract class UltralightWindow
 	{
 		void* pixels = ulBitmapLockPixels(bitmap);
 
-		// TODO: before first resize the stride is larger than expected
-		uint32 width = ulBitmapGetWidth(bitmap);
 		uint32 height = ulBitmapGetHeight(bitmap);
 		uint32 stride = ulBitmapGetRowBytes(bitmap);
 
-		_texture.SetData<uint32>((.)pixels, 0, 0, width, height, 0, 0);
+		_texture.SetData(TextureSliceData(pixels, stride, stride * height));
 
 		ulBitmapUnlockPixels(bitmap);
 	}

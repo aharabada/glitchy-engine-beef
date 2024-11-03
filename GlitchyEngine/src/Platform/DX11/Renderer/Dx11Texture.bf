@@ -134,21 +134,98 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
+			if (slices.Length == 0)
+				return .Err;
+
+			if (slices.Length != 1)
+			{
+				Runtime.NotImplemented("PlatformSetData(Span<TextureSliceData> slices) with more than 1 slice is not implemented yet.");
+			}	
+
 			if(nativeTexture == null)
 			{
 				if (InternalCreateTexture(slices))
 					return .Ok;
 			}
 
-			Runtime.NotImplemented();
+			uint32 subresourceIndex = D3D11.CalcSubresource(0, 0, nativeDesc.MipLevels);
 
-			/*int index = firstArraySlice;
-
-			for (TextureSliceData slice in slices)
+			switch(nativeDesc.Usage)
 			{
+			case .Default:
+				Box dataBox = .(0, 0, 0, Width, Height, 1);
 
-			}*/
+				using (ContextMonitor.Enter())
+				{
+					NativeContext.UpdateSubresource(nativeTexture, subresourceIndex, &dataBox, slices[0].Data, slices[0].LinePitch, slices[0].SlicePitch);
+				}
+				
+			case .Dynamic:
+				using (ContextMonitor.Enter())
+				{
+					MappedSubresource map = ?;
+					NativeContext.Map(nativeTexture, subresourceIndex, .WriteDiscard, .None, &map);
+					
+					if (map.RowPitch > slices[subresourceIndex].LinePitch)
+					{
+						Log.EngineLogger.Error("The line pitch of the new data must be at least as large as the line pitch of the destination texture.");
+					}
+
+					for (int line < Height)
+					{
+						Internal.MemCpy(((uint8*)map.Data) + map.RowPitch * line, slices[subresourceIndex].GetLinePointer(line), map.RowPitch);
+					}
+
+					NativeContext.Unmap(nativeTexture, subresourceIndex);
+				}
+			case .Immutable:
+				Log.EngineLogger.Error("Can't set the data of an immutable resource.");
+				return .Err;
+			default:
+				Log.EngineLogger.Error($"Unknown resource usage for texture: {nativeDesc.Usage}");
+				return .Err;
+			}
+
+			return .Ok;
 		}
+
+		public struct DataBox
+		{
+			public uint32 X, Y, Z, Width, Height, Depth;
+		}
+
+		/*protected Result<void> MightySetData(void* srcData, uint32 elementSize,
+			DataBox dstBox, uint32 srcRowPitch, uint32 srcDepthSliceStride, uint32 arraySlice, uint32 mipLevel)
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			if(nativeTexture == null)
+			{
+				// TODO: Can we extend this function to provide multiple array slices and mip levels? Because we need it for immutable textures
+				if(dstBox.X == 0 && dstBox.Y == 0 && dstBox.Z == 0 &&
+					dstBox.Width == nativeDesc.Width && dstBox.Height == nativeDesc.Height &&
+					arraySlice == 0 && mipLevel == 0 && ArraySize == 1 && MipLevels == 1)
+				{
+					//TextureSliceData[1] dataSlice = .(.(data, elementSize * destWidth, elementSize * destWidth * destHeight));
+
+					// Turns out we need to initialize all slices at once or none... so... tough shit, we cant early out here.
+					//if (InternalCreateTexture(dataSlice))
+					//	return .Ok;
+				}
+				else
+				{
+					if (nativeDesc.Usage == .Immutable)
+					{
+						Log.EngineLogger.Error("The entire pixel data has to be provided when initializing an immutable texture.");
+						return .Err;
+					}
+
+					InternalCreateTexture(null);
+				}
+			}
+
+			return .Ok;
+		}*/
 
 		// TODO: Update Texture Arrays!
 		protected override Result<void> PlatformSetData(void* data, uint32 elementSize, uint32 destX,

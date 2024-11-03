@@ -74,6 +74,11 @@ namespace GlitchyEngine.Renderer
 			LinePitch = linePitch;
 			SlicePitch = slicePitch;
 		}
+
+		public void* GetLinePointer(int line)
+		{
+			return (uint8*)Data + LinePitch * line;
+		}
 	}
 
 	public class Texture2D : Texture
@@ -99,6 +104,19 @@ namespace GlitchyEngine.Renderer
 				return .Err;
 			}
 
+			return PlatformSetData(slices);
+		}
+
+		public Result<void> SetData(TextureSliceData slice)
+		{
+			if (1 != ArraySize * MipLevels)
+			{
+				Log.EngineLogger.Error("Not enough slices provided to initialize texture.");
+				return .Err;
+			}
+
+			#unwarn // This is safe, we only read from it.
+			Span<TextureSliceData> slices = .(&slice, 1);
 			return PlatformSetData(slices);
 		}
 
