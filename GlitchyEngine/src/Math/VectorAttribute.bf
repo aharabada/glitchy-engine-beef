@@ -20,6 +20,8 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 		GenerateEqualityOperators(type);
 
 		GenerateArrayAccess(type);
+
+		GenerateToString(type);
 	}
 	
 	[Comptime]
@@ -310,6 +312,30 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 			""";
 
 		Compiler.EmitTypeBody(type, arrayAccess);
+	}
+	
+	[Comptime]
+	private static void GenerateToString(Type type)
+	{
+		String string = scope String();
+		
+		for (int i < ComponentCount)
+		{
+			if (i != 0)
+				string.Append(", ");
+
+			string.AppendF($"{{{ComponentNames[i]}}}");
+		}
+
+		String func = scope $"""
+			public void ToString(System.String buffer)
+			{{
+				buffer.AppendF($"({string})");
+			}}
+
+			""";
+
+		Compiler.EmitTypeBody(type, func);
 	}
 }
 
