@@ -224,14 +224,12 @@ abstract class UltralightWindow
 		ulDestroyMouseEvent(evt);
 
 		_cursorPosition = .(e.PositionX, e.PositionY);
-		Log.EngineLogger.Warning($"{_cursorPosition.X} {_cursorPosition.Y}");
 
 		return true;
 	}
 
 	private bool MousePressed(MouseButtonEvent e, bool press)
 	{
-		Log.ClientLogger.Warning($"{e.MouseButton} {press}");
 
 		ULMouseButton button = .kMouseButton_None;
 

@@ -31,7 +31,37 @@ class UltralightMainWindow : UltralightWindow
 
 		_hoveringNonClientArea = JSValueToBoolean(context, arguments[0]);
 
+		_window.[Friend]_hoveredOverTitleBar = _hoveringNonClientArea;
 		Log.ClientLogger.Info($"_hoveringNonClientArea: {_hoveringNonClientArea}");
+	}
+
+	void HandleHoverMaximizeWindow(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
+	{
+		Log.EngineLogger.Info("HandleHoverMaximizeWindow");
+
+		if (arguments.Length != 1)
+		{
+			Log.EngineLogger.Error("EngineGlue.HandleHoverMaximizeWindow: called with wrong number of arguments.");
+			return;
+		}
+
+		if (!JSValueIsBoolean(context, arguments[0]))
+		{
+			Log.EngineLogger.Error($"EngineGlue.HandleHoverMaximizeWindow: expected boolean, but received {JSValueGetType(context, arguments[0])} instead.");
+			return;
+		}
+
+		if (JSValueToBoolean(context, arguments[0]))
+			_window.[Friend]_hoveredTitleBarButton = .Maximize;
+		else
+		{
+			_window.[Friend]_hoveredTitleBarButton = .None;
+		Log.ClientLogger.Info($"esar ogsdflkg aerwufg");
+		}
+
+		EditorLayer.HoveredTitleBarButton = _window.[Friend]_hoveredTitleBarButton;
+
+		Log.ClientLogger.Info($"_hoveredTitleBarButton: {_window.[Friend]_hoveredTitleBarButton}");
 	}
 
 	private void RegisterBeefFunction(JSContextRef context, JSObjectRef object, StringView functionName, JSCallback callback)
@@ -68,6 +98,7 @@ class UltralightMainWindow : UltralightWindow
 		StdAllocator stdAlloc = StdAllocator();
 
 		RegisterBeefFunction(context, scriptGlue, "setHoverNonClientArea", new:stdAlloc => HandleHoverNonClientArea);
+		RegisterBeefFunction(context, scriptGlue, "setHoverMaximizeWindow", new:stdAlloc => HandleHoverMaximizeWindow);
 	}
 
 	protected override void OnDOMReady(C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url)

@@ -43,15 +43,17 @@ namespace GlitchyEngine.UI
 
 		private WindowStyle _windowStyle;
 
-		enum TitleBarButton
+		public enum TitleBarButton
 		{
+			None,
 			Minimize,
 			Maximize,
-			Close,
-			None
+			Close
 		}
 
 		private TitleBarButton _hoveredTitleBarButton;
+
+		private bool _hoveredOverTitleBar;
 
 		public override int32 MinWidth
 		{
@@ -377,7 +379,8 @@ namespace GlitchyEngine.UI
 				}
 			}
 
-			ImGui.ImGuiImplWin32.WndProcHandler(hwnd, uMsg, wParam, lParam);
+			if (Application.Instance.MainWindow == window)
+				ImGui.ImGuiImplWin32.WndProcHandler(hwnd, uMsg, wParam, lParam);
 
 			switch (uMsg)
 			{
@@ -498,8 +501,8 @@ namespace GlitchyEngine.UI
 					var event = scope MouseButtonPressedEvent(.LeftButton);
 					window._eventCallback(event);
 
-					// if hovering a button
-					return 0;
+					if (window._hoveredTitleBarButton != .None)
+						return 0;
 				}
 			case WM_LBUTTONDOWN:
 				{
@@ -512,9 +515,9 @@ namespace GlitchyEngine.UI
 				{
 					var event = scope MouseButtonReleasedEvent(.LeftButton);
 					window._eventCallback(event);
-
-					// if hovering a button
-					return 0;
+					
+					if (window._hoveredTitleBarButton != .None)
+						return 0;
 				}
 			case WM_LBUTTONUP:
 				{
@@ -595,14 +598,15 @@ namespace GlitchyEngine.UI
 						DirectX.Math.Rectangle title_bar_rect = win32_titlebar_rect(hwnd);
 						// You could do tighter invalidation here but probably doesn't matter
 						InvalidateRect(hwnd, title_bar_rect, false);
-						window._hoveredTitleBarButton = .None;
+						//window._hoveredTitleBarButton = .None;
 					}
 
-					SplitHighAndLowOrder!(lParam, let x, let y);
+					SplitXAndY(lParam, let x, let y);
 
 					DirectX.Windows.POINT p = .(x, y);
 
-					ScreenToClient(hwnd, &p);
+					if (uMsg == 0x00A0 /*WM_NCMOUSEMOVE*/)
+						ScreenToClient(hwnd, &p);
 					
 					var event = scope MouseMovedEvent(p.x, p.y);
 					window._eventCallback(event);
@@ -733,10 +737,15 @@ namespace GlitchyEngine.UI
 					17 /* HTBOTTOMRIGHT */:
 					return hit;
 				}
-
+				
 				// Check if hover button is on maximize to support SnapLayout on Windows 11
-				if (window._hoveredTitleBarButton == .Maximize) {
-				  return 9 /* HTMAXBUTTON */;
+				if (window._hoveredTitleBarButton == .Maximize)
+				{
+					return 9 /* HTMAXBUTTON */;
+				}
+				else if (window._hoveredTitleBarButton == .Minimize)
+				{
+					return 8 /* HTMINBUTTON */;
 				}
 
 				// Looks like adjustment happening in NCCALCSIZE is messing with the detection
@@ -746,21 +755,42 @@ namespace GlitchyEngine.UI
 				int padding = GetSystemMetricsForDpi(SM_CXPADDEDBORDER, dpi);
 				POINT cursor_point = .();
 
-				SplitHighAndLowOrder(lParam, out cursor_point.x, out cursor_point.y);
+				cursor_point.x = GetXParam(lParam);
+				cursor_point.y = GetYParam(lParam);
 				ScreenToClient(hwnd, &cursor_point);
-				if (cursor_point.y > 0 && cursor_point.y < frame_y + padding) {
-				  return 12 /* HTTOP */;
+				if (cursor_point.y > 0 && cursor_point.y < frame_y + padding)
+				{
+				  	return 12 /* HTTOP */;
 				}
 
 				// Since we are drawing our own caption, this needs to be a custom test
-				if (cursor_point.y < win32_titlebar_rect(hwnd).Bottom) {
-				  return 2 /* HTCAPTION */;
+				if (window._hoveredTitleBarButton == .None && window._hoveredOverTitleBar)
+				{
+					return 2 /* HTCAPTION */;
 				}
 
 				return 1 /* HTCLIENT */;
 			}
 
 			return DefWindowProcW(hwnd, uMsg, wParam, lParam);
+		}
+
+		public static void SplitXAndY(int64 input, out int32 x, out int32 y)
+		{
+			x = GetXParam(input);
+			y = GetYParam(input);
+		}
+
+		[Inline]
+		public static int32 GetXParam(int64 input)
+		{
+			return ((int32)(int16)GetLowOrder(input));
+		}
+
+		[Inline]
+		public static int32 GetYParam(int64 input)
+		{
+			return ((int32)(int16)GetHighOrder(input));
 		}
 
 		static bool win32_window_is_maximized(HWND handle)
@@ -1067,8 +1097,11 @@ namespace GlitchyEngine.UI
 				hCursor = Winuser.LoadCursorW((.)0, cursor);
 			}
 
-			_cursor = hCursor;
-			Winuser.SetCursor(hCursor);
+			if (_cursor != hCursor)
+			{
+				_cursor = hCursor;
+				Winuser.SetCursor(hCursor);
+			}
 
 			return .Ok;
 		}
