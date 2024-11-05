@@ -225,11 +225,14 @@ abstract class UltralightWindow
 
 		_cursorPosition = .(e.PositionX, e.PositionY);
 
+		EditorLayer.CursorPos = _cursorPosition;
+
 		return true;
 	}
 
 	private bool MousePressed(MouseButtonEvent e, bool press)
 	{
+		Log.ClientLogger.Warning($"{e.MouseButton} {press} {_cursorPosition.X} {_cursorPosition.Y}");
 
 		ULMouseButton button = .kMouseButton_None;
 

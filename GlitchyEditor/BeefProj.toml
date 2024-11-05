@@ -1,5 +1,5 @@
 FileVersion = 1
-Dependencies = {corlib = "*", GlitchLog = "*", GlitchyEngine = "*", Ultralight = "*"}
+Dependencies = {corlib = "*", GlitchLog = "*", GlitchyEngine = "*", Ultralight = "*", EditorUI = "*"}
 
 [Project]
 Name = "GlitchyEditor"

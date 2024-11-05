@@ -1,0 +1,51 @@
+@import "assets/Fonts/Inter/inter.css";
+@import '../node_modules/dockview-react/dist/styles/dockview.css';
+
+*
+{
+	margin: 0;
+	padding: 0;
+	user-select: none;
+	-webkit-user-select: none;
+	/*cursor: default;*/
+}
+
+/* Fix indentation of nested lists */
+ul, ol {
+	padding-inline-start: 40px;
+}
+
+/* Variable Declaration for themes */
+:root
+{
+	--font-color-primary: white;
+	/* Menu Bar */
+	--menu-bar-background-color: #404040;
+	--menu-bar-background-color-hover: #808080;
+	--menu-bar-background-color-click: #606060;
+	--menu-bar-hotkey-color: #A0A0A0;
+
+	--tree-view-item-background-color-selected: #323275;
+
+	--small-transition-duration: 0.1s;
+}
+
+:root
+{
+	font-family: "Inter", sans-serif;
+
+	/* Disable selection by default. But for some reason webkit does it differently than chorme...*/
+	user-select: none;
+	-webkit-user-select: none;
+	cursor: default;
+
+	color: var(--font-color-primary);
+}
+
+@supports (font-variation-settings: normal)
+{
+	:root
+	{
+		font-family: "InterVariable", sans-serif; font-optical-sizing: auto;
+	}
+}

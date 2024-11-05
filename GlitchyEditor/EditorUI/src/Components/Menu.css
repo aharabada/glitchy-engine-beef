@@ -1,0 +1,126 @@
+﻿.menu-bar
+{
+	width: 100%;
+
+	background-color: var(--menu-bar-background-color);
+	grid-area: menubar;
+
+	display: flex;
+	justify-content: start;
+
+	list-style: none;
+
+	white-space: nowrap;
+
+	align-items: center;
+
+	--menu-item-height: 2em;
+}
+
+/* Remove indentation from lists for menu */
+.menu-bar, .sub-menu {
+	padding-inline-start: 0;
+}
+
+.menu-item
+{
+	/* Doesn't change our position, but does something to it, so that
+	 following absolutes are absolute to us? */
+	position: relative;
+	height: var(--menu-item-height);
+}
+
+.menu-item__content
+{
+	display: flex;
+	justify-content: space-between;
+}
+
+.menu-item__hotkey
+{
+	color: var(--menu-bar-hotkey-color);
+	justify-self: flex-end;
+	margin-left: 2em;
+}
+
+/* If menu-item has a submenu, make space for the arrow */
+.menu-item a:has(+.sub-menu)
+{
+	padding-right: 1em;
+	margin-right: auto;
+}
+
+/* Show arrow for submenus */
+.menu-item a:has(+.sub-menu)::after
+{
+	content: "⯆";
+	position: absolute;
+	right: 0;
+	top: 0;
+	transition-duration: var(--small-transition-duration);
+}
+
+/* If it is a nested submenu, forget the char above and use this one instead! */
+.sub-menu .menu-item a:has(+.sub-menu)::after
+{
+	content: "⯈";
+}
+
+.menu-item a:has(+.sub-menu.open)::after
+{
+	rotate: 180deg;
+}
+
+.menu-item a
+{
+	/* Make the a fill the entire width of menu-item */
+	display: block;
+
+	text-decoration: none;
+	color: var(--font-color-primary);
+
+	height: 100%;
+	align-content: center;
+	/*padding: 5px 5px;*/
+}
+
+.menu-item a:hover
+{
+	background-color: var(--menu-bar-background-color-hover);
+}
+
+.menu-item a:active
+{
+	background-color: var(--menu-bar-background-color-click);
+}
+
+.sub-menu
+{
+	min-width: 120px;
+	/* Hide submenu by default */
+	display: none;
+	overflow: visible;
+	overflow-anchor: none;
+	position: fixed;
+	background-color: var(--menu-bar-background-color-click);
+	list-style: none;
+	z-index: 10;
+}
+
+/* Show submenu */
+.sub-menu.open
+{
+	display: revert;
+	scale: 100% 100%;
+}
+
+.sub-menu .menu-item .sub-menu
+{
+	translate: 0 calc(var(--menu-item-height) * -1);
+	left: 100%;
+}
+
+.sub-menu li
+{
+	width: 100%;
+}

@@ -1,12 +1,13 @@
 using Ultralight.CAPI;
 using System;
 using GlitchyEngine;
+using static GlitchyEngine.UI.Window;
 
 namespace GlitchyEditor.Ultralight;
 
 class UltralightMainWindow : UltralightWindow
 {
-	public this() : base("Glitchy Engine", "file:///dist/index.html")
+	public this() : base("Glitchy Engine", "file:///index.html")
 	{
 
 	}
@@ -32,13 +33,14 @@ class UltralightMainWindow : UltralightWindow
 		_hoveringNonClientArea = JSValueToBoolean(context, arguments[0]);
 
 		_window.[Friend]_hoveredOverTitleBar = _hoveringNonClientArea;
+
+		EditorLayer.HoverCap = _window.[Friend]_hoveredOverTitleBar;
+
 		Log.ClientLogger.Info($"_hoveringNonClientArea: {_hoveringNonClientArea}");
 	}
 
-	void HandleHoverMaximizeWindow(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
+	void HandleHoverTitlebarButton(TitleBarButton button, JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
 	{
-		Log.EngineLogger.Info("HandleHoverMaximizeWindow");
-
 		if (arguments.Length != 1)
 		{
 			Log.EngineLogger.Error("EngineGlue.HandleHoverMaximizeWindow: called with wrong number of arguments.");
@@ -51,17 +53,9 @@ class UltralightMainWindow : UltralightWindow
 			return;
 		}
 
-		if (JSValueToBoolean(context, arguments[0]))
-			_window.[Friend]_hoveredTitleBarButton = .Maximize;
-		else
-		{
-			_window.[Friend]_hoveredTitleBarButton = .None;
-		Log.ClientLogger.Info($"esar ogsdflkg aerwufg");
-		}
-
+		Enum.SetFlagConditionally(ref _window.[Friend]_hoveredTitleBarButton, button, JSValueToBoolean(context, arguments[0]));
+		
 		EditorLayer.HoveredTitleBarButton = _window.[Friend]_hoveredTitleBarButton;
-
-		Log.ClientLogger.Info($"_hoveredTitleBarButton: {_window.[Friend]_hoveredTitleBarButton}");
 	}
 
 	private void RegisterBeefFunction(JSContextRef context, JSObjectRef object, StringView functionName, JSCallback callback)
@@ -96,9 +90,14 @@ class UltralightMainWindow : UltralightWindow
 		}
 
 		StdAllocator stdAlloc = StdAllocator();
-
-		RegisterBeefFunction(context, scriptGlue, "setHoverNonClientArea", new:stdAlloc => HandleHoverNonClientArea);
-		RegisterBeefFunction(context, scriptGlue, "setHoverMaximizeWindow", new:stdAlloc => HandleHoverMaximizeWindow);
+		
+		RegisterBeefFunction(context, scriptGlue, "handleHoverNonClientArea", new:stdAlloc => HandleHoverNonClientArea);
+		RegisterBeefFunction(context, scriptGlue, "handleHoverMaximizeWindow", new:stdAlloc (c, t, a, e) => HandleHoverTitlebarButton(.Maximize, c, t, a, e));
+		RegisterBeefFunction(context, scriptGlue, "handleHoverMinimizeWindow", new:stdAlloc (c, t, a, e) => HandleHoverTitlebarButton(.Minimize, c, t, a, e));
+		RegisterBeefFunction(context, scriptGlue, "handleHoverCloseWindow", new:stdAlloc (c, t, a, e) => HandleHoverTitlebarButton(.Close, c, t, a, e));
+		RegisterBeefFunction(context, scriptGlue, "handleClickMaximizeWindow", new:stdAlloc (c, t, a, e) => { _window.ToggleMaximize(); });
+		RegisterBeefFunction(context, scriptGlue, "handleClickMinimizeWindow", new:stdAlloc (c, t, a, e) => { _window.Minimize(); });
+		RegisterBeefFunction(context, scriptGlue, "handleClickCloseWindow", new:stdAlloc (c, t, a, e) => { _window.Close(); });
 	}
 
 	protected override void OnDOMReady(C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url)

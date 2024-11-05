@@ -54,13 +54,13 @@ class UltralightLayer : Layer
 
 		//ulConfigSetUserStylesheet(config);
 
-		ULString logPath = ulCreateString(@"D:\Development\Projects\Beef\GlitchyEngine\GlitchyEditor\ul.log");
+		/*ULString logPath = ulCreateString(@"D:\Development\Projects\Beef\GlitchyEngine\GlitchyEditor\ul.log");
 		ulEnableDefaultLogger(logPath);
-		ulDestroyString(logPath);
+		ulDestroyString(logPath);*/
 
 		ulEnablePlatformFontLoader();
 
-		ULString fileSystemPath = ulCreateString(@"D:\Development\Projects\Beef\GlitchyEngine\GlitchyEditor\assets");
+		ULString fileSystemPath = ulCreateString("./EditorUI/dist");
 		ulEnablePlatformFileSystem(fileSystemPath);
 		ulDestroyString(fileSystemPath);
 

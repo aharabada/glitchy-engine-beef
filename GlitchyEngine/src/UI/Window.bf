@@ -129,6 +129,10 @@ namespace GlitchyEngine.UI
 		public extern Result<void> SetIcon(StringView filePath);
 
 		public extern Result<void> SetCursor(CursorImage cursorImage);
+		
+		public extern void ToggleMaximize();
+		public extern void Minimize();
+		public extern void Close();
 
 		private void DefaultEventHandler(Event e)
 		{

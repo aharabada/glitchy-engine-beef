@@ -1,0 +1,12 @@
+FileVersion = 1
+
+[Project]
+Name = "EditorUI"
+TargetType = "CustomBuild"
+StartupObject = "EditorUI.Program"
+
+[Configs.Debug.Win64]
+BuildCommandsOnCompile = "IfFilesChanged"
+BuildCommandsOnRun = "IfFilesChanged"
+PreBuildCmds = ["npm run build"]
+PostBuildCmds = ["CopyToDependents(\"$(ProjectDir)/dist\")"]

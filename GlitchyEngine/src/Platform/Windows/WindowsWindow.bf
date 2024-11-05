@@ -46,9 +46,9 @@ namespace GlitchyEngine.UI
 		public enum TitleBarButton
 		{
 			None,
-			Minimize,
-			Maximize,
-			Close
+			Minimize = 1,
+			Maximize = 2,
+			Close = 4
 		}
 
 		private TitleBarButton _hoveredTitleBarButton;
@@ -739,13 +739,9 @@ namespace GlitchyEngine.UI
 				}
 				
 				// Check if hover button is on maximize to support SnapLayout on Windows 11
-				if (window._hoveredTitleBarButton == .Maximize)
+				if (window._hoveredTitleBarButton.HasFlag(.Maximize))
 				{
 					return 9 /* HTMAXBUTTON */;
-				}
-				else if (window._hoveredTitleBarButton == .Minimize)
-				{
-					return 8 /* HTMINBUTTON */;
 				}
 
 				// Looks like adjustment happening in NCCALCSIZE is messing with the detection
@@ -1104,6 +1100,22 @@ namespace GlitchyEngine.UI
 			}
 
 			return .Ok;
+		}
+
+		public override void ToggleMaximize()
+		{
+			PostMessageW(_windowHandle, WM_SYSCOMMAND, win32_window_is_maximized(_windowHandle) ? SC_RESTORE : SC_MAXIMIZE, 0);
+		}
+
+		public override void Minimize()
+		{
+			PostMessageW(_windowHandle, WM_SYSCOMMAND, SC_MINIMIZE, 0);
+		}
+
+		public override void Close()
+		{
+			// TODO!
+			Application.Instance.Close();
 		}
 	}
 }

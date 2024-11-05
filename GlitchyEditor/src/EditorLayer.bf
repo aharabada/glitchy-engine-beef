@@ -15,6 +15,7 @@ using System.IO;
 using GlitchyEngine.Core;
 using GlitchyEditor.Assets;
 using GlitchyEngine.Scripting;
+using static GlitchyEngine.UI.Window;
 
 namespace GlitchyEditor
 {
@@ -1132,9 +1133,23 @@ namespace GlitchyEditor
 #endregion Scene Management
 
 #region ImGui
-		
+
+		public static bool HoverCap;
+		public static TitleBarButton HoveredTitleBarButton;
+		public static int2 CursorPos;
+
 		private bool OnImGuiRender(ImGuiRenderEvent event)
 		{
+			if (ImGui.Begin("Test"))
+			{
+				ImGui.Text($"Hover Button {HoveredTitleBarButton}");
+				ImGui.Text($"Hover Button2 {Application.Instance.Windows[1].[Friend]_hoveredTitleBarButton}");
+				ImGui.Text($"Hover Cap {HoverCap}");
+				ImGui.Text($"CursorPos {CursorPos.ToString(.. scope .())}");
+
+				ImGui.End();
+			}
+
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
 

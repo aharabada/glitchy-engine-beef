@@ -1,0 +1,50 @@
+﻿.filterEntities
+{
+	margin-left: auto;
+	margin-right: 5px;
+}
+
+.tree-view__item
+{
+	position: relative;
+}
+
+.tree-view__item__text
+{
+	margin-right: 1em;
+	text-overflow: ellipsis;
+	overflow: hidden;
+	white-space: nowrap;
+	position: relative;
+}
+
+/*li > ul {*/
+/*	margin-left: 10px;*/
+/*}*/
+
+.tree-view__item.selected
+{
+	background-color: var(--tree-view-item-background-color-selected);
+}
+
+.tree-view__item:hover
+{
+	background-color: var(--menu-bar-background-color-hover);
+}
+
+.tree-view__item:active
+{
+	background-color: var(--menu-bar-background-color-click);
+}
+
+
+.tree-view__item img
+{
+	/*display: block;*/
+	position: absolute;
+	right: 0;
+	top: 0;
+	width: 1em;
+	height: 1em;
+	filter: invert();
+}
