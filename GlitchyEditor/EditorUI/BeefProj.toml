@@ -2,10 +2,11 @@ FileVersion = 1
 
 [Project]
 Name = "EditorUI"
-TargetType = "CustomBuild"
+TargetType = "BeefLib"
 StartupObject = "EditorUI.Program"
 
 [Configs.Debug.Win64]
+BuildKind = "StaticLib"
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
 PreBuildCmds = ["npm run build"]
