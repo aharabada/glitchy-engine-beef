@@ -49,15 +49,39 @@ namespace GlitchyEngine
 			container.Clear();
 		}
 
-		public static mixin DeleteDictionaryAndReleaseValues(var container)
+		public static mixin DeleteDictionaryAndReleaseValues(var dictionary)
 		{
-			if (container != null)
+			if (dictionary != null)
 			{
-				for (var value in container)
+				for (var value in dictionary)
 				{
 					value.value?.ReleaseRef();
 				}
-				delete container;
+				delete dictionary;
+			}
+		}
+		
+		public static mixin ClearDictionaryAndDisposeValues(var dictionary)
+		{
+			if (dictionary != null)
+			{
+				for (var value in dictionary)
+				{
+					value.value?.Dispose();
+				}
+				dictionary.Clear();
+			}
+		}
+
+		public static mixin DeleteDictionaryAndDisposeValues(var dictionary)
+		{
+			if (dictionary != null)
+			{
+				for (var value in dictionary)
+				{
+					value.value?.Dispose();
+				}
+				delete dictionary;
 			}
 		}
 

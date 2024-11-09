@@ -77,6 +77,7 @@ class UltralightLayer : Layer
 
 		for (var window in _windows)
 		{
+			window.Update();
 			window.Render();
 		}
 	}

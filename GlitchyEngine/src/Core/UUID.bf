@@ -56,5 +56,10 @@ namespace GlitchyEngine.Core
 
 			return .Ok;
 		}
+
+		public static explicit operator uint64(UUID id)
+		{
+			return id._uuid;
+		}
 	}
 }

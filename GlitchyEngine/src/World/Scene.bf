@@ -1086,6 +1086,11 @@ namespace GlitchyEngine.World
 				handler(entity, componentType, component);
 			}
 		}
+		
+		public WorldEnumerator GetEntities()
+		{
+			return _ecsWorld.Enumerate();
+		}
 
 		public WorldEnumerator<TComponent> GetEntities<TComponent>() where TComponent : struct
 		{

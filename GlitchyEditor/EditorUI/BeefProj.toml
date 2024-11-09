@@ -9,5 +9,5 @@ StartupObject = "EditorUI.Program"
 BuildKind = "StaticLib"
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
-PreBuildCmds = ["npm run build"]
+PreBuildCmds = ["npm run build:debug"]
 PostBuildCmds = ["CopyToDependents(\"$(ProjectDir)/dist\")"]

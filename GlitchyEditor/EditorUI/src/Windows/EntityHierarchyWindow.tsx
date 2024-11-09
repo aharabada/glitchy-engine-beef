@@ -2,7 +2,7 @@
 import {MenuBar, MenuItem} from "../Components/Menu.tsx";
 
 import "./EntityHierarchyWindow.css";
-import {MouseEventHandler, ReactElement, MouseEvent} from "react";
+import {MouseEvent, MouseEventHandler, ReactElement, useEffect} from "react";
 
 import IconVisible from "../assets/Icons/AntDesign/eye-visible.svg";
 import IconInvisible from "../assets/Icons/AntDesign/eye-invisible.svg";
@@ -10,46 +10,60 @@ import {Updater, useImmer} from "use-immer";
 
 import {EngineGlue} from "../EngineGlue";
 
-type EntityId = number;
+import {enableMapSet} from "immer"
+import {Entity, EntityId} from "../Entity.ts";
 
-class Entity
-{
-	name: string;
-	id: EntityId;
-	visible: boolean = true;
-	children: EntityId[];
-
-	constructor(name: string, key: number, children: EntityId[] = [])
-	{
-		this.name = name;
-		this.id = key;
-		this.children = children;
-	}
-}
+enableMapSet()
 
 type EntityMap = {
-	selectedIds: EntityId[];
+	selectedIds: Set<EntityId>;
 	[id: EntityId]: Entity;
 };
 
 const entityHierarchy: EntityMap = {
-	selectedIds: [],
-
-	0: new Entity("Entity Root", 0, [1, 4]),
-	1: new Entity("Entity Entity 1", 1, [2, 3]),
-	2: new Entity("Entity Entity 1.1", 2),
-	3: new Entity("Entity Entity 1.2", 3),
-	4: new Entity("Entity Entity 2", 4, [5, 6]),
-	5: new Entity("Entity Entity 2.1", 5),
-	6: new Entity("Entity Entity 2.2", 6, [7]),
-	7: new Entity("Entity Entity 2.2.1", 7, [8, 9]),
-	8: new Entity("Entity Entity 2.2.1.1", 8),
-	9: new Entity("Entity Entity 2.2.1.2", 9)
+	selectedIds: new Set<EntityId>(),
+	// 0 is hardcoded to be the root. The editor must provide this "pseudo"-entity.
+	0: new Entity("Root", 0, [])
 };
 
 export default function EntityHierarchyWindow(props: IDockviewPanelProps)
 {
 	const [entities, updateEntities] = useImmer(entityHierarchy);
+
+	useEffect(() => {
+		EngineGlue.onUpdateEntities = (entities: Entity[]) => {
+			updateEntities(draft => {
+				try
+				{
+					for (const entity of entities)
+					{
+						// console.log(`${entity.id}: "${entity.name ?? "deleted"}",
+						// ${entity.visible ? "Visible" : "Invisible"}, ${entity.children.length} Children: [${entity.children}]`)
+
+						if (entity.name === "undefined")
+						{
+							delete draft[entity.id];
+							draft.selectedIds.delete(entity.id);
+						}
+						else
+						{
+							draft[entity.id] = entity;
+						}
+					}
+				}
+				catch (e)
+				{
+					console.log(`Failed to update entities: ${e}`);
+				}
+			});
+		};
+
+		EngineGlue.requestEntityHierarchyUpdate();
+
+		return () => {
+			delete EngineGlue.onUpdateEntities;
+		};
+	}, [updateEntities]);
 
 	return (
 		<>
@@ -83,7 +97,6 @@ export default function EntityHierarchyWindow(props: IDockviewPanelProps)
 				<input className="filterEntities" placeholder="Filter entities..."/>
 			</MenuBar>
 			<EntityTree items={entities} updateItems={updateEntities}/>
-			<button className="title-bar__button close" onClick={EngineGlue.handleClickCloseWindow}>🗙</button>
 		</>
 	);
 }
@@ -94,7 +107,7 @@ function EntityTreeItem({item, allEntities, updateEntities}: {
 {
 	//const [isOpen, setOpen] = useState(false);
 
-	const isSelected = allEntities.selectedIds.includes(item.id);
+	const isSelected = allEntities.selectedIds.has(item.id);
 	//const isVisible = allEntities[item.id].visible;
 
 	function handleClick(event: MouseEvent)
@@ -103,11 +116,11 @@ function EntityTreeItem({item, allEntities, updateEntities}: {
 		updateEntities(draft => {
 			if (isSelected)
 			{
-				draft.selectedIds = allEntities.selectedIds.filter((id) => {return id != item.id});
+				draft.selectedIds.delete(item.id);
 			}
 			else
 			{
-				draft.selectedIds.push(item.id);
+				draft.selectedIds.add(item.id);
 			}
 		});
 
@@ -180,9 +193,12 @@ function EntityTree({items, updateItems}: { items: EntityMap, updateItems: Updat
 		<ul className="tree-view">
 			{
 				items[0].children.map((childId) => {
-				const entity: Entity = items[childId];
+					const entity: Entity = items[childId];
 
-				return <EntityTreeItem key={entity.id} item={entity} allEntities={items} updateEntities={updateItems} />;
+					if (entity === undefined)
+						return;
+
+					return <EntityTreeItem key={entity.id} item={entity} allEntities={items} updateEntities={updateItems} />;
 				})
 			}
 		</ul>

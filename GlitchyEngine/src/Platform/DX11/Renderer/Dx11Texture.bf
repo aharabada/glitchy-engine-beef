@@ -137,9 +137,9 @@ namespace GlitchyEngine.Renderer
 			if (slices.Length == 0)
 				return .Err;
 
-			if (slices.Length != 1)
+			if (nativeTexture != null && slices.Length != 1)
 			{
-				Runtime.NotImplemented("PlatformSetData(Span<TextureSliceData> slices) with more than 1 slice is not implemented yet.");
+				Runtime.NotImplemented("PlatformSetData(Span<TextureSliceData> slices) with more than 1 slice is not implemented for already created textures.");
 			}	
 
 			if(nativeTexture == null)

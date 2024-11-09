@@ -1,6 +1,10 @@
 using Ultralight.CAPI;
 using System;
 using GlitchyEngine;
+using GlitchyEngine.Collections;
+using GlitchyEngine.World;
+using System.Collections;
+using GlitchyEngine.Core;
 using static GlitchyEngine.UI.Window;
 
 namespace GlitchyEditor.Ultralight;
@@ -11,7 +15,254 @@ class UltralightMainWindow : UltralightWindow
 	{
 
 	}
-	
+
+	public override void Update()
+	{
+		UpdateEntityHierarchy();
+	}
+
+	struct EntityEntry : IDisposable
+	{
+		public Entity Entity;
+		public String Name;
+		public UUID ParentId;
+		public List<UUID> Children;
+		public bool Visible;
+
+		public this(Entity entity, StringView name, UUID parentId, bool visible)
+		{
+			Entity = entity;
+			Name = new String(name);
+			ParentId = parentId;
+			Children = new List<UUID>();
+			Visible = visible;
+		}
+
+		public void Dispose()
+		{
+			delete Name;
+			delete Children;
+		}
+	}
+
+	Dictionary<UUID, EntityEntry> _entities = new .() ~ DeleteDictionaryAndDisposeValues!(_);
+
+	bool _forceEntityHierarchyRebuild = false;
+
+	enum Operation
+	{
+		None,
+		Add,
+		Delete,
+		Modify
+	}
+
+	private void UpdateEntityHierarchy()
+	{
+		if (DoStuffFunction == null)
+		{
+			Log.EngineLogger.Error($"{nameof(DoStuffFunction)} is null, skipping entity hierarchy update.");
+			return;
+		}
+
+		Dictionary<UUID, Operation> updates = scope .();
+		GetEntityUpdates(updates);
+		SendUpdateToUI(updates);
+	}
+
+	private void GetEntityUpdates(Dictionary<UUID, Operation> updates)
+	{
+		Scene scene = Editor.Instance.CurrentScene;
+
+		// If we have no root, or the scene changed, rebuild the entire tree
+		if (_forceEntityHierarchyRebuild || !_entities.ContainsKey(.Zero) || scene != _entities[.Zero].Entity.Scene)
+		{
+			_forceEntityHierarchyRebuild = false;
+
+			ClearDictionaryAndDisposeValues!(_entities);
+
+			_entities.Add(.Zero, EntityEntry(Entity(.InvalidEntity, scene), "Root", .Zero, true));
+		}
+
+		// TODO: entity.EditorFlags.HasFlag(.HideInHierarchy)
+
+		EntityEntry AddEntity(Entity entity)
+		{
+			UUID entityId = entity.UUID;
+
+			if (!_entities.TryGetValue(entityId, var entry))
+			{
+				Entity? parent = entity.Parent;
+
+				entry = EntityEntry(entity, entity.Name, parent?.UUID ?? .Zero, !entity.EditorFlags.HasFlag(.HideInScene));
+
+				_entities.Add(entityId, entry);
+				updates[entityId] = .Add;
+
+				//if (parent != null)
+				//{
+				UUID parentId = parent?.UUID ?? .Zero;
+
+				if (!_entities.TryGetValue(parentId, var parentEntry))
+				{
+					parentEntry = AddEntity(parent.Value);
+				}
+				else
+				{
+					updates[parentId] = .Modify;
+				}
+
+				parentEntry.Children.Add(entityId);
+				//}
+			}
+
+			return entry;
+		}
+
+		for (let (entityId, entityEntry) in ref _entities)
+		{
+			// Root node isn't a real entity
+			if (entityId == .Zero)
+				continue;
+
+			if (scene.GetEntityByID(entityId) case .Ok(let sceneEntity))
+			{
+				bool changed = false;
+
+				if (entityEntry.Name != sceneEntity.Name)
+				{
+					entityEntry.Name.Set(sceneEntity.Name);
+					changed = true;
+				}
+
+				Entity? parentEntity = sceneEntity.Parent;
+				UUID newParentEntityId = parentEntity?.UUID ?? .Zero;
+				UUID oldParentEntityId = entityEntry.ParentId;
+
+				if (oldParentEntityId != newParentEntityId)
+				{
+					if (!_entities.TryGetValue(newParentEntityId, var newParentEntry))
+					{
+						newParentEntry = AddEntity(parentEntity.Value);
+					}
+					newParentEntry.Children.Add(entityId);
+					updates[newParentEntityId] = .Modify;
+					
+					if (_entities.TryGetValue(oldParentEntityId, var oldParentEntry))
+					{
+						oldParentEntry.Children.Remove(entityId);
+						updates[oldParentEntityId] = .Modify;
+					}
+
+					entityEntry.ParentId = newParentEntityId;
+					changed = true;
+				}
+
+				if (changed)
+				{
+					updates[entityId] = .Modify;
+				}
+			}
+			else
+			{
+				entityEntry.Dispose();
+
+				_entities.Remove(entityId);
+				updates[entityId] = .Delete;
+			}
+		}
+
+		for (EcsEntity entityId in scene.GetEntities())
+		{
+			let entity = Entity(entityId, scene);
+
+			AddEntity(entity);
+		}
+	}
+
+	private void SendUpdateToUI(Dictionary<UUID, Operation> updates)
+	{
+		if (updates.Count == 0)
+			return;
+
+		JSContextRef context = ulViewLockJSContext(_view);
+		defer ulViewUnlockJSContext(_view);
+		
+		JSStringRef nameProperty = JSStringCreateWithUTF8CString("name");
+		JSStringRef idProperty = JSStringCreateWithUTF8CString("id");
+		JSStringRef visibleProperty = JSStringCreateWithUTF8CString("visible");
+		JSStringRef childrenProperty = JSStringCreateWithUTF8CString("children");
+		defer JSStringRelease(nameProperty);
+		defer JSStringRelease(idProperty);
+		defer JSStringRelease(visibleProperty);
+		defer JSStringRelease(childrenProperty);
+		
+		JSObjectRef jsArray = JSObjectMakeArray(context, 0, null, null);
+
+		uint32 index = 0;
+		for (let (entityId, operation) in updates)
+		{
+			if (operation == .None)
+			{
+				continue;
+			}
+
+			JSObjectRef jsEntity = JSObjectMake(context, null, null);
+			
+			/*
+			name: string;
+			id: EntityId;
+			visible: boolean = true;
+			children: EntityId[];
+			*/
+
+			JSValueRef idObject = JSValueMakeNumber(context, (double)(uint64)entityId);
+			JSObjectSetProperty(context, jsEntity, idProperty, idObject, 0, null);
+
+			if (operation != .Delete)
+			{
+				EntityEntry entry = _entities[entityId];
+			
+				JSStringRef entityName = JSStringCreateWithUTF8CString(entry.Name);
+				JSValueRef nameObject = JSValueMakeString(context, entityName);
+				JSStringRelease(entityName);
+
+				JSObjectSetProperty(context, jsEntity, nameProperty, nameObject, 0, null);
+
+				JSValueRef visibleObject = JSValueMakeBoolean(context, true);
+				JSObjectSetProperty(context, jsEntity, visibleProperty, visibleObject, 0, null);
+
+				JSObjectRef childrenArray = JSObjectMakeArray(context, 0, null, null);
+
+				for (let childId in entry.Children)
+				{
+					JSValueRef childIdObject = JSValueMakeNumber(context, (double)(uint64)childId);
+					JSObjectSetPropertyAtIndex(context, childrenArray, (uint32)@childId.Index, childIdObject, null);
+				}
+
+				JSObjectSetProperty(context, jsEntity, childrenProperty, childrenArray, 0, null);
+			}
+
+			JSObjectSetPropertyAtIndex(context, jsArray, index, jsEntity, null);
+			index++;
+		}
+
+		JSValueRef exception = null;
+		DoStuffFunction(context, Span<JSValueRef>(&jsArray, 1), &exception);
+
+		if (exception != null)
+		{
+			/*if (JSValueIsString(context, exception))
+			{
+				Log.EngineLogger.Error($"Failed to update entities: {StringView(JsStringGet)}");
+			}
+			else
+			{*/
+				Log.EngineLogger.Error("Failed to update entities.");
+			//}
+		}
+	}
+
 	private bool _hoveringNonClientArea;
 
 	void HandleHoverNonClientArea(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
@@ -70,6 +321,33 @@ class UltralightMainWindow : UltralightWindow
 		JSStringRelease(name);
 	}
 
+	private JsFunctionCall DoStuffFunction;
+
+	delegate JSValueRef JsFunctionCall(JSContextRef context, Span<JSValueRef> arguments, JSValueRef* exception);
+
+	private JsFunctionCall GetJsCallbackDelegate(JSContextRef context, JSObjectRef object, StringView functionName)
+	{
+		JSStringRef functionNameString = JSStringCreateWithUTF8CString(functionName.ToScopeCStr!());
+		defer JSStringRelease(functionNameString);
+		
+		JSValueRef func = JSObjectGetProperty(context, object, functionNameString, null);
+
+		if (!JSValueIsObject(context, func))
+		{
+			return null;
+		}
+
+		JSObjectRef functionObject = JSValueToObject(context, func, null);
+
+		if (functionObject == null || !JSObjectIsFunction(context, functionObject))
+		{
+			return null;
+		}
+		
+		return new (c, args, ex) => {
+			return JSObjectCallAsFunction(c, functionObject, object, (uint32)args.Length, args.Ptr, ex);
+		};
+	}
 
 	private void RegisterEngineGlueFunctions()
 	{
@@ -98,6 +376,10 @@ class UltralightMainWindow : UltralightWindow
 		RegisterBeefFunction(context, scriptGlue, "handleClickMaximizeWindow", new:stdAlloc (c, t, a, e) => { _window.ToggleMaximize(); });
 		RegisterBeefFunction(context, scriptGlue, "handleClickMinimizeWindow", new:stdAlloc (c, t, a, e) => { _window.Minimize(); });
 		RegisterBeefFunction(context, scriptGlue, "handleClickCloseWindow", new:stdAlloc (c, t, a, e) => { _window.Close(); });
+
+		RegisterBeefFunction(context, scriptGlue, "requestEntityHierarchyUpdate", new:stdAlloc (c, t, a, e) => { _forceEntityHierarchyRebuild = true; });
+
+		DoStuffFunction = GetJsCallbackDelegate(context, scriptGlue, "callFromEngine_updateEntities");
 	}
 
 	protected override void OnDOMReady(C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url)

@@ -112,10 +112,28 @@ abstract class UltralightWindow
 		Blit.Blit(_texture, _window.SwapChain.BackBuffer, viewport: _window.SwapChain.BackbufferViewport);
 	}
 
+	public virtual void Update() { }
+
 	public void Render()
 	{
 		CopyToImmediateTexture();
 		CopyToBackBuffer();
+
+		if (Input.IsKeyPressing(Key.A))
+		{
+			ULString str = ulCreateString("window.updateEntities([])");
+			ULString exception = null;
+			ulViewEvaluateScript(_view, str, &exception);
+
+			if (exception != null && ulStringGetLength(exception) != 0)
+			{
+				StringView ex = StringView(ulStringGetData(exception), ulStringGetLength(exception));
+
+				Log.EngineLogger.Error($"Failed to evaluate script: {ex}");
+			}
+
+			ulDestroyString(str);
+		}
 	}
 
 	private void CreateTexture()

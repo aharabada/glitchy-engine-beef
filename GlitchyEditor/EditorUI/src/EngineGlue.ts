@@ -1,4 +1,7 @@
-﻿export interface IEngineGlue {
+﻿import { Entity } from "./Entity.ts";
+
+export interface IEngineGlue
+{
 	// Titlebar Events
 	handleClickCloseWindow(): void;
 	handleClickMaximizeWindow(): void;
@@ -9,6 +12,9 @@
 	handleHoverNonClientArea(hover: boolean): void;
 
 	onClickCreateEmptyEntity(): void;
+
+	requestEntityHierarchyUpdate(): void;
+	onUpdateEntities?: (entities: Entity[]) => void;
 }
 
 function logNotImplemented(functionName: string)
@@ -54,19 +60,38 @@ class DevEngineGlue implements IEngineGlue {
 	{
 		logNotImplemented("onClickCreateEmptyEntity");
 	}
+
+	requestEntityHierarchyUpdate(): void
+	{
+		logNotImplemented("requestEntityHierarchyUpdate");
+	}
+
+	private callFromEngine_updateEntities(entities: Entity[]): void
+	{
+		console.log("Yeah!")
+
+		if (EngineGlue.onUpdateEntities)
+		{
+			EngineGlue.onUpdateEntities(entities);
+		}
+		else
+		{
+			logNotImplemented("onUpdateEntities");
+		}
+	}
 }
 
-// Globales Objekt deklarieren
-declare global {
-	interface Window {
+declare global
+{
+	interface Window
+	{
 		EngineGlue: IEngineGlue;
 	}
 }
 
-// Initialisierung: DevEngineGlue als Fallback setzen wenn noch kein EngineGlue existiert
-if (typeof window.EngineGlue === 'undefined') {
+if (typeof window.EngineGlue === 'undefined')
+{
 	window.EngineGlue = new DevEngineGlue();
 }
 
-// Export für einfacheren Zugriff in der Anwendung
 export const EngineGlue: IEngineGlue = window.EngineGlue;
