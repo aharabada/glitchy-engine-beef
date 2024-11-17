@@ -19,6 +19,7 @@ ul, ol {
 :root
 {
 	--font-color-primary: white;
+
 	/* Menu Bar */
 	--menu-bar-background-color: #404040;
 	--menu-bar-background-color-hover: #808080;
@@ -28,6 +29,11 @@ ul, ol {
 	--tree-view-item-background-color-selected: #323275;
 
 	--small-transition-duration: 0.1s;
+
+	--text-box-background-color: #2c2c2c;
+	--text-box-border-color: #a5a5a5;
+	--text-box-border-color-focus: #007acc;
+	--text-box-border-color-disabled: #4e4e4e;
 }
 
 :root
@@ -48,4 +54,20 @@ ul, ol {
 	{
 		font-family: "InterVariable", sans-serif; font-optical-sizing: auto;
 	}
+}
+
+input[type=text], input
+{
+	background-color: var(--text-box-background-color);
+	color: var(--font-color-primary);
+	border: 2px solid var(--text-box-border-color);
+	border-radius: 3px;
+	padding: 1px 2px;
+	transition: border-color var(--small-transition-duration);
+}
+
+input[type=text]:focus, input:focus
+{
+	outline: none;
+	border-color: var(--text-box-border-color-focus);
 }
