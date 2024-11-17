@@ -150,6 +150,73 @@ abstract class UltralightWindow
 		_texture = newTexture;
 	}
 
+	protected delegate JSValueRef JsFunctionCall(JSContextRef context, Span<JSValueRef> arguments, JSValueRef* exception);
+
+	protected JsFunctionCall GetJsCallbackDelegate(JSContextRef context, JSObjectRef object, StringView functionName)
+	{
+		JSStringRef functionNameString = JSStringCreateWithUTF8CString(functionName.ToScopeCStr!());
+		defer JSStringRelease(functionNameString);
+		
+		JSValueRef func = JSObjectGetProperty(context, object, functionNameString, null);
+
+		if (!JSValueIsObject(context, func))
+		{
+			return null;
+		}
+
+		JSObjectRef functionObject = JSValueToObject(context, func, null);
+
+		if (functionObject == null || !JSObjectIsFunction(context, functionObject))
+		{
+			return null;
+		}
+		
+		return new (c, args, ex) => {
+			return JSObjectCallAsFunction(c, functionObject, object, (uint32)args.Length, args.Ptr, ex);
+		};
+	}
+
+	protected void BindMethodToJsFunction(JSContextRef context, JSObjectRef object, StringView functionName, JSCallback callback)
+	{
+		JSObjectRef func = UltralightHelper.CreateJsFunctionFromDelegate(context, callback);
+		
+		JSStringRef name = JSStringCreateWithUTF8CString(functionName.ToScopeCStr!());
+
+		JSObjectRef exception;
+		JSObjectSetProperty(context, object, name, func, 0, &exception);
+
+		JSStringRelease(name);
+	}
+	
+	//[BeefMethodBinder]
+	protected virtual void BindBeefMethodsToJsFunctions(JSContextRef context, JSValueRef scriptGlue, StdAllocator stdAlloc)
+	{
+	}
+
+	private void RegisterEngineGlueFunctions()
+	{
+		JSContextRef context = ulViewLockJSContext(_view);
+		defer ulViewUnlockJSContext(_view);
+		
+		JSObjectRef globalObject = JSContextGetGlobalObject(context);
+		
+		JSValueRef exception = null;
+		JSStringRef scriptGlueName = JSStringCreateWithUTF8CString("EngineGlue");
+		JSValueRef scriptGlue = JSObjectGetProperty(context, globalObject, scriptGlueName, &exception);
+		JSStringRelease(scriptGlueName);
+
+		if (JSValueGetType(context, scriptGlue) == .kJSTypeUndefined)
+		{
+			Log.EngineLogger.Error("Failed to get EngineGlue object from JS context.");
+			return;
+		}
+		
+		StdAllocator stdAlloc = StdAllocator();
+		BindBeefMethodsToJsFunctions(context, scriptGlue, stdAlloc);
+
+		//uiCallUpdateEntities = GetJsCallbackDelegate(context, scriptGlue, "callFromEngine_updateEntities");
+	}
+
 #region Events
 
 	private void EventHandler(Event e)
@@ -287,7 +354,10 @@ abstract class UltralightWindow
 		window.OnDOMReady(caller, frame_id, is_main_frame, url);
 	}
 
-	protected virtual void OnDOMReady(ULView caller, uint64 frame_id, bool is_main_frame, ULString url) { }
+	protected virtual void OnDOMReady(ULView caller, uint64 frame_id, bool is_main_frame, ULString url)
+	{
+		RegisterEngineGlueFunctions();
+	}
 
 	private static void OnFailedLoading(void* user_data, C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url, C_String* description, C_String* error_domain, int32 error_code)
 	{

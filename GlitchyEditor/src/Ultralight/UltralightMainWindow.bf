@@ -59,9 +59,9 @@ class UltralightMainWindow : UltralightWindow
 
 	private void UpdateEntityHierarchy()
 	{
-		if (DoStuffFunction == null)
+		if (uiCallUpdateEntities == null)
 		{
-			Log.EngineLogger.Error($"{nameof(DoStuffFunction)} is null, skipping entity hierarchy update.");
+			Log.EngineLogger.Error($"{nameof(uiCallUpdateEntities)} is null, skipping entity hierarchy update.");
 			return;
 		}
 
@@ -248,7 +248,7 @@ class UltralightMainWindow : UltralightWindow
 		}
 
 		JSValueRef exception = null;
-		DoStuffFunction(context, Span<JSValueRef>(&jsArray, 1), &exception);
+		uiCallUpdateEntities(context, Span<JSValueRef>(&jsArray, 1), &exception);
 
 		if (exception != null)
 		{
@@ -262,9 +262,16 @@ class UltralightMainWindow : UltralightWindow
 			//}
 		}
 	}
+	
+	[BindToJsFunction("requestEntityHierarchyUpdate")]
+	void HandleRequestEntityHierarchyUpdate(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
+	{
+		_forceEntityHierarchyRebuild = true;
+	}
 
 	private bool _hoveringNonClientArea;
 
+	[BindToJsFunction("handleHoverNonClientArea")]
 	void HandleHoverNonClientArea(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
 	{
 		Log.EngineLogger.Info("HandleHoverNonClientArea");
@@ -290,6 +297,24 @@ class UltralightMainWindow : UltralightWindow
 		Log.ClientLogger.Info($"_hoveringNonClientArea: {_hoveringNonClientArea}");
 	}
 
+	[BindToJsFunction("handleHoverMaximizeWindow")]
+	void HandleHoverMaximizeButton(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
+	{
+		HandleHoverTitlebarButton(.Maximize, context, thisObject, arguments, exception);
+	}
+
+	[BindToJsFunction("handleHoverMinimizeWindow")]
+	void HandleHoverMinimizeButton(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
+	{
+		HandleHoverTitlebarButton(.Minimize, context, thisObject, arguments, exception);
+	}
+	
+	[BindToJsFunction("handleHoverCloseWindow")]
+	void HandleHoverCloseButton(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
+	{
+		HandleHoverTitlebarButton(.Close, context, thisObject, arguments, exception);
+	}
+
 	void HandleHoverTitlebarButton(TitleBarButton button, JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
 	{
 		if (arguments.Length != 1)
@@ -308,83 +333,31 @@ class UltralightMainWindow : UltralightWindow
 		
 		EditorLayer.HoveredTitleBarButton = _window.[Friend]_hoveredTitleBarButton;
 	}
-
-	private void RegisterBeefFunction(JSContextRef context, JSObjectRef object, StringView functionName, JSCallback callback)
+	
+	[BindToJsFunction("handleClickMaximizeWindow")]
+	void HandleClickMaximizeButton(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
 	{
-		JSObjectRef func = UltralightHelper.CreateJsFunctionFromDelegate(context, callback);
-		
-		JSStringRef name = JSStringCreateWithUTF8CString(functionName.ToScopeCStr!());
-
-		JSObjectRef exception;
-		JSObjectSetProperty(context, object, name, func, 0, &exception);
-
-		JSStringRelease(name);
+		_window.ToggleMaximize();
 	}
 
-	private JsFunctionCall DoStuffFunction;
-
-	delegate JSValueRef JsFunctionCall(JSContextRef context, Span<JSValueRef> arguments, JSValueRef* exception);
-
-	private JsFunctionCall GetJsCallbackDelegate(JSContextRef context, JSObjectRef object, StringView functionName)
+	[BindToJsFunction("handleClickMinimizeWindow")]
+	void HandleClickMinimizeButton(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
 	{
-		JSStringRef functionNameString = JSStringCreateWithUTF8CString(functionName.ToScopeCStr!());
-		defer JSStringRelease(functionNameString);
-		
-		JSValueRef func = JSObjectGetProperty(context, object, functionNameString, null);
-
-		if (!JSValueIsObject(context, func))
-		{
-			return null;
-		}
-
-		JSObjectRef functionObject = JSValueToObject(context, func, null);
-
-		if (functionObject == null || !JSObjectIsFunction(context, functionObject))
-		{
-			return null;
-		}
-		
-		return new (c, args, ex) => {
-			return JSObjectCallAsFunction(c, functionObject, object, (uint32)args.Length, args.Ptr, ex);
-		};
+		_window.Minimize();
 	}
 
-	private void RegisterEngineGlueFunctions()
+	[BindToJsFunction("handleClickCloseWindow")]
+	void HandleClickCloseButton(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
 	{
-		JSContextRef context = ulViewLockJSContext(_view);
-		defer ulViewUnlockJSContext(_view);
-		
-		JSObjectRef globalObject = JSContextGetGlobalObject(context);
-		
-		JSValueRef exception = null;
-		JSStringRef scriptGlueName = JSStringCreateWithUTF8CString("EngineGlue");
-		JSValueRef scriptGlue = JSObjectGetProperty(context, globalObject, scriptGlueName, &exception);
-		JSStringRelease(scriptGlueName);
-
-		if (JSValueGetType(context, scriptGlue) == .kJSTypeUndefined)
-		{
-			Log.EngineLogger.Error("Failed to get EngineGlue object from JS context.");
-			return;
-		}
-
-		StdAllocator stdAlloc = StdAllocator();
-		
-		RegisterBeefFunction(context, scriptGlue, "handleHoverNonClientArea", new:stdAlloc => HandleHoverNonClientArea);
-		RegisterBeefFunction(context, scriptGlue, "handleHoverMaximizeWindow", new:stdAlloc (c, t, a, e) => HandleHoverTitlebarButton(.Maximize, c, t, a, e));
-		RegisterBeefFunction(context, scriptGlue, "handleHoverMinimizeWindow", new:stdAlloc (c, t, a, e) => HandleHoverTitlebarButton(.Minimize, c, t, a, e));
-		RegisterBeefFunction(context, scriptGlue, "handleHoverCloseWindow", new:stdAlloc (c, t, a, e) => HandleHoverTitlebarButton(.Close, c, t, a, e));
-		RegisterBeefFunction(context, scriptGlue, "handleClickMaximizeWindow", new:stdAlloc (c, t, a, e) => { _window.ToggleMaximize(); });
-		RegisterBeefFunction(context, scriptGlue, "handleClickMinimizeWindow", new:stdAlloc (c, t, a, e) => { _window.Minimize(); });
-		RegisterBeefFunction(context, scriptGlue, "handleClickCloseWindow", new:stdAlloc (c, t, a, e) => { _window.Close(); });
-
-		RegisterBeefFunction(context, scriptGlue, "requestEntityHierarchyUpdate", new:stdAlloc (c, t, a, e) => { _forceEntityHierarchyRebuild = true; });
-
-		DoStuffFunction = GetJsCallbackDelegate(context, scriptGlue, "callFromEngine_updateEntities");
+		_window.Close();
 	}
+	
+	[BindToJsFunction("callFromEngine_updateEntities")]
+	private JsFunctionCall uiCallUpdateEntities ~ delete _;
 
-	protected override void OnDOMReady(C_View* caller, uint64 frame_id, bool is_main_frame, C_String* url)
+	[BeefMethodBinder]
+	protected override void BindBeefMethodsToJsFunctions(OpaqueJSContext* context, OpaqueJSValue* scriptGlue, StdAllocator stdAlloc)
 	{
-		RegisterEngineGlueFunctions();
-
+		base.BindBeefMethodsToJsFunctions(context, scriptGlue, stdAlloc);
 	}
 }
