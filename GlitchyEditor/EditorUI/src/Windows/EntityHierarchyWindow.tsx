@@ -1,8 +1,8 @@
-﻿import {IDockviewPanelProps} from "dockview";
+import {IDockviewPanelProps} from "dockview";
 import {MenuBar, MenuItem} from "../Components/Menu.tsx";
 
 import "./EntityHierarchyWindow.css";
-import {MouseEvent, MouseEventHandler, ReactElement, useEffect, useState} from "react";
+import React, {MouseEvent, MouseEventHandler, ReactElement, useEffect, useState} from "react";
 
 import IconVisible from "../assets/Icons/AntDesign/eye-visible.svg";
 import IconInvisible from "../assets/Icons/AntDesign/eye-invisible.svg";
@@ -12,7 +12,7 @@ import {EngineGlue} from "../EngineGlue";
 
 import {enableMapSet} from "immer"
 import {Entity, EntityId} from "../Entity.ts";
-import * as sea from "node:sea";
+import {IconCheckButton} from "../Components/IconCheckButton.tsx";
 
 enableMapSet()
 
@@ -25,10 +25,10 @@ type EntityMap = {
 const entityHierarchy: EntityMap = {
 	selectedIds: new Set<EntityId>(),
 	entities: new Map<EntityId, Entity>([
-		[0, new Entity("Root", 0, [1, 2])],
-		[1, new Entity("Entity 1", 1, [])],
-		[2, new Entity("Entity 2", 2, [3])],
-		[3, new Entity("Entity 3 in 2", 3, [])]
+		["0", new Entity("Root", "0", ["1", "2"])],
+		["1", new Entity("Entity 1", "1", [])],
+		["2", new Entity("Entity 2", "2", ["3"])],
+		["3", new Entity("Entity 3 in 2", "3", [])]
 	])
 	// // 0 is hardcoded to be the root. The editor must provide this "pseudo"-entity.
 	// 0: new Entity("Root", 0, [1, 2]),
@@ -160,27 +160,24 @@ function VisibilityToggle({item, onClick, updateEntities} : {item: Entity, onCli
 
 			if (entity !== undefined)
 			{
-				entity.visible = !item.visible;
+				entity.visible = !entity.visible;
+				EngineGlue.setEntityVisibility(entity.id, entity.visible);
 			}
 		});
 
-		console.log("Clickidy" + item.visible);
-		
 		onClick(event);
 
 		event.stopPropagation();
 	}
 
-	return (
-		<div onClick={clickHandler}>
-			<img src={item.visible ? IconVisible : IconInvisible} />
-		</div>
-	);
+	return <IconCheckButton isChecked={item.visible} onClick={clickHandler} iconChecked={IconVisible} iconUnchecked={IconInvisible}/>
 }
+
+
 
 function EntityTree({items, updateItems, entityFilter}: { items: EntityMap, updateItems: Updater<EntityMap>, entityFilter: string })
 {
-	const rootEntity = items.entities.get(0);
+	const rootEntity = items.entities.get("0");
 
 	if (entityFilter.length == 0)
 	{

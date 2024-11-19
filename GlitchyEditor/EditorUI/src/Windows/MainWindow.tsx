@@ -4,6 +4,7 @@ import {MenuBar, MenuDivider, MenuItem} from "../Components/Menu.tsx";
 import {ReactElement, useEffect, useRef} from "react";
 import '../EngineGlue.ts'
 import {EngineGlue} from "../EngineGlue.ts";
+import {StartupCard} from "../Components/StartupCard.tsx";
 
 //something = 'testing';
 
@@ -21,6 +22,7 @@ export default function MainWindow() {
 
 function TitleBar({ projectName, fileName } : {projectName: string, fileName: string}): ReactElement
 {
+	// {false ? "🗗" : "🗖"}
 	return (
 		<div className="title-bar">
 			<div className="title-bar__icon"/>
@@ -56,7 +58,7 @@ function MainMenuBar(): ReactElement
 			<MenuItem text="File" onClick={() => {
 				console.log("Test")
 			}}>
-				<MenuItem text="New Scene..." hotkey="Ctrl + N"/>
+				<MenuItem text="New Scene..." hotkey="Ctrl + N" onClick={() => window.open("file:///index.html")}/>
 				<MenuItem text="Open Scene..." hotkey="Ctrl + O"/>
 				<MenuItem text="Open recent Scene">
 					<MenuItem text="1. Bli"/>

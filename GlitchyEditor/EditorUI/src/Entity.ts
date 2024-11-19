@@ -1,4 +1,4 @@
-﻿export type EntityId = number;
+﻿export type EntityId = string;
 
 export class Entity
 {
@@ -7,10 +7,10 @@ export class Entity
 	visible: boolean = true;
 	children: EntityId[];
 
-	constructor(name: string, key: number, children: EntityId[] = [])
+	constructor(name: string, id: EntityId, children: EntityId[] = [])
 	{
 		this.name = name;
-		this.id = key;
+		this.id = id;
 		this.children = children;
 	}
 }

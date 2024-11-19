@@ -11,7 +11,7 @@ using GlitchyEngine.UI;
 
 namespace GlitchyEditor.Ultralight;
 
-abstract class UltralightWindow
+class UltralightWindow
 {
 	protected internal Window _window ~ delete _;
 
@@ -21,11 +21,13 @@ abstract class UltralightWindow
 	
 	private Texture2D _texture ~ _.ReleaseRef();
 
-	protected this(StringView title = "GlitchyEngine ♥ Ultralight", StringView startUrl = "file:///app.html")
+	protected this(StringView title = "GlitchyEngine ♥ Ultralight", StringView startUrl = "file:///app.html", uint2 size = .Zero)
 	{
 		WindowDescription windowDesc = .Default;
 		windowDesc.Title = title;
 		windowDesc.WindowStyle = .CustomTitle;
+		windowDesc.Width = size.X;
+		windowDesc.Height = size.Y;
 
 		_window = new Window(windowDesc);
 		_window.EventCallback = new => EventHandler;
@@ -68,6 +70,8 @@ abstract class UltralightWindow
 		ulViewSetAddConsoleMessageCallback(_view, => OnAddConsoleMessage, userData);
 
 		ulViewSetChangeCursorCallback(_view, => OnChangeCursor, userData);
+
+		ulViewSetCreateChildViewCallback(_view, => OnCreateChildView, userData);
 	}
 
 #endregion Init
@@ -491,6 +495,15 @@ abstract class UltralightWindow
 		String prettyMessage = scope $"Ultralight ({source}) from \"{sourceIdView}\" in Line: {line_number}, Column: {column_number}. Message: {messageView}";
 
 		Log.ClientLogger.Log(logLevel, prettyMessage);
+	}
+
+	private static ULView OnCreateChildView(void* user_data, ULView caller, ULString opener_url, ULString target_url, bool is_popup, ULIntRect popup_rect)
+	{
+		StringView target = StringView(ulStringGetData(target_url), ulStringGetLength(target_url));
+
+		UltralightWindow newWindow = new UltralightWindow(startUrl: target, size: .((uint32)(popup_rect.right - popup_rect.left), (uint32)(popup_rect.bottom - popup_rect.top)));
+		UltralightLayer.Instance.[Friend]_windows.Add(newWindow);
+		return newWindow._view;
 	}
 
 #endregion Ultralight Callbacks

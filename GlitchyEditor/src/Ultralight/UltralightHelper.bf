@@ -49,4 +49,22 @@ static class UltralightHelper
 	{
 		return JSObjectMake(context, NativeFunctionClass(), Internal.UnsafeCastToPtr(ownCallback));
 	}
+
+	public static JSObjectRef CreateObjectFromString(JSContextRef context, StringView string)
+	{
+		JSStringRef entityName = JSStringCreateWithUTF8CString(string.ToScopeCStr!());
+		JSValueRef nameObject = JSValueMakeString(context, entityName);
+		JSStringRelease(entityName);
+
+		return nameObject;
+	}
+
+	public static JSObjectRef CreateObjectFromString(JSContextRef context, String string)
+	{
+		JSStringRef entityName = JSStringCreateWithUTF8CString(string.CStr());
+		JSValueRef nameObject = JSValueMakeString(context, entityName);
+		JSStringRelease(entityName);
+
+		return nameObject;
+	}
 }

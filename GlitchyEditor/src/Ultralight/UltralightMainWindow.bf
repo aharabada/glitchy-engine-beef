@@ -5,6 +5,8 @@ using GlitchyEngine.Collections;
 using GlitchyEngine.World;
 using System.Collections;
 using GlitchyEngine.Core;
+using System.Reflection;
+using GlitchyEngine.World.Components;
 using static GlitchyEngine.UI.Window;
 
 namespace GlitchyEditor.Ultralight;
@@ -198,8 +200,10 @@ class UltralightMainWindow : UltralightWindow
 		defer JSStringRelease(childrenProperty);
 		
 		JSObjectRef jsArray = JSObjectMakeArray(context, 0, null, null);
-
 		uint32 index = 0;
+
+		String id = scope .(18);
+
 		for (let (entityId, operation) in updates)
 		{
 			if (operation == .None)
@@ -208,25 +212,17 @@ class UltralightMainWindow : UltralightWindow
 			}
 
 			JSObjectRef jsEntity = JSObjectMake(context, null, null);
-			
-			/*
-			name: string;
-			id: EntityId;
-			visible: boolean = true;
-			children: EntityId[];
-			*/
 
-			JSValueRef idObject = JSValueMakeNumber(context, (double)(uint64)entityId);
+			entityId.ToString(id..Clear());
+
+			JSValueRef idObject = UltralightHelper.CreateObjectFromString(context, id);
 			JSObjectSetProperty(context, jsEntity, idProperty, idObject, 0, null);
 
 			if (operation != .Delete)
 			{
 				EntityEntry entry = _entities[entityId];
 			
-				JSStringRef entityName = JSStringCreateWithUTF8CString(entry.Name);
-				JSValueRef nameObject = JSValueMakeString(context, entityName);
-				JSStringRelease(entityName);
-
+				JSValueRef nameObject = UltralightHelper.CreateObjectFromString(context, entry.Name);
 				JSObjectSetProperty(context, jsEntity, nameProperty, nameObject, 0, null);
 
 				JSValueRef visibleObject = JSValueMakeBoolean(context, true);
@@ -236,7 +232,8 @@ class UltralightMainWindow : UltralightWindow
 
 				for (let childId in entry.Children)
 				{
-					JSValueRef childIdObject = JSValueMakeNumber(context, (double)(uint64)childId);
+					childId.ToString(id..Clear());
+					JSValueRef childIdObject = UltralightHelper.CreateObjectFromString(context, id);
 					JSObjectSetPropertyAtIndex(context, childrenArray, (uint32)@childId.Index, childIdObject, null);
 				}
 
@@ -351,7 +348,52 @@ class UltralightMainWindow : UltralightWindow
 	{
 		_window.Close();
 	}
+
+	[BindToJsFunction("setEntityVisibility")]
+	void HandleSetEntityVisibility(JSContextRef context, JSObjectRef thisObject, Span<JSValueRef> arguments, JSValueRef* exception = null)
+	{
+		if (arguments.Length != 2)
+		{
+			Log.EngineLogger.Error("EngineGlue.setEntityVisibility: called with wrong number of arguments.");
+			return;
+		}
+
+		/*if (!JSValueIsNumber(context, arguments[0]))
+		{
+			Log.EngineLogger.Error($"EngineGlue.setEntityVisibility: expected number as argument 0, but received {JSValueGetType(context, arguments[0])} instead.");
+			return;
+		}*/
+
+		if (!JSValueIsBoolean(context, arguments[1]))
+		{
+			Log.EngineLogger.Error($"EngineGlue.setEntityVisibility: expected boolean as argument 1, but received {JSValueGetType(context, arguments[1])} instead.");
+			return;
+		}
+
+		JSString jsId = scope .(context, arguments[0]);
+		String idString = scope .();
+		jsId.GetUTF8String(idString);
+
+		if (uint64.Parse(idString) case .Ok(let id))
+		{
+			bool visible = JSValueToBoolean(context, arguments[1]);
 	
+			UUID entityId = .((uint64)id);
+	
+			if (Editor.Instance.CurrentScene.GetEntityByID(entityId) case .Ok(let entity))
+			{
+				if (entity.TryGetComponent<EditorFlagsComponent>(let flags))
+				{
+					Enum.SetFlagConditionally(ref flags.Flags, .HideInScene, !visible);
+				}
+			}
+			else
+			{
+				Log.ClientLogger.Error($"Entity with ID {entityId} doesn't exist.");
+			}
+		}
+	}
+
 	[BindToJsFunction("callFromEngine_updateEntities")]
 	private JsFunctionCall uiCallUpdateEntities ~ delete _;
 

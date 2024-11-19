@@ -1,4 +1,4 @@
-﻿import { Entity } from "./Entity.ts";
+﻿import {Entity, EntityId} from "./Entity.ts";
 
 export interface IEngineGlue
 {
@@ -12,6 +12,7 @@ export interface IEngineGlue
 	handleHoverNonClientArea(hover: boolean): void;
 
 	onClickCreateEmptyEntity(): void;
+	setEntityVisibility(entityId: EntityId, isVisible: boolean): void;
 
 	requestEntityHierarchyUpdate(): void;
 	onUpdateEntities?: (entities: Entity[]) => void;
@@ -59,6 +60,11 @@ class DevEngineGlue implements IEngineGlue {
 	onClickCreateEmptyEntity(): void
 	{
 		logNotImplemented("onClickCreateEmptyEntity");
+	}
+	setEntityVisibility(entityId: EntityId, isVisible: boolean): void
+	{
+		logNotImplemented("onClickCreateEmptyEntity");
+		console.log(`entityId ${entityId} isVisible ${isVisible}`)
 	}
 
 	requestEntityHierarchyUpdate(): void
