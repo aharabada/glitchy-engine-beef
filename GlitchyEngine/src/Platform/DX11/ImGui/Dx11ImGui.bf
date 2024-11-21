@@ -19,7 +19,7 @@ namespace ImGui
 
 			ImGui.Image(view, size, uv0, uv1, tint_col, border_col);
 
-			textureViewBinding.Release();
+			textureViewBinding.ReleaseRef();
 		}
 
 		public static override bool ImageButton(char8* id, TextureViewBinding textureViewBinding, Vec2 imageSize, Vec2 uv0 = Vec2.Zero, Vec2 uv1 = Vec2.Ones, Vec4 bg_col = Vec4.Zero, Vec4 tint_col = Vec4.Ones)
@@ -29,7 +29,7 @@ namespace ImGui
 
 			bool pressed = ImGui.ImageButton(id, view, imageSize, uv0, uv1, bg_col, tint_col);
 
-			textureViewBinding.Release();
+			textureViewBinding.ReleaseRef();
 
 			return pressed;
 		}
@@ -41,7 +41,7 @@ namespace ImGui
 
 			bool pressed = ImGui.ImageButtonEx(id, view, imageSize, uv0, uv1, bg_col, tint_col);
 
-			textureViewBinding.Release();
+			textureViewBinding.ReleaseRef();
 
 			return pressed;
 		}

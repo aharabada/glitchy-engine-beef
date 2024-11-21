@@ -522,10 +522,10 @@ namespace GlitchyEngine.Renderer
 			s_currentLineEffect = s_lineBatchEffect;
 
 			Matrix viewProjection = camera.Projection * Matrix.Invert(transform);
-			
-			s_currentQuadEffect.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentCircleEffect.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentLineEffect.Variables["ViewProjection"].SetData(viewProjection);
+
+			s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 
 			s_drawOrder = drawOrder;
 			
@@ -564,9 +564,9 @@ namespace GlitchyEngine.Renderer
 
 			Matrix viewProjection = camera.Projection * camera.View;
 			
-			s_currentQuadEffect.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentCircleEffect.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentLineEffect.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 
 			s_drawOrder = drawOrder;
 			
@@ -778,8 +778,13 @@ namespace GlitchyEngine.Renderer
 			// TODO: per object blendstate
 			RenderCommand.SetBlendState(s_transparentBlendState);
 
+			let quadEffect = s_currentQuadEffect.Get();
+
+			if (quadEffect == null)
+				return;
+
 			Texture texture = s_QuadinstanceQueue[0].Texture;
-			s_currentQuadEffect.SetTexture("Texture", texture);
+			quadEffect.SetTexture("Texture", texture);
 
 			s_setQuadInstances = 0;
 
@@ -793,7 +798,7 @@ namespace GlitchyEngine.Renderer
 					FlushQuadInstances();
 
 					texture = quad.Texture;
-					s_currentQuadEffect.SetTexture("Texture", texture);
+					quadEffect.SetTexture("Texture", texture);
 				}
 
 				s_rawQuadInstances[s_setQuadInstances++] = .(quad.Transform, quad.Color, quad.uvTransform, quad.entityId);
@@ -818,9 +823,14 @@ namespace GlitchyEngine.Renderer
 
 			// TODO: per object blendstate
 			RenderCommand.SetBlendState(s_transparentBlendState);
+			
+			let effect = s_currentCircleEffect.Get();
+
+			if (effect == null)
+				return;
 
 			Texture texture = s_circleInstanceQueue[0].Texture;
-			s_currentCircleEffect.SetTexture("Texture", texture);
+			effect.SetTexture("Texture", texture);
 
 			s_setCircleInstances = 0;
 
@@ -834,7 +844,7 @@ namespace GlitchyEngine.Renderer
 					FlushCircleInstances();
 
 					texture = circle.Texture;
-					s_currentCircleEffect.SetTexture("Texture", texture);
+					effect.SetTexture("Texture", texture);
 				}
 
 				s_rawCircleInstances[s_setCircleInstances++] = .(circle.Transform, circle.Color, circle.uvTransform, circle.InnerRadius, circle.entityId);
@@ -855,6 +865,11 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileRendererFunction!();
 
 			if(s_lineInstanceQueue.IsEmpty)
+				return;
+
+			let effect = s_currentLineEffect.Get();
+
+			if (effect == null)
 				return;
 
 			// TODO: per object blendstate

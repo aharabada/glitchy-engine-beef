@@ -291,7 +291,7 @@ namespace GlitchyEngine.Renderer
 
 		protected override TextureViewBinding PlatformGetViewBinding()
 		{
-			return .(_nativeResourceView, _samplerState?.nativeSamplerState);
+			return new .(_nativeResourceView, _samplerState?.nativeSamplerState);
 		}
 	}
 
@@ -466,7 +466,7 @@ namespace GlitchyEngine.Renderer
 
 		protected override TextureViewBinding PlatformGetViewBinding()
 		{
-			return .(_nativeResourceView, _samplerState?.nativeSamplerState);
+			return new .(_nativeResourceView, _samplerState?.nativeSamplerState);
 		}
 	}
 }

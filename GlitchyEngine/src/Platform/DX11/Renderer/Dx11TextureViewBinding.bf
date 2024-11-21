@@ -12,24 +12,18 @@ namespace GlitchyEngine.Renderer
 		internal this(ID3D11ShaderResourceView* shaderResourceView, ID3D11SamplerState* samplerState)
 		{
 			_nativeShaderResourceView = shaderResourceView;
+			
+			if ((uint)(void*)_nativeShaderResourceView != 0 && (uint)(void*)_nativeShaderResourceView < 200)
+			{
+
+			}
+
 			_nativeShaderResourceView?.AddRef();
 
 			_nativeSamplerState = samplerState;
 			_nativeSamplerState?.AddRef();
 		}
 
-		public override void AddRef()
-		{
-			_nativeShaderResourceView?.AddRef();
-			_nativeSamplerState?.AddRef();
-		}
-
-		public override void Release()
-		{
-			_nativeShaderResourceView?.Release();
-			_nativeSamplerState?.Release();
-		}
-
-		public static override TextureViewBinding CreateDefault() => .(null, null);
+		public static override TextureViewBinding CreateDefault() => new .(null, null);
 	}
 }

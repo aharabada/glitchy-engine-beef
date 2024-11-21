@@ -63,13 +63,14 @@ class ShaderLoader : IProcessedAssetLoader
 			if (vertexShaderBindPoint != -1 && vertexShader != null)
 			{
 				vertexShader.Textures.Add(textureName, (.)vertexShaderBindPoint, entry.BoundTexture, dimension);
-				entry.VsSlot = vertexShader.Textures[textureName];
+				entry.VsSlot = &vertexShader.Textures[textureName];
 			}
 
+			// TODO: Why is nullcheck different for vertex and pixel shader?
 			if (pixelShaderBindPoint != -1)
 			{
 				pixelShader?.Textures.Add(textureName, (.)pixelShaderBindPoint, entry.BoundTexture, dimension);
-				entry.PsSlot = pixelShader.Textures[textureName];
+				entry.PsSlot = &pixelShader.Textures[textureName];
 			}
 
 			effect.Textures[textureName] = entry;

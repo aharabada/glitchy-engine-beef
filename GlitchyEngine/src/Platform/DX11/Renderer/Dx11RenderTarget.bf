@@ -123,7 +123,7 @@ namespace GlitchyEngine.Renderer
 
 		protected override TextureViewBinding PlatformGetViewBinding()
 		{
-			return .(_nativeResourceView, _samplerState.nativeSamplerState);
+			return new .(_nativeResourceView, _samplerState.nativeSamplerState);
 		}
 
 		protected override void PlatformSneakySwappyTexture(RenderTarget2D otherTexture)
@@ -448,13 +448,13 @@ namespace GlitchyEngine.Renderer
 		{
 			if (index == -1)
 			{
-				return .(_nativeDepthResourceView, _depthSamplerState.nativeSamplerState);
+				return new .(_nativeDepthResourceView, _depthSamplerState.nativeSamplerState);
 			}
 			else
 			{
 				Log.EngineLogger.AssertDebug(index < _nativeResourceViews.Count);
 
-				return .(_nativeResourceViews[index], _colorSamplerStates[index].nativeSamplerState);
+				return new .(_nativeResourceViews[index], _colorSamplerStates[index].nativeSamplerState);
 			}
 		}
 

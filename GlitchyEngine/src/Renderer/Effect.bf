@@ -12,26 +12,6 @@ public class Effect : Asset
 	internal VertexShader _vs ~ _?.ReleaseRef();
 	internal PixelShader _ps ~ _?.ReleaseRef();
 
-	typealias VariableDesc = Dictionary<String, Dictionary<String, Variant>>;
-
-	protected VariableDesc _variableDescriptions = new .() ~ {
-		for (var (key, value) in _)
-		{
-			delete key;
-
-			for (var (entryKey, entry) in value)
-			{
-				delete entryKey;
-				entry.Dispose();
-			}
-
-			delete value;
-		}
-
-		delete _;
-	};
-
-
 	BufferCollection _bufferCollection ~ _.ReleaseRef();
 
 	BufferVariableCollection _variables ~ delete _;
@@ -84,7 +64,7 @@ public class Effect : Asset
 
 		for(let entry in _textures)
 		{
-			entry.value.BoundTexture.Release();
+			entry.value.BoundTexture.ReleaseRef();
 		}
 	}
 
@@ -123,14 +103,14 @@ public class Effect : Asset
 		ref TextureEntry entry = ref _textures[name];
 
 		// TODO: Thats weird, we increment this reference somewhere... but WHERE?!
-		entry.BoundTexture.Release();
+		entry.BoundTexture.ReleaseRef();
 		entry.BoundTexture = textureViewBinding;
 
 		if (entry.VsSlot != null)
-			SetReferenceVar!(entry.VsSlot.BoundTexture, entry.BoundTexture);
+			SetReference!(VertexShader.Textures[name].BoundTexture, entry.BoundTexture);
 
 		if (entry.PsSlot != null)
-			SetReferenceVar!(entry.PsSlot.BoundTexture, entry.BoundTexture);
+			SetReference!(PixelShader.Textures[name].BoundTexture, entry.BoundTexture);
 	}
 
 	public void ApplyChanges()
@@ -158,4 +138,25 @@ public class Effect : Asset
 		RenderCommand.BindVertexShader(_vs);
 		RenderCommand.BindPixelShader(_ps);
 	}
+
+	// Stuff I'm not sure about
+
+	typealias VariableDesc = Dictionary<String, Dictionary<String, Variant>>;
+
+	protected VariableDesc _variableDescriptions = new .() ~ {
+		for (var (key, value) in _)
+		{
+			delete key;
+
+			for (var (entryKey, entry) in value)
+			{
+				delete entryKey;
+				entry.Dispose();
+			}
+
+			delete value;
+		}
+
+		delete _;
+	};
 }

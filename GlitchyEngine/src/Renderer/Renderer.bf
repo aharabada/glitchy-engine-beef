@@ -364,9 +364,13 @@ namespace GlitchyEngine.Renderer
 				{
 					Debug.Profiler.ProfileRendererScope!("Draw Light");
 
+					Effect fsEffect = TestFullscreenEffect.Get();
+
+					if (fsEffect == null)
+						continue;
+
 					float3 lightDir = -light.Transform.Forward;
 
-					Effect fsEffect = TestFullscreenEffect.Get();
 					fsEffect.SetTexture("GBuffer_Albedo", _gBuffer.Target, 0);
 					fsEffect.SetTexture("GBuffer_Normal", _gBuffer.Target, 1);
 					fsEffect.SetTexture("GBuffer_Tangent", _gBuffer.Target, 2);
@@ -405,17 +409,19 @@ namespace GlitchyEngine.Renderer
 				RenderCommand.SetRenderTargetGroup(_sceneConstants.CompositionTarget, true);
 
 				Effect toneMappingFx = s_tonemappingEffect.Get();
-				// TODO: Postprocessing effects
-				toneMappingFx.SetTexture("CameraTarget", _sceneConstants.CameraTarget, 0);
-				toneMappingFx.ApplyChanges();
-				toneMappingFx.Bind();
-
-				RenderCommand.BindRenderTargets();
-				//RenderCommand.BindEffect(s_tonemappingEffect);
-
-				FullscreenQuad.Draw();
-
-				RenderCommand.UnbindTextures();
+				if (toneMappingFx != null)
+				{
+					// TODO: Postprocessing effects
+					toneMappingFx.SetTexture("CameraTarget", _sceneConstants.CameraTarget, 0);
+					toneMappingFx.ApplyChanges();
+					toneMappingFx.Bind();
+	
+					RenderCommand.BindRenderTargets();
+	
+					FullscreenQuad.Draw();
+	
+					RenderCommand.UnbindTextures();
+				}
 			}
 
 			// TODO: Draw lights to camera target

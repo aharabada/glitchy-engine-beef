@@ -971,7 +971,10 @@ class EditorContentManager : IContentManager
 			TreeNode<AssetNode> assetNode = TrySilent!(AssetHierarchy.GetNodeFromAssetHandle(handle));
 			
 			_assetConverter.QueueForProcessing(assetNode->AssetFile, isBlocking);
-		
+
+			var isBlocking;
+			isBlocking = true;
+
 			if (isBlocking)
 			{
 				asset = _assetCache.GetCacheEntry(handle);
@@ -1016,6 +1019,10 @@ class EditorContentManager : IContentManager
 
 			return placeholder;
 		}
+
+		var isBlocking;
+
+		isBlocking = true;
 
 		if (isBlocking)
 			return InternalLoad(asset);

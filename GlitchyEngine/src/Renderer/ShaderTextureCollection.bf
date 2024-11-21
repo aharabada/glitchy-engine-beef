@@ -9,14 +9,16 @@ namespace GlitchyEngine.Renderer
 
 		List<ResourceEntry> _textures ~ DeleteTextureEntries!(_);
 		
-		Dictionary<String, ResourceEntry*> _strToBuf ~ delete _;
-		Dictionary<int, ResourceEntry*> _idxToBuf ~ delete _;
+		/*Dictionary<String, ResourceEntry*> _strToBuf ~ delete _;
+		Dictionary<int, ResourceEntry*> _idxToBuf ~ delete _;*/
+		Dictionary<String, uint32> _strToBuf ~ delete _;
+		Dictionary<int, uint32> _idxToBuf ~ delete _;
 
 		public this()
 		{
 			let textures = new List<ResourceEntry>();
-			let strToBuf = new Dictionary<String, ResourceEntry*>();
-			let idxToBuf = new Dictionary<int, ResourceEntry*>();
+			let strToBuf = new Dictionary<String, uint32>();
+			let idxToBuf = new Dictionary<int, uint32>();
 
 			_textures = textures;
 			_strToBuf = strToBuf;
@@ -31,15 +33,15 @@ namespace GlitchyEngine.Renderer
 			for(let entry in entries)
 			{
 				delete entry.Name;
-				entry.BoundTexture.Release();
+				entry.BoundTexture.ReleaseRef();
 			}
 
 			delete entries;
 		}
 
 		// TODO: finish implementation (like BufferCollection)
-		public ResourceEntry* this[int idx] => _idxToBuf[idx];
-		public ResourceEntry* this[String name] => _strToBuf[name];
+		public ref ResourceEntry this[int idx] => ref _textures[_idxToBuf[idx]];
+		public ref ResourceEntry this[String name] => ref _textures[_strToBuf[name]];
 
 		public void Add(String name, uint32 index, TextureViewBinding texture, TextureDimension dimension)
 		{
@@ -53,10 +55,8 @@ namespace GlitchyEngine.Renderer
 
 			_textures.Add(copy);
 
-			ResourceEntry* copyRef = &_textures.Back;
-
-			_strToBuf.Add(copy.Name, copyRef);
-			_idxToBuf.Add(copy.Index, copyRef);
+			_strToBuf.Add(copy.Name, (uint32)(_textures.Count - 1));
+			_idxToBuf.Add(copy.Index, (uint32)(_textures.Count - 1));
 		}
 
 		public List<ResourceEntry>.Enumerator GetEnumerator()

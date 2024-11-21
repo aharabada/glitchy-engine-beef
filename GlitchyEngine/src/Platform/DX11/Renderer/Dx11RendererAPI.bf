@@ -92,10 +92,12 @@ namespace GlitchyEngine.Renderer
 					using (BlendState lastBlendState = _currentBlendState..AddRef())
 					{
 						SetBlendState(_nonblendingState);
-	
-						_clearUintFx.Variables["ClearValue"].SetData(value);
-						_clearUintFx.ApplyChanges();
-						_clearUintFx.Bind();
+
+						var v = _clearUintFx.Get();
+
+						v.Variables["ClearValue"].SetData(value);
+						v.ApplyChanges();
+						v.Bind();
 		
 						FullscreenQuad.Draw();
 						

@@ -152,12 +152,15 @@ class SceneRenderer
 
 			Effect gammaEffect = Content.GetAsset<Effect>(_gammaCorrectEffect);
 
-			gammaEffect.SetTexture("Texture", _compositeTarget, 0);
-			// TODO: iiihhh
-			gammaEffect.ApplyChanges();
-			gammaEffect.Bind();
+			if (gammaEffect != null)
+			{
+				gammaEffect.SetTexture("Texture", _compositeTarget, 0);
+				// TODO: iiihhh
+				gammaEffect.ApplyChanges();
+				gammaEffect.Bind();
 
-			FullscreenQuad.Draw();
+				FullscreenQuad.Draw();
+			}
 		}
 
 		finalTarget.ReleaseRef();
@@ -249,12 +252,15 @@ class SceneRenderer
 			
 			Effect gammaEffect = Content.GetAsset<Effect>(_gammaCorrectEffect);
 
-			gammaEffect.SetTexture("Texture", _compositeTarget, 0);
-			// TODO: iiihhh
-			gammaEffect.ApplyChanges();
-			gammaEffect.Bind();
+			if (gammaEffect != null)
+			{
+				gammaEffect.SetTexture("Texture", _compositeTarget, 0);
+				// TODO: iiihhh
+				gammaEffect.ApplyChanges();
+				gammaEffect.Bind();
 
-			FullscreenQuad.Draw();
+				FullscreenQuad.Draw();
+			}
 		}
 
 		viewportTarget.ReleaseRef();

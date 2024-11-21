@@ -153,10 +153,10 @@ namespace GlitchyEngine.Renderer
 		// UnorderedAccess?
 	}
 
-	public enum BufferMiscFlags
+	public enum BufferMiscFlags : uint8 /* Don't commit, workaround for a beef bug!*/
 	{
 		None = 0,
-		//AllowRawView = 1,
+		// AllowRawView = 1,
 		//Structured = 2,
 	}
 

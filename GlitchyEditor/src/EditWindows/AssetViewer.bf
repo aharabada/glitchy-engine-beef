@@ -566,23 +566,23 @@ class TexturererViewerer
 			// Int Texture
 			_renderTargetEffect.Variables["Mode"].SetData(1);
 			_renderTargetEffect.SetTexture("IntTexture", viewedTexture);
-			_renderTargetEffect.SetTexture("UIntTexture", null);
-			_renderTargetEffect.SetTexture("Texture", null);
+			_renderTargetEffect.SetTexture("UIntTexture", (Texture)null);
+			_renderTargetEffect.SetTexture("Texture", (Texture)null);
 		}
 		else if (format.IsUInt())
 		{
 			// UInt Texture
 			_renderTargetEffect.Variables["Mode"].SetData(2);
-			_renderTargetEffect.SetTexture("IntTexture", null);
+			_renderTargetEffect.SetTexture("IntTexture", (Texture)null);
 			_renderTargetEffect.SetTexture("UIntTexture", viewedTexture);
-			_renderTargetEffect.SetTexture("Texture", null);
+			_renderTargetEffect.SetTexture("Texture", (Texture)null);
 		}
 		else
 		{
 			// Float Texture
 			_renderTargetEffect.Variables["Mode"].SetData(0);
-			_renderTargetEffect.SetTexture("IntTexture", null);
-			_renderTargetEffect.SetTexture("UIntTexture", null);
+			_renderTargetEffect.SetTexture("IntTexture", (Texture)null);
+			_renderTargetEffect.SetTexture("UIntTexture", (Texture)null);
 			_renderTargetEffect.SetTexture("Texture", viewedTexture);
 		}
 
