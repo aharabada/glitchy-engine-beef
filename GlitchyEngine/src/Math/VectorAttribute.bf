@@ -80,7 +80,7 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 	private void GenerateConstructors(Type type)
 	{
 		// Default constructor
-		//Compiler.EmitTypeBody(type, "public this() => this = default;\n\n");
+		Compiler.EmitTypeBody(type, "public this() => this = default;\n\n");
 
 		// Single constructor
 		GenerateSingleConstructor(type);
