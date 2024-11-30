@@ -362,13 +362,13 @@ class EditorContentManager : IContentManager
 		return _identiferToHandle.ContainsKey(identifier);
 	}
 
-	public Asset GetAsset(Type assetType, AssetHandle handle)
+	public Asset GetAsset(Type assetType, AssetHandle handle, bool blocking = false)
 	{
 		Asset asset = null;
 
 		if (!_handleToAsset.TryGetValue(handle, out asset))
 		{
-			LoadAsset(handle);
+			LoadAsset(handle, blocking);
 		}
 
 		if (var placeholder = asset as PlaceholderAsset)

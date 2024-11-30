@@ -1,5 +1,8 @@
+using System;
+
 namespace GlitchyEditor.Assets;
 
+[Obsolete]
 abstract class AssetPropertiesEditor
 {
 	private AssetFile _asset;

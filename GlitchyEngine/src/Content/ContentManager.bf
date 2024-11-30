@@ -94,27 +94,27 @@ namespace GlitchyEngine.Content
 		}
 
 		/// Loads the specified asset with the given contentManager or the current applications content manager.
-		public static T GetAsset<T>(AssetHandle handle, IContentManager contentManager = null) where T : Asset
+		public static T GetAsset<T>(AssetHandle handle, IContentManager contentManager = null, bool blocking = false) where T : Asset
 		{
 			var contentManager;
 
 			if (contentManager == null)
 				contentManager = Application.Get().ContentManager;
 
-			Asset asset = contentManager.GetAsset(typeof(T), handle);
+			Asset asset = contentManager.GetAsset(typeof(T), handle, blocking);
 
 			return (T)asset;
 		}
 
 		/// Loads the specified asset with the given contentManager or the current applications content manager.
-		public static Asset GetAsset(AssetHandle handle, IContentManager contentManager = null)
+		public static Asset GetAsset(AssetHandle handle, IContentManager contentManager = null, bool blocking = false)
 		{
 			var contentManager;
 
 			if (contentManager == null)
 				contentManager = Application.Instance.ContentManager;
 
-			Asset asset = contentManager.GetAsset(null, handle);
+			Asset asset = contentManager.GetAsset(null, handle, blocking);
 
 			return asset;
 		}
@@ -142,20 +142,25 @@ namespace GlitchyEngine.Content
 
 	interface IContentManager
 	{
-		/// Loads the Asset with the given handle and returns the handle.
+		/// Loads the Asset with the given identifier and returns the handle.
+		/// @param assetIdentifier The identifier of the asset to load.
+		/// @param blocking If false, the AssetHandle might represent a placeholder until the asset is finished loading.
+		/// 				If true, LoadAsset will wait until the Asset is loaded and the handle represents the actual asset.
+		/// @return An AssetHandle representing the Asset identifierd by the specified assetIdentifier or a placeholder.
+		///			If the asset doesn't exist or loading failed, the Handle will represent an error-placeholder.
 		AssetHandle LoadAsset(StringView assetIdentifier, bool blocking = false);
 
 		/// Loads the Asset with the given handle and returns the handle. Returns .Invalid, if the asset handle doesn't exist.
 		AssetHandle LoadAsset(AssetHandle handle, bool blocking = false);
 
 		/// Returns the asset for the given handle or null, if it isn't loaded.
-		Asset GetAsset(AssetHandle handle)
+		Asset GetAsset(AssetHandle handle, bool blocking = false)
 		{
-			return GetAsset(null, handle);
+			return GetAsset(null, handle, blocking);
 		}
 
 		/// Returns the asset for the given handle or the default asset of the given type.
-		Asset GetAsset(Type assetType, AssetHandle handle);
+		Asset GetAsset(Type assetType, AssetHandle handle, bool blocking = false);
 
 		/// The content manager will manage the asset (e.g. provide it when LoadAsset is called with the assets identifier)
 		AssetHandle ManageAsset(Asset asset);
