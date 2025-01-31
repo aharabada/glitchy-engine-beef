@@ -6,7 +6,7 @@ namespace GlitchyEngine.World
 
 		protected TransformComponent* transform => GetComponent<TransformComponent>();
 
-		public T* AddComponent<T>(T value = T()) where T: struct, new
+		public T* AddComponent<T>(T? value = null) where T: struct, new
 		{
 			return _entity.AddComponent<T>(value);
 		}

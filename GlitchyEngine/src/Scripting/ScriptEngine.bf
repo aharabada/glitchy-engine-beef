@@ -14,7 +14,7 @@ using internal GlitchyEngine.Scripting;
 
 class EngineClasses
 {
-	// TODO: Not all of there are actually ScriptClasses (actually none of them are...)
+	// TODO: Not all of these are actually ScriptClasses (actually none of them are...)
 
 	private ScriptClass s_ComponentRoot ~ _?.ReleaseRef();
 	private ScriptClass s_EntityRoot ~ _?.ReleaseRef();
@@ -90,7 +90,7 @@ static class ScriptEngine
 
 	private static Scene s_Context ~ _?.ReleaseRef();
 
-	private static append EngineClasses _classes = .();
+	private static EngineClasses _classes = new .() ~ delete _;
 
 	public static EngineClasses Classes => _classes;
 

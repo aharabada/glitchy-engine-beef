@@ -176,7 +176,7 @@ namespace GlitchyEngine.World
 		/**
 		 * Assigns a component of type T to the specified entity and returns it.
 		 */
-		public T* AssignComponent<T>(EcsEntity entity, T value = T()) where T : struct, new
+		public T* AssignComponent<T>(EcsEntity entity, T? value = null) where T : struct, new
 		{
 			Log.EngineLogger.AssertDebug(IsValid(entity));
 
@@ -207,7 +207,7 @@ namespace GlitchyEngine.World
 
 			T* component = (T*)entry.Pool.Get(entity.Index);
 
-			*component = value;
+			*component = value ?? T();
 
 			return component;
 		}

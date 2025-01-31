@@ -10,7 +10,7 @@ using internal GlitchyEngine.Scripting;
 
 class SharpClass : RefCounter
 {
-	protected String _fullName ~ delete:append _;
+	protected String _fullName ~ delete _; // TODO APPEND
 
 	protected StringView _namespace;
 	protected StringView _className;
@@ -24,7 +24,10 @@ class SharpClass : RefCounter
 	[AllowAppend]
 	public this(StringView classNamespace, StringView className, MonoImage* image)
 	{
-		String fullName = append $"{classNamespace}.{className}";
+		// TODO APPEND
+		String fullName = new String(classNamespace.Length + 1 + className.Length);
+			//append $"{classNamespace}.{className}";
+		fullName.AppendF($"{classNamespace}.{className}");
 
 		_fullName = fullName;
 		_namespace = _fullName.Substring(0, classNamespace.Length);
@@ -66,7 +69,6 @@ class ScriptClass : SharpClass
 		_onCreate = (OnCreateMethod)GetMethodThunk("OnCreate");
 		_onUpdate = (OnUpdateMethod)GetMethodThunk("OnUpdate", 1);
 		_onDestroy = (OnDestroyMethod)GetMethodThunk("OnDestroy");
-
 		_onCollisionEnter2D = (.)GetMethodThunk("OnCollisionEnter2D", 1);
 		_onCollisionLeave2D = (.)GetMethodThunk("OnCollisionLeave2D", 1);
 

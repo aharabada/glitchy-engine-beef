@@ -92,11 +92,11 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public T* AddComponent<T>(T value = T()) where T: struct, new
+		public T* AddComponent<T>(T? value = null) where T: struct, new
 		{
 			Log.EngineLogger.AssertDebug(!HasComponent<T>(), scope $"Entity already has component.");
 
-			T* component = _scene._ecsWorld.AssignComponent<T>(_entity, value);
+			T* component = _scene._ecsWorld.AssignComponent<T>(_entity, value ?? T());
 
 			_scene.[Friend]OnComponentAdded(this, typeof(T), component);
 

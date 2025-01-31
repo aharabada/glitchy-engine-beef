@@ -8,7 +8,7 @@ namespace GlitchyEngine
 	*/
 	public class GameTime
 	{
-		private Stopwatch _stopwatch;
+		private append Stopwatch _stopwatch = .() ~ delete:append _;
 		
 		private uint64 _frameCount;
 
@@ -33,20 +33,13 @@ namespace GlitchyEngine
 
 		/**
 		 * Initializes a new instance of a GameTime.
-		 */
-		[AllowAppend]
-		public this() : this(false) {}
-
-		/**
-		 * Initializes a new instance of a GameTime.
 		 * @param startNow If set to true, the timer will start immediately.
 		 *				   If set to false, the timer has to be started manually.
 		 */
 		[AllowAppend]
-		public this(bool startNow)
+		public this(bool startNow = false)
 		{
-			let sw = append Stopwatch(startNow);
-			_stopwatch = sw;
+			_stopwatch.Restart();
 		}
 
 		/**
