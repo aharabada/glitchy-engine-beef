@@ -946,6 +946,7 @@ class EditorContentManager : IContentManager
 	TextureLoader textureLoader = new .() ~ delete _;
 	SpriteLoader spriteLoader = new .() ~ delete _;
 	ShaderLoader shaderLoader = new .() ~ delete _;
+	MaterialLoader materialLoader = new .() ~ delete _;
 
 	private IProcessedAssetLoader GetLoader(AssetType assetType)
 	{
@@ -957,6 +958,8 @@ class EditorContentManager : IContentManager
 			return spriteLoader;
 		case .Shader:
 			return shaderLoader;
+		case .Material:
+			return materialLoader;
 		default:
 			return null;
 		}

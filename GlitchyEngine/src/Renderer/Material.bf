@@ -93,9 +93,9 @@ public class Material : Asset
 		{
 			if (_variables.TryGetValue(newKey, let oldEntry))
 			{
-				if (oldEntry.Variable.Type == newValue.Variable.Type)
+				if (oldEntry.Variable.ElementType == newValue.Variable.ElementType)
 				{
-					int elementSize = newValue.Variable.Type.ElementSizeInBytes();
+					int elementSize = newValue.Variable.ElementType.ElementSizeInBytes();
 
 					for (int r = 0; r < Math.Min(oldEntry.Variable.Rows, newValue.Variable.Rows); r++)
 					for (int c = 0; c < Math.Min(oldEntry.Variable.Columns, newValue.Variable.Columns); c++)
@@ -259,7 +259,7 @@ public class Material : Asset
 		{
 			entry.Variable.EnsureTypeMatch<Matrix3x3>();
 
-			int count = Math.Min(values.Count, entry.Variable._elements);
+			int count = Math.Min(values.Count, entry.Variable._arrayElements);
 
 			for(int i < count)
 			{
@@ -281,7 +281,7 @@ public class Material : Asset
 		{
 			entry.Variable.EnsureTypeMatch<Matrix>();
 
-			Internal.MemCpy(RawPointer!<Matrix>(entry.Offset), values.Ptr, sizeof(Matrix) * Math.Min(values.Count, entry.Variable._elements));
+			Internal.MemCpy(RawPointer!<Matrix>(entry.Offset), values.Ptr, sizeof(Matrix) * Math.Min(values.Count, entry.Variable._arrayElements));
 		}
 		else
 		{

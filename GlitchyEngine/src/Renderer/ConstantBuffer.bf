@@ -78,6 +78,7 @@ namespace GlitchyEngine.Renderer
 			switch (this)
 			{
 			case .Bool:
+				// TODO: I'm pretty sure this is wrong and should be 4 as well!
 				return 1;
 			case .Float:
 				return 4;

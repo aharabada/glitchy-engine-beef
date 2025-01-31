@@ -29,10 +29,6 @@ namespace GlitchyEditor
 			_contentManager.SetAsDefaultAssetLoader<ModelAssetLoader>(".glb", ".gltf");
 			_contentManager.SetAssetPropertiesEditor<ModelAssetLoader>(=> ModelAssetPropertiesEditor.Factory);
 			
-			_contentManager.RegisterAssetLoader<MaterialAssetLoader>();
-			_contentManager.SetAsDefaultAssetLoader<MaterialAssetLoader>(".mat");
-			_contentManager.SetAssetPropertiesEditor<MaterialAssetLoader>(=> MaterialAssetPropertiesEditor.Factory);
-			
 			_contentManager.RegisterAssetImporter<TextureImporter>();
 			_contentManager.RegisterAssetProcessor<TextureProcessor>();
 			_contentManager.RegisterAssetExporter<TextureExporter>();
@@ -42,6 +38,10 @@ namespace GlitchyEditor
 			_contentManager.RegisterAssetImporter<ShaderImporter>();
 			_contentManager.RegisterAssetProcessor<ShaderProcessor>();
 			_contentManager.RegisterAssetExporter<ShaderExporter>();
+
+			_contentManager.RegisterAssetImporter<MaterialImporter>();
+			_contentManager.RegisterAssetProcessor<MaterialProcessor>();
+			_contentManager.RegisterAssetExporter<MaterialExporter>();
 
 			_contentManager.SetGlobalAssetCacheDirectory(".cache");
 			_contentManager.SetResourcesDirectory("Resources");

@@ -144,7 +144,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 			{
 				if (previewType.Get<String>().Equals("Color", .InvariantCultureIgnoreCase))
 				{
-					Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
+					Log.EngineLogger.AssertDebug(variable.ElementType == .Float && variable.Rows == 1);
 
 					if (variable.Columns == 3)
 					{
@@ -173,7 +173,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 				}
 				else if (previewType.Get<String>().Equals("ColorHDR", .InvariantCultureIgnoreCase))
 				{
-					Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
+					Log.EngineLogger.AssertDebug(variable.ElementType == .Float && variable.Rows == 1);
 
 					if (variable.Columns == 3)
 					{
@@ -203,7 +203,7 @@ class MaterialAssetPropertiesEditor : AssetPropertiesEditor
 			}
 			//ImGui.ColorEdit3("", null, .HDR | .Float)
 
-			else if (variable.Type == .Float && variable.Rows == 1)
+			else if (variable.ElementType == .Float && variable.Rows == 1)
 			{
 				bool hasMin = TryGetValue(arguments, "Min", var min);
 				bool hasMax = TryGetValue(arguments, "Max", var max);
@@ -495,7 +495,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 	
 				if (hasPreviewType && previewType.Get<String>() == "Color")
 				{
-					Log.EngineLogger.AssertDebug(variable.Type == .Float && variable.Rows == 1);
+					Log.EngineLogger.AssertDebug(variable.ElementType == .Float && variable.Rows == 1);
 	
 					if (variable.Columns == 3)
 					{
@@ -515,7 +515,7 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 						variableValue = .ColorRGBA(value);
 					}
 				}
-				else if (variable.Type == .Float && variable.Rows == 1)
+				else if (variable.ElementType == .Float && variable.Rows == 1)
 				{
 					switch (variable.Columns)
 					{

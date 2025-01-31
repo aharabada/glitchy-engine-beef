@@ -5,60 +5,44 @@ using GlitchyEngine.Renderer;
 using Bon;
 using GlitchyEngine.Math;
 using System.IO;
+using Bon.Integrated;
+using GlitchyEngine;
 
 namespace GlitchyEditor.Assets.Importers;
 
 [BonTarget]
-class NewMaterialFile : ImportedResource
+class MaterialVariable
 {
-	public AssetHandle<Effect> Effect;
+	public ShaderVariableType ElementType;
+	public int MatrixColumns;
+	public int MatrixRows;
+	public int ArrayElements;
 
-	public Dictionary<String, AssetHandle<Texture>> Textures = new .() ~ DeleteDictionaryAndKeys!(_);
-	public Dictionary<String, MaterialVariableValue> Constants = new .() ~ DeleteDictionaryAndKeys!(_);
+	public uint8[] RawData ~ delete _;
 
-	public this(AssetIdentifier ownAssetIdentifier) : base(ownAssetIdentifier)
+	public this()
 	{
 
 	}
-}
 
+	public this(ShaderVariableType elementType, int matrixColumns, int matrixRows, int arrayElements)
+	{
+		ElementType = elementType;
+		MatrixColumns = matrixColumns;
+		MatrixRows = matrixRows;
+		ArrayElements = arrayElements;
 
-[BonTarget]
-public enum MaterialVariableValue
-{
-	case bool(bool Value);
-	case bool2(bool2 Value);
-	case bool3(bool3 Value);
-	case bool4(bool4 Value);
-	case int(int Value);
-	case int2(int2 Value);
-	case int3(int3 Value);
-	case int4(int4 Value);
-	case uint(uint Value);
-	case uint2(uint2 Value);
-	case uint3(uint3 Value);
-	case uint4(uint4 Value);
-	case Float(float Value);
-	case Float2(float2 Value);
-	case Float3(float3 Value);
-	case Float4(float4 Value);
-	case Half(half Value);
-	case Half2(half2 Value);
-	case Half3(half3 Value);
-	case Half4(half4 Value);
-	case ColorRGB(ColorRGB Value);
-	case ColorRGBA(ColorRGBA Value);
-	case None;
+		RawData = new uint8[elementType.ElementSizeInBytes() * matrixColumns * matrixRows * arrayElements];
+	}
 
-	/*static this()
+	static this()
 	{
 		gBonEnv.typeHandlers.Add(typeof(Self),
 			((.)new => VariableValueSerialize, (.)new => VariableValueDeserialize));
 	}
-
-	static void VariableValueSerialize(BonWriter writer, ValueView value, BonEnvironment env)
+	static void VariableValueSerialize(BonWriter writer, ValueView value, BonEnvironment env, SerializeValueState state)
 	{
-		Log.EngineLogger.Assert(value.type == typeof(Self));
+		/*Log.EngineLogger.Assert(value.type == typeof(Self));
 
 		let variableValue = value.Get<Self>();
 
@@ -69,15 +53,152 @@ public enum MaterialVariableValue
 			Serialize.Value(writer, nameof(MaterialFile.Textures), materialFile.Textures, env);
 
 
-		}
+		}*/
 	}
-	
-	static Result<void> VariableValueDeserialize(BonReader reader, ValueView val, BonEnvironment env)
+
+	static Result<void> VariableValueDeserialize(BonReader reader, ValueView val, BonEnvironment env, DeserializeValueState state)
 	{
+		MaterialVariable output = val.Get<MaterialVariable>();
+
+		StringView typeName = Try!(reader.EnumName());
+
+		// If we don't find a digit, we assume entire type name is element type and rows string ends up being an empty string.
+		int firstDigitIndex = typeName.Length;
+
+		for (char8 c in typeName)
+		{
+			if (c.IsDigit)
+			{
+				firstDigitIndex = @c.Index;
+			}
+		}
+		
+		Result<ShaderVariableType> elementTypeResult = Enum.Parse<ShaderVariableType>(typeName.Substring(0, firstDigitIndex), true);
+
+		if (elementTypeResult case .Err)
+		{
+			Deserialize.Error!("Unknown element type.", reader);
+		}
+
+		int xIndex = typeName.LastIndexOf('x');
+
+		StringView rowsString = null;
+		StringView columnsString = null;
+
+		if (xIndex != -1)
+		{
+			rowsString = typeName.Substring(firstDigitIndex ..< xIndex);
+			columnsString = typeName.Substring(xIndex + 1);
+		}
+		else
+		{
+			rowsString = typeName.Substring(firstDigitIndex);
+		}
+
+		Result<int, Int.ParseError> rowsResult = int.Parse(rowsString);
+
+		if (rowsResult case .Err(let error))
+		{
+			switch (error)
+			{
+			case .NoValue:
+				rowsResult = 1;
+			case .Overflow:
+				Deserialize.Error!("Integer overflow in row count.", reader);
+			case .InvalidChar:
+				Deserialize.Error!("Invalid character in row count.", reader);
+			default:
+				return .Err;
+			}
+		}
+		
+		Result<int, Int.ParseError> columnsResult = int.Parse(columnsString);
+
+		if (columnsResult case .Err(let error))
+		{
+			switch (error)
+			{
+			case .NoValue:
+				columnsResult = 1;
+			case .Overflow:
+				Deserialize.Error!("Integer overflow in column count.", reader);
+			case .InvalidChar:
+				Deserialize.Error!("Invalid character in column count.", reader);
+			default:
+				return .Err;
+			}
+		}
+
+		// TODO: Array
+		/*if (reader.[Friend]Check('['))
+		{
+
+		}*/
+
+		output.ElementType = elementTypeResult.Get();
+		output.MatrixRows = rowsResult.Get();
+		output.MatrixColumns = columnsResult.Get();
+		output.ArrayElements = 1;
+
+		int elementSize = output.ElementType.ElementSizeInBytes();
+		int elementCount = output.MatrixColumns * output.MatrixRows;
+
+		output.RawData = new uint8[elementSize * elementCount * output.ArrayElements];
+
+		Try!(reader.ObjectBlock());
+
+		for (int currentElementIndex < elementCount)
+		{
+			switch (output.ElementType)
+			{
+			case .Float:
+				StringView valueString = Try!(reader.Floating());
+
+				float* rawFloats = (float*)output.RawData.Ptr;
+
+				rawFloats[currentElementIndex] = Try!(float.Parse(valueString));
+			case .Bool:
+				// TODO: I'm pretty sure this is wrong, bools in c buffers are usually 32 bit
+				bool value = Try!(reader.Bool());
+				((bool*)&output.RawData)[currentElementIndex] = value;
+			case .Int:
+				StringView valueString = Try!(reader.Integer());
+				((int32*)&output.RawData)[currentElementIndex] = Try!(int32.Parse(valueString));
+			case .UInt:
+				StringView valueString = Try!(reader.Integer());
+				((uint32*)&output.RawData)[currentElementIndex] = Try!(uint32.Parse(valueString));
+			}
+		
+			if (reader.ObjectHasMore())
+			{
+				Try!(reader.EntryEnd());
+			}
+			else
+			{
+				Log.EngineLogger.Warning("Vector/Matrix doesn't contain enough elements.");
+				break;
+			}
+		}
+
+		Try!(reader.ObjectBlockEnd());
+
 		return .Ok;
-	}*/
+	}
 }
 
+[BonTarget]
+class NewMaterialFile : ImportedResource
+{
+	public AssetHandle<Effect> Effect;
+
+	public Dictionary<String, AssetHandle<Texture>> Textures = new .() ~ DeleteDictionaryAndKeys!(_);
+	public Dictionary<String, MaterialVariable> Constants = new .() ~ DeleteDictionaryAndKeysAndValues!(_);
+
+	public this(AssetIdentifier ownAssetIdentifier) : base(ownAssetIdentifier)
+	{
+
+	}
+}
 
 class MaterialImporter: IAssetImporter
 {
@@ -106,7 +227,7 @@ class MaterialImporter: IAssetImporter
 
 		String fullText = scope .();
 		Try!(File.ReadAllText(fullFileName, fullText, true));
-		
+
 		Try!(Bon.Deserialize<NewMaterialFile>(ref material, fullText));
 
 		return material;

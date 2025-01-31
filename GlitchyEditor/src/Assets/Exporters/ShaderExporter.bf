@@ -30,20 +30,20 @@ class ShaderExporter : IAssetExporter
 		Textures
 		{
 			Texture Dimension (1 byte)
-			Vertex Shader Bind Point (int32, 4 bytes)
-			Pixel Shader Bind Point (int32, 4 bytes)
-			Texture Name Length (16 bytes)
+			Vertex Shader Bind Point (int32, 4 bytes) # TODO: ASSUME same bind point for all shader stages?
+			Pixel Shader Bind Point (int32, 4 bytes)  # TODO: ASSUME same bind point for all shader stages?
+			Texture Name Length (uint16)
 			Texture Name Data...
 		}
 		Buffer Count (uint16)
 		Buffers
 		{
 			Buffer Size (int64)
-			Vertex Shader Bind Point (int32, 4 bytes)
-			Pixel Shader Bind Point (int32, 4 bytes)
-			Buffer Name Length (16 bytes)
+			Vertex Shader Bind Point (int32, 4 bytes) # TODO: ASSUME same bind point for all shader stages?
+			Pixel Shader Bind Point (int32, 4 bytes)  # TODO: ASSUME same bind point for all shader stages?
+			Buffer Name Length (uint16)
 			Buffer Name Data...
-			Engine Buffer Name Length (16 bytes)
+			Engine Buffer Name Length (uint16)
 			Engine Buffer Name Data...
 			Variable Count (uint16)
 			Variables
@@ -55,7 +55,7 @@ class ShaderExporter : IAssetExporter
 				Rows (uint8)
 				Columns (uint8)
 				ArraySize (uint64)
-				Name Length (16 bytes)
+				Name Length (uint16)
 				Name Data...
 			}
 			RawData...

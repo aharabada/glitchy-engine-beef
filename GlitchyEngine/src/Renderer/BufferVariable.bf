@@ -10,20 +10,20 @@ namespace GlitchyEngine.Renderer
 
 		private String _name ~ delete _;
 
-		private ShaderVariableType _type;
+		private ShaderVariableType _elementType;
 
 		internal uint32 _columns;
 		internal uint32 _rows;
 		private uint32 _offset;
 		internal uint32 _sizeInBytes;
 		// Number of elements in the array
-		internal uint32 _elements;
+		internal uint32 _arrayElements;
 
 		private bool _isUsed;
 
 		public ConstantBuffer ConstantBuffer => _constantBuffer;
 
-		public ShaderVariableType Type => _type;
+		public ShaderVariableType ElementType => _elementType;
 
 		public String Name => _name;
 
@@ -31,6 +31,9 @@ namespace GlitchyEngine.Renderer
 
 		public uint32 Columns => _columns;
 		public uint32 Rows => _rows;
+		public uint32 ArrayElements => _arrayElements;
+
+		public uint32 Offset => _offset;
 
 		/**
 		 * Gets a pointer to the start of the variable in the constant buffers backing data.
@@ -38,16 +41,16 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		internal uint8* firstByte => _constantBuffer.rawData.CArray() + _offset;
 
-		public this(StringView name, ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 elements, bool isUsed)
+		public this(StringView name, ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 arrayElements, bool isUsed)
 		{
 			_name = new String(name);
 			_constantBuffer = constantBuffer; // Only hold a weak reference. This variable has to die with the buffer
-			_type = type;
+			_elementType = type;
 			_columns = columns;
 			_rows = rows;
 			_offset = offset;
 			_sizeInBytes = sizeInBytes;
-			_elements = elements;
+			_arrayElements = arrayElements;
 			_isUsed = isUsed;
 		}
 
@@ -64,8 +67,8 @@ namespace GlitchyEngine.Renderer
 #endif
 
 #if GE_SHADER_VAR_TYPE_MISMATCH_IS_ERROR
-			if (type != _type)
-				Log.EngineLogger.Assert(false, scope $"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
+			if (type != _elementType)
+				Log.EngineLogger.Assert(false, scope $"The types do not match: Expected \"{_elementType}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
 #elif GE_SHADER_VAR_TYPE_MISMATCH_IS_WARNING
 			if (type != _type)
 	   			Log.EngineLogger.Warning($"The types do not match: Expected \"{_type}\" but Received \"{type}\" instead. Variable: \"{_name}\" of buffer: \"{_constantBuffer.Name}\"");
@@ -174,7 +177,7 @@ namespace GlitchyEngine.Renderer
 
 			// TODO: assert length
 
-			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix4x3) * Math.Min(value.Count, _elements));
+			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix4x3) * Math.Min(value.Count, _arrayElements));
 		}
 
 		public void SetData(Matrix3x3 value)
@@ -192,7 +195,7 @@ namespace GlitchyEngine.Renderer
 
 			// TODO: assert length
 
-			for(int i < Math.Min(value.Count, _elements))
+			for(int i < Math.Min(value.Count, _arrayElements))
 			{
 				((Matrix4x3*)firstByte)[i] = Matrix4x3(value[i]);
 			}
@@ -206,7 +209,7 @@ namespace GlitchyEngine.Renderer
 
 			// TODO: assert length
 
-			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix) * Math.Min(value.Count, _elements));
+			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix) * Math.Min(value.Count, _arrayElements));
 		}
 
 		// Todo: add all the other SetData-Methods
