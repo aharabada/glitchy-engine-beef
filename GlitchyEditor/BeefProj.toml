@@ -7,6 +7,9 @@ TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
 ProcessorMacros = ["GE_EDITOR_IMGUI_DEMO"]
 
+[Platform.Windows]
+IconFile = "$(ProjectDir)/Resources/Textures/GlitchyEngineIcon.ico"
+
 [Configs.Debug.Win64]
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
 DebugCommandArguments = "\"D:\\Development\\Git\\SingleStateToOrbit\""

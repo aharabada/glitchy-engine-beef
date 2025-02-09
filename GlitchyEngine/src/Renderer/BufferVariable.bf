@@ -4,6 +4,21 @@ namespace GlitchyEngine.Renderer
 {
 	using internal GlitchyEngine.Renderer;
 
+	public enum VariableFlags
+	{
+		None = 0x00,
+		/// The variable is dirty and needs to be sent do the GPU.
+		Dirty = 0x01,
+		/// The variable is locked, its value cannot be overwritten in child buffers.
+		Locked = 0x02,
+		/// The variable is used in the shader. Conversely, this means that the variable is unused.
+		Used = 0x04,
+		/// (For inherited variables only) The variable doesn't override the value set in the parent buffer.
+		Unset = 0x08,
+		/// The variables value cannot be changed. (i.e. it is locked in the parent buffer)
+		Readonly = 0x10
+	}
+
 	public class BufferVariable
 	{
 		private ConstantBuffer _constantBuffer;
@@ -19,7 +34,7 @@ namespace GlitchyEngine.Renderer
 		// Number of elements in the array
 		internal uint32 _arrayElements;
 
-		private bool _isUsed;
+		private VariableFlags _flags;
 
 		public ConstantBuffer ConstantBuffer => _constantBuffer;
 
@@ -27,13 +42,27 @@ namespace GlitchyEngine.Renderer
 
 		public String Name => _name;
 
-		public bool IsUsed => _isUsed;
+		public bool IsUsed => _flags.HasFlag(.Used);
 
 		public uint32 Columns => _columns;
 		public uint32 Rows => _rows;
 		public uint32 ArrayElements => _arrayElements;
 
 		public uint32 Offset => _offset;
+
+		public bool IsDirty => _flags.HasFlag(.Dirty);
+		public bool IsLocked => _flags.HasFlag(.Locked);
+
+		/// Only applies to variables of child buffers. If true, the variable is unset and
+		/// it's value will come from the parent buffer.
+		/// Note: Setting IsUnset to true will only have a guaranteed effect on the value stored in this BufferVariable once Apply has been called on the constant buffer.
+		public bool IsUnset
+		{
+			get => _flags.HasFlag(.Unset);
+			set => Enum.SetFlagConditionally(ref _flags, .Unset, value);
+		}
+
+		public VariableFlags Flags => _flags;
 
 		/**
 		 * Gets a pointer to the start of the variable in the constant buffers backing data.
@@ -51,7 +80,12 @@ namespace GlitchyEngine.Renderer
 			_offset = offset;
 			_sizeInBytes = sizeInBytes;
 			_arrayElements = arrayElements;
-			_isUsed = isUsed;
+
+			_flags = .None;
+
+			Enum.SetFlagConditionally(ref _flags, .Used, isUsed);
+			Enum.SetFlag(ref _flags, .Dirty);
+			//Enum.SetFlag(ref _flags, .Locked);
 		}
 
 		public void EnsureTypeMatch(int rows, int cols, ShaderVariableType type)
@@ -130,11 +164,20 @@ namespace GlitchyEngine.Renderer
 				EnsureTypeMatch(1, 4, .Float);
 			}
 		}
+		
+		enum SetDataError
+		{
+			VariableNotFound,
+			TypeMismatch
+		}
 
 		[Inline]
 		private void SetData<T>(T value)
 		{
 			EnsureTypeMatch<T>();
+
+			_flags |= .Dirty;
+			Enum.ClearFlag(ref _flags, .Unset);
 
 			*(T*)firstByte = value;
 		}
@@ -175,6 +218,9 @@ namespace GlitchyEngine.Renderer
 		{
 			EnsureTypeMatch<Matrix4x3>();
 
+			_flags |= .Dirty;
+			Enum.ClearFlag(ref _flags, .Unset);
+
 			// TODO: assert length
 
 			Internal.MemCpy(firstByte, value.Ptr, sizeof(Matrix4x3) * Math.Min(value.Count, _arrayElements));
@@ -182,16 +228,23 @@ namespace GlitchyEngine.Renderer
 
 		public void SetData(Matrix3x3 value)
 		{
-			EnsureTypeMatch<Matrix3x3>();
+			EnsureTypeMatch<Matrix3x3>();	
+   			
+			_flags |= .Dirty;
+			Enum.ClearFlag(ref _flags, .Unset);
 
+			// TODO: D3D uses 16 Byte rows, smaller rows are padded.
+			// OpenGL and Vulkan do this by default, too. However they support compact buffers,
+			// if we want to support that we need to handle it here somehow (simple size check?).
 			*(Matrix4x3*)firstByte = Matrix4x3(value);
-			
-			// Todo: maybe manual copy
 		}
 
 		public void SetData(Matrix3x3[] value)
 		{
-			EnsureTypeMatch<Matrix3x3>();
+			EnsureTypeMatch<Matrix3x3>();	 
+   
+			_flags |= .Dirty;
+			Enum.ClearFlag(ref _flags, .Unset);
 
 			// TODO: assert length
 
@@ -205,7 +258,10 @@ namespace GlitchyEngine.Renderer
 
 		public void SetData(Matrix[] value)
 		{
-			EnsureTypeMatch<Matrix>();
+			EnsureTypeMatch<Matrix>();	   
+   
+			_flags |= .Dirty;
+			Enum.ClearFlag(ref _flags, .Unset);
 
 			// TODO: assert length
 
@@ -223,11 +279,14 @@ namespace GlitchyEngine.Renderer
 #if GE_SHADER_UNUSED_VARIABLE_IS_ERROR
 			Log.EngineLogger.Assert(_isUsed, scope $"Setting data for unused Variable \"{_name}\" of constant buffer \"{_constantBuffer.Name}\".");
 #elif GE_SHADER_UNUSED_VARIABLE_IS_WARNING
-			if(!_isUsed)
+			if(!_flags.HasFlag(.Used))
 			{
 				Log.EngineLogger.Warning($"Setting data for unused Variable \"{_name}\" of constant buffer \"{_constantBuffer.Name}\".");
 			}
-#endif
+#endif			  
+   
+			_flags |= .Dirty;
+			Enum.ClearFlag(ref _flags, .Unset);
 
 			if(rawData != null)
 				Internal.MemCpy(firstByte, rawData, _sizeInBytes);

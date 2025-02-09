@@ -210,10 +210,18 @@ namespace GlitchyEngine.Renderer
 			BindInputLayout();
 			
 			if (_hasVs)
+			{
+				NativeContext.VertexShader.SetShaderResources(0, _vsShaderResources.Count, &_vsShaderResources);
+				NativeContext.VertexShader.SetSamplers(0, _vsSamplers.Count, &_vsSamplers);
 				NativeContext.VertexShader.SetConstantBuffers(0, _vsBuffers.Count, &_vsBuffers);
+			}
 
 			if (_hasPs)
+			{
+				NativeContext.PixelShader.SetShaderResources(0, _psShaderResources.Count, &_psShaderResources);
+				NativeContext.PixelShader.SetSamplers(0, _psSamplers.Count, &_psSamplers);
 				NativeContext.PixelShader.SetConstantBuffers(0, _psBuffers.Count, &_psBuffers);
+			}
 		}
 
 		public override void Draw(uint32 vertexCount, uint32 startVertexIndex = 0)
@@ -291,6 +299,11 @@ namespace GlitchyEngine.Renderer
 		private ID3D11Buffer*[DirectX.D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] _vsBuffers;
 		private ID3D11Buffer*[DirectX.D3D11.D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] _psBuffers;
 
+		private ID3D11ShaderResourceView*[DirectX.D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] _vsShaderResources;
+		private ID3D11SamplerState*[DirectX.D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] _vsSamplers;
+		private ID3D11ShaderResourceView*[DirectX.D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] _psShaderResources;
+		private ID3D11SamplerState*[DirectX.D3D11.D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] _psSamplers;
+
 		/**
 		 * Binds the given shader to the corresponding shader stage.
 		 * @param shader The shader that will be bound to the graphics context.
@@ -299,24 +312,25 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
-			uint32 _firstTexture = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
-			uint32 _textureCount = 0;
+			//uint32 _firstTexture = D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT;
+			//uint32 _textureCount = 0;
 
-			ID3D11ShaderResourceView*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _textures = .();
-			ID3D11SamplerState*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT] _samplers = .();
+			ID3D11ShaderResourceView*[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] shaderResources = .();
+			ID3D11SamplerState*[D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT] samplers = .();
+
 
 			for (let entry in shader?.Textures)
 			{
-				_textures[entry.Index] = entry.BoundTexture._nativeShaderResourceView;
-				_samplers[entry.Index] = entry.BoundTexture._nativeSamplerState;
+				shaderResources[entry.Index] = entry.BoundTexture._nativeShaderResourceView;
+				samplers[entry.Index] = entry.BoundTexture._nativeSamplerState;
 				
-				if(entry.Index >= _textureCount)
+				/*if(entry.Index >= _textureCount)
 					_textureCount = entry.Index + 1;
 				if(entry.Index < _firstTexture)
-					_firstTexture = entry.Index;
+					_firstTexture = entry.Index;*/
 			}
 			
-			shader.Buffers.PlatformFetchNativeBuffers();
+			//constantBuffers.PlatformFetchNativeBuffers();
 
 			switch (typeof(TShader))
 			{
@@ -325,38 +339,44 @@ namespace GlitchyEngine.Renderer
 				_hasPs = shader != null;
 
 				// TODO: bind uavs
-				if (_textureCount > 0)
+				/*if (_textureCount > 0)
 				{
-					NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
-					NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
-				}
+					//NativeContext.PixelShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
+					//NativeContext.PixelShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
+				}*/
 
-				_ps_FirstTexture = _firstTexture;
-				_ps_BoundTextures = _textureCount;
+				/*_ps_FirstTexture = _firstTexture;
+				_ps_BoundTextures = _textureCount;*/
 
-				_psBuffers = shader.Buffers.nativeBuffers;
+				//_psBuffers = constantBuffers.nativeBuffers;
 
 				//NativeContext.PixelShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+
+				_psShaderResources = shaderResources;
+				_psSamplers = samplers;
 
 				NativeContext.PixelShader.SetShader((ID3D11PixelShader*)shader?.nativeShader);
 
 			case typeof(VertexShader):
 				_hasVs = shader != null;
 
-				if (_textureCount > 0)
+				/*if (_textureCount > 0)
 				{
 					NativeContext.VertexShader.SetShaderResources(_firstTexture, _textureCount, &_textures[_firstTexture]);
 					NativeContext.VertexShader.SetSamplers(_firstTexture, _textureCount, &_samplers[_firstTexture]);
-				}
+				}*/
 				
-				_vsBuffers = shader.Buffers.nativeBuffers;
+				//_vsBuffers = constantBuffers.nativeBuffers;
 
 				//NativeContext.VertexShader.SetConstantBuffers(0, shader.Buffers.nativeBuffers.Count, &shader.Buffers.nativeBuffers);
+				
+				_vsShaderResources = shaderResources;
+				_vsSamplers = samplers;
 
 				NativeContext.VertexShader.SetShader((ID3D11VertexShader*)shader?.nativeShader);
 
-				_vs_FirstTexture = _firstTexture;
-				_vs_BoundTextures = _textureCount;
+				/*_vs_FirstTexture = _firstTexture;
+				_vs_BoundTextures = _textureCount;*/
 				
 				//if (VertexShader vs = shader as VertexShader)
 				[ConstSkip]
@@ -372,12 +392,14 @@ namespace GlitchyEngine.Renderer
 
 		public override void UnbindTextures()
 		{
-			void** voidArray = scope void*[D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT]*;
-			
+			_vsShaderResources = .();
+			_psShaderResources = .();
+
 			using (ContextMonitor.Enter())
 			{
-				NativeContext.PixelShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
-				NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, (.)voidArray);
+				// Do we need to set here, or is it enough to do it in BindState?
+				NativeContext.PixelShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, &_vsShaderResources);
+				NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, &_psShaderResources);
 			}
 		}
 
@@ -410,6 +432,34 @@ namespace GlitchyEngine.Renderer
 			{
 				_psBuffers[slot] = buffer.nativeBuffer;
 			}
+		}
+
+		public override void BindTexture(TextureViewBinding textureBinding, int slot, ShaderStage shaderStage)
+		{
+			Debug.Assert((slot >= 0) && (slot < DirectX.D3D11.D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT));
+
+			if (shaderStage.HasFlag(.Vertex))
+			{
+				_vsShaderResources[slot] = textureBinding._nativeShaderResourceView;
+				_vsSamplers[slot] = textureBinding._nativeSamplerState;
+			}
+			
+			if (shaderStage.HasFlag(.Pixel))
+			{
+				_psShaderResources[slot] = textureBinding._nativeShaderResourceView;
+				_psSamplers[slot] = textureBinding._nativeSamplerState;
+			}
+		}
+
+		public override void BindConstantBuffers(BufferCollection bufferCollection, ShaderStage shaderStage)
+		{
+			bufferCollection.PlatformFetchNativeBuffers();
+
+			if (shaderStage.HasFlag(.Vertex))
+				_vsBuffers = bufferCollection.nativeBuffers;
+ 
+			if (shaderStage.HasFlag(.Pixel))
+				_psBuffers = bufferCollection.nativeBuffers;
 		}
 	}
 }

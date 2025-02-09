@@ -123,7 +123,7 @@ public class Effect : Asset
 		{
 			if(let cbuffer = buffer.Buffer as ConstantBuffer)
 			{
-				cbuffer.Update();
+				cbuffer.Apply();
 			}
 		}
 	}

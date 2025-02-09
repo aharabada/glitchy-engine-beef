@@ -171,6 +171,8 @@ class SceneRenderer
 		Debug.Profiler.ProfileRendererFunction!();
 
 		viewportTarget.AddRef();
+		
+		RenderCommand.Clear(_compositeTarget, .ColorDepth);
 
 		// 3D render
 		Renderer.BeginScene(camera, _compositeTarget);

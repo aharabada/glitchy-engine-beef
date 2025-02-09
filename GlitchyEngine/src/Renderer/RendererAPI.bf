@@ -68,5 +68,9 @@ namespace GlitchyEngine.Renderer
 		public extern void BindVertexShader(VertexShader vertexShader);
 
 		public extern void BindPixelShader(PixelShader pixelShader);
+
+		public extern void BindConstantBuffers(BufferCollection bufferCollection, ShaderStage shaderStage);
+
+		public extern void BindTexture(TextureViewBinding textureBinding, int slot, ShaderStage shaderStage);
 	}
 }

@@ -84,7 +84,7 @@ class MaterialProcessor : IAssetProcessor
 			{
 				Log.EngineLogger.Error("The buffers of a material must be ConstantBuffers.");
 				continue;
-				// TODO: Why even allow any kind of Buffer for Materials? Will this make sense later if we can create and bind Buffers from C#?
+				// TODO: Why even allow any other kind of Buffer for Materials? Will this make sense later if we can create and bind Buffers from C#?
 			}
 
 			Span<uint8> data = processedMaterial.CloneBuffer(buffer.Name, cBuffer);

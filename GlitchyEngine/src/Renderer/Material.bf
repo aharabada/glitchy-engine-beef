@@ -12,11 +12,11 @@ public class Material : Asset
 {
 	private Effect _effect ~ _?.ReleaseRef();
 
-	private uint8[] _rawVariables ~ delete _;
+	private Dictionary<String, (AssetHandle<Texture> Handle, TextureDimension Dimension, int32? groupTarget)> _textures = new .() ~ DeleteDictionaryAndKeys!(_);
 
-	private Dictionary<String, (AssetHandle<Texture> Handle, TextureDimension Dimension)> _textures = new .() ~ DeleteDictionaryAndKeys!(_);
+	private Dictionary<StringView, BufferVariable> _variables = new .() ~ delete _;
 
-	private Dictionary<String, (uint32 Offset, BufferVariable Variable)> _variables = new .() ~ DeleteDictionaryAndKeys!(_);
+	private BufferCollection _bufferCollection ~ _?.ReleaseRef();
 
 	public Effect Effect
 	{
@@ -28,36 +28,7 @@ public class Material : Asset
 			if (_effect == null)
 				return;
 
-			// TODO: get variables from effect
-			decltype(_textures) newTextures = new .();
-
-			// Get texture slots from effect
-			for(let (name, effectTexture) in _effect.Textures)
-			{
-				// TODO: We need to be able to define default textures in the shader.
-				// At least things like "Black", "White", "Normal"
-				// At best whole paths. Shouldn't be that hard to do...
-
-				AssetHandle<Texture> textureHandle = .Invalid;
-
-				if (_textures.TryGetValue(name, let oldMaterialTexture))
-				{
-					textureHandle = oldMaterialTexture.Handle;
-				}
-
-				if (textureHandle.IsValid)
-				{
-					if (textureHandle.Dimension != effectTexture.TextureDimension)
-						textureHandle = .Invalid;
-				}
-				
-				newTextures[new String(name)] = (textureHandle, effectTexture.TextureDimension);
-			}
-
-			DeleteDictionaryAndKeys!(_textures);
-			_textures = newTextures;
-
-			InitRawData();
+			Init();
 		}
 	}
 
@@ -71,51 +42,81 @@ public class Material : Asset
 		Effect = effect;
 	}
 
+	private void Init()
+	{	 	 
+		decltype(_textures) newTextures = new .();
 
-	/** @brief Initializes the raw data array for the variables.
-	 */
-	private void InitRawData()
-	{
-		uint32 bufferSize = 0;
-
-		decltype(_variables) newVariables = new Dictionary<String, (uint32 Offset, BufferVariable Variable)>();
-
-		for(let variable in _effect.Variables)
+		// Get texture slots from effect
+		for(let (name, effectTexture) in _effect.Textures)
 		{
-			newVariables.Add(new .(variable.Name), (bufferSize, variable));
+			// TODO: We need to be able to define default textures in the shader.
+			// At least things like "Black", "White", "Normal"
+			// At best whole paths. Shouldn't be that hard to do...
 
-			bufferSize += variable._sizeInBytes;
+			AssetHandle<Texture> textureHandle = .Invalid;
+			int32? groupTarget = null;
+
+			if (_textures.TryGetValue(name, let oldMaterialTexture))
+			{
+				textureHandle = oldMaterialTexture.Handle;
+				groupTarget = oldMaterialTexture.groupTarget;
+			}
+
+			if (textureHandle.IsValid)
+			{
+				if (textureHandle.Dimension != effectTexture.TextureDimension)
+					textureHandle = .Invalid;
+			}
+			
+			newTextures[new String(name)] = (textureHandle, effectTexture.TextureDimension, groupTarget);
 		}
 
-		uint8[] newData = new uint8[bufferSize];
+		DeleteDictionaryAndKeys!(_textures);
+		_textures = newTextures;
 
-		for (let (newKey, newValue) in newVariables)
+		//InitRawData();
+		InitBuffers();
+	}
+
+	private void InitBuffers()
+	{
+		_variables.Clear();
+		_bufferCollection?.ReleaseRef();
+		_bufferCollection = new BufferCollection();
+
+		void InitVariables(ConstantBuffer buffer)
 		{
-			if (_variables.TryGetValue(newKey, let oldEntry))
+			for (BufferVariable variable in buffer.Variables)
 			{
-				if (oldEntry.Variable.ElementType == newValue.Variable.ElementType)
+				if (_variables.ContainsKey(variable.Name))
 				{
-					int elementSize = newValue.Variable.ElementType.ElementSizeInBytes();
-
-					for (int r = 0; r < Math.Min(oldEntry.Variable.Rows, newValue.Variable.Rows); r++)
-					for (int c = 0; c < Math.Min(oldEntry.Variable.Columns, newValue.Variable.Columns); c++)
-					{
-						int oldElementIndex = r * oldEntry.Variable.Columns + c;
-						int newElementIndex = r * newValue.Variable.Columns + c;
-
-						Internal.MemCpy(newData.Ptr + (newValue.Offset + elementSize * oldElementIndex),
-							_rawVariables.Ptr + (oldEntry.Offset + elementSize * newElementIndex), elementSize);
-					}
+					// TODO: Handle overlapping variable names?
+					Log.EngineLogger.Error("Variable with same name already added to Material, skipping...");
+					continue;
 				}
-				// TODO: we could try to convert e.g. Int <-> Float
+
+				_variables.Add(variable.Name, variable);
 			}
 		}
 
-		delete _rawVariables;
-		_rawVariables = newData;
+		for (let (bufferName, buffer) in _effect.Buffers)
+		{
+			if (buffer == null)
+				continue;
 
-		DeleteDictionaryAndKeys!(_variables);
-		_variables = newVariables;
+			if (ConstantBuffer parentConstBuffer = buffer as ConstantBuffer)
+			{
+				using (OverridingConstantBuffer childConstBuffer = new OverridingConstantBuffer(parentConstBuffer))
+				{
+					_bufferCollection.Add(@bufferName.Index, childConstBuffer.Name, childConstBuffer);
+					InitVariables(childConstBuffer);
+				}
+			}
+			else
+			{
+				Log.EngineLogger.Error("Found buffer in constant buffer collection that is not a constant buffer.");
+			}
+		}
 	}
 
 	/**
@@ -124,7 +125,8 @@ public class Material : Asset
 	public void Bind()
 	{
 		Debug.Profiler.ProfileRendererFunction!();
-
+		
+		// TODO: Bind textures, don't go through effect for that
 		for(let (name, texture) in _textures)
 		{
 			switch (texture.Dimension)
@@ -142,20 +144,30 @@ public class Material : Asset
 			}
 		}
 
-		for(let (name, variable) in _variables)
+		for (let (bufferName, buffer) in _bufferCollection)
 		{
-			variable.Variable.SetRawData(RawPointer!<uint8>(variable.Offset));
+			if (let cbuffer = buffer as ConstantBuffer)
+			{
+				TrySilent!(cbuffer.Apply());
+			}
 		}
 
-		_effect.ApplyChanges();
+		/*for(let (name, variable) in _variables)
+		{
+			variable.Variable.SetRawData(RawPointer!<uint8>(variable.Offset));
+		}*/
+
+		//_effect.ApplyChanges();
 		_effect.Bind();
+
+		RenderCommand.BindConstantBuffers(_bufferCollection);
 	}
 
 	/** @brief Sets a texture of the material.
 	 * @param name The name of the texture to set.
 	 * @param texture The texture to bind to the effect.
 	 */
-	public void SetTexture(String name, AssetHandle<Texture> texture)
+	public void SetTexture(String name, AssetHandle<Texture> texture, int32? groupTargetIndex = null)
 	{
 		if(_textures.TryGetValue(name, var entry))
 		{
@@ -174,6 +186,7 @@ public class Material : Asset
 			}*/
 			//entry?.ReleaseRef();
 			_textures[name].Handle = texture;
+			_textures[name].groupTarget = groupTargetIndex;
 			//texture?.AddRef();
 		}
 		else
@@ -183,135 +196,41 @@ public class Material : Asset
 		}
 	}
 
-	private mixin RawPointer<T>(uint32 offset)
+	private mixin SetVariable(String name, var value)
 	{
-		(T*)(&_rawVariables[offset])
-	}
-
-	[Inline]
-	private void SetVariable<T>(String name, T value) where T : struct
-	{
-		Debug.Profiler.ProfileRendererFunction!();
-
 		if(_variables.TryGetValue(name, let entry))
 		{
-			entry.Variable.EnsureTypeMatch<T>();
-			
-			*RawPointer!<T>(entry.Offset) = value;
-		}
-		else
-		{
-			Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
+			entry.SetData(value);
 		}
 	}
 
-	public void SetVariable(String name, bool value) => SetVariable<bool>(name, value);
-	public void SetVariable(String name, bool2 value) => SetVariable<bool2>(name, value);
-	public void SetVariable(String name, bool3 value) => SetVariable<bool3>(name, value);
-	public void SetVariable(String name, bool4 value) => SetVariable<bool4>(name, value);
+	public void SetVariable(String name, bool value) => SetVariable!(name, value);
+	public void SetVariable(String name, bool2 value) => SetVariable!(name, value);
+	public void SetVariable(String name, bool3 value) => SetVariable!(name, value);
+	public void SetVariable(String name, bool4 value) => SetVariable!(name, value);
+
+	public void SetVariable(String name, int32 value) => SetVariable!(name, value);
+	public void SetVariable(String name, int2 value) => SetVariable!(name, value);
+	public void SetVariable(String name, int3 value) => SetVariable!(name, value);
+	public void SetVariable(String name, int4 value) => SetVariable!(name, value);
 	
-	public void SetVariable(String name, int32 value) => SetVariable<int32>(name, value);
-	public void SetVariable(String name, int2 value) => SetVariable<int2>(name, value);
-	public void SetVariable(String name, int3 value) => SetVariable<int3>(name, value);
-	public void SetVariable(String name, int4 value) => SetVariable<int4>(name, value);
+	public void SetVariable(String name, uint32 value) => SetVariable!(name, value);
+	public void SetVariable(String name, uint2 value) => SetVariable!(name, value);
+	public void SetVariable(String name, uint3 value) => SetVariable!(name, value);
+	public void SetVariable(String name, uint4 value) => SetVariable!(name, value);
 
-	public void SetVariable(String name, uint32 value) => SetVariable<uint32>(name, value);
-	public void SetVariable(String name, uint2 value) => SetVariable<uint2>(name, value);
-	public void SetVariable(String name, uint3 value) => SetVariable<uint3>(name, value);
-	public void SetVariable(String name, uint4 value) => SetVariable<uint4>(name, value);
+	public void SetVariable(String name, float value) => SetVariable!(name, value);
+	public void SetVariable(String name, float2 value) => SetVariable!(name, value);
+	public void SetVariable(String name, float3 value) => SetVariable!(name, value);
+	public void SetVariable(String name, float4 value) => SetVariable!(name, value);
 
-	public void SetVariable(String name, float value) => SetVariable<float>(name, value);
-	public void SetVariable(String name, float2 value) => SetVariable<float2>(name, value);
-	public void SetVariable(String name, float3 value) => SetVariable<float3>(name, value);
-	public void SetVariable(String name, float4 value) => SetVariable<float4>(name, value);
+	public void SetVariable(String name, Color value) => SetVariable!(name, value);
+	public void SetVariable(String name, ColorRGB value) => SetVariable!(name, value);
+	public void SetVariable(String name, ColorRGBA value) => SetVariable!(name, value);
 
-	/*public void SetVariable(String name, float value) => SetVariable<double>(name, value);
-	public void SetVariable(String name, float2 value) => SetVariable<float2>(name, value);
-	public void SetVariable(String name, float3 value) => SetVariable<float3>(name, value);
-	public void SetVariable(String name, float4 value) => SetVariable<float4>(name, value);*/
-
-	public void SetVariable(String name, Color value) => SetVariable<ColorRGBA>(name, (ColorRGBA)value);
-	public void SetVariable(String name, ColorRGB value) => SetVariable<ColorRGB>(name, value);
-	public void SetVariable(String name, ColorRGBA value) => SetVariable<ColorRGBA>(name, value);
-
-	public void SetVariable(String name, Matrix3x3 value)
-	{
-		if(_variables.TryGetValue(name, let entry))
-		{
-			entry.Variable.EnsureTypeMatch<Matrix3x3>();
-			
-			// TODO: I'm not sure how to handle Matrix3x3
-			// It seems to be 44 Bytes (11 Floats) large.
-			Log.EngineLogger.AssertDebug(entry.Variable._sizeInBytes == 44, "Made wrong assumption about the size of float3x3 in a hlsl constant-buffer.");
-
-#unwarn
-			*RawPointer!<float[11]>(entry.Offset) = *(float[11]*)&Matrix4x3(value);
-		}
-		else
-		{
-			Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
-		}
-	}
-	
-	public void SetVariable(String name, Matrix3x3[] values)
-	{
-		if(_variables.TryGetValue(name, let entry))
-		{
-			entry.Variable.EnsureTypeMatch<Matrix3x3>();
-
-			int count = Math.Min(values.Count, entry.Variable._arrayElements);
-
-			for(int i < count)
-			{
-				(RawPointer!<Matrix4x3>(entry.Offset))[i] = Matrix4x3(values[i]);
-			}
-		}
-		else
-		{
-			Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
-		}
-	}
-
-	public void SetVariable(String name, Matrix4x3 value) => SetVariable<Matrix4x3>(name, value);
-	public void SetVariable(String name, Matrix value) => SetVariable<Matrix>(name, value);
-
-	public void SetVariable(String name, Matrix[] values)
-	{
-		if(_variables.TryGetValue(name, let entry))
-		{
-			entry.Variable.EnsureTypeMatch<Matrix>();
-
-			Internal.MemCpy(RawPointer!<Matrix>(entry.Offset), values.Ptr, sizeof(Matrix) * Math.Min(values.Count, entry.Variable._arrayElements));
-		}
-		else
-		{
-			Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
-		}
-	}
-
-	// Supporeted types
-	// Bool, Bool2, Bool3, Bool4
-	// Int, int2, int3, int4
-	// UInt, UInt2, UInt3, UInt4
-	// Color, ColorRGB, ColorRGBA
-	// Float, Float2, Float3, Float4
-	// Matrix3x3, Matrix4x3, Matrix
-
-	// TODO: Add missing variable types
-	// Half, Half2, Half3, Half4
-	// Byte, Byte2, Byte3, Byte4
-
-	/**
-	 * Sets the raw data of the variable.
-	 * @param rawData The pointer to the raw data. If rawData is null the raw data will be set to zero.
-	 */
-	internal void SetRawData(uint32 offset, void* rawData, uint32 byteCount)
-	{
-		if(rawData != null)
-			Internal.MemCpy(&_rawVariables + offset, rawData, byteCount);
-		else
-			Internal.MemSet(&_rawVariables + offset, 0, byteCount);
-	}
+	public void SetVariable(String name, Matrix3x3 value) => SetVariable!(name, value);
+	public void SetVariable(String name, Matrix4x3 value) => SetVariable!(name, value);
+	public void SetVariable(String name, Matrix value) => SetVariable!(name, value);
 
 	public void GetVariable<T>(String name, out T value) where T : struct
 	{
@@ -319,9 +238,10 @@ public class Material : Asset
 
 		if(_variables.TryGetValue(name, let entry))
 		{
-			entry.Variable.EnsureTypeMatch<T>();
-			
-			value = *RawPointer!<T>(entry.Offset);
+			entry.EnsureTypeMatch<T>();
+
+			// TODO: This obviously breaks for all cases where a custom SetData was necessary.
+			value = *(T*)entry.firstByte;
 		}
 		else
 		{

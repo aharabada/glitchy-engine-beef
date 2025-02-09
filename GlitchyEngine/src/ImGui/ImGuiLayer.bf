@@ -233,6 +233,8 @@ namespace GlitchyEngine.ImGui
 			ImGui.Render();
 			
 			RenderCommand.SetDepthStencilTarget(null);
+			// TODO: This is dirty
+			RenderCommand.UnbindRenderTargets();
 			RenderCommand.SetRenderTarget(null);
 			RenderCommand.BindRenderTargets();
 

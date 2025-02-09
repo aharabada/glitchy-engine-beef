@@ -129,6 +129,11 @@ namespace GlitchyEngine.Renderer
 			_rendererAPI.BindConstantBuffer(buffer, slot, stage);
 		}
 
+		public static void BindConstantBuffers(BufferCollection constantBuffers, ShaderStage stage = .All)
+		{
+			_rendererAPI.BindConstantBuffers(constantBuffers, stage);
+		}
+
 		public static void BindVertexShader(VertexShader vertexShader)
 		{
 			_rendererAPI.BindVertexShader(vertexShader);
@@ -137,6 +142,11 @@ namespace GlitchyEngine.Renderer
 		public static void BindPixelShader(PixelShader pixelShader)
 		{
 			_rendererAPI.BindPixelShader(pixelShader);
+		}
+
+		public static void BindTexture(TextureViewBinding textureBinding, int slot, ShaderStage shaderStage)
+		{
+			_rendererAPI.BindTexture(textureBinding, slot, shaderStage);
 		}
 	}
 }

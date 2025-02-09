@@ -176,5 +176,7 @@ namespace GlitchyEngine.Renderer
 		{
 			return _buffers.GetEnumerator();
 		}
+
+		protected internal extern void PlatformFetchNativeBuffers();
 	}
 }

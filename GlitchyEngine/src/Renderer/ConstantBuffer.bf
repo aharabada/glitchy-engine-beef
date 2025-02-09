@@ -17,8 +17,12 @@ namespace GlitchyEngine.Renderer
 
 		protected BufferVariableCollection _variables = new BufferVariableCollection() ~ delete _;
 
+		protected bool _isDirty = true;
+
+		protected internal int _generation = 0;
+
 		/// Gets the name of the constant buffer.
-		public String Name => _name;
+		public StringView Name => _name;
 
 		public BufferVariableCollection Variables => _variables;
 
@@ -58,10 +62,32 @@ namespace GlitchyEngine.Renderer
 
 		/**
 		 * Uploads the date to the GPU.
+		 * @returns true if the GPU buffer was updated, false otherwise (i.e. it wasn't dirty).
 		 */
-		public Result<void> Update()
+		public virtual Result<void> Apply()
 		{
-			return PlatformSetData(rawData.CArray(), (uint32)rawData.Count, 0, .WriteDiscard);
+			bool isDirty = false;
+
+			for (BufferVariable variable in _variables)
+			{
+				if (variable.IsDirty)
+				{
+					isDirty = true;					
+					Enum.ClearFlag(ref variable.[Friend]_flags, .Dirty);
+				}
+			}
+
+			if (isDirty)
+			{
+				Result<void> setDataResult = PlatformSetData(rawData.CArray(), (uint32)rawData.Count, 0, .WriteDiscard);
+	
+				if (setDataResult case .Err)
+					return .Err;
+				
+				_generation++;
+			}
+
+			return .Ok;
 		}
 	}
 

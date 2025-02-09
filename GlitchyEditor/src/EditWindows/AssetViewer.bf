@@ -14,7 +14,7 @@ class AssetViewer : EditorWindow
 
 	private AssetHandle _selectedAsset;
 
-	append TexturererViewerer _textureViewer = .();
+	append TextureViewer _textureViewer = .();
 
 	public this(EditorContentManager contentManager)
 	{
@@ -133,7 +133,7 @@ class AssetViewer : EditorWindow
 	}
 }
 
-class TexturererViewerer
+class TextureViewer
 {
 	enum BackgroundMode : int32
 	{
@@ -160,7 +160,8 @@ class TexturererViewerer
 	}
 
 	AssetHandle<Effect> _effect;
-	AssetHandle<Effect> _renderTargetEffect;
+	//AssetHandle<Effect> _renderTargetEffect;
+	Material _renderTargetMaterial ~ _.ReleaseRef();
 
 	float _zoom = 1.0f;
 
@@ -169,14 +170,28 @@ class TexturererViewerer
 
 	SampleMode _sampleMode = .Linear;
 
-	RenderTarget2D _target ~ _?.ReleaseRef();
+	RenderTargetGroup _targets ~ _?.ReleaseRef();
+	/*RenderTarget2D _target ~ _?.ReleaseRef();
+	RenderTarget2D _idTarget ~ _?.ReleaseRef();
 	// TODO: we don't need depth!
-	DepthStencilTarget _depth ~ _?.ReleaseRef();
+	DepthStencilTarget _depth ~ _?.ReleaseRef();*/
 
 	public this()
 	{
 		_effect = Content.LoadAsset("Resources/Shaders/textureViewerShader.hlsl", null, true);
-		_renderTargetEffect = Content.LoadAsset("Resources/Shaders/RenderTargetGroupViewer.hlsl", null, true);
+		AssetHandle<Effect> effect = Content.LoadAsset("Resources/Shaders/RenderTargetGroupViewer.hlsl", null, true);
+
+		_renderTargetMaterial = new Material(effect);
+
+		_targets = new RenderTargetGroup(.(){
+			Width = 100,
+			Height = 100,
+			ColorTargetDescriptions = TargetDescription[](
+				.(.R8G8B8A8_UNorm, clearColor: .Color(ColorRGBA.Pink)),
+				.(.R32_UInt)
+			),
+			DepthTargetDescription = .(.D24_UNorm_S8_UInt)
+		});
 	}
 	
 	float2 _position;
@@ -215,7 +230,8 @@ class TexturererViewerer
 
 			if (_backgroundMode == .CustomColor)
 			{
-				ImGui.ColorPicker4("Color", ref _backgroundColor);
+				ImGui.ColorPicker3("Color", ref _backgroundColor);
+				_backgroundColor.A = 1.0f;
 			}
 		}
 			
@@ -365,21 +381,17 @@ class TexturererViewerer
 	
 			viewportSize.x = Math.Max(viewportSize.x, 1);
 			viewportSize.y = Math.Max(viewportSize.y, 1);
-	
-			if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
+
+			if (_targets.Width != viewportSize.x || _targets.Height != viewportSize.y)
 			{
-				_target?.ReleaseRef();
-				_target = new RenderTarget2D(.(.R8G8B8A8_UNorm_SRGB, (.)viewportSize.x, (.)viewportSize.y));
-				_target.SamplerState = SamplerStateManager.PointClamp;
-				_depth?.ReleaseRef();
-				_depth = new DepthStencilTarget((.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
+				_targets.Resize((.)viewportSize.x, (.)viewportSize.y);
 			}
-			
+
 			RenderBackground();
 
 			RenderTexture(texture);
-	
-			ImGui.Image(_target, viewportSize);
+
+			ImGui.Image(_targets.GetViewBinding(0), viewportSize);
 
 			ImGui.EndChild();
 		}
@@ -398,20 +410,19 @@ class TexturererViewerer
 			viewportSize.x = Math.Max(viewportSize.x, 1);
 			viewportSize.y = Math.Max(viewportSize.y, 1);
 
-			if(_target == null || viewportSize.x != _target.Width || viewportSize.y != _target.Height)
+			if (_targets.Width != viewportSize.x || _targets.Height != viewportSize.y)
 			{
-				_target?.ReleaseRef();
-				_target = new RenderTarget2D(.(.R8G8B8A8_UNorm_SRGB, (.)viewportSize.x, (.)viewportSize.y));
-				_target.SamplerState = SamplerStateManager.PointClamp;
-				_depth?.ReleaseRef();
-				_depth = new DepthStencilTarget((.)viewportSize.x, (.)viewportSize.y, .D16_UNorm);
+				_targets.Resize((.)viewportSize.x, (.)viewportSize.y);
 			}
 			
 			RenderBackground();
 
 			RenderTexture(texture);
-
-			ImGui.Image(_target, viewportSize);
+			
+			using (let vb = _targets.GetViewBinding(0))
+			{
+				ImGui.Image(vb, viewportSize);
+			}
 
 			ImGui.EndChild();
 		}
@@ -468,19 +479,21 @@ class TexturererViewerer
 
 	private void RenderBackground()
 	{
-		Viewport vp = .(0, 0, _target.Width, _target.Height);
+		Viewport vp = .(0, 0, _targets.Width, _targets.Height);
 		RenderCommand.SetViewport(vp);
 
+		RenderCommand.Clear(_targets, .ColorDepth);
 		// TODO: don't clear pink!
-		RenderCommand.Clear(_target, .Pink);
-		RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
+		//RenderCommand.Clear(_target, .Pink);
+		//RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
 
 		//_target.Bind();
-		RenderCommand.SetRenderTarget(_target);
-		RenderCommand.SetDepthStencilTarget(_depth);
+		RenderCommand.SetRenderTargetGroup(_targets);
+		//RenderCommand.SetRenderTarget(_idTarget, 1);
+		//RenderCommand.SetDepthStencilTarget(_depth);
 		RenderCommand.BindRenderTargets();
 
-		float2 targetSize = float2(_target.Width, _target.Height);
+		float2 targetSize = float2(_targets.Width, _targets.Height);
 
 		_camera.Left = 0;
 		_camera.Top = 0;
@@ -520,7 +533,7 @@ class TexturererViewerer
 		Renderer2D.EndScene();
 	}
 
-	private void RenderTexture(TextureViewBinding viewedTexture, float2 textureSize, Format format)
+	private void RenderTexture(Asset textureAsset, float2 textureSize, Format format, int32? groupTargetIndex = null)
 	{
 		float2 mippedTextureSize = float2((int)textureSize.X >> _mipLevel, (int)textureSize.X >> _mipLevel);
 
@@ -544,52 +557,70 @@ class TexturererViewerer
 		//Renderer2D.BeginScene(_camera, .SortByTexture, _effect);
 
 		// float3(_position * .(1, -1), 0)
-		RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
+		//RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
+		RenderCommand.Clear(_targets, .Depth);
 
 		Matrix matrix = .Translation(float3(_position * .(1, -1), 0)) * .Scaling(float3(zoomedTextureSize, 1));
 
 		// TODO: ViewProjection kommt nicht korrekt an?
-		_renderTargetEffect.Variables["WorldViewProjection"].SetData(_camera.ViewProjection * matrix);
+		_renderTargetMaterial.SetVariable("WorldViewProjection", _camera.ViewProjection * matrix);
+		_renderTargetMaterial.SetVariable("ColorOffset", _colorOffset);
+		_renderTargetMaterial.SetVariable("ColorScale", _colorScale);
+		_renderTargetMaterial.SetVariable("AlphaOffset", _alphaOffset);
+		_renderTargetMaterial.SetVariable("AlphaScale", _alphaScale);
+		/*_renderTargetEffect.Variables["WorldViewProjection"].SetData(_camera.ViewProjection * matrix);
 		_renderTargetEffect.Variables["ColorOffset"].SetData(_colorOffset);
 		_renderTargetEffect.Variables["ColorScale"].SetData(_colorScale);
 		_renderTargetEffect.Variables["AlphaOffset"].SetData(_alphaOffset);
-		_renderTargetEffect.Variables["AlphaScale"].SetData(_alphaScale);
+		_renderTargetEffect.Variables["AlphaScale"].SetData(_alphaScale);*/
 
-		_renderTargetEffect.Variables["Texels"].SetData(mippedTextureSize);
+		//_renderTargetEffect.Variables["Texels"].SetData(mippedTextureSize); 
+		_renderTargetMaterial.SetVariable("Texels", mippedTextureSize);
 
-		_renderTargetEffect.Variables["MipLevel"].SetData((float)_mipLevel);
+		//_renderTargetEffect.Variables["MipLevel"].SetData((float)_mipLevel);  
+		_renderTargetMaterial.SetVariable("MipLevel", (float)_mipLevel);
 
-		_renderTargetEffect.Variables["Swizzle"].SetData(int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
+		//_renderTargetEffect.Variables["Swizzle"].SetData(int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
+		_renderTargetMaterial.SetVariable("Swizzle", int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
 
-		if (((DirectX.DXGI.Format)format).IsInt())
+		int textureSlot = -1;
+
+		if (format.IsInt())
 		{
-			// Int Texture
-			_renderTargetEffect.Variables["Mode"].SetData(1);
-			_renderTargetEffect.SetTexture("IntTexture", viewedTexture);
-			_renderTargetEffect.SetTexture("UIntTexture", (Texture)null);
-			_renderTargetEffect.SetTexture("Texture", (Texture)null);
+			// Int Texture 
+			_renderTargetMaterial.SetVariable("Mode", 1);
+			textureSlot = _renderTargetMaterial.Effect.Textures["IntTexture"].PsSlot.Index;
 		}
 		else if (format.IsUInt())
 		{
 			// UInt Texture
-			_renderTargetEffect.Variables["Mode"].SetData(2);
-			_renderTargetEffect.SetTexture("IntTexture", (Texture)null);
-			_renderTargetEffect.SetTexture("UIntTexture", viewedTexture);
-			_renderTargetEffect.SetTexture("Texture", (Texture)null);
+			_renderTargetMaterial.SetVariable("Mode", 2);
+			textureSlot = _renderTargetMaterial.Effect.Textures["UIntTexture"].PsSlot.Index;
 		}
 		else
 		{
 			// Float Texture
-			_renderTargetEffect.Variables["Mode"].SetData(0);
-			_renderTargetEffect.SetTexture("IntTexture", (Texture)null);
-			_renderTargetEffect.SetTexture("UIntTexture", (Texture)null);
-			_renderTargetEffect.SetTexture("Texture", viewedTexture);
+			_renderTargetMaterial.SetVariable("Mode", 0);
+			textureSlot = _renderTargetMaterial.Effect.Textures["Texture"].PsSlot.Index;
 		}
 
-		_renderTargetEffect.Variables["Swizzle"].SetData(int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
+		//_renderTargetMaterial.ApplyChanges();
+		_renderTargetMaterial.Bind();
 
-		_renderTargetEffect.ApplyChanges();
-		_renderTargetEffect.Bind();
+		if (let renderTargetGroup = textureAsset as RenderTargetGroup)
+		{
+			using (let viewBinding = renderTargetGroup.GetViewBinding((.)groupTargetIndex))
+			{
+				RenderCommand.BindTexture(viewBinding, textureSlot, .Pixel);
+			}
+		}
+		else if (let texture = textureAsset as Texture)
+		{
+			using (let viewBinding = texture.GetViewBinding())
+			{
+				RenderCommand.BindTexture(viewBinding, textureSlot, .Pixel);
+			}
+		}
 
 		Quad.Draw();
 	}
@@ -598,11 +629,11 @@ class TexturererViewerer
 	{
 		var desc = _groupIndex >= 0 ? viewedTexture.[Friend]_colorTargetDescriptions[_groupIndex] : viewedTexture.[Friend]_depthTargetDescription;
 
-		RenderTexture(viewedTexture.GetViewBinding(_groupIndex), float2(viewedTexture.Width, viewedTexture.Height), (.)desc.Format.GetShaderViewFormat());
+		RenderTexture(viewedTexture, float2(viewedTexture.Width, viewedTexture.Height), (.)desc.Format.GetShaderViewFormat(), _groupIndex);
 	}
 
 	private void RenderTexture(Texture viewedTexture)
 	{
-		RenderTexture(viewedTexture.GetViewBinding(), float2(viewedTexture.Width, viewedTexture.Height), viewedTexture.Format);
+		RenderTexture(viewedTexture, float2(viewedTexture.Width, viewedTexture.Height), viewedTexture.Format, -1);
 	}
 }

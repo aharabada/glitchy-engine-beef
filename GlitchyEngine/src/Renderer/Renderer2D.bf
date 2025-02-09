@@ -132,6 +132,7 @@ namespace GlitchyEngine.Renderer
 #endif
 
 		private static AssetHandle<Effect> s_quadBatchEffect;
+		private static Material s_quadBatchMaterial ~ _?.ReleaseRef();
 		private static AssetHandle<Effect> s_circleBatchEffect;
 		private static AssetHandle<Effect> s_lineBatchEffect;
 		
@@ -162,7 +163,7 @@ namespace GlitchyEngine.Renderer
 		private static DrawOrder s_drawOrder;
 
 		/// The effect that is currently used to draw the sprites.
-		private static AssetHandle<Effect> s_currentQuadEffect;
+		//private static AssetHandle<Effect> s_currentQuadEffect;
 		private static AssetHandle<Effect> s_currentCircleEffect;
 		private static AssetHandle<Effect> s_currentLineEffect;
 
@@ -185,6 +186,7 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileFunction!();
 
 			s_quadBatchEffect = Content.LoadAsset("Resources/Shaders/spritebatch.hlsl", null, true);
+			s_quadBatchMaterial = new Material(s_quadBatchEffect);
 			s_circleBatchEffect = Content.LoadAsset("Resources/Shaders/circlebatch.hlsl", null, true);
 			s_lineBatchEffect = Content.LoadAsset("Resources/Shaders/linebatch.hlsl", null, true);
 		}
@@ -455,7 +457,7 @@ namespace GlitchyEngine.Renderer
 		}
 
 		// TODO: remove?
-		public static void BeginScene(OldCamera camera, DrawOrder drawOrder = .SortByTexture, AssetHandle<Effect> effect = .Invalid, AssetHandle<Effect> circleEffect = .Invalid)
+		public static void BeginScene(OldCamera camera, DrawOrder drawOrder = .SortByTexture)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
@@ -463,28 +465,29 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
 #endif
 
-			if(effect != .Invalid)
+			/*if(effect != .Invalid)
 			{
 				s_currentQuadEffect = effect;
 			}
 			else
 			{
 				s_currentQuadEffect = s_quadBatchEffect;
-			}
+			}*/
 
-			if(circleEffect != .Invalid)
+			/*if(circleEffect != .Invalid)
 			{
 				s_currentCircleEffect = circleEffect;
 			}
 			else
 			{
 				s_currentCircleEffect = s_circleBatchEffect;
-			}
+			}*/
 
 			s_currentLineEffect = s_lineBatchEffect;
 
-			s_currentQuadEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
-			s_currentCircleEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
+			//s_currentQuadEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
+			s_quadBatchMaterial.SetVariable("ViewProjection", camera.ViewProjection);
+			//s_currentCircleEffect.Variables["ViewProjection"].SetData(camera.ViewProjection);
 
 			s_drawOrder = drawOrder;
 			
@@ -493,7 +496,7 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
-		public static void BeginScene(Camera camera, Matrix transform, DrawOrder drawOrder = .SortByTexture, AssetHandle<Effect> effect = .Invalid, AssetHandle<Effect> circleEffect = .Invalid)
+		public static void BeginScene(Camera camera, Matrix transform, DrawOrder drawOrder = .SortByTexture)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
@@ -501,29 +504,30 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
 #endif
 			
-			if(effect != .Invalid)
+			/*if(effect != .Invalid)
 			{
 				s_currentQuadEffect = effect;
 			}
 			else
 			{
 				s_currentQuadEffect = s_quadBatchEffect;
-			}
+			}*/
 
-			if(circleEffect != .Invalid)
+			/*if(circleEffect != .Invalid)
 			{
 				s_currentCircleEffect = circleEffect;
 			}
 			else
 			{
 				s_currentCircleEffect = s_circleBatchEffect;
-			}
+			}*/
 
 			s_currentLineEffect = s_lineBatchEffect;
 
 			Matrix viewProjection = camera.Projection * Matrix.Invert(transform);
-
-			s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			
+			s_quadBatchMaterial.SetVariable("ViewProjection", viewProjection);
+			//s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 
@@ -534,7 +538,7 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
-		public static void BeginScene(EditorCamera camera, DrawOrder drawOrder = .SortByTexture, AssetHandle<Effect> effect = .Invalid, AssetHandle<Effect> circleEffect = .Invalid)
+		public static void BeginScene(EditorCamera camera, DrawOrder drawOrder = .SortByTexture)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 #if DEBUG
@@ -542,7 +546,7 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(!s_sceneRunning, "You have to call EndScene before you can make another call to BeginScene.");
 #endif
 
-			if(effect != .Invalid)
+			/*if(effect != .Invalid)
 			{
 				s_currentQuadEffect = effect;
 			}
@@ -558,13 +562,14 @@ namespace GlitchyEngine.Renderer
 			else
 			{
 				s_currentCircleEffect = s_circleBatchEffect;
-			}
+			}*/
 
 			s_currentLineEffect = s_lineBatchEffect;
 
 			Matrix viewProjection = camera.Projection * camera.View;
 			
-			s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			//s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			s_quadBatchMaterial.SetVariable("ViewProjection", viewProjection);
 			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 
@@ -623,7 +628,7 @@ namespace GlitchyEngine.Renderer
 			s_statistics.LineCount++;
 		}
 
-		private static void FlushQuadInstances()
+		private static void FlushQuadInstances(Texture texture)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -632,8 +637,24 @@ namespace GlitchyEngine.Renderer
 
 			s_quadInstanceBuffer.SetData<QuadBatchVertex>(s_rawQuadInstances.Ptr, s_setQuadInstances, 0, .WriteDiscard);
 			
-			s_currentQuadEffect.ApplyChanges();
-			s_currentQuadEffect.Bind();
+			//s_currentQuadEffect.ApplyChanges();
+			//s_currentQuadEffect.Bind();
+			s_quadBatchMaterial.Bind();
+
+			using (TextureViewBinding tvb = texture.GetViewBinding())
+			{
+				if (s_quadBatchMaterial.Effect.Textures.TryGetValue("Texture", let textureEntry))
+				{
+					if (textureEntry.PsSlot != null)
+					{
+						RenderCommand.BindTexture(tvb, textureEntry.PsSlot.Index, .Pixel);
+					}
+				}
+			}
+
+			//s_quadBatchMaterial.Effect.Textures["Texture"]
+			//
+
 			s_quadBatchBinding.InstanceCount = s_setQuadInstances;
 			s_quadBatchBinding.Bind();
 			RenderCommand.DrawIndexedInstanced(s_quadBatchBinding);
@@ -778,13 +799,13 @@ namespace GlitchyEngine.Renderer
 			// TODO: per object blendstate
 			RenderCommand.SetBlendState(s_transparentBlendState);
 
-			let quadEffect = s_currentQuadEffect.Get();
+			let quadMaterial = s_quadBatchMaterial;//s_currentQuadEffect.Get();
 
-			if (quadEffect == null)
+			if (quadMaterial == null)
 				return;
 
 			Texture texture = s_QuadinstanceQueue[0].Texture;
-			quadEffect.SetTexture("Texture", texture);
+			//quadMaterial.SetTexture("Texture", .Invalid);
 
 			s_setQuadInstances = 0;
 
@@ -795,21 +816,21 @@ namespace GlitchyEngine.Renderer
 				// flush every time the texture changes
 				if(quad.Texture != texture)
 				{
-					FlushQuadInstances();
+					FlushQuadInstances(texture);
 
 					texture = quad.Texture;
-					quadEffect.SetTexture("Texture", texture);
+					//quadMaterial.SetTexture("Texture", .Invalid);
 				}
 
 				s_rawQuadInstances[s_setQuadInstances++] = .(quad.Transform, quad.Color, quad.uvTransform, quad.entityId);
 				
 				if(s_setQuadInstances == s_rawQuadInstances.Count)
 				{
-					FlushQuadInstances();
+					FlushQuadInstances(texture);
 				}
 			}
 
-			FlushQuadInstances();
+			FlushQuadInstances(texture);
 
 			s_QuadinstanceQueue.Clear();
 		}

@@ -291,6 +291,16 @@ namespace GlitchyEngine.Renderer
 		{
 			_context.BindPixelShader(pixelShader);
 		}
+	 
+		public override void BindConstantBuffers(BufferCollection bufferCollection, ShaderStage shaderStage)
+		{
+			_context.BindConstantBuffers(bufferCollection, shaderStage);
+		}
+
+		public override void BindTexture(TextureViewBinding textureBinding, int slot, ShaderStage shaderStage)
+		{
+			_context.BindTexture(textureBinding, slot, shaderStage);
+		}
 	}
 }
 

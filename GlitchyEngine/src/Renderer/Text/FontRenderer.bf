@@ -560,7 +560,7 @@ namespace GlitchyEngine.Renderer.Text
 
 		public static void DrawText(PreparedText text, Matrix transform, ColorRGBA fontColor = .White)
 		{
-			Debug.Profiler.ProfileRendererFunction!();
+			/*Debug.Profiler.ProfileRendererFunction!();
 
 			text.AddRef();
 			defer text.ReleaseRef();
@@ -654,7 +654,7 @@ namespace GlitchyEngine.Renderer.Text
 			for(int i < atlasses.Count)
 			{
 				atlasses[i].ReleaseRef();
-			}
+			}*/
 		}
 	}
 }

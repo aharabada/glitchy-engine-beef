@@ -133,7 +133,7 @@ class ShaderLoader : IProcessedAssetLoader
 			}
 
 			Try!(stream.TryRead(buffer.RawData));
-			Try!(buffer.Update());
+			Try!(buffer.Apply());
 
 			if (vertexShaderBindPoint != -1)
 				effect.VertexShader.Buffers.Add(vertexShaderBindPoint, buffer.Name, buffer);
