@@ -398,8 +398,8 @@ namespace GlitchyEngine.Renderer
 			using (ContextMonitor.Enter())
 			{
 				// Do we need to set here, or is it enough to do it in BindState?
-				NativeContext.PixelShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, &_vsShaderResources);
-				NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT, &_psShaderResources);
+				NativeContext.PixelShader.SetShaderResources(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, &_vsShaderResources);
+				NativeContext.VertexShader.SetShaderResources(0, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT, &_psShaderResources);
 			}
 		}
 
