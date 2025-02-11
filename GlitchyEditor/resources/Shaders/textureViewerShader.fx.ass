@@ -6,6 +6,8 @@
 	Processor = null,
 	ProcessorConfig = null,
 	Exporter = null,
-	ExporterConfig = null,
-	AssetHandle = 10014069858860408945
+	ExporterConfig = {
+		_compression = .None
+	},
+	AssetHandle = 8094944104856236365
 }

@@ -187,10 +187,10 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			s_quadBatchEffect = Content.LoadAsset("Resources/Shaders/spritebatch.hlsl", null, true);
+			s_quadBatchEffect = Content.LoadAsset("Resources/Shaders/spritebatch.fx", null, true);
 			s_quadBatchMaterial = new Material(s_quadBatchEffect);
-			s_circleBatchEffect = Content.LoadAsset("Resources/Shaders/circlebatch.hlsl", null, true);
-			s_lineBatchEffect = Content.LoadAsset("Resources/Shaders/linebatch.hlsl", null, true);
+			s_circleBatchEffect = Content.LoadAsset("Resources/Shaders/circlebatch.fx", null, true);
+			s_lineBatchEffect = Content.LoadAsset("Resources/Shaders/linebatch.fx", null, true);
 		}
 
 		private static void InitGeometry()

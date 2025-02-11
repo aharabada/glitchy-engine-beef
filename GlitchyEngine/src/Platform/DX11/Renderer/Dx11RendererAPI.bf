@@ -31,7 +31,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			_clearUintFx = Content.LoadAsset("Resources/Shaders/ClearUInt.hlsl", null, true);
+			_clearUintFx = Content.LoadAsset("Resources/Shaders/ClearUInt.fx", null, true);
 			BlendStateDescription desc =.Default;
 			desc.RenderTarget[0].BlendEnable = false;
 			_nonblendingState = new BlendState(desc);

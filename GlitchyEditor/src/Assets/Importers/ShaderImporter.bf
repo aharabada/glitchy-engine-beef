@@ -28,7 +28,7 @@ class ShaderImporterConfig : AssetImporterConfig
 
 class ShaderImporter : IAssetImporter
 {
-	private static readonly List<StringView> _fileExtensions = new .(){".hlsl"} ~ delete _;
+	private static readonly List<StringView> _fileExtensions = new .(){".fx"} ~ delete _;
 
 	public static List<StringView> FileExtensions => _fileExtensions;
 	

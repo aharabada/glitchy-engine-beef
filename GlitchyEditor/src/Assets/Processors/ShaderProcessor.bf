@@ -121,10 +121,17 @@ class ShaderProcessor : IAssetProcessor
 		// Name in Shader -> Name in Engine
 		Dictionary<StringView, StringView> engineBuffers = scope .();
 
+		ProcessedShader processedShader = null;
+
 		defer
 		{
 			ClearDictionaryAndDeleteValues!(variables);
 			ClearAndDeleteItems!(bufferNames);
+
+			if (@return case .Err)
+			{
+				delete processedShader;
+			}
 		}
 
 		String code = new String(importedShader.HlslCode);
@@ -138,7 +145,7 @@ class ShaderProcessor : IAssetProcessor
 			return .Ok;
 		}
 
-		ProcessedShader processedShader = new ProcessedShader(new AssetIdentifier(importedShader.AssetIdentifier), config.AssetHandle);
+		processedShader = new ProcessedShader(new AssetIdentifier(importedShader.AssetIdentifier), config.AssetHandle);
 
 		Try!(CompileAndReflect(vsName, psName, importedShader, code, processedShader));
 

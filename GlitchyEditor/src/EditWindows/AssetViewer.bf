@@ -178,8 +178,8 @@ class TextureViewer
 
 	public this()
 	{
-		_effect = Content.LoadAsset("Resources/Shaders/textureViewerShader.hlsl", null, true);
-		AssetHandle<Effect> effect = Content.LoadAsset("Resources/Shaders/RenderTargetGroupViewer.hlsl", null, true);
+		_effect = Content.LoadAsset("Resources/Shaders/textureViewerShader.fx", null, true);
+		AssetHandle<Effect> effect = Content.LoadAsset("Resources/Shaders/RenderTargetGroupViewer.fx", null, true);
 
 		_renderTargetMaterial = new Material(effect);
 

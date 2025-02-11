@@ -1,3 +1,5 @@
+// TODO: General pipeline for post processing effects
+
 Texture2D Texture : register(t0);
 SamplerState TextureSampler : register(s0);
 

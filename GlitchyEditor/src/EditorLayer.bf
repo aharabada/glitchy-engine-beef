@@ -175,6 +175,22 @@ namespace GlitchyEditor
 						SaveScene(newScene, path);
 					}
 				}, _editorIcons.File_Scene));
+			
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Shader File", "New Shader", ".hlsl", new (path) =>
+				{
+					// TODO!
+				}, _editorIcons.File_Hlsl));
+
+			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("2D Effect", "New Effect", ".fx", new (path) =>
+				{
+					// TODO!
+				}, _editorIcons.File_Effect));
+
+			// TODO: 3D Effect Lit, 3D Effect unlit, etc.
+			/*Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("3D Effect", "New Effect", ".fx", new (path) =>
+				{
+					// TODO!
+				}, _editorIcons.File_Effect));*/
 
 			Editor.Instance.ContentBrowserWindow.RegisterAssetCreator(new AssetCreator("Material", "New Material", ".mat", new (path) =>
 				{

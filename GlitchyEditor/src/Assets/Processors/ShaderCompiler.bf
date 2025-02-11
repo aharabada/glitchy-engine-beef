@@ -201,6 +201,7 @@ extension ShaderCompiler
 			{
 				StringView str = StringView((char8*)errorBlob.GetBufferPointer(), (int)errorBlob.GetBufferSize());
 				Log.EngineLogger.Error($"Failed to compile Shader: Error Code({(int)result}): {result} | Error Message: {str}");
+				return .Err;
 			}
 		}
 

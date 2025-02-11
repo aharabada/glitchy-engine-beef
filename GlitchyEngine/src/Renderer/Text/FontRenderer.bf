@@ -33,7 +33,7 @@ namespace GlitchyEngine.Renderer.Text
 			InitFreetype();
 
 			// TODO: We might get away with a non blocking load here, but not for now!
-			_msdfEffect = Content.LoadAsset("Resources/Shaders/msdfShader.hlsl", null, true);
+			_msdfEffect = Content.LoadAsset("Resources/Shaders/msdfShader.fx", null, true);
 			_msdfMaterial = new Material(_msdfEffect);
 
 			s_isInitialized = true;

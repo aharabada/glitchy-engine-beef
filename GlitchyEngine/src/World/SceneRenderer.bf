@@ -47,7 +47,7 @@ class SceneRenderer
 			});
 		_cameraTarget.[Friend]Identifier = "Camera Target";
 
-		_gammaCorrectEffect = Content.LoadAsset("Resources/Shaders/GammaCorrect.hlsl", null, true);
+		_gammaCorrectEffect = Content.LoadAsset("Resources/Shaders/GammaCorrect.fx", null, true);
 	}
 
 	/// Sets the size of the viewport into which the scene will be rendered.

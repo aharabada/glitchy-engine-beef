@@ -150,8 +150,6 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			//LineEffect = Content.LoadAsset("Shaders\\lineShader.hlsl");
-
 			LineGeometry = new GeometryBinding();
 			LineGeometry.SetPrimitiveTopology(.LineList);
 			
@@ -180,8 +178,8 @@ namespace GlitchyEngine.Renderer
 
 		static void InitDeferredRenderer()
 		{
-			TestFullscreenEffect = Content.LoadAsset("Resources/Shaders/simpleLight.hlsl", null, true);
-			s_tonemappingEffect = Content.LoadAsset("Resources/Shaders/SimpleTonemapping.hlsl", null, true);
+			TestFullscreenEffect = Content.LoadAsset("Resources/Shaders/simpleLight.fx", null, true);
+			s_tonemappingEffect = Content.LoadAsset("Resources/Shaders/SimpleTonemapping.fx", null, true);
 
 			_gBuffer = new GBuffer();
 			BlendStateDescription gBufferBlendDesc = .Default;
