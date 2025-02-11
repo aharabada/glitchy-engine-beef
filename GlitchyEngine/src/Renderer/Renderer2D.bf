@@ -484,6 +484,8 @@ namespace GlitchyEngine.Renderer
 			{
 				s_currentCircleEffect = s_circleBatchEffect;
 			}*/
+			
+			sceneViewProjection = camera.ViewProjection;
 
 			s_currentLineEffect = s_lineBatchEffect;
 
