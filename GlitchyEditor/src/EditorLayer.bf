@@ -514,7 +514,7 @@ namespace GlitchyEditor
 				Matrix world = Billboard(transform.WorldTransform);
 				
 				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
-				Renderer2D.DrawQuad(world, _editorIcons.Camera, ColorRGBA(alpha, alpha, alpha, alpha), .(0, 0, 1, 1), entity.Index);
+				Renderer2D.DrawQuad(world, _editorIcons.Camera, null, ColorRGBA(alpha, alpha, alpha, alpha), .(0, 0, 1, 1), entity.Index);
 				//Renderer2D.DrawQuad(world, _iconCamera, .White, .(0, 0, 1, 1), entity.Index);
 			}
 
@@ -535,7 +535,7 @@ namespace GlitchyEditor
 				Matrix world = Billboard(transform.WorldTransform);
 				
 				float alpha = CalculateAlpha(transform.WorldTransform.Translation);
-				Renderer2D.DrawQuad(world, _editorIcons.DirectionalLight, ColorRGBA(light.SceneLight.Color.R * alpha, light.SceneLight.Color.G * alpha, light.SceneLight.Color.B * alpha, alpha), .(0, 0, 1, 1), entity.Index);
+				Renderer2D.DrawQuad(world, _editorIcons.DirectionalLight, null, ColorRGBA(light.SceneLight.Color.R * alpha, light.SceneLight.Color.G * alpha, light.SceneLight.Color.B * alpha, alpha), .(0, 0, 1, 1), entity.Index);
 			}
 			
 			for (var (entity, transform, collider) in _activeScene.GetEntities<TransformComponent, BoxCollider2DComponent>())

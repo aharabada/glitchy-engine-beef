@@ -1,60 +1,30 @@
+#define EDITOR
+
+#include "GlitchyEngine2D.hlsl"
+#include "ShaderHelpers.hlsl"
+
 Texture2D<float3> Texture : register(t0);
 SamplerState Sampler : register(s0);
 
-cbuffer Constants
+cbuffer Material
 {
-    float4x4 ViewProjection;
     float2 UnitRange;
-    float screenPixelRange = 2;
 }
 
-struct VS_Input
+VS_Output VS(VS_Input input)
 {
-    float2 Position    : POSITION;
-    float2 Texcoord    : TEXCOORD0;
-    float4x4 Tranform  : TRANSFORM;
-    float4 Color       : COLOR;
-    float4 UVTransform : TEXCOORD1;
-};
+    VS_Output output;
 
-struct PS_Input
-{
-    float4 Position : SV_Position;
-    float2 TexCoord : TEXCOORD0;
-    float4 Color    : COLOR;
-};
-
-PS_Input VS(VS_Input input)
-{
-    PS_Input output;
-
-    output.Position = mul(ViewProjection, mul(input.Tranform, float4(input.Position, 0.0f, 1.0f)));
-    output.TexCoord = input.UVTransform.xy + input.UVTransform.zw * input.Texcoord;
+    output.Position = mul(ViewProjection, mul(input.Transform, float4(input.Position, 0.0f, 1.0f)));
+    output.Texcoord = TransformTexcoords(input.Texcoord, input.UVTransform);
     output.Color = input.Color;
+
+#ifdef EDITOR
+    output.EntityId = input.EntityId;
+#endif
 
     return output;
 }
-
-/*
-in vec2 texCoord;
-out vec4 color;
-uniform sampler2D msdf;
-uniform vec4 bgColor;
-uniform vec4 fgColor;
-
-float median(float r, float g, float b) {
-    return max(min(r, g), min(max(r, g), b));
-}
-
-void main() {
-    vec3 msd = texture(msdf, texCoord).rgb;
-    float sd = median(msd.r, msd.g, msd.b);
-    float screenPxDistance = screenPxRange()*(sd - 0.5);
-    float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
-    color = mix(bgColor, fgColor, opacity);
-}
-*/
-
 
 float median(float r, float g, float b)
 {
@@ -67,31 +37,32 @@ float ScreenPxRange(float2 texcoord)
     return max(0.5f * dot(UnitRange, screenTexSize), 1.0f);
 }
 
-float4 PS(PS_Input input) : SV_Target0
+struct PS_Output
 {
-    float3 msd = Texture.Sample(Sampler, input.TexCoord);
+    float4 Color : SV_Target0;
+#ifdef EDITOR
+    uint EntityId : SV_TARGET1;
+#endif
+};
+
+PS_Output PS(PS_Input input)
+{
+    PS_Output output;
+
+    float3 msd = Texture.Sample(Sampler, input.Texcoord);
     float sd = median(msd.r, msd.g, msd.b);
-    float screenPxDistance = ScreenPxRange(input.TexCoord) * (sd - 0.5);
+    float screenPxDistance = ScreenPxRange(input.Texcoord) * (sd - 0.5);
     float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
 
     clip(opacity - 0.001f);
 
-    //return float4(input.Color.rgb, opacity * input.Color.a) * 0.0001f + float4(opacity.xxxx);
-    return input.Color * opacity; // TODO: This is not quite right // float4(input.Color.rgb, input.Color.a * opacity);
-    //return float4(input.Color.rgb, opacity * input.Color.a) * 0.0001f + float4(msd, 1.0f);
-}
+    output.Color = float4(input.Color.rgb, input.Color.a * opacity);
 
-/*
-// 2D
-float4 PS(PS_Input input) : SV_Target0
-{
-    float3 msd = Texture.Sample(Sampler, input.TexCoord).rgb;
-    float sd = median(msd.r, msd.g, msd.b);
-    float screenPxDistance = screenPixelRange*(sd - 0.5);
-    float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
+#ifdef EDITOR
+    output.EntityId = input.EntityId;
+#endif
 
-    return float4(input.Color.rgb, opacity * input.Color.a);
+    return output;
 }
-*/
 
 #pragma Effect[VS=VS; PS=PS]

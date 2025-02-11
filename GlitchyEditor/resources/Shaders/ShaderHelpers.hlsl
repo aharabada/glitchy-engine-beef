@@ -87,4 +87,15 @@ float GetBitangentHandedness(float tangentz)
     return (z & 1) > 0 ? 1.0 : -1.0;
 }
 
+/**
+ * Transforms the given texture coordinates using the provided UV transform.
+ * @param texcoords The texture coordinates to transform.
+ * @param uvTransform the UV transform. X, Y: UV offset | Z, W: UV scaling.
+ * @return The transformed uv coordinates.
+ */
+float2 TransformTexcoords(float2 texcoords, float4 uvTransform)
+{
+    return uvTransform.xy + uvTransform.zw * texcoords;
+}
+
 #endif // __SHADER_HELPERS_HLSL__

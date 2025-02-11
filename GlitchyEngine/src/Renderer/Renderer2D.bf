@@ -113,14 +113,14 @@ namespace GlitchyEngine.Renderer
 		
 		struct QueueLine: this(float4 Start, float4 End, ColorRGBA Color, float Depth, uint32 entityId = uint32.MaxValue) { }
 
-		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, float4 uvTransform, uint32 entityId = uint32.MaxValue) { }
+		struct QueueQuad: this(Matrix Transform, ColorRGBA Color, Texture Texture, Material Material, float Depth, float4 uvTransform, uint32 entityId = uint32.MaxValue) { }
 
 		struct QueueCircle : QueueQuad
 		{
 			public float InnerRadius;
 
-			public this(Matrix Transform, ColorRGBA Color, Texture Texture, float Depth, float4 uvTransform, float innerRadius, uint32 entityId = uint32.MaxValue)
-				 : base(Transform, Color, Texture, Depth, uvTransform, entityId)
+			public this(Matrix Transform, ColorRGBA Color, Texture Texture, Material material, float Depth, float4 uvTransform, float innerRadius, uint32 entityId = uint32.MaxValue)
+				 : base(Transform, Color, Texture, material, Depth, uvTransform, entityId)
 			{
 				InnerRadius = innerRadius;
 			}
@@ -130,6 +130,8 @@ namespace GlitchyEngine.Renderer
 		private static bool s_initialized;
 		private static bool s_sceneRunning;
 #endif
+
+		private static Matrix sceneViewProjection;
 
 		private static AssetHandle<Effect> s_quadBatchEffect;
 		private static Material s_quadBatchMaterial ~ _?.ReleaseRef();
@@ -524,12 +526,12 @@ namespace GlitchyEngine.Renderer
 
 			s_currentLineEffect = s_lineBatchEffect;
 
-			Matrix viewProjection = camera.Projection * Matrix.Invert(transform);
+			sceneViewProjection = camera.Projection * Matrix.Invert(transform);
 			
-			s_quadBatchMaterial.SetVariable("ViewProjection", viewProjection);
+			s_quadBatchMaterial.SetVariable("ViewProjection", sceneViewProjection);
 			//s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
+			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
 
 			s_drawOrder = drawOrder;
 			
@@ -566,12 +568,12 @@ namespace GlitchyEngine.Renderer
 
 			s_currentLineEffect = s_lineBatchEffect;
 
-			Matrix viewProjection = camera.Projection * camera.View;
+			sceneViewProjection = camera.Projection * camera.View;
 			
 			//s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
-			s_quadBatchMaterial.SetVariable("ViewProjection", viewProjection);
-			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
+			s_quadBatchMaterial.SetVariable("ViewProjection", sceneViewProjection);
+			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
+			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
 
 			s_drawOrder = drawOrder;
 			
@@ -606,17 +608,17 @@ namespace GlitchyEngine.Renderer
 
 		/// Adds a quad instance to the instance queue.
 		[Inline]
-		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture texture, float depth, float4 uvTransform, uint32 id = uint32.MaxValue)
+		private static void QueueQuadInstance(Matrix transform, ColorRGBA color, Texture texture, Material material, float depth, float4 uvTransform, uint32 id = uint32.MaxValue)
 		{
-			s_QuadinstanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, depth, uvTransform, id));
+			s_QuadinstanceQueue.Add(QueueQuad(transform, color, texture ?? s_whiteTexture, material, depth, uvTransform, id));
 			s_statistics.QuadCount++;
 		}
 		
 		/// Adds a circle instance to the instance queue.
 		[Inline]
-		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, float depth, float4 uvTransform, float innerRadius, uint32 id = uint32.MaxValue)
+		private static void QueueCircleInstance(Matrix transform, ColorRGBA color, Texture2D texture, Material material, float depth, float4 uvTransform, float innerRadius, uint32 id = uint32.MaxValue)
 		{
-			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, depth, uvTransform, innerRadius, id));
+			s_circleInstanceQueue.Add(QueueCircle(transform, color, texture ?? s_whiteTexture, material, depth, uvTransform, innerRadius, id));
 			s_statistics.CircleCount++;
 		}
 			
@@ -628,7 +630,7 @@ namespace GlitchyEngine.Renderer
 			s_statistics.LineCount++;
 		}
 
-		private static void FlushQuadInstances(Texture texture)
+		private static void FlushQuadInstances(Material material, Texture texture)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -639,11 +641,11 @@ namespace GlitchyEngine.Renderer
 			
 			//s_currentQuadEffect.ApplyChanges();
 			//s_currentQuadEffect.Bind();
-			s_quadBatchMaterial.Bind();
+			material.Bind();
 
 			using (TextureViewBinding tvb = texture.GetViewBinding())
 			{
-				if (s_quadBatchMaterial.Effect.Textures.TryGetValue("Texture", let textureEntry))
+				if (material.Effect.Textures.TryGetValue("Texture", let textureEntry))
 				{
 					if (textureEntry.PsSlot != null)
 					{
@@ -721,7 +723,14 @@ namespace GlitchyEngine.Renderer
 		// Circle comparison
 		private static int TextureComparison(QueueCircle lhs, QueueCircle rhs)
 		{
-			return (int)Internal.UnsafeCastToPtr(lhs.Texture) - (int)Internal.UnsafeCastToPtr(rhs.Texture);
+			// When we sort by texture, we can choose the most optimal order.
+			// So we sort by material first, so we don't have to change too much state all the time.
+			int materialCmp = (int)Internal.UnsafeCastToPtr(lhs.Texture) <=> (int)Internal.UnsafeCastToPtr(rhs.Texture);
+
+			if (materialCmp != 0)
+				return materialCmp;
+			else
+				return (int)Internal.UnsafeCastToPtr(lhs.Texture) - (int)Internal.UnsafeCastToPtr(rhs.Texture);
 		}
 		private static int BackToFrontComparison(QueueCircle lhs, QueueCircle rhs)
 		{
@@ -799,13 +808,11 @@ namespace GlitchyEngine.Renderer
 			// TODO: per object blendstate
 			RenderCommand.SetBlendState(s_transparentBlendState);
 
-			let quadMaterial = s_quadBatchMaterial;//s_currentQuadEffect.Get();
-
-			if (quadMaterial == null)
-				return;
-
 			Texture texture = s_QuadinstanceQueue[0].Texture;
-			//quadMaterial.SetTexture("Texture", .Invalid);
+			Material material = s_QuadinstanceQueue[0].Material;
+
+			// TODO: Actually use an engine buffer?
+			material.SetVariable("ViewProjection", sceneViewProjection);
 
 			s_setQuadInstances = 0;
 
@@ -814,23 +821,23 @@ namespace GlitchyEngine.Renderer
 				var quad = ref s_QuadinstanceQueue[i];
 
 				// flush every time the texture changes
-				if(quad.Texture != texture)
+				if(quad.Texture != texture || quad.Material != material)
 				{
-					FlushQuadInstances(texture);
+					FlushQuadInstances(material, texture);
 
+					material = quad.Material;
 					texture = quad.Texture;
-					//quadMaterial.SetTexture("Texture", .Invalid);
 				}
 
 				s_rawQuadInstances[s_setQuadInstances++] = .(quad.Transform, quad.Color, quad.uvTransform, quad.entityId);
 				
 				if(s_setQuadInstances == s_rawQuadInstances.Count)
 				{
-					FlushQuadInstances(texture);
+					FlushQuadInstances(material, texture);
 				}
 			}
-
-			FlushQuadInstances(texture);
+			
+			FlushQuadInstances(material, texture);
 
 			s_QuadinstanceQueue.Clear();
 		}
@@ -1019,28 +1026,28 @@ namespace GlitchyEngine.Renderer
 
 		public static void DrawQuad(float2 position, float2 size, float rotation, ColorRGBA color)
 		{
-			DrawQuad(float3(position, 0.0f), size, rotation, s_whiteTexture, color);
+			DrawQuad(float3(position, 0.0f), size, rotation, s_whiteTexture, s_quadBatchMaterial, color);
 		}
 
 		/// Like DrawQuad but the pivot point is the top left corner
 		public static void DrawQuadPivotCorner(float2 position, float2 size, float rotation, ColorRGBA color)
 		{
-			DrawQuadPivotCorner(float3(position, 0.0f), size, rotation, s_whiteTexture, color);
+			DrawQuadPivotCorner(float3(position, 0.0f), size, rotation, s_whiteTexture, s_quadBatchMaterial, color);
 		}
 		
 		public static void DrawQuad(float3 position, float2 size, float rotation, ColorRGBA color)
 		{
-			DrawQuad(position, size, rotation, s_whiteTexture, color);
+			DrawQuad(position, size, rotation, s_whiteTexture, s_quadBatchMaterial, color);
 		}
 		
 		public static void DrawQuadPivotCorner(float3 position, float2 size, float rotation, ColorRGBA color)
 		{
-			DrawQuadPivotCorner(position, size, rotation, s_whiteTexture, color);
+			DrawQuadPivotCorner(position, size, rotation, s_whiteTexture, s_quadBatchMaterial, color);
 		}
 		
 		public static void DrawQuad(Matrix transform, ColorRGBA color)
 		{
-			DrawQuad(transform, s_whiteTexture, color);
+			DrawQuad(transform, s_whiteTexture, s_quadBatchMaterial, color);
 		}
 
 		// Quad Subtexture
@@ -1057,59 +1064,59 @@ namespace GlitchyEngine.Renderer
 
 		// Subtex only
 
-		public static void DrawQuad(float2 position, float2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
+		public static void DrawQuad(float2 position, float2 size, float rotation, SubTexture2D texture, Material material = null, ColorRGBA color = .White)
 		{
-			DrawQuad(float3(position, 0.0f), size, rotation, texture.Texture, .White, texture.TexCoords);
+			DrawQuad(float3(position, 0.0f), size, rotation, texture.Texture, material, color, texture.TexCoords);
 		}
 
-		public static void DrawQuad(float3 position, float2 size, float rotation, SubTexture2D texture, ColorRGBA color = .White)
+		public static void DrawQuad(float3 position, float2 size, float rotation, SubTexture2D texture, Material material = null, ColorRGBA color = .White)
 		{
-			DrawQuad(position, size, rotation, texture.Texture, .White, texture.TexCoords);
+			DrawQuad(position, size, rotation, texture.Texture, material, color, texture.TexCoords);
 		}
 		
-		public static void DrawQuad(Matrix transform, SubTexture2D texture, ColorRGBA color = .White)
+		public static void DrawQuad(Matrix transform, SubTexture2D texture, Material material = null, ColorRGBA color = .White)
 		{
-			DrawQuad(transform, texture.Texture, color, texture.TexCoords);
+			DrawQuad(transform, texture.Texture, material, color, texture.TexCoords);
 		}
 
 		// Subtex + Texcoords
 		
-		public static void DrawQuad(float2 position, float2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float2 position, float2 size, float rotation, SubTexture2D subtexture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
 			float4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
 
-			DrawQuad(float3(position, 0.0f), size, rotation, subtexture.Texture, .White, uv);
+			DrawQuad(float3(position, 0.0f), size, rotation, subtexture.Texture, material, color, uv);
 		}
 
-		public static void DrawQuad(float3 position, float2 size, float rotation, SubTexture2D subtexture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float3 position, float2 size, float rotation, SubTexture2D subtexture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
 			float4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
 
-			DrawQuad(position, size, rotation, subtexture.Texture, .White, uv);
+			DrawQuad(position, size, rotation, subtexture.Texture, material, color, uv);
 		}
 
-		public static void DrawQuad(Matrix transform, SubTexture2D subtexture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
+		public static void DrawQuad(Matrix transform, SubTexture2D subtexture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
 			float4 uv = CalculateSubTexcoords(subtexture.TexCoords, uvTransform);
 
-			DrawQuad(transform, subtexture.Texture, color, uv, entityId);
+			DrawQuad(transform, subtexture.Texture, material, color, uv, entityId);
 		}
 		
 		// Textured Quad
 
-		public static void DrawQuad(float2 position, float2 size, float rotation, Texture texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float2 position, float2 size, float rotation, Texture texture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawQuad(float3(position, 0.0f), size, rotation, texture, color, uvTransform);
+			DrawQuad(float3(position, 0.0f), size, rotation, texture, material, color, uvTransform);
 		}
 
-		public static void DrawQuad(float3 position, float2 size, float rotation, Texture texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuad(float3 position, float2 size, float rotation, Texture texture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
 			Matrix transform = Calculate2DTransform(position, size, rotation);
 
-			DrawQuad(transform, texture, color, uvTransform);
+			DrawQuad(transform, texture, material, color, uvTransform);
 		}
 
-		public static void DrawQuad(Matrix transform, Texture texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
+		public static void DrawQuad(Matrix transform, Texture texture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1), uint32 entityId = uint32.MaxValue)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
 
@@ -1117,7 +1124,7 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
 
-			QueueQuadInstance(transform, color, texture, transform.Translation.Z, uvTransform, entityId);
+			QueueQuadInstance(transform, color, texture, material ?? s_quadBatchMaterial, transform.Translation.Z, uvTransform, entityId);
 
 			if(s_drawOrder == .Immediate)
 			{
@@ -1142,7 +1149,8 @@ namespace GlitchyEngine.Renderer
 				uvTransform = sprite.TextureCoordinates;
 			}
 
-			DrawQuad(transform, spriteTexture ?? s_whiteTexture, spriteRenderer.Color, uvTransform, entityId);
+			// TODO: Material for Sprite renderer
+			DrawQuad(transform, spriteTexture ?? s_whiteTexture, null, spriteRenderer.Color, uvTransform, entityId);
 		}
 
 		public static void DrawCircle(Matrix transform, CircleRendererComponent* spriteRenderer, uint32 entityId)
@@ -1152,14 +1160,14 @@ namespace GlitchyEngine.Renderer
 
 		// Textured quad pivot
 
-		public static void DrawQuadPivotCorner(float2 position, float2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuadPivotCorner(float2 position, float2 size, float rotation, Texture2D texture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawQuadPivotCorner(float3(position, 0.0f), size, rotation, texture, color, uvTransform);
+			DrawQuadPivotCorner(float3(position, 0.0f), size, rotation, texture, material, color, uvTransform);
 		}
 
-		public static void DrawQuadPivotCorner(float3 position, float2 size, float rotation, Texture2D texture, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
+		public static void DrawQuadPivotCorner(float3 position, float2 size, float rotation, Texture2D texture, Material material = null, ColorRGBA color = .White, float4 uvTransform = .(0, 0, 1, 1))
 		{
-			DrawQuad(position + float3(size.X / 2, size.Y / -2, 0), size, rotation, texture, color, uvTransform);
+			DrawQuad(position + float3(size.X / 2, size.Y / -2, 0), size, rotation, texture, material, color, uvTransform);
 		}
 
 		// Circle
@@ -1194,7 +1202,8 @@ namespace GlitchyEngine.Renderer
 			Log.EngineLogger.AssertDebug(s_sceneRunning, "Missing call of BeginScene.");
 #endif
 
-			QueueCircleInstance(transform, color, texture, transform.Translation.Z, uvTransform, innerRadius, entityId);
+			Runtime.FatalError("Circle renderer currently broken, do we need it?");
+			QueueCircleInstance(transform, color, texture, null, transform.Translation.Z, uvTransform, innerRadius, entityId);
 
 			if(s_drawOrder == .Immediate)
 			{

@@ -19,6 +19,7 @@ namespace GlitchyEngine.Renderer.Text
 		internal static FT_Library s_Library;
 
 		public static AssetHandle<Effect> _msdfEffect;
+		public static Material _msdfMaterial ~ _?.ReleaseRef();
 
 		internal static bool s_isInitialized;
 
@@ -33,6 +34,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			// TODO: We might get away with a non blocking load here, but not for now!
 			_msdfEffect = Content.LoadAsset("Resources/Shaders/msdfShader.hlsl", null, true);
+			_msdfMaterial = new Material(_msdfEffect);
 
 			s_isInitialized = true;
 		}
@@ -558,9 +560,9 @@ namespace GlitchyEngine.Renderer.Text
 			textRenderer.NeedsRebuild = false;
 		}
 
-		public static void DrawText(PreparedText text, Matrix transform, ColorRGBA fontColor = .White)
+		public static void DrawText(PreparedText text, Matrix transform, ColorRGBA fontColor = .White, uint32 entityId = uint32.MaxValue)
 		{
-			/*Debug.Profiler.ProfileRendererFunction!();
+			Debug.Profiler.ProfileRendererFunction!();
 
 			text.AddRef();
 			defer text.ReleaseRef();
@@ -568,20 +570,9 @@ namespace GlitchyEngine.Renderer.Text
 			if (text.Glyphs.Count == 0)
 				return;
 
-			Renderer2D.Flush();
-
-			// TODO: this is very not good!
-			// At some point we will support using materials with the 2D renderer. At that point we can simply bind different materials with fonts (or glyphs?) and don't need this hack anymore. One day...
-			var lastEffect = Renderer2D.[Friend]s_currentQuadEffect;
-			Renderer2D.[Friend]s_currentQuadEffect = _msdfEffect;
-			// TODO: oh no....
-			// Copy viewProjection from current effect
-			Matrix viewProjection = Renderer2D.[Friend]s_quadBatchEffect.Variables["ViewProjection"].[Friend]GetData<Matrix>();
-			_msdfEffect.Variables["ViewProjection"].SetData(viewProjection);
-			
-			// TODO: this doesn't really work with fallback fonts
+			// TODO: this doesn't really work with fallback fonts unless we use the same settings for all fonts
 			float2 unitRange = ((float)text.Font._range) / float2(text.Font._atlas.Width, text.Font._atlas.Height);
-			_msdfEffect.Variables["UnitRange"].SetData(unitRange);
+			_msdfMaterial.SetVariable("UnitRange", unitRange);
 			
 			List<Texture2D> atlasses = scope .();
 
@@ -608,11 +599,9 @@ namespace GlitchyEngine.Renderer.Text
 				float2 atlasSize = .(atlas.Width, atlas.Height);
 
 				float adjustToPenX = glyphDesc.AdjustToPen;
-				//adjustToPenX *= glyphFontScale;
 				adjustToPenX *= glyph.Scale;
 
 				float adjustToBaseline = glyphDesc.AdjustToBaseLine;
-				//adjustToBaseline *= glyphFontScale;
 				adjustToBaseline *= glyph.Scale;
 
 				// Rectangle on the screen
@@ -630,31 +619,25 @@ namespace GlitchyEngine.Renderer.Text
 
 				texRect /= float4(atlasSize, atlasSize);
 
-				// Show quads
-				// Renderer2D.DrawQuad(float3(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 1), .(viewportRect.Z, viewportRect.W), 0, .Red);
-
 				float3 position = .(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 0);
 
 				Matrix glyphTransform = transform * Matrix.Translation(position) * Matrix.Scaling(viewportRect.Z, viewportRect.W, 1.0f);
 				
-				Renderer2D.DrawQuad(glyphTransform, atlas, glyphColor, texRect);
-				//Renderer2D.DrawQuad(float2(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2), .(viewportRect.Z, viewportRect.W), 0, atlas, glyphColor, texRect);
-
-				// Show pen positions
-				// Renderer2D.DrawQuad(float3(float2(x, y) + glyph.Position, -1), .(1), 0, .Green);
+				Renderer2D.DrawQuad(glyphTransform, atlas, material: _msdfMaterial, color: glyphColor, uvTransform: texRect, entityId: entityId);
 			}
 
+			// TODO: Get rid of the flush.
+			// We need to flush, because currently Renderer2D doesn't increase the counter of passed textures.
+			// Once it does that, we can
+			// 1. Stop manually holding the references in this method
+			// 2. Stop forcing a flush (which could make having multiple text instances way more efficient)
 			Renderer2D.Flush();
 
-			// TODO: not good!
-			// Change back effect
-			Renderer2D.[Friend]s_currentQuadEffect = lastEffect;
-			
 			// release all atlas textures
 			for(int i < atlasses.Count)
 			{
 				atlasses[i].ReleaseRef();
-			}*/
+			}
 		}
 	}
 }

@@ -1,41 +1,17 @@
 #define EDITOR
 
+#include "GlitchyEngine2D.hlsl"
+#include "ShaderHelpers.hlsl"
+
 Texture2D Texture : register(t0);
 SamplerState Sampler : register(s0);
 
-cbuffer Constants : register(b0)
+VS_Output VS(VS_Input input)
 {
-    float4x4 ViewProjection;
-};
-
-struct VS_Input
-{
-    float2 Position     : POSITION;
-    float2 Texcoord     : TEXCOORD0;
-    float4x4 Transform  : TRANSFORM;
-    float4 Color        : COLOR;
-    float4 UVTransform  : TEXCOORD1;
-#ifdef EDITOR
-    uint EntityId : ENTITYID;
-#endif
-};
-
-struct PS_Input
-{
-    float4 Position : SV_Position;
-    float2 Texcoord : TEXCOORD;
-    float4 Color    : COLOR;
-#ifdef EDITOR
-    nointerpolation uint EntityId : ENTITYID;
-#endif
-};
-
-PS_Input VS(VS_Input input)
-{
-    PS_Input output;
+    VS_Output output;
 
     output.Position = mul(ViewProjection, mul(input.Transform, float4(input.Position, 0.0f, 1.0f)));
-    output.Texcoord = input.UVTransform.xy + input.UVTransform.zw * input.Texcoord;
+    output.Texcoord = TransformTexcoords(input.Texcoord, input.UVTransform);
     output.Color = input.Color;
 
     // Premultiply Alpha
