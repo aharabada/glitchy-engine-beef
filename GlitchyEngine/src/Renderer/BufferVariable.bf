@@ -109,6 +109,26 @@ namespace GlitchyEngine.Renderer
 #endif
 		}
 
+		public enum TypematchResult
+		{
+			Ok,
+			MatrixDimensionMismatch,
+			ElementTypeMismatch,
+		}
+
+		public TypematchResult CheckTypematch(int rows, int cols, ShaderVariableType type)
+		{
+			Debug.Profiler.ProfileRendererFunction!();
+
+			if (rows != _rows || cols != _columns)
+				return .MatrixDimensionMismatch;
+
+			if (type != _elementType)
+				return .ElementTypeMismatch;
+
+			return .Ok;
+		}
+
 		public void EnsureTypeMatch<T>()
 		{
 			switch(typeof(T))

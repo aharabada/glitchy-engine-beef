@@ -3,6 +3,7 @@ using System.Numerics;
 using System.Runtime.CompilerServices;
 using GlitchyEngine.Core;
 using GlitchyEngine.Editor;
+using GlitchyEngine.Graphics;
 using GlitchyEngine.Graphics.Text;
 using GlitchyEngine.Math;
 using GlitchyEngine.Physics;
@@ -256,6 +257,28 @@ internal static class ScriptGlue
 
 #endregion
 
+#region SpriteRenderer
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void SpriteRenderer_GetColor(UUID entityId, out ColorRGBA color);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void SpriteRenderer_SetColor(UUID entityId, ColorRGBA color);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void SpriteRenderer_GetUvTransform(UUID entityId, out UVTransform uvTransform);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void SpriteRenderer_SetUvTransform(UUID entityId, UVTransform uvTransform);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void SpriteRenderer_GetMaterial(UUID entityId, out UUID materialId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void SpriteRenderer_SetMaterial(UUID entityId, UUID materialId);
+
+#endregion
+
 #region TextRenderer
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -290,6 +313,17 @@ internal static class ScriptGlue
     
 #endregion
 
+#region MeshRenderer
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void MeshRenderer_GetMaterial(UUID entityId, out UUID materialId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void MeshRenderer_SetMaterial(UUID entityId, UUID materialId);
+
+
+#endregion
+
 #region Math
     
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -309,7 +343,7 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void UUID_CreateNew(out UUID uuid);
 
-    #region Application
+#region Application
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern bool Application_IsEditor();
@@ -323,9 +357,9 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern bool Application_IsInPlayMode();
 
-    #endregion
+#endregion
 
-    #region Serialization
+#region Serialization
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string name, object? value, string? fullTypeName = null);
@@ -342,7 +376,32 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern void Serialization_GetObjectTypeName(IntPtr internalContext, out string fullTypeName);
 
-    #endregion
+#endregion
+
+#region Asset
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Asset_GetIdentifier(UUID assetId, out string text);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void Asset_SetIdentifier(UUID assetId, string text);
+
+#endregion
+
+#region Material
+
+    public enum ShaderVariableType : byte
+    {
+        Bool,
+        Float,
+        Int,
+        UInt
+    }
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern unsafe bool Material_SetVariable(UUID assetId, String variableName, ShaderVariableType elementType, int rows, int columns, int arrayLength, void* rawData, int dataLength);
+
+#endregion
 
 #region ImGui
 

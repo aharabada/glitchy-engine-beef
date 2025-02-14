@@ -26,7 +26,7 @@ public class CircleRenderer : Component
     /// <summary>
     /// Gets or sets the UV transform for the texture. XY are an offset, ZW are scaling
     /// </summary>
-    public float4 UvTransform
+    public float4 UVTransform
     {
         get
         {

@@ -1,0 +1,13 @@
+{
+	AssetLoader = null,
+	Config = null,
+	Importer = "MaterialImporter",
+	ImporterConfig = null,
+	Processor = null,
+	ProcessorConfig = null,
+	Exporter = null,
+	ExporterConfig = {
+		_compression = .None
+	},
+	AssetHandle = 14657247797693923776
+}

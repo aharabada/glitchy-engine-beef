@@ -187,11 +187,12 @@ class TextureViewer
 			Width = 100,
 			Height = 100,
 			ColorTargetDescriptions = TargetDescription[](
-				.(.R8G8B8A8_UNorm, clearColor: .Color(ColorRGBA.Pink)),
-				.(.R32_UInt)
+				.(.R8G8B8A8_UNorm, clearColor: .Color(ColorRGBA.Pink), ownDebugName: new $"Color"),
+				.(.R32_UInt, ownDebugName: new $"Enity ID (Unused)")
 			),
-			DepthTargetDescription = .(.D24_UNorm_S8_UInt)
+			DepthTargetDescription = .(.D24_UNorm_S8_UInt, ownDebugName: new $"Depth Stencil")
 		});
+		_targets.[Friend]Identifier = "Asset Viewer";
 	}
 	
 	float2 _position;

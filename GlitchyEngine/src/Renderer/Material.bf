@@ -196,7 +196,7 @@ public class Material : Asset
 		}
 	}
 
-	private mixin SetVariable(String name, var value)
+	private mixin SetVariable(StringView name, var value)
 	{
 		if(_variables.TryGetValue(name, let entry))
 		{
@@ -204,35 +204,72 @@ public class Material : Asset
 		}
 	}
 
-	public void SetVariable(String name, bool value) => SetVariable!(name, value);
-	public void SetVariable(String name, bool2 value) => SetVariable!(name, value);
-	public void SetVariable(String name, bool3 value) => SetVariable!(name, value);
-	public void SetVariable(String name, bool4 value) => SetVariable!(name, value);
-
-	public void SetVariable(String name, int32 value) => SetVariable!(name, value);
-	public void SetVariable(String name, int2 value) => SetVariable!(name, value);
-	public void SetVariable(String name, int3 value) => SetVariable!(name, value);
-	public void SetVariable(String name, int4 value) => SetVariable!(name, value);
+	public enum SetVariableError
+	{
+		VariableNotFound,
+		ElementTypeMismatch,
+		MatrixDimensionMismatch,
+		ProvidedBufferTooShort,
+	}
 	
-	public void SetVariable(String name, uint32 value) => SetVariable!(name, value);
-	public void SetVariable(String name, uint2 value) => SetVariable!(name, value);
-	public void SetVariable(String name, uint3 value) => SetVariable!(name, value);
-	public void SetVariable(String name, uint4 value) => SetVariable!(name, value);
+	internal Result<void, SetVariableError> SetVariableRaw(StringView name, ShaderVariableType elementType, int32 rows, int32 columns, int32 arrayLength, Span<uint8> rawData)
+	{
+		if(!_variables.TryGetValue(name, let variable))
+		{
+			return .Err(.VariableNotFound);
+		}
 
-	public void SetVariable(String name, float value) => SetVariable!(name, value);
-	public void SetVariable(String name, float2 value) => SetVariable!(name, value);
-	public void SetVariable(String name, float3 value) => SetVariable!(name, value);
-	public void SetVariable(String name, float4 value) => SetVariable!(name, value);
+		let matchResult = variable.CheckTypematch(rows, columns, elementType);
 
-	public void SetVariable(String name, Color value) => SetVariable!(name, value);
-	public void SetVariable(String name, ColorRGB value) => SetVariable!(name, value);
-	public void SetVariable(String name, ColorRGBA value) => SetVariable!(name, value);
+		switch (matchResult)
+		{
+		case .Ok:
+			// Nothing went wrong.
+		case .ElementTypeMismatch:
+			return .Err(.ElementTypeMismatch);
+		case .MatrixDimensionMismatch:
+			return .Err(.MatrixDimensionMismatch);
+		}
 
-	public void SetVariable(String name, Matrix3x3 value) => SetVariable!(name, value);
-	public void SetVariable(String name, Matrix4x3 value) => SetVariable!(name, value);
-	public void SetVariable(String name, Matrix value) => SetVariable!(name, value);
+		if (rawData.Length < variable._sizeInBytes)
+			return .Err(.ProvidedBufferTooShort);
 
-	public void GetVariable<T>(String name, out T value) where T : struct
+		// TODO: This method is very stupid atm.
+		// We could e.g. allow array length mismatches by simply copying the smaller amount of elements.
+		variable.SetRawData(rawData.Ptr);
+
+		return .Ok;
+	}
+
+	public void SetVariable(StringView name, bool value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, bool2 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, bool3 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, bool4 value) => SetVariable!(name, value);
+
+	public void SetVariable(StringView name, int32 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, int2 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, int3 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, int4 value) => SetVariable!(name, value);
+
+	public void SetVariable(StringView name, uint32 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, uint2 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, uint3 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, uint4 value) => SetVariable!(name, value);
+
+	public void SetVariable(StringView name, float value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, float2 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, float3 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, float4 value) => SetVariable!(name, value);
+
+	public void SetVariable(StringView name, Color value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, ColorRGB value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, ColorRGBA value) => SetVariable!(name, value);
+
+	public void SetVariable(StringView name, Matrix3x3 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, Matrix4x3 value) => SetVariable!(name, value);
+	public void SetVariable(StringView name, Matrix value) => SetVariable!(name, value);
+
+	public void GetVariable<T>(StringView name, out T value) where T : struct
 	{
 		Debug.Profiler.ProfileRendererFunction!();
 

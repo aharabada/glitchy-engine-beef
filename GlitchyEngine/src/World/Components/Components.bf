@@ -49,6 +49,8 @@ namespace GlitchyEngine.World
 
 		public ColorRGBA Color = .White;
 		public float4 UvTransform = .(0, 0, 1, 1);
+		
+		public AssetHandle<Material> Material = .Invalid;
 
 		public this()
 		{

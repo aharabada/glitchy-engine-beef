@@ -276,9 +276,12 @@ internal class EntityEditor
 
             var value = (T)reference!;
 
-            if (format == null && value is float || value is double || value is Half)
+            if (format == null)
             {
-                format = "0.#####";
+                if (value is float || value is double || value is Half)
+                    format = "0.#####";
+                else
+                    format = "0";
             }
 
             if (!format.StartsWith("%"))
@@ -512,13 +515,43 @@ internal class EntityEditor
             {
                 newValue = ShowDecimalEditor(reference, fieldType, fieldName, attributes);
             }
+            else if (fieldType == typeof(ColorHSV))
+            {
+                string fieldId = StartNewProperty(fieldName, attributes);
+
+                ColorHSV value = (ColorHSV)reference!;
+                value.H /= 360.0f;
+                if (ImGui.ColorEdit3(fieldId, ref Unsafe.As<ColorHSV, Vector3>(ref value),
+                        ImGuiColorEditFlags.DisplayHSV | ImGuiColorEditFlags.InputHSV | ImGuiColorEditFlags.Float))
+                {
+                    value.H *= 360.0f;
+                    newValue = value;
+                }
+            }
+            else if (fieldType == typeof(ColorRGB))
+            {
+                string fieldId = StartNewProperty(fieldName, attributes);
+
+                ColorRGB value = (ColorRGB)reference!;
+                if (ImGui.ColorEdit3(fieldId, ref Unsafe.As<ColorRGB, Vector3>(ref value), ImGuiColorEditFlags.Float))
+                    newValue = value;
+            }
             else if (fieldType == typeof(ColorRGBA))
             {
                 string fieldId = StartNewProperty(fieldName, attributes);
 
                 ColorRGBA value = (ColorRGBA)reference!;
-                if (ImGui.ColorEdit4(fieldId, ref Unsafe.As<ColorRGBA, Vector4>(ref value)))
+                if (ImGui.ColorEdit4(fieldId, ref Unsafe.As<ColorRGBA, Vector4>(ref value), ImGuiColorEditFlags.Float))
                     newValue = value;
+            }
+            else if (fieldType == typeof(Color))
+            {
+                string fieldId = StartNewProperty(fieldName, attributes);
+
+                Color value = (Color)reference!;
+                ColorRGBA color = (ColorRGBA)value;
+                if (ImGui.ColorEdit4(fieldId, ref Unsafe.As<ColorRGBA, Vector4>(ref color)))
+                    newValue = (Color)color;
             }
             else if (fieldType.TryGetCustomAttribute(out VectorAttribute vectorAttribute))
             {

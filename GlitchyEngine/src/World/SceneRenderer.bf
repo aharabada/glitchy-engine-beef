@@ -233,8 +233,6 @@ class SceneRenderer
 			FontRenderer.DrawText(text.PreparedText, transform.WorldTransform, text.Color, entity.Index);
 		}
 		
-		//FontRenderer.DrawText(_smallLinesInfo, 0, 0);
-
 		Renderer2D.EndScene();
 
 		Renderer2D.BeginScene(camera, .BackToFront);

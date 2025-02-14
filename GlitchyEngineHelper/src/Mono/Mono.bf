@@ -293,6 +293,12 @@ static class Mono
 	[LinkName(.C)]
 	public static extern MonoException* mono_get_exception_argument(char8* arg, char8* msg);
 
+	[LinkName(.C)]
+	public static extern MonoException* mono_get_exception_invalid_operation(char8* msg);
+
+	[LinkName(.C)]
+	public static extern MonoException* mono_get_exception_not_implemented(char8* msg);
+
 #endregion
 
 	[LinkName(.C)]

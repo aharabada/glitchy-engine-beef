@@ -98,6 +98,7 @@ namespace GlitchyEngine.Renderer
 
 		static GBuffer _gBuffer;
 		static AssetHandle<Effect> TestFullscreenEffect;
+		static Material TestDeferredMaterial ~ _?.ReleaseRef();
 		static AssetHandle<Effect> s_tonemappingEffect;
 
 		static BlendState _gBufferBlend;
@@ -179,6 +180,9 @@ namespace GlitchyEngine.Renderer
 		static void InitDeferredRenderer()
 		{
 			TestFullscreenEffect = Content.LoadAsset("Resources/Shaders/simpleLight.fx", null, true);
+
+			TestDeferredMaterial = new Material(TestFullscreenEffect);
+
 			s_tonemappingEffect = Content.LoadAsset("Resources/Shaders/SimpleTonemapping.fx", null, true);
 
 			_gBuffer = new GBuffer();
@@ -362,32 +366,56 @@ namespace GlitchyEngine.Renderer
 				{
 					Debug.Profiler.ProfileRendererScope!("Draw Light");
 
-					Effect fsEffect = TestFullscreenEffect.Get();
+					//Effect fsEffect = TestFullscreenEffect.Get();
 
-					if (fsEffect == null)
+					if (TestDeferredMaterial == null)
 						continue;
 
 					float3 lightDir = -light.Transform.Forward;
 
-					fsEffect.SetTexture("GBuffer_Albedo", _gBuffer.Target, 0);
-					fsEffect.SetTexture("GBuffer_Normal", _gBuffer.Target, 1);
-					fsEffect.SetTexture("GBuffer_Tangent", _gBuffer.Target, 2);
-					fsEffect.SetTexture("GBuffer_Position", _gBuffer.Target, 3);
-					fsEffect.SetTexture("GBuffer_Emissive", _gBuffer.Target, 4);
-					fsEffect.SetTexture("GBuffer_Material", _gBuffer.Target, 5);
+					/*TestDeferredMaterial.SetTexture("GBuffer_Albedo", _gBuffer.Target, 0);
+					TestDeferredMaterial.SetTexture("GBuffer_Normal", _gBuffer.Target, 1);
+					TestDeferredMaterial.SetTexture("GBuffer_Tangent", _gBuffer.Target, 2);
+					TestDeferredMaterial.SetTexture("GBuffer_Position", _gBuffer.Target, 3);
+					TestDeferredMaterial.SetTexture("GBuffer_Emissive", _gBuffer.Target, 4);
+					TestDeferredMaterial.SetTexture("GBuffer_Material", _gBuffer.Target, 5);*/
 		
-					fsEffect.Variables["LightColor"].SetData(light.Light.Color);
-					fsEffect.Variables["Illuminance"].SetData(light.Light.Illuminance);
-					fsEffect.Variables["LightDir"].SetData(lightDir);
+					TestDeferredMaterial.SetVariable("LightColor", light.Light.Color);
+					TestDeferredMaterial.SetVariable("Illuminance", light.Light.Illuminance);
+					TestDeferredMaterial.SetVariable("LightDir", lightDir);
 
-					fsEffect.Variables["CameraPos"].SetData(_sceneConstants.CameraPosition);
+					TestDeferredMaterial.SetVariable("CameraPos", _sceneConstants.CameraPosition);
 
-					fsEffect.Variables["Scaling"].SetData(scaling);
+					TestDeferredMaterial.SetVariable("Scaling", scaling);
 		
-					fsEffect.ApplyChanges();
-					fsEffect.Bind();
-					
-					//RenderCommand.BindEffect(TestFullscreenEffect);
+					TestDeferredMaterial.Bind();
+
+					// TODO: Don't do that please...
+
+					using (let vb = _gBuffer.Target.GetViewBinding(0))
+					{
+						RenderCommand.BindTexture(vb, 0, .Pixel);
+					}
+					using (let vb = _gBuffer.Target.GetViewBinding(1))
+					{
+						RenderCommand.BindTexture(vb, 1, .Pixel);
+					}
+					using (let vb = _gBuffer.Target.GetViewBinding(2))
+					{
+						RenderCommand.BindTexture(vb, 2, .Pixel);
+					}
+					using (let vb = _gBuffer.Target.GetViewBinding(3))
+					{
+						RenderCommand.BindTexture(vb, 3, .Pixel);
+					}
+					using (let vb = _gBuffer.Target.GetViewBinding(4))
+					{
+						RenderCommand.BindTexture(vb, 4, .Pixel);
+					}
+					using (let vb = _gBuffer.Target.GetViewBinding(5))
+					{
+						RenderCommand.BindTexture(vb, 5, .Pixel);
+					}
 
 					FullscreenQuad.Draw();
 				}

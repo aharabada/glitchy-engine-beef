@@ -342,11 +342,12 @@ namespace GlitchyEditor
 					Width = 100,
 					Height = 100,
 					ColorTargetDescriptions = TargetDescription[](
-						.(.R16G16B16A16_Float),
-						.(.R32_UInt)
+						.(.R16G16B16A16_Float, ownDebugName: new String("HDR Color")),
+						.(.R32_UInt, ownDebugName: new String("EntityID"))
 					),
 					DepthTargetDescription = .(.D24_UNorm_S8_UInt)
 				});
+			_cameraTarget.[Friend]Identifier = "Camera Target";
 
 			_editorViewportTarget = new RenderTargetGroup(.()
 				{
@@ -355,6 +356,7 @@ namespace GlitchyEditor
 					ColorTargetDescriptions = TargetDescription[](
 						.(.R8G8B8A8_UNorm))
 				});
+			_editorViewportTarget.[Friend]Identifier = "Editor Viewport Target";
 
 			_gameViewportTarget = new RenderTargetGroup(.()
 				{
@@ -363,6 +365,7 @@ namespace GlitchyEditor
 					ColorTargetDescriptions = TargetDescription[](
 						.(.R8G8B8A8_UNorm))
 				});
+			_editorViewportTarget.[Friend]Identifier = "Game Viewport Target";
 
 			_editorIcons = new EditorIcons("Resources/Textures/EditorIcons.dds", .(64, 64));
 			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;

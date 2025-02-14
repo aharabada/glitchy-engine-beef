@@ -640,9 +640,9 @@ namespace GlitchyEngine.Renderer
 				return;
 
 			s_quadInstanceBuffer.SetData<QuadBatchVertex>(s_rawQuadInstances.Ptr, s_setQuadInstances, 0, .WriteDiscard);
-			
-			//s_currentQuadEffect.ApplyChanges();
-			//s_currentQuadEffect.Bind();
+
+			// TODO: Bind scene buffer
+			material.SetVariable("ViewProjection", sceneViewProjection);
 			material.Bind();
 
 			using (TextureViewBinding tvb = texture.GetViewBinding())
@@ -1151,8 +1151,8 @@ namespace GlitchyEngine.Renderer
 				uvTransform = sprite.TextureCoordinates;
 			}
 
-			// TODO: Material for Sprite renderer
-			DrawQuad(transform, spriteTexture ?? s_whiteTexture, null, spriteRenderer.Color, uvTransform, entityId);
+			Material material = spriteRenderer.Material.Get();
+			DrawQuad(transform, spriteTexture ?? s_whiteTexture, material, spriteRenderer.Color, uvTransform, entityId);
 		}
 
 		public static void DrawCircle(Matrix transform, CircleRendererComponent* spriteRenderer, uint32 entityId)

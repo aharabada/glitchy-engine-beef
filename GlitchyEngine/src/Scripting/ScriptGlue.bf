@@ -12,15 +12,18 @@ using GlitchyEngine.Scripting;
 using GlitchyEngine.Serialization;
 using GlitchyEngine.Editor;
 using GlitchyEngine.World.Components;
+using GlitchyEngine.Content;
+using GlitchyEngine.Renderer;
 using static GlitchyEngine.Renderer.Text.FontRenderer;
 
 namespace GlitchyEngine.Scripting;
 
 using internal GlitchyEngine.Scripting;
+using internal GlitchyEngine.Content;
 
 class MessageOrigin
 {
-	private String _fileName;
+	private String _fileName ~ delete:append _;
 	private int _lineNumber;
 
 	public StringView FileName => _fileName;
@@ -91,8 +94,11 @@ static class ScriptGlue
 		RegisterComponent<TransformComponent>("GlitchyEngine.Core.Transform");
 		RegisterComponent<Rigidbody2DComponent>("GlitchyEngine.Physics.Rigidbody2D");
 		RegisterComponent<CameraComponent>("GlitchyEngine.Core.Camera");
+		RegisterComponent<SpriteRendererComponent>("GlitchyEngine.Graphics.SpriteRenderer");
 		RegisterComponent<CircleRendererComponent>("GlitchyEngine.Graphics.CircleRenderer");
 		RegisterComponent<TextRendererComponent>("GlitchyEngine.Graphics.Text.TextRenderer");
+		RegisterComponent<MeshComponent>("GlitchyEngine.Graphics.Mesh");
+		RegisterComponent<MeshRendererComponent>("GlitchyEngine.Graphics.MeshRenderer");
 	}
 
 	[RegisterMethod]
@@ -211,11 +217,27 @@ static class ScriptGlue
 
 #region Exception Helpers
 
-	/// Throws an argument exception.
+	/// Throws an ArgumentException in the mono runtime.
 	[NoReturn]
 	static void ThrowArgumentException(char8* argument, char8* message)
 	{
 		MonoException* exception = Mono.mono_get_exception_argument(argument, message);
+		Mono.mono_raise_exception(exception);
+	}
+	
+	/// Throws an InvalidOperationException in the mono runtime.
+	[NoReturn]
+	static void ThrowInvalidOperationException(char8* message)
+	{
+		MonoException* exception = Mono.mono_get_exception_invalid_operation(message);
+		Mono.mono_raise_exception(exception);
+	}
+	
+	/// Throws an NotImplementedException in the mono runtime.
+	[NoReturn]
+	static void ThrowNotImplementedException(char8* message)
+	{
+		MonoException* exception = Mono.mono_get_exception_invalid_operation(message);
 		Mono.mono_raise_exception(exception);
 	}
 
@@ -998,6 +1020,53 @@ static class ScriptGlue
 
 #endregion
 
+#region SpriteRenderer
+
+	[RegisterCall("ScriptGlue::SpriteRenderer_GetColor")]
+	static void SpriteRenderer_GetColor(UUID entityId, out ColorRGBA color)
+	{
+		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		color = spriteRenderer.Color;
+	}
+
+	[RegisterCall("ScriptGlue::SpriteRenderer_SetColor")]
+	static void SpriteRenderer_SetColor(UUID entityId, ColorRGBA color)
+	{
+		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		spriteRenderer.Color = color;
+	}
+	
+	[RegisterCall("ScriptGlue::SpriteRenderer_GetUvTransform")]
+	static void SpriteRenderer_GetUvTransform(UUID entityId, out float4 uvTransform)
+	{
+		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		uvTransform = spriteRenderer.UvTransform;
+	}
+
+	[RegisterCall("ScriptGlue::SpriteRenderer_SetUvTransform")]
+	static void SpriteRenderer_SetUvTransform(UUID entityId, float4 uvTransform)
+	{
+		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		spriteRenderer.UvTransform = uvTransform;
+	}
+	
+	[RegisterCall("ScriptGlue::SpriteRenderer_GetMaterial")]
+	static void SpriteRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
+	{
+		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		assetId = spriteRenderer.Material;
+	}
+
+	[RegisterCall("ScriptGlue::SpriteRenderer_SetMaterial")]
+	static void SpriteRenderer_SetMaterial(UUID entityId, AssetHandle assetId)
+	{
+		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		spriteRenderer.Material = assetId;
+	}
+
+
+#endregion
+
 #region TextRenderer
 
 	[RegisterCall("ScriptGlue::TextRenderer_SetIsRichText")]
@@ -1080,6 +1149,27 @@ static class ScriptGlue
 		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
 		textComponent.FontSize = fontSize;
 		textComponent.NeedsRebuild = true;
+	}
+
+#endregion
+
+#region Mesh
+#endregion
+
+#region MeshRenderer
+
+	[RegisterCall("ScriptGlue::MeshRenderer_GetMaterial")]
+	static void MeshRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
+	{
+		MeshRendererComponent* meshRenderer = GetComponentSafe<MeshRendererComponent>(entityId);
+		assetId = meshRenderer.Material;
+	}
+
+	[RegisterCall("ScriptGlue::MeshRenderer_SetMaterial")]
+	static void MeshRenderer_SetMaterial(UUID entityId, AssetHandle assetId)
+	{
+		MeshRendererComponent* meshRenderer = GetComponentSafe<MeshRendererComponent>(entityId);
+		meshRenderer.Material = assetId;
 	}
 
 #endregion
@@ -1234,6 +1324,89 @@ static class ScriptGlue
 
 #endregion
 
+#region Asset
+
+	/*static mixin GetAssetOrThrow(UUID assetId)
+	{
+		AssetHandle handle = .(assetId);
+		Asset asset = Content.GetAsset(handle, blocking: true);
+
+		if (asset == null)
+		{
+			ThrowInvalidOperationException(scope $"No asset exists for AssetHandle \"{assetId}\".");
+		}
+
+		asset
+	}*/
+
+	static mixin GetAssetOrThrow<T>(UUID assetId) where T : Asset
+	{
+		AssetHandle handle = .(assetId);
+		T asset = Content.GetAsset<T>(handle, blocking: true);
+
+		if (asset == null)
+		{
+			ThrowInvalidOperationException(scope $"No asset exists for AssetHandle \"{assetId}\".");
+		}
+
+		asset
+	}
+
+	static mixin GetAssetOrThrow<T>(AssetHandle assetHandle) where T : Asset
+	{
+		T asset = Content.GetAsset<T>(assetHandle, blocking: true);
+
+		if (asset == null)
+		{
+			ThrowInvalidOperationException(scope $"No asset exists for AssetHandle \"{assetHandle}\".");
+		}
+
+		asset
+	}
+
+	[RegisterCall("ScriptGlue::Asset_GetIdentifier")]
+	static void Asset_GetIdentifier(UUID assetId, out MonoString* text)
+	{
+		Asset asset = GetAssetOrThrow!<Asset>(assetId);
+
+		text = Mono.mono_string_new_len(ScriptEngine.[Friend]s_AppDomain, asset.Identifier.Ptr, (uint32)asset.Identifier.Length);
+	}
+
+	[RegisterCall("ScriptGlue::Asset_SetIdentifier")]
+	static void Asset_GetIdentifier(UUID assetId, MonoString* text)
+	{
+		ThrowNotImplementedException("Asset.GetIdentifier is not implemented.");
+
+		/*AssetHandle handle = .(assetId);
+		Asset asset = Content.GetAsset(handle, blocking: true);
+		
+		char8* rawText = Mono.mono_string_to_utf8(text);
+
+		// TODO: I think it's not THAT easy.
+		asset.Identifier = StringView(rawText);
+
+		Mono.mono_free(rawText);*/
+	}
+
+#endregion
+
+#region Material
+	
+	[RegisterCall("ScriptGlue::Material_SetVariable")]
+	static void Material_SetVariable(AssetHandle assetHandle, MonoString* managedVariableName, ShaderVariableType elementType, int32 rows, int32 columns, int32 arrayLength, uint8* rawData, int32 dataLength)
+	{
+		Material material = GetAssetOrThrow!<Material>(assetHandle);
+
+		char8* rawVariableName = Mono.mono_string_to_utf8(managedVariableName);
+		defer Mono.mono_free(rawVariableName);
+
+		StringView variableName = StringView(rawVariableName);
+
+		material.[Friend]SetVariableRaw(variableName, elementType, rows, columns , arrayLength, Span<uint8>(rawData, dataLength));
+	}
+
+#endregion
+
 #region ImGui Extension
 	
 	[RegisterCall("ScriptGlue::ImGuiExtension_ListElementGrabber")]
@@ -1241,6 +1414,7 @@ static class ScriptGlue
 	{
 		ImGui.ImGui.ListElementGrabber();
 	}
+
 
 #endregion
 
