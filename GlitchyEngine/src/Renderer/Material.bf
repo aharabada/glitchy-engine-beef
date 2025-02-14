@@ -10,6 +10,15 @@ namespace GlitchyEngine.Renderer;
 
 public class Material : Asset
 {
+	/**
+	 * If true, this material is a runtime instance and can be changed by scripts.
+	 * If false, it is the actual material from the harddrive and should not be modified by scripts.
+	 * If a script tries to modify it, a runtime instance will be created.
+	 */
+	private bool _isRuntimeInstance = false;
+
+	private Material _parent ~ _?.ReleaseRef();
+
 	private Effect _effect ~ _?.ReleaseRef();
 
 	private Dictionary<String, (AssetHandle<Texture> Handle, TextureDimension Dimension, int32? groupTarget)> _textures = new .() ~ DeleteDictionaryAndKeys!(_);
@@ -32,6 +41,11 @@ public class Material : Asset
 		}
 	}
 
+	// TODO: allow changing
+	public Material Parent => _parent;
+
+	public bool IsRuntimeInstance => _isRuntimeInstance;
+
 	public this()
 	{
 
@@ -40,6 +54,13 @@ public class Material : Asset
 	public this(Effect effect)
 	{
 		Effect = effect;
+	}
+
+	public this(Material parentMaterial, bool isRuntimeInstance)
+	{
+		_parent = parentMaterial..AddRef();
+		Effect = _parent.Effect;
+		_isRuntimeInstance = isRuntimeInstance;
 	}
 
 	private void Init()
@@ -99,7 +120,9 @@ public class Material : Asset
 			}
 		}
 
-		for (let (bufferName, buffer) in _effect.Buffers)
+		BufferCollection parentBuffers = _parent?._bufferCollection ?? _effect.Buffers;
+
+		for (let (bufferName, buffer) in parentBuffers)
 		{
 			if (buffer == null)
 				continue;
@@ -171,28 +194,12 @@ public class Material : Asset
 	{
 		if(_textures.TryGetValue(name, var entry))
 		{
-			/*switch (texture.Get().GetType())
-			{
-			//case .Texture1D:
-			//	_textures[name].Dimension = .Texture1D;
-			case typeof(Texture2D):
-				_textures[name].Dimension = .Texture2D;
-			case typeof(TextureCube):
-				_textures[name].Dimension = .TextureCube;
-			//case .Texture3D:
-			//	_textures[name].Dimension = .Texture3D;
-			default:
-				_textures[name].Dimension = .Unknown;
-			}*/
-			//entry?.ReleaseRef();
 			_textures[name].Handle = texture;
 			_textures[name].groupTarget = groupTargetIndex;
-			//texture?.AddRef();
 		}
 		else
 		{
 			Log.EngineLogger.Error($"Material doesn't have the texture slot \"{name}\"");
-			//Log.EngineLogger.Assert(false);
 		}
 	}
 

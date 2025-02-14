@@ -25,4 +25,13 @@ public abstract class EngineObject
     {
         _uuid = uuid;
     }
+
+    /// <summary>Determines whether the specified <see cref="EngineObject"/> is equal to the current <see cref="EngineObject"/>.</summary>
+    /// <param name="other">The object to compare with the current object.</param>
+    /// <returns>true if the specified object is equal to the current object; otherwise, false.</returns>
+    public bool Equals(EngineObject other)
+    {
+        // TODO: Are we really only interested in what equates to reference equality on the engine side?
+        return _uuid == other._uuid;
+    }
 }

@@ -1054,6 +1054,17 @@ static class ScriptGlue
 	static void SpriteRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
 	{
 		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+
+		Material material = GetAssetOrThrow!<Material>((AssetHandle)spriteRenderer.Material);
+
+		if (!material.IsRuntimeInstance)
+		{
+			material = new Material(material, true);
+			material.Identifier = scope $"(Instance) {material.Identifier}";
+			Content.ManageAsset(material);
+			spriteRenderer.Material = material.Handle;
+		}
+
 		assetId = spriteRenderer.Material;
 	}
 
@@ -1162,6 +1173,17 @@ static class ScriptGlue
 	static void MeshRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
 	{
 		MeshRendererComponent* meshRenderer = GetComponentSafe<MeshRendererComponent>(entityId);
+
+		Material material = GetAssetOrThrow!<Material>((AssetHandle)meshRenderer.Material);
+		
+		if (!material.IsRuntimeInstance)
+		{
+			material = new Material(material, true);
+			material.Identifier = scope $"(Instance) {material.Identifier}";
+			Content.ManageAsset(material);
+			meshRenderer.Material = material.Handle;
+		}
+
 		assetId = meshRenderer.Material;
 	}
 

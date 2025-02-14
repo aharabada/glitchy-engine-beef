@@ -3,6 +3,9 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Graphics;
 
+/// <summary>
+/// An <see cref="Asset"/> that represents how a surface should be rendered.
+/// </summary>
 public class Material : Asset
 {
     public void SetVariable(string name, float4 value)
