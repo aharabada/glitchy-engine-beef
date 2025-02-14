@@ -470,7 +470,8 @@ namespace GlitchyEditor.EditWindows
 				spriteRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
 			
 			ImGui.PropertyTableStartNewProperty("Texture");
-			ImGui.Button("...");
+			ShowAssetDropTarget(ref spriteRendererComponent.Sprite);
+			/*ImGui.Button("...");
 
 			if (ImGui.BeginDragDropTarget())
 			{
@@ -486,10 +487,76 @@ namespace GlitchyEditor.EditWindows
 				}
 
 				ImGui.EndDragDropTarget();
-			}
+			}*/
 
 			ImGui.PropertyTableStartNewProperty("UV Transform");
 			ImGui.Float4Editor("##UV Transform", ref spriteRendererComponent.UvTransform, resetValues: float4(0, 0, 1, 1));
+
+			ImGui.PropertyTableStartNewProperty("Material");
+			
+			ShowAssetDropTarget<Material>(ref spriteRendererComponent.Material);
+		}
+		
+		private static void ShowAssetDropTarget(ref AssetHandle target)
+		{
+			Asset currentAsset = Content.GetAsset(target);
+
+			StringView identifier = currentAsset?.Identifier ?? (target.IsValid ? "<Missing Asset>" : "None");
+
+			if (ImGui.Button(identifier.ToScopeCStr!()))
+			{
+				// TODO: Show asset selector
+			}
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
+
+				if (payload != null)
+				{
+					Log.EngineLogger.Warning("");
+
+					// We shouldn't pass the path/identifier. We should carry ID and Type!
+					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+					// TODO: Somehow validate the type, please!
+					target = (AssetHandle)Content.LoadAsset(path);
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+		}
+
+		private static void ShowAssetDropTarget<T>(ref AssetHandle<T> target) where T : Asset
+		{
+			T currentAsset = target.Get();
+
+			StringView identifier = (target.IsValid ? "<Missing Asset>" : "None");
+
+			if (currentAsset != null)
+				identifier = currentAsset.Identifier;
+			
+			if (ImGui.Button(identifier.ToScopeCStr!()))
+			{
+				// TODO: Show asset selector
+			}
+
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
+
+				if (payload != null)
+				{
+					Log.EngineLogger.Warning("");
+
+					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
+
+					// TODO: Somehow validate the type, please!
+					target = (AssetHandle<T>)Content.LoadAsset(path);
+				}
+
+				ImGui.EndDragDropTarget();
+			}
 		}
 
 		private static void ShowCircleRendererComponentEditor(Entity entity, CircleRendererComponent* circleRendererComponent)
@@ -607,31 +674,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			ImGui.PropertyTableStartNewProperty("Material");
 			
-			Material material = meshRendererComponent.Material;
-
-			StringView identifier = material?.Identifier ?? "None";
-			ImGui.Button(identifier.ToScopeCStr!());
-
-			if (ImGui.BeginDragDropTarget())
-			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
-
-				if (payload != null)
-				{
-					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
-
-					meshRendererComponent.Material = Content.LoadAsset(fullpath);
-				}
-
-				ImGui.EndDragDropTarget();
-			}
-
-			/*Effect effect = material?.Effect;
-
-			if (effect == null)
-				return;*/
-
-			// Show a preview of the material here!
+			ShowAssetDropTarget<Material>(ref meshRendererComponent.Material);
 		}
 		
 		private static void ShowRigidBody2DComponentEditor(Entity entity, Rigidbody2DComponent* rigidBodyComponent)
@@ -901,50 +944,8 @@ namespace GlitchyEditor.EditWindows
 		private static void ShowMeshComponentEditor(Entity entity, MeshComponent* meshComponent)
 		{
 			ImGui.PropertyTableStartNewProperty("Mesh");
-
-			GeometryBinding mesh = meshComponent.Mesh;
-
-			StringView identifier = mesh?.Identifier ?? (meshComponent.Mesh.IsValid ? "<Missing Asset>" : "None");
-			ImGui.Button(identifier.ToScopeCStr!());
-
-			if (ImGui.BeginDragDropTarget())
-			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
-
-				if (payload != null)
-				{
-					StringView fullpath = .((char8*)payload.Data, (int)payload.DataSize);
-
-					/*int idx = fullpath.IndexOf('#');
-
-					if (idx == -1)
-					{
-						// Doesn't make sense here, we NEED a sub asset
-						Runtime.NotImplemented();
-					}
-
-					StringView filePath = fullpath.Substring(0, idx);
-					StringView meshName = fullpath.Substring(idx + 1);*/
-
-					meshComponent.Mesh = Content.LoadAsset(fullpath);
-
-					// TODO: support multiple primitives (treat every primitive as a single mesh? or: mesh can have multiple primitives)
-					/*using (GeometryBinding binding = ModelLoader.LoadMesh(filePath, meshName, 0))
-					{
-						meshComponent.Mesh = binding;
-					}*/
-
-					//ModelLoader.LoadModel(scope .(path), )
-
-					/*using (Texture2D newTexture = new Texture2D(path, true))
-					{
-						newTexture.SamplerState = SamplerStateManager.AnisotropicWrap;
-						material.SetTexture(texture.key, newTexture);
-					}*/
-				}
-
-				ImGui.EndDragDropTarget();
-			}
+			
+			ShowAssetDropTarget<GeometryBinding>(ref meshComponent.Mesh);
 		}
 
 		private static void ShowAddComponentButton(Entity entity)

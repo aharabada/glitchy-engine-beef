@@ -27,7 +27,7 @@ struct AssetHandle : IHashable
 		_uuid = UUID.Create();
 	}
 
-	private this(UUID uuid)
+	internal this(UUID uuid)
 	{
 		_uuid = uuid;
 	}

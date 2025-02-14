@@ -419,10 +419,7 @@ class TextureViewer
 
 			RenderTexture(texture);
 			
-			using (let vb = _targets.GetViewBinding(0))
-			{
-				ImGui.Image(vb, viewportSize);
-			}
+			ImGui.Image(_targets.GetViewBinding(0), viewportSize);
 
 			ImGui.EndChild();
 		}
