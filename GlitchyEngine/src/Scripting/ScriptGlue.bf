@@ -1059,10 +1059,12 @@ static class ScriptGlue
 
 		if (!material.IsRuntimeInstance)
 		{
-			material = new Material(material, true);
-			material.Identifier = scope $"(Instance) {material.Identifier}";
-			Content.ManageAsset(material);
-			spriteRenderer.Material = material.Handle;
+			using (material = new Material(material, true))
+			{
+				material.Identifier = scope $"(Instance) {material.Identifier}";
+				Content.ManageAsset(material);
+				spriteRenderer.Material = material.Handle;
+			}
 		}
 
 		assetId = spriteRenderer.Material;
@@ -1178,10 +1180,12 @@ static class ScriptGlue
 		
 		if (!material.IsRuntimeInstance)
 		{
-			material = new Material(material, true);
-			material.Identifier = scope $"(Instance) {material.Identifier}";
-			Content.ManageAsset(material);
-			meshRenderer.Material = material.Handle;
+			using (material = new Material(material, true))
+			{
+				material.Identifier = scope $"(Instance) {material.Identifier}";
+				Content.ManageAsset(material);
+				meshRenderer.Material = material.Handle;
+			}
 		}
 
 		assetId = meshRenderer.Material;
@@ -1420,11 +1424,22 @@ static class ScriptGlue
 		Material material = GetAssetOrThrow!<Material>(assetHandle);
 
 		char8* rawVariableName = Mono.mono_string_to_utf8(managedVariableName);
-		defer Mono.mono_free(rawVariableName);
 
-		StringView variableName = StringView(rawVariableName);
+		material.[Friend]SetVariableRaw(StringView(rawVariableName), elementType, rows, columns , arrayLength, Span<uint8>(rawData, dataLength));
 
-		material.[Friend]SetVariableRaw(variableName, elementType, rows, columns , arrayLength, Span<uint8>(rawData, dataLength));
+		Mono.mono_free(rawVariableName);
+	}
+
+	[RegisterCall("ScriptGlue::Material_ResetVariable")]
+	static void Material_ResetVariable(AssetHandle assetHandle, MonoString* managedVariableName)
+	{
+		Material material = GetAssetOrThrow!<Material>(assetHandle);
+
+		char8* rawVariableName = Mono.mono_string_to_utf8(managedVariableName);
+
+		material.ResetVariable(StringView(rawVariableName));
+
+		Mono.mono_free(rawVariableName);
 	}
 
 #endregion

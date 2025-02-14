@@ -399,7 +399,10 @@ internal static class ScriptGlue
     }
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern unsafe bool Material_SetVariable(UUID assetId, String variableName, ShaderVariableType elementType, int rows, int columns, int arrayLength, void* rawData, int dataLength);
+    internal static extern unsafe bool Material_SetVariable(UUID assetId, string variableName, ShaderVariableType elementType, int rows, int columns, int arrayLength, void* rawData, int dataLength);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Material_ResetVariable(UUID assetId, string variableName);
 
 #endregion
 

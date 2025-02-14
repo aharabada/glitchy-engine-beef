@@ -248,6 +248,18 @@ public class Material : Asset
 		return .Ok;
 	}
 
+	public Result<void, SetVariableError> ResetVariable(StringView name)
+	{
+		if(!_variables.TryGetValue(name, let variable))
+		{
+			return .Err(.VariableNotFound);
+		}
+
+		variable.IsUnset = true;
+
+		return .Ok;
+	}
+
 	public void SetVariable(StringView name, bool value) => SetVariable!(name, value);
 	public void SetVariable(StringView name, bool2 value) => SetVariable!(name, value);
 	public void SetVariable(StringView name, bool3 value) => SetVariable!(name, value);

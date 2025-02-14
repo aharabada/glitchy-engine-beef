@@ -15,4 +15,9 @@ public class Material : Asset
             ScriptGlue.Material_SetVariable(_uuid, name, ScriptGlue.ShaderVariableType.Float, 1, 4, 1, &value, sizeof(float4));
         }
     }
+
+    public void ResetVariable(string name)
+    {
+        ScriptGlue.Material_ResetVariable(_uuid, name);
+    }
 }
