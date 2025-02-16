@@ -197,6 +197,8 @@ class TextureViewer
 	
 	float2 _position;
 
+	float4 _viewAreaRect;
+
 	bool _moving;
 
 	float _colorOffset = 0;
@@ -220,10 +222,33 @@ class TextureViewer
 		if (ImGui.CollapsingHeader("View"))
 		{
 			ImGui.SliderFloat("Zoom", &_zoom, 0.01f, 100.0f);
+
+			ImGui.SameLine();
+
+			if (ImGui.Button("Reset##ResetZoom"))
+			{
+				_zoom = 1.0f;
+			}
 			
 			float maxDimension = max(width, height);
 
 			ImGui.SliderFloat2("Position", ref *(float[2]*)&_position, 2 * -maxDimension * _zoom, 2 * maxDimension * _zoom);
+			
+			ImGui.SameLine();
+
+			if (ImGui.Button("Reset##ResetPos"))
+			{
+				_position = 0.0f;
+			}
+
+			ImGui.Separator();
+
+			if (ImGui.Button("Fit to View"))
+			{
+				_position = 0.0f;
+
+				_zoom = min(_targets.Width / width, _targets.Height / height);
+			}
 
 			ImGui.Separator();
 
@@ -394,6 +419,8 @@ class TextureViewer
 
 			ImGui.Image(_targets.GetViewBinding(0), viewportSize);
 
+			_lastPreviewTopLeft = (.)ImGui.GetItemRectMin();
+
 			ImGui.EndChild();
 		}
 	}
@@ -421,12 +448,17 @@ class TextureViewer
 			RenderTexture(texture);
 			
 			ImGui.Image(_targets.GetViewBinding(0), viewportSize);
+			
+			_lastPreviewTopLeft = (.)ImGui.GetItemRectMin();
 
 			ImGui.EndChild();
 		}
 	}
 
 	float lastWheel;
+
+	float2 _lastPreviewTopLeft;
+	float2 _isTheCursorRight;
 
 	private void UpdateInput()
 	{
@@ -450,18 +482,22 @@ class TextureViewer
 			float mouseWheel = ImGui.GetIO().MouseWheel;
 
 			float delta = mouseWheel - lastWheel;
+			
+			float2 mousePosInObject = .(mousePos.x, mousePos.y) - _lastPreviewTopLeft;
+			_isTheCursorRight = mousePosInObject;
+
+			float2 mouseOffsetFromCenter = mousePosInObject - float2(_targets.Width, _targets.Height) / 2.0f;
 
 			if(delta != 0)
 			{
-				_position -= mouseInWindow;
+				_position -= mouseOffsetFromCenter;
 				_position /= _zoom;
 
 				_zoom *= Math.Pow(1.1f, delta);
 				
 				_position *= _zoom;
-				_position += mouseInWindow;
+				_position += mouseOffsetFromCenter;
 			}
-
 		}
 
 		if(_moving)
@@ -527,13 +563,15 @@ class TextureViewer
 			}
 			break;
 		}
+		
+		Renderer2D.DrawQuad(float3(_isTheCursorRight * .(1, -1), 2), 4, 0, .Red);
 
 		Renderer2D.EndScene();
 	}
 
 	private void RenderTexture(Asset textureAsset, float2 textureSize, Format format, int32? groupTargetIndex = null)
 	{
-		float2 mippedTextureSize = float2((int)textureSize.X >> _mipLevel, (int)textureSize.X >> _mipLevel);
+		float2 mippedTextureSize = float2((int)textureSize.X >> _mipLevel, (int)textureSize.Y >> _mipLevel);
 
 		// Sicherstellen, dass die Auflösung nicht 0 wird
 		mippedTextureSize = max(mippedTextureSize, 1);
@@ -558,27 +596,18 @@ class TextureViewer
 		//RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
 		RenderCommand.Clear(_targets, .Depth);
 
-		Matrix matrix = .Translation(float3(_position * .(1, -1), 0)) * .Scaling(float3(zoomedTextureSize, 1));
+		Matrix matrix = .Translation(float3((_position + float2(_targets.Width, _targets.Height) / 2) * .(1, -1), 0)) * .Scaling(float3(zoomedTextureSize, 1));
 
-		// TODO: ViewProjection kommt nicht korrekt an?
 		_renderTargetMaterial.SetVariable("WorldViewProjection", _camera.ViewProjection * matrix);
 		_renderTargetMaterial.SetVariable("ColorOffset", _colorOffset);
 		_renderTargetMaterial.SetVariable("ColorScale", _colorScale);
 		_renderTargetMaterial.SetVariable("AlphaOffset", _alphaOffset);
 		_renderTargetMaterial.SetVariable("AlphaScale", _alphaScale);
-		/*_renderTargetEffect.Variables["WorldViewProjection"].SetData(_camera.ViewProjection * matrix);
-		_renderTargetEffect.Variables["ColorOffset"].SetData(_colorOffset);
-		_renderTargetEffect.Variables["ColorScale"].SetData(_colorScale);
-		_renderTargetEffect.Variables["AlphaOffset"].SetData(_alphaOffset);
-		_renderTargetEffect.Variables["AlphaScale"].SetData(_alphaScale);*/
 
-		//_renderTargetEffect.Variables["Texels"].SetData(mippedTextureSize); 
 		_renderTargetMaterial.SetVariable("Texels", mippedTextureSize);
 
-		//_renderTargetEffect.Variables["MipLevel"].SetData((float)_mipLevel);  
 		_renderTargetMaterial.SetVariable("MipLevel", (float)_mipLevel);
 
-		//_renderTargetEffect.Variables["Swizzle"].SetData(int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
 		_renderTargetMaterial.SetVariable("Swizzle", int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
 
 		int textureSlot = -1;
@@ -602,7 +631,6 @@ class TextureViewer
 			textureSlot = _renderTargetMaterial.Effect.Textures["Texture"].PsSlot.Index;
 		}
 
-		//_renderTargetMaterial.ApplyChanges();
 		_renderTargetMaterial.Bind();
 
 		if (let renderTargetGroup = textureAsset as RenderTargetGroup)
@@ -610,6 +638,8 @@ class TextureViewer
 			using (let viewBinding = renderTargetGroup.GetViewBinding((.)groupTargetIndex))
 			{
 				RenderCommand.BindTexture(viewBinding, textureSlot, .Pixel);
+				// TODO: BindSampler command?
+				// TODO: Allow manually setting sampler for view binding?
 			}
 		}
 		else if (let texture = textureAsset as Texture)
