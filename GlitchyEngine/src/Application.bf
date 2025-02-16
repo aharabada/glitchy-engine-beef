@@ -20,13 +20,13 @@ namespace GlitchyEngine
 		private bool _running = true;
 		private bool _isMinimized = false;
 
-		private LayerStack _layerStack;
+		private append LayerStack _layerStack = .() ~ delete:append _;
 
 #if IMGUI
 		private ImGuiLayer _imGuiLayer;
 #endif
 
-		private GameTime _gameTime;
+		private append GameTime _gameTime = .() ~ delete:append _;
 		
 		private IContentManager _contentManager;
 
@@ -56,8 +56,7 @@ namespace GlitchyEngine
 			Log.EngineLogger.Assert(s_Instance == null, "Tried to create a second application.");
 			s_Instance = this;
 
-			_layerStack = new LayerStack();
-			_gameTime = new GameTime(true);
+			_contentManager = InitContentManager();
 
 			WindowDescription windowDesc = .Default;
 			windowDesc.Icon = "Resources/Textures/GlitchyEngineIcon.ico";
@@ -67,8 +66,6 @@ namespace GlitchyEngine
 
 			Input.Init();
 			
-			_contentManager = InitContentManager();
-
 			// TODO: RenderAPI in RenderCommand initialisieren?
 			_rendererApi = new RendererAPI();
 			_rendererApi.Context = _window.Context;
@@ -106,13 +103,12 @@ namespace GlitchyEngine
 			Renderer.Deinit();
 
 			delete _contentManager;
-			
-			delete _layerStack;
+
+			// TODO: Was there a reason, that layerstack gets deleted before _rendererApi and _window but was created before it?
+			//delete _layerStack;
 
 			delete _rendererApi;
 			delete _window;
-			
-			delete _gameTime;
 
 			ScriptEngine.Shutdown();
 		}

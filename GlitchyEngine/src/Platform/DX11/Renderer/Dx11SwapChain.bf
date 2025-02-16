@@ -72,14 +72,16 @@ namespace GlitchyEngine.Renderer
 
 			if(nativeSwapChain != null)
 			{
-				//nativeBackBufferTarget.Release();
-				_backBuffer.ReleaseRef();
+				// It's important to not delete the _backBuffer-Object, because we want others to be able to rely on this backbuffer-reference.
+				_backBuffer.ReleaseAndNullifyD3DObjects();
 
 				var resizeResult = nativeSwapChain.ResizeBuffers(backBufferCount, _width, _height, backBufferFormat, .None);
 				if(resizeResult.Failed)
 				{
 					Log.EngineLogger.Error($"Failed to resize swap chain. Message({(int)resizeResult}):{resizeResult}");
 				}
+
+				_backBuffer.Resize(_width, _height, backBufferFormat, _depthStencilFormat);
 			}
 			else
 			{
@@ -108,15 +110,16 @@ namespace GlitchyEngine.Renderer
 				}
 
 				factory.Release();
+
+				RenderTarget2DDescription desc = .(backBufferFormat, _width, _height);
+				desc.DepthStencilFormat = _depthStencilFormat;
+				desc.IsSwapchainTarget = true;
+
+				_backBuffer = new RenderTarget2D(desc);
+				_backBuffer.Identifier = "Backbuffer";
+				_backBuffer.SamplerState = SamplerStateManager.LinearClamp;
 			}
 
-			RenderTarget2DDescription desc = .(backBufferFormat, _width, _height);
-			desc.DepthStencilFormat = _depthStencilFormat;
-			desc.IsSwapchainTarget = true;
-
-			// Todo: perhaps just update the render target
-			_backBuffer = new RenderTarget2D(desc);
-			
 			_backBufferViewport = GlitchyEngine.Renderer.Viewport(0, 0, _width, _height, 0.0f, 1.0f);
 		}
 

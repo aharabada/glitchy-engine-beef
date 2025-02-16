@@ -1062,7 +1062,7 @@ static class ScriptGlue
 			using (material = new Material(material, true))
 			{
 				material.Identifier = scope $"(Instance) {material.Identifier}";
-				Content.ManageAsset(material);
+				//Content.ManageAsset(material);
 				spriteRenderer.Material = material.Handle;
 			}
 		}
@@ -1183,7 +1183,7 @@ static class ScriptGlue
 			using (material = new Material(material, true))
 			{
 				material.Identifier = scope $"(Instance) {material.Identifier}";
-				Content.ManageAsset(material);
+				//Content.ManageAsset(material);
 				meshRenderer.Material = material.Handle;
 			}
 		}

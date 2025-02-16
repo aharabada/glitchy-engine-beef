@@ -12,7 +12,8 @@ namespace GlitchyEngine.Renderer
 		internal this(ID3D11ShaderResourceView* shaderResourceView, ID3D11SamplerState* samplerState)
 		{
 			_nativeShaderResourceView = shaderResourceView;
-			
+
+			// TODO: What is the 200 check for?
 			if ((uint)(void*)_nativeShaderResourceView != 0 && (uint)(void*)_nativeShaderResourceView < 200)
 			{
 
@@ -22,6 +23,12 @@ namespace GlitchyEngine.Renderer
 
 			_nativeSamplerState = samplerState;
 			_nativeSamplerState?.AddRef();
+		}
+		
+		protected ~this()
+		{
+			_nativeShaderResourceView?.Release();
+			_nativeSamplerState?.Release();
 		}
 
 		public static override TextureViewBinding CreateDefault() => new .(null, null);

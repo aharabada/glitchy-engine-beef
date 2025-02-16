@@ -18,7 +18,7 @@ namespace GlitchyEngine.Renderer
 		protected internal ID3D11Texture2D* _nativeTexture ~ _?.Release();
 		protected internal ID3D11RenderTargetView* _nativeRenderTargetView ~ _?.Release();
 
-		private void ReleaseAndNullify()
+		internal void ReleaseAndNullifyD3DObjects()
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -29,14 +29,24 @@ namespace GlitchyEngine.Renderer
 			ReleaseRefAndNullify!(_depthStenilTarget);
 		}
 
-		public override void Resize(uint32 width, uint32 height)
+		public override void Resize(uint32 width, uint32 height, Format? newPixelFormat, DepthStencilFormat? newDepthStencilFormat)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			ReleaseAndNullify();
+			ReleaseAndNullifyD3DObjects();
 
 			_description.Width = width;
 			_description.Height = height;
+
+			if (newPixelFormat != null)
+			{
+				_description.PixelFormat = newPixelFormat.Value;
+			}
+
+			if (newDepthStencilFormat != null)
+			{
+				_description.DepthStencilFormat = newDepthStencilFormat.Value;
+			}
 
 			ApplyChanges();
 		}
@@ -45,7 +55,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			ReleaseAndNullify();
+			ReleaseAndNullifyD3DObjects();
 
 			if(_description.IsSwapchainTarget)
 			{
@@ -123,7 +133,7 @@ namespace GlitchyEngine.Renderer
 
 		protected override TextureViewBinding PlatformGetViewBinding()
 		{
-			return new .(_nativeResourceView, _samplerState.nativeSamplerState);
+			return new .(_nativeResourceView, _samplerState?.nativeSamplerState);
 		}
 
 		protected override void PlatformSneakySwappyTexture(RenderTarget2D otherTexture)

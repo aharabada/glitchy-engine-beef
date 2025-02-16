@@ -22,7 +22,7 @@ abstract class Asset : RefCounter
 	public StringView Identifier
 	{
 		get => _identifier;
-		internal set => _identifier.Set(value);
+		set => _identifier.Set(value);
 	}
 
 	/// If true the asset is completely loaded. If false it is only partially loaded (if at all).
@@ -38,6 +38,11 @@ abstract class Asset : RefCounter
 	{
 		gBonEnv.typeHandlers.Add(typeof(Asset),
 			    ((.)new => AssetSerialize, new => AssetDeserialize));
+	}
+
+	protected this()
+	{
+		Content.ManageAsset(this);
 	}
 
 	protected ~this()

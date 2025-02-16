@@ -69,7 +69,7 @@ namespace GlitchyEngine.Renderer
 					Target = new RenderTargetGroup(targetDesc);
 					// TODO: there needs to be a proper way to do it
 					Target.[Friend]Identifier = "GBuffer";
-					Content.ManageAsset(Target, null);
+					//Content.ManageAsset(Target, null);
 				}
 
 				_width = width;

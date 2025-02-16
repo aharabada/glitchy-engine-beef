@@ -569,11 +569,13 @@ namespace GlitchyEngine.Renderer.Text
 
 			if (text.Glyphs.Count == 0)
 				return;
+			
+			//Renderer2D.Flush();
 
 			// TODO: this doesn't really work with fallback fonts unless we use the same settings for all fonts
 			float2 unitRange = ((float)text.Font._range) / float2(text.Font._atlas.Width, text.Font._atlas.Height);
 			_msdfMaterial.SetVariable("UnitRange", unitRange);
-			
+
 			List<Texture2D> atlasses = scope .();
 
 			for (PreparedGlyph glyph in text.Glyphs)

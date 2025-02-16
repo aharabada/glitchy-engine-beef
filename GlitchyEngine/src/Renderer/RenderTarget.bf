@@ -72,7 +72,8 @@ namespace GlitchyEngine.Renderer
 			PlatformApplyChanges();
 		}
 
-		public extern void Resize(uint32 width, uint32 height);
+		/// Resizes the RenderTarget and optionally changes the pixel format.
+		public extern void Resize(uint32 width, uint32 height, Format? newPixelFormat = null, DepthStencilFormat? newDepthStencilFormat = null);
 
 		protected extern void PlatformApplyChanges();
 		
