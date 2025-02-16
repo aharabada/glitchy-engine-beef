@@ -364,6 +364,40 @@ static
 	}
 
 #endregion
+
+#region cmin / cmax
+
+	public static float cmin(float2 v)
+	{
+		return Math.Min(v.X, v.Y);
+	}
+	
+	public static float cmin(float3 v)
+	{
+		return Math.Min(v.X, Math.Min(v.Y, v.Z));
+	}
+
+	public static float cmin(float4 v)
+	{
+		return Math.Min(v.X, Math.Min(v.Y, v.Z));
+	}
+	
+	public static float cmax(float2 v)
+	{
+		return Math.Max(v.X, v.Y);
+	}
+
+	public static float cmax(float3 v)
+	{
+		return Math.Max(v.X, Math.Max(v.Y, v.Z));
+	}
+
+	public static float cmax(float4 v)
+	{
+		return Math.Max(v.X, Math.Max(v.Y, v.Z));
+	}
+
+#endregion
 	
 #region exp, pow, log
 
