@@ -152,11 +152,16 @@ class TextureViewer
 
 	enum ColorChannelSwizzle : int32
 	{
-		None,
+		Zero,
+		One,
 		R,
 		G,
 		B,
-		A
+		A,
+		OneMinusR,
+		OneMinusG,
+		OneMinusB,
+		OneMinusA
 	}
 
 	AssetHandle<Effect> _effect;
@@ -164,6 +169,7 @@ class TextureViewer
 	Material _renderTargetMaterial ~ _.ReleaseRef();
 
 	float _zoom = 1.0f;
+	bool _showTexelBorder = false;
 
 	BackgroundMode _backgroundMode = .Checkerboard;
 	ColorRGBA _backgroundColor;
@@ -171,10 +177,6 @@ class TextureViewer
 	SampleMode _sampleMode = .Linear;
 
 	RenderTargetGroup _targets ~ _?.ReleaseRef();
-	/*RenderTarget2D _target ~ _?.ReleaseRef();
-	RenderTarget2D _idTarget ~ _?.ReleaseRef();
-	// TODO: we don't need depth!
-	DepthStencilTarget _depth ~ _?.ReleaseRef();*/
 
 	public this()
 	{
@@ -281,8 +283,6 @@ class TextureViewer
 
 		if (ImGui.CollapsingHeader("Color and Transparency"))
 		{
-			ImGui.TextUnformatted("Channel Swizzle:");
-
 			if (ImGui.BeginTable("ColorAndAlpha", 4))
 			{
 				ImGui.TableNextRow();
@@ -338,6 +338,10 @@ class TextureViewer
 			
 			ImGui.Separator();
 
+			ImGui.Checkbox("Show texel grid", &_showTexelBorder);
+
+			ImGui.Separator();
+
 			ImGui.TextUnformatted("Channel Swizzle:");
 
 			if (ImGui.BeginTable("SwizzleTable", 9))
@@ -376,6 +380,12 @@ class TextureViewer
 		
 		if (ImGui.BeginCombo(scope $"##swizzle{text}", scope $"{swizzle}"))
 		{
+			if (ImGui.Selectable("0", swizzle == .Zero))
+				swizzle = .Zero;
+
+			if (ImGui.Selectable("1", swizzle == .One))
+				swizzle = .One;
+
 			if (ImGui.Selectable("R", swizzle == .R))
 				swizzle = .R;
 
@@ -387,9 +397,18 @@ class TextureViewer
 
 			if (ImGui.Selectable("A", swizzle == .A))
 				swizzle = .A;
+			
+			if (ImGui.Selectable("1 - R", swizzle == .OneMinusR))
+				swizzle = .OneMinusR;
+			
+			if (ImGui.Selectable("1 - G", swizzle == .OneMinusG))
+				swizzle = .OneMinusG;
 
-			if (ImGui.Selectable("None", swizzle == .None))
-				swizzle = .None;
+			if (ImGui.Selectable("1 - B", swizzle == .OneMinusB))
+				swizzle = .OneMinusB;
+			
+			if (ImGui.Selectable("1 - A", swizzle == .OneMinusA))
+				swizzle = .OneMinusA;
 
 			ImGui.EndCombo();
 		}
@@ -590,10 +609,6 @@ class TextureViewer
 			viewedTexture.SamplerState = SamplerStateManager.LinearClamp;
 		}*/
 
-		//Renderer2D.BeginScene(_camera, .SortByTexture, _effect);
-
-		// float3(_position * .(1, -1), 0)
-		//RenderCommand.Clear(_depth, .Depth, 1.0f, 0);
 		RenderCommand.Clear(_targets, .Depth);
 
 		Matrix matrix = .Translation(float3((_position + float2(_targets.Width, _targets.Height) / 2) * .(1, -1), 0)) * .Scaling(float3(zoomedTextureSize, 1));
@@ -609,6 +624,9 @@ class TextureViewer
 		_renderTargetMaterial.SetVariable("MipLevel", (float)_mipLevel);
 
 		_renderTargetMaterial.SetVariable("Swizzle", int4((int32)_swizzleR, (int32)_swizzleG, (int32)_swizzleB, (int32)_swizzleA));
+		
+		_renderTargetMaterial.SetVariable("ShowTexelBorders", _showTexelBorder);
+		_renderTargetMaterial.SetVariable("TexelBorderCutoff", 10.0f);
 
 		int textureSlot = -1;
 

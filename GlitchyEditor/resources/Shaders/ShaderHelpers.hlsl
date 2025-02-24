@@ -72,7 +72,7 @@ float3x3 ConstructTangentSpace(float3 normal, float3 tangent, float3 sigma)
  */
 float ColorToLuminance(float3 rgb)
 {
-    return rgb.r * 0.212639 + rgb.g * 0.715169 + rgb.b * 0.072192;    
+    return rgb.r * 0.212639 + rgb.g * 0.715169 + rgb.b * 0.072192;
 }
 
 /**
