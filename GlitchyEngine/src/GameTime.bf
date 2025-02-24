@@ -8,7 +8,7 @@ namespace GlitchyEngine
 	*/
 	public class GameTime
 	{
-		private append Stopwatch _stopwatch = .() ~ delete:append _;
+		private append Stopwatch _stopwatch = .();
 		
 		private uint64 _frameCount;
 

@@ -20,13 +20,13 @@ namespace GlitchyEngine
 		private bool _running = true;
 		private bool _isMinimized = false;
 
-		private append LayerStack _layerStack = .() ~ delete:append _;
+		private append LayerStack _layerStack = .();
 
 #if IMGUI
 		private ImGuiLayer _imGuiLayer;
 #endif
 
-		private append GameTime _gameTime = .() ~ delete:append _;
+		private append GameTime _gameTime = .();
 		
 		private IContentManager _contentManager;
 
@@ -97,6 +97,8 @@ namespace GlitchyEngine
 		public ~this()
 		{
 			Profiler.ProfileFunction!();
+
+			_layerStack.ClearLayers();
 
 			SamplerStateManager.Uninit();
 

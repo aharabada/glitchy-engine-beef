@@ -18,7 +18,6 @@ public class ScriptInstanceSerializer
 	public ~this()
 	{
 		Clear();
-		delete:append _serializedData;
 	}
 
 	public void Clear()

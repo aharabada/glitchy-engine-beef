@@ -16,18 +16,18 @@ class EngineClasses
 {
 	// TODO: Not all of these are actually ScriptClasses (actually none of them are...)
 
-	private ScriptClass s_ComponentRoot ~ _?.ReleaseRef();
-	private ScriptClass s_EntityRoot ~ _?.ReleaseRef();
-	private ScriptClass s_EngineObject ~ _?.ReleaseRef();
+	private ScriptClass s_ComponentRoot;
+	private ScriptClass s_EntityRoot;
+	private ScriptClass s_EngineObject;
 
-	private EntityEditorWrapper s_EntityEditor ~ _?.ReleaseRef();
+	private EntityEditorWrapper s_EntityEditor;
 
-	private EntitySerializerWrapper s_EntitySerializer ~ _?.ReleaseRef();
-	private ScriptClass s_SerializationContext ~ _?.ReleaseRef();
+	private EntitySerializerWrapper s_EntitySerializer;
+	private ScriptClass s_SerializationContext;
 
-	private ScriptClass s_Collision2D ~ _?.ReleaseRef();
+	private ScriptClass s_Collision2D;
 
-	private ScriptClass s_RunInEditModeAttribute ~ _?.ReleaseRef();
+	private ScriptClass s_RunInEditModeAttribute;
 
 	public ScriptClass ComponentRoot => s_ComponentRoot;
 	public ScriptClass EntityRoot => s_EntityRoot;
@@ -40,6 +40,11 @@ class EngineClasses
 	public ScriptClass Collision2D => s_Collision2D;
 
 	public ScriptClass RunInEditModeAttribute => s_RunInEditModeAttribute;
+
+	public ~this()
+	{
+		ReleaseAndNullify();
+	}
 
 	internal void ReleaseAndNullify()
 	{

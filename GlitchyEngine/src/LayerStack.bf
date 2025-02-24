@@ -4,15 +4,22 @@ namespace GlitchyEngine
 {
 	public class LayerStack
 	{
-		private List<Layer> _layers = new List<Layer>() ~ delete _;
+		private append List<Layer> _layers = .();
 
 		public ~this()
+		{
+			ClearLayers();
+		}
+
+		public void ClearLayers()
 		{
 			for(let layer in _layers)
 			{
 				layer.OnDetach();
 				delete layer;
 			}
+
+			_layers.Clear();
 		}
 
 		/*
