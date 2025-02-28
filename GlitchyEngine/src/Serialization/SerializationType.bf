@@ -36,10 +36,9 @@ public enum SerializationType : uint32
 
 	case Enum = 1 << 26;
 	
-	case EntityReference = 1 << 25;
-	case ComponentReference = 1 << 24;
+	case EngineObjectReference = 1 << 25;
 	
-	case ObjectReference = 1 << 23;
+	case ObjectReference = 1 << 24;
 
 	public int GetSize()
 	{
@@ -63,7 +62,9 @@ public enum SerializationType : uint32
 			return 8;
 		case .Decimal:
 			return 16;
-		case .EntityReference, .ComponentReference, .ObjectReference:
+		case .EngineObjectReference:
+			return sizeof(UUID);
+		case .ObjectReference:
 			return sizeof(UUID);
 		case .String:
 			return sizeof(StringView);

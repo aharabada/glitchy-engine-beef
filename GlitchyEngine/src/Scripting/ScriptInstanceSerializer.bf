@@ -121,7 +121,7 @@ public class ScriptInstanceSerializer
 		{
 			for (var fieldData in ref object.Fields.Values)
 			{
-				if (fieldData.PrimitiveType != .EntityReference && fieldData.PrimitiveType != .ComponentReference)
+				if (fieldData.PrimitiveType != .EngineObjectReference)
 					continue;
 
 				if (originalToCopyIds.TryGetValue(fieldData.Data.EngineObject.ID, let copyId))

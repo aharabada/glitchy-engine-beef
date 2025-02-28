@@ -139,17 +139,17 @@ public class DeserializationObject
         _structScopeName = _structScopeName.Remove(_structScopeName.Length - scopeToRemove.Length - 1);
     }
 
-    [StructLayout(LayoutKind.Explicit)]
-    private unsafe struct DataHelper
+    [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct EngineObjectReferenceHelper
     {
-        [StructLayout(LayoutKind.Sequential)]
-        public struct EngineObjectReferenceHelper
-        {
-            public byte* FullTypeName;
-            public long FullTypeNameLength;
-            public UUID Id;
-        }
-        
+        public byte* FullTypeName;
+        public long FullTypeNameLength;
+        public UUID Id;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct DataHelper
+    {
         [FieldOffset(0)]
         public EngineObjectReferenceHelper EngineObjectReference;
 
@@ -220,8 +220,7 @@ public class DeserializationObject
             SerializationType.Double => *(double*)rawData,
             SerializationType.Decimal => *(decimal*)rawData,
             SerializationType.Enum => GetString(),
-            SerializationType.EntityReference => dataHelper.EngineObjectReference,
-            SerializationType.ComponentReference => dataHelper.EngineObjectReference,
+            SerializationType.EngineObjectReference => dataHelper.EngineObjectReference,
             SerializationType.ObjectReference => dataHelper.UUID,
             _ => NoValueDeserialized
         };
@@ -549,12 +548,13 @@ public class DeserializationObject
 
         bool isEntity = typeof(Entity).IsAssignableFrom(fieldType);
         bool isComponent = fieldType.IsSubclassOf(typeof(Component));
+        bool isEngineObject = fieldType.IsSubclassOf(typeof(EngineObject));
 
-        if (isEntity || isComponent)
+        if (isEntity || isComponent || isEngineObject)
         {
-            object? fieldData = GetFieldValue(fieldName, isEntity ? SerializationType.EntityReference : SerializationType.ComponentReference);
+            object? fieldData = GetFieldValue(fieldName, SerializationType.EngineObjectReference);
 
-            if (fieldData is not DataHelper.EngineObjectReferenceHelper data)
+            if (fieldData is not EngineObjectReferenceHelper data)
                 return NoValueDeserialized;
 
             UUID id = data.Id;
@@ -578,12 +578,20 @@ public class DeserializationObject
 
                 return Entity.GetScriptReference(id, type);
             }
-            else
+            if (isComponent)
             {
                 Entity entity = new Entity(id);
 
                 return entity.GetComponent(type);
             }
+            if (isEngineObject)
+            {
+                EngineObject? engineObject = ActivatorExtension.CreateEngineObject(type, id);
+
+                return engineObject;
+            }
+
+            return NoValueDeserialized;
         }
         else
         {

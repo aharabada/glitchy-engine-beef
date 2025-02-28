@@ -316,13 +316,9 @@ public class SerializedObject
 
     public void SerializeClass(string fieldName, object? fieldValue, Type fieldType)
     {
-        if (typeof(Entity).IsAssignableFrom(fieldType))
+        if (fieldType.IsSubclassOf(typeof(EngineObject)))
         {
-            AddField(fieldName, SerializationType.EntityReference, ((Entity?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
-        }
-        else if (fieldType.IsSubclassOf(typeof(Component)))
-        {
-            AddField(fieldName, SerializationType.ComponentReference, ((Component?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
+            AddField(fieldName, SerializationType.EngineObjectReference, ((EngineObject?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
         }
         else
         {

@@ -115,7 +115,7 @@ class SerializedObject
 			}
 
 			data.StringView = valueView;
-		case .EntityReference, .ComponentReference:
+		case .EngineObjectReference:
 			String typeName = null;
 
 			if (fullTypeName != null)
@@ -191,7 +191,7 @@ class SerializedObject
 		{
 		case .String, .Enum:
 			*(StringView*)target = field.Data.StringView;
-		case .EntityReference, .ComponentReference:
+		case .EngineObjectReference:
 			let engineObjectData = field.Data.EngineObject;
 			
 			*(char8**)target = engineObjectData.FullTypeName?.CStr();
@@ -303,13 +303,8 @@ class SerializedObject
 					writer.Type("Enum");
 					#unwarn
 					Serialize.Value(writer, ValueView(typeof(StringView), &field.Data.StringView), environment);
-				case .EntityReference:
-					writer.Type("Entity");
-					if (field.Data.EngineObject.FullTypeName != null)
-						writer.Type(field.Data.EngineObject.FullTypeName);
-					Serialize.Value(writer, field.Data.EngineObject.ID, environment);
-				case .ComponentReference:
-					writer.Type("Component");
+				case .EngineObjectReference:
+					writer.Type("EngineObject");
 					if (field.Data.EngineObject.FullTypeName != null)
 						writer.Type(field.Data.EngineObject.FullTypeName);
 					Serialize.Value(writer, field.Data.EngineObject.ID, environment);
@@ -502,7 +497,7 @@ class SerializedObject
 						
 						break HandleField;
 					}
-	                else if (fieldTypeName == "Entity" || fieldTypeName == "Component")
+	                else if (fieldTypeName == "EngineObject")
 					{
 						String entityTypeName = null;
 	
@@ -521,7 +516,7 @@ class SerializedObject
 						Deserialize.[Friend]Integer!(typeof(uint64), reader, ValueView(typeof(uint64), &id));
 	
 						UUID reference = UUID(id);
-						fieldType = (fieldTypeName == "Entity") ? .EntityReference : .ComponentReference;
+						fieldType = .EngineObjectReference;
 						fieldData.EngineObject = (FullTypeName: entityTypeName, ID: reference);
 						
 						break HandleField;

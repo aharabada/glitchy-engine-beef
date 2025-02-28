@@ -35,10 +35,10 @@ public enum SerializationType : uint
 
     Enum = 1 << 26,
 
-    EntityReference = 1 << 25,
-    ComponentReference = 1 << 24,
+    // Used for everything that inherits from EngineObject (Assets, Components, Entities)
+    EngineObjectReference = 1 << 25,
 
-    ObjectReference = 1 << 23,
+    ObjectReference = 1 << 24,
 }
 
 public static class SerializationTypeExtension
@@ -69,8 +69,7 @@ public static class SerializationTypeExtension
             SerializationType.Double => typeof(double),
             SerializationType.Decimal => typeof(decimal),
             SerializationType.Enum => typeof(Enum),
-            SerializationType.EntityReference => typeof(UUID),
-            SerializationType.ComponentReference => typeof(UUID),
+            SerializationType.EngineObjectReference => typeof(UUID),
             SerializationType.ObjectReference => typeof(UUID),
             _ => null
         };
