@@ -13,6 +13,7 @@ namespace GlitchyEngine;
 
 /// <summary>
 /// All methods in here are glued to the ScriptGlue.bf in the engine.
+/// TODO: This could be auto-generated fairly easily
 /// </summary>
 internal static class ScriptGlue
 {
@@ -321,6 +322,8 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void MeshRenderer_SetMaterial(UUID entityId, UUID materialId);
 
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern void MeshRenderer_GetSharedMaterial(UUID entityId, out UUID materialId);
 
 #endregion
 
@@ -404,12 +407,24 @@ internal static class ScriptGlue
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern bool Material_ResetVariable(UUID assetId, string variableName);
 
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Material_SetTexture(UUID materialId, string textureName, UUID textureId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Material_GetTexture(UUID materialId, string textureName, out UUID textureId);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool Material_ResetTexture(UUID materialId, string textureName);
+
 #endregion
 
 #region ImGui
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void ImGuiExtension_ListElementGrabber();
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    internal static extern bool ImGuiExtension_ShowAssetDropTarget(ref UUID assetId);
 
 #endregion
 }

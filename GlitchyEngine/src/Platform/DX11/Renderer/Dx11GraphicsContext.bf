@@ -440,14 +440,14 @@ namespace GlitchyEngine.Renderer
 
 			if (shaderStage.HasFlag(.Vertex))
 			{
-				_vsShaderResources[slot] = textureBinding._nativeShaderResourceView;
-				_vsSamplers[slot] = textureBinding._nativeSamplerState;
+				_vsShaderResources[slot] = textureBinding?._nativeShaderResourceView;
+				_vsSamplers[slot] = textureBinding?._nativeSamplerState;
 			}
 			
 			if (shaderStage.HasFlag(.Pixel))
 			{
-				_psShaderResources[slot] = textureBinding._nativeShaderResourceView;
-				_psSamplers[slot] = textureBinding._nativeSamplerState;
+				_psShaderResources[slot] = textureBinding?._nativeShaderResourceView;
+				_psSamplers[slot] = textureBinding?._nativeSamplerState;
 			}
 		}
 

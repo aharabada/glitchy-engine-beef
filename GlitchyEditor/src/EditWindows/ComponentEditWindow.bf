@@ -19,6 +19,13 @@ namespace GlitchyEditor.EditWindows
 	{
 		private static uint32 TableId;
 
+		public static this()
+		{
+			ScriptGlue.OnRegisterNativeCalls.Add(new () => {
+			   ScriptGlue.RegisterCall<function bool(ref AssetHandle)>("ScriptGlue::ImGuiExtension_ShowAssetDropTarget", => ShowAssetDropTarget);
+			});
+		}
+
 		public static void ShowComponents(Entity entity, Type componentType = null)
 		{
 			float cellPaddingY = ImGui.GetTextLineHeight() / 3.0f;
@@ -497,8 +504,10 @@ namespace GlitchyEditor.EditWindows
 			ShowAssetDropTarget<Material>(ref spriteRendererComponent.Material);
 		}
 		
-		private static void ShowAssetDropTarget(ref AssetHandle target)
+		private static bool ShowAssetDropTarget(ref AssetHandle target)
 		{
+			bool changed = false;
+
 			Asset currentAsset = Content.GetAsset(target);
 
 			StringView identifier = currentAsset?.Identifier ?? (target.IsValid ? "<Missing Asset>" : "None");
@@ -521,10 +530,13 @@ namespace GlitchyEditor.EditWindows
 
 					// TODO: Somehow validate the type, please!
 					target = (AssetHandle)Content.LoadAsset(path);
+					changed = true;
 				}
 
 				ImGui.EndDragDropTarget();
 			}
+
+			return changed;
 		}
 
 		private static void ShowAssetDropTarget<T>(ref AssetHandle<T> target) where T : Asset

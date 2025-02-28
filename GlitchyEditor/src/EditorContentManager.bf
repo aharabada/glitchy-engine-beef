@@ -207,7 +207,6 @@ class EditorContentManager : IContentManager
 		{
 			delete key;
 		}
-		delete:append _;
 	};
 
 	private append List<IAssetImporter> _assetImporters = .() ~ ClearAndDeleteItems!(_);

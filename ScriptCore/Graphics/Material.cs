@@ -1,4 +1,5 @@
 ﻿using System.Diagnostics.SymbolStore;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
 namespace GlitchyEngine.Graphics;
@@ -19,5 +20,26 @@ public class Material : Asset
     public void ResetVariable(string name)
     {
         ScriptGlue.Material_ResetVariable(_uuid, name);
+    }
+
+    public void SetTexture(string name, Texture? texture)
+    {
+        ScriptGlue.Material_SetTexture(_uuid, name, texture?._uuid ?? UUID.Zero);
+    }
+
+    public Texture? GetTexture(string name)
+    {
+        ScriptGlue.Material_GetTexture(_uuid, name, out UUID textureId);
+
+        // TODO: Support different texture types?
+        return new Texture
+        {
+            _uuid = textureId
+        };
+    }
+
+    public void ResetTexture(string name)
+    {
+        ScriptGlue.Material_ResetTexture(_uuid, name);
     }
 }

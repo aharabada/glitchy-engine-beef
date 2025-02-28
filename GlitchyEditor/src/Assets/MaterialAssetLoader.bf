@@ -476,10 +476,11 @@ class MaterialAssetLoader : IAssetLoader, IAssetSaver //, IReloadingAssetLoader
 		materialFile.Textures = new .();
 		materialFile.Variables = new .();
 
-		for (let (slotName, texture) in material.[Friend]_textures)
+		// TODO: Fix
+		/*for (let (slotName, texture) in material.[Friend]_textures)
 		{
 			materialFile.Textures.Add(new String(slotName), texture.Handle);
-		}
+		}*/
 
 		Effect effect = material.Effect;
 

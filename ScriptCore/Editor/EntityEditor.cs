@@ -12,6 +12,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using GlitchyEngine.Core;
 using GlitchyEngine.Extensions;
+using GlitchyEngine.Graphics;
 using GlitchyEngine.Math;
 using GlitchyEngine.Math.Attributes;
 using ImGuiNET;
@@ -570,6 +571,10 @@ internal class EntityEditor
         {
             newValue = ShowComponentDropTarget(fieldName, fieldType, reference, attributes);
         }
+        else if (fieldType.IsSubclassOf(typeof(Asset)))
+        {
+            newValue = ShowAssetDropTarget(fieldName, fieldType, reference, attributes);
+        }
         else if (fieldType == typeof(string))
         {
             newValue = ShowStringEditor(reference, fieldType, fieldName, attributes);
@@ -861,6 +866,38 @@ internal class EntityEditor
             ImGui.EndDragDropTarget();
         }
 
+        return newValue;
+    }
+
+    private static object? ShowAssetDropTarget(string fieldName, Type fieldType, object? currentValue, IEnumerable<Attribute>? attributes)
+    {
+        object? newValue = DidNotChange;
+
+        string fieldId = StartNewProperty(fieldName, attributes);
+
+        Asset? asset = currentValue as Asset;
+
+        UUID uuid = asset?.UUID ?? UUID.Zero;
+
+        if (ImGuiExtension.ShowAssetDropTarget(ref uuid))
+        {
+            if (uuid == UUID.Zero)
+            {
+                newValue = null;
+            }
+            else
+            {
+                try
+                {
+                    newValue = ActivatorExtension.CreateEngineObject(fieldType, uuid);
+                }
+                catch (Exception e)
+                {
+                    Log.Exception(e);
+                }
+            }
+        }
+        
         return newValue;
     }
 

@@ -76,6 +76,8 @@ static class ScriptGlue
 	    }
 	}
 
+	public static Event<delegate void()> OnRegisterNativeCalls ~ _.Dispose();
+
 	public static void Init()
 	{
 		RegisterCalls();
@@ -104,6 +106,7 @@ static class ScriptGlue
 	[RegisterMethod]
 	private static void RegisterCalls()
 	{
+		OnRegisterNativeCalls.Invoke();
 	}
 
 	private static void RegisterComponent<T>(StringView cSharpClassName = "") where T : struct, new
@@ -1191,6 +1194,23 @@ static class ScriptGlue
 		assetId = meshRenderer.Material;
 	}
 
+	[RegisterCall("ScriptGlue::MeshRenderer_GetSharedMaterial")]
+	static void MeshRenderer_GetSharedMaterial(UUID entityId, out AssetHandle assetId)
+	{
+		MeshRendererComponent* meshRenderer = GetComponentSafe<MeshRendererComponent>(entityId);
+		
+		Material material = GetAssetOrThrow!<Material>((AssetHandle)meshRenderer.Material);
+
+		if (material.IsRuntimeInstance)
+		{
+			assetId = material.Parent.Handle;
+		}
+		else
+		{
+			assetId = meshRenderer.Material;
+		}
+	}
+
 	[RegisterCall("ScriptGlue::MeshRenderer_SetMaterial")]
 	static void MeshRenderer_SetMaterial(UUID entityId, AssetHandle assetId)
 	{
@@ -1429,7 +1449,7 @@ static class ScriptGlue
 
 		Mono.mono_free(rawVariableName);
 	}
-
+	
 	[RegisterCall("ScriptGlue::Material_ResetVariable")]
 	static void Material_ResetVariable(AssetHandle assetHandle, MonoString* managedVariableName)
 	{
@@ -1438,6 +1458,49 @@ static class ScriptGlue
 		char8* rawVariableName = Mono.mono_string_to_utf8(managedVariableName);
 
 		material.ResetVariable(StringView(rawVariableName));
+
+		Mono.mono_free(rawVariableName);
+	}
+
+	[RegisterCall("ScriptGlue::Material_SetTexture")]
+	static void Material_SetTexture(AssetHandle materialHandle, MonoString* managedVariableName, AssetHandle textureHandle)
+	{
+		Material material = GetAssetOrThrow!<Material>(materialHandle);
+
+		char8* rawVariableName = Mono.mono_string_to_utf8(managedVariableName);
+
+		material.SetTexture(StringView(rawVariableName), textureHandle);
+
+		Mono.mono_free(rawVariableName);
+	}
+
+	[RegisterCall("ScriptGlue::Material_GetTexture")]
+	static void Material_GetTexture(AssetHandle materialHandle, MonoString* managedVariableName, out AssetHandle textureHandle)
+	{
+		Material material = GetAssetOrThrow!<Material>(materialHandle);
+
+		char8* rawVariableName = Mono.mono_string_to_utf8(managedVariableName);
+
+		var v = material.GetTexture(StringView(rawVariableName), ?);
+
+		if (v case .Err(let err))
+		{
+			ThrowInvalidOperationException(scope $"Error while getting texture from material {err}");
+		}
+
+		textureHandle = v.Value;
+
+		Mono.mono_free(rawVariableName);
+	}
+
+	[RegisterCall("ScriptGlue::Material_ResetTexture")]
+	static void Material_ResetTexture(AssetHandle materialHandle, MonoString* managedVariableName)
+	{
+		Material material = GetAssetOrThrow!<Material>(materialHandle);
+
+		char8* rawVariableName = Mono.mono_string_to_utf8(managedVariableName);
+
+		material.ResetTexture(StringView(rawVariableName));
 
 		Mono.mono_free(rawVariableName);
 	}
@@ -1452,10 +1515,9 @@ static class ScriptGlue
 		ImGui.ImGui.ListElementGrabber();
 	}
 
-
 #endregion
 
-	private static void RegisterCall<T>(String name, T method) where T : var
+	public static void RegisterCall<T>(String name, T method) where T : var
 	{
 		Mono.mono_add_internal_call(scope $"GlitchyEngine.{name}", (void*)method);
 	}

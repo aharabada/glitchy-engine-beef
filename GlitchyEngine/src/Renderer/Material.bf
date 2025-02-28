@@ -21,9 +21,9 @@ public class Material : Asset
 
 	private Effect _effect ~ _?.ReleaseRef();
 
-	private Dictionary<String, (AssetHandle<Texture> Handle, TextureDimension Dimension, int32? groupTarget)> _textures = new .() ~ DeleteDictionaryAndKeys!(_);
-
 	private Dictionary<StringView, BufferVariable> _variables = new .() ~ delete _;
+
+	private TextureCollection _textureCollection ~ delete _;
 
 	private BufferCollection _bufferCollection ~ _?.ReleaseRef();
 
@@ -64,39 +64,9 @@ public class Material : Asset
 	}
 
 	private void Init()
-	{	 	 
-		decltype(_textures) newTextures = new .();
-
-		// Get texture slots from effect
-		for(let (name, effectTexture) in _effect.Textures)
-		{
-			// TODO: We need to be able to define default textures in the shader.
-			// At least things like "Black", "White", "Normal"
-			// At best whole paths. Shouldn't be that hard to do...
-
-			AssetHandle<Texture> textureHandle = .Invalid;
-			int32? groupTarget = null;
-
-			if (_textures.TryGetValue(name, let oldMaterialTexture))
-			{
-				textureHandle = oldMaterialTexture.Handle;
-				groupTarget = oldMaterialTexture.groupTarget;
-			}
-
-			if (textureHandle.IsValid)
-			{
-				if (textureHandle.Dimension != effectTexture.TextureDimension)
-					textureHandle = .Invalid;
-			}
-			
-			newTextures[new String(name)] = (textureHandle, effectTexture.TextureDimension, groupTarget);
-		}
-
-		DeleteDictionaryAndKeys!(_textures);
-		_textures = newTextures;
-
-		//InitRawData();
+	{
 		InitBuffers();
+		InitTextures();
 	}
 
 	private void InitBuffers()
@@ -142,6 +112,61 @@ public class Material : Asset
 		}
 	}
 
+	private void InitTextures()
+	{
+		delete _textureCollection;
+		_textureCollection = new TextureCollection(_parent?._textureCollection);
+
+		if (_parent == null)
+		{
+			for(let (name, effectTexture) in _effect.Textures)
+			{
+				// TODO: We need to be able to define default textures in the shader.
+				// At least things like "Black", "White", "Normal"
+				// At best whole paths. Shouldn't be that hard to do...
+				AssetHandle<Texture> textureHandle = .Invalid;
+				int32? groupTarget = null;
+	
+				if (textureHandle.IsValid)
+				{
+					if (textureHandle.Dimension != effectTexture.TextureDimension)
+						textureHandle = .Invalid;
+				}
+
+				int32 textureSlot = -1;
+
+				// TODO: This is a hack, because PsSlot and VsSlot actually break because they are references to dictionary items which sometimes get reallocated...
+				// But it is enough for now to detect if the slot exists.
+				if (effectTexture.PsSlot != null)
+				{
+					textureSlot = (.)_effect.PixelShader.Textures[name].Index;
+				}
+				else if (effectTexture.VsSlot != null)
+				{
+					textureSlot = (.)_effect.VertexShader.Textures[name].Index;
+				}
+
+				Log.EngineLogger.AssertDebug(textureSlot != -1);
+
+				_textureCollection.AddTexture(name, effectTexture.TextureDimension, textureSlot, textureHandle, groupTarget);
+			}
+		}
+		else
+		{
+			for(let (name, entry) in _parent._textureCollection.[Friend]_entries)
+			{
+				TextureCollection.TextureFlags flags = .Unset;
+
+				if (entry.Flags.HasFlag(.Locked))
+				{
+					flags |= .Locked | .Readonly;
+				}
+
+				_textureCollection.AddTexture(name, entry.Dimension, entry.TextureSlot, .Invalid, null, flags);
+			}
+		}
+	}
+
 	/**
 	 * Binds the materials Shaders and Parameters to the given context.
 	 */
@@ -149,24 +174,6 @@ public class Material : Asset
 	{
 		Debug.Profiler.ProfileRendererFunction!();
 		
-		// TODO: Bind textures, don't go through effect for that
-		for(let (name, texture) in _textures)
-		{
-			switch (texture.Dimension)
-			{
-			//case .Texture1D, .Texture1DArray:
-			case .Texture2D, .Texture2DArray:
-				AssetHandle<Texture2D> handle2D = .(texture.Handle);
-				_effect.SetTexture(name, handle2D);
-			case .TextureCube, .TextureCubeArray:
-				AssetHandle<TextureCube> cubeHandle = .(texture.Handle);
-				_effect.SetTexture(name, cubeHandle);
-			//case .Texture3D:
-			default:
-				Log.EngineLogger.Error("Tryied to bind undefined texture dimension!");
-			}
-		}
-
 		for (let (bufferName, buffer) in _bufferCollection)
 		{
 			if (let cbuffer = buffer as ConstantBuffer)
@@ -175,32 +182,31 @@ public class Material : Asset
 			}
 		}
 
-		/*for(let (name, variable) in _variables)
-		{
-			variable.Variable.SetRawData(RawPointer!<uint8>(variable.Offset));
-		}*/
-
-		//_effect.ApplyChanges();
 		_effect.Bind();
 
 		RenderCommand.BindConstantBuffers(_bufferCollection);
+
+		_textureCollection.Bind();
+
 	}
 
 	/** @brief Sets a texture of the material.
 	 * @param name The name of the texture to set.
 	 * @param texture The texture to bind to the effect.
 	 */
-	public void SetTexture(String name, AssetHandle<Texture> texture, int32? groupTargetIndex = null)
+	public Result<void, TextureCollection.SetTextureError> SetTexture(StringView name, AssetHandle<Texture> texture, int32? groupTargetIndex = null)
 	{
-		if(_textures.TryGetValue(name, var entry))
-		{
-			_textures[name].Handle = texture;
-			_textures[name].groupTarget = groupTargetIndex;
-		}
-		else
-		{
-			Log.EngineLogger.Error($"Material doesn't have the texture slot \"{name}\"");
-		}
+		return _textureCollection.SetTexture(name, texture, groupTargetIndex);
+	}
+
+	public Result<AssetHandle<Texture>, TextureCollection.SetTextureError> GetTexture(StringView name, out int32? groupTargetIndex)
+	{
+		return _textureCollection.GetTexture(name, out groupTargetIndex);
+	}
+
+	public Result<void, TextureCollection.SetTextureError> ResetTexture(StringView name)
+	{
+		return _textureCollection.ResetTexture(name);
 	}
 
 	private mixin SetVariable(StringView name, var value)
@@ -305,4 +311,158 @@ public class Material : Asset
 			Log.EngineLogger.Assert(false, scope $"The effect doesn't contain a variable named \"{name}\"");
 		}
 	}
+}
+
+public class TextureCollection
+{
+	public enum TextureFlags
+	{
+		None = 0x0,
+		/// The texture slot is dirty and needs to be sent do the GPU.
+		Dirty = 0x1,
+		/// The texture slot is locked, its value cannot be overwritten in child materials.
+		Locked = 0x2,
+		/// (For inherited textures only) The texture slot doesn't override the value set in the parent material.
+		Unset = 0x4,
+		/// The texture slots value cannot be changed. (i.e. it is locked in the parent material)
+		Readonly = 0x8
+	}
+
+	private struct TextureEntry
+	{
+		public AssetHandle<Texture> TextureHandle;
+		public int32? groupTarget;
+		public TextureDimension Dimension;
+		public TextureFlags Flags;
+		public int32 TextureSlot;
+	}
+	
+	protected int _generation = 0;
+	protected int _parentGeneration = 0;
+	private TextureCollection _parent;
+
+	private Dictionary<String, TextureEntry> _entries = new .() ~ DeleteDictionaryAndKeys!(_);
+	
+	public enum SetTextureError
+	{
+		TextureNotFound,
+		DimensionMismatch,
+		TextureSlotReadonly
+	}
+
+	public this(TextureCollection parent = null)
+	{
+		_parent = parent;
+	}
+
+	internal void AddTexture(StringView name, TextureDimension dimension, int32 slot, AssetHandle<Texture> texture, int32? groupTargetIndex = null, TextureFlags flags = .None)
+	{
+		_entries.Add(new String(name),
+			TextureEntry() {
+				TextureHandle = texture,
+				groupTarget = groupTargetIndex,
+				Dimension = dimension,
+				TextureSlot = slot,
+				Flags = flags
+			});
+	}
+
+	public Result<void, SetTextureError> SetTexture(StringView name, AssetHandle<Texture> texture, int32? groupTargetIndex = null)
+	{
+		if (_entries.TryGetRefAlt(name, ?, let entry))
+		{
+			if (entry.Flags.HasFlag(.Readonly))
+			{
+				return .Err(.TextureSlotReadonly);
+			}
+
+			Texture textureAsset = texture.Get();
+
+			if (textureAsset != null && textureAsset.Dimension != entry.Dimension)
+			{
+				return .Err(.DimensionMismatch);
+			}
+
+			entry.TextureHandle = texture;
+
+			// TODO: Assert group target index
+			// We have to figure out how to properly use/pass them anyway
+
+			entry.groupTarget = groupTargetIndex;
+
+			Enum.ClearFlag(ref entry.Flags, .Unset);
+			Enum.SetFlag(ref entry.Flags, .Dirty);
+
+			return .Ok;
+		}
+
+		return .Err(.TextureNotFound);
+	}
+
+	public Result<AssetHandle<Texture>, SetTextureError> GetTexture(StringView name, out int32? groupTargetIndex)
+	{
+		if (_entries.TryGetRefAlt(name, ?, let entry))
+		{
+			if (entry.Flags.HasFlag(.Unset) && _parent != null)
+			{
+				return _parent.GetTexture(name, out groupTargetIndex);
+			}
+
+			groupTargetIndex = entry.groupTarget;
+
+			return entry.TextureHandle;
+		}
+
+		groupTargetIndex = -1;
+
+		return .Err(.TextureNotFound);
+	}
+
+	public Result<void, SetTextureError> ResetTexture(StringView name)
+	{
+		if (_entries.TryGetRefAlt(name, ?, let entry))
+		{
+			if (entry.Flags.HasFlag(.Readonly))
+			{
+				return .Err(.TextureSlotReadonly);
+			}
+
+			entry.TextureHandle = .Invalid;
+			entry.groupTarget = null;
+
+			Enum.SetFlag(ref entry.Flags, .Unset | .Dirty);
+
+			return .Ok;
+		}
+
+		return .Err(.TextureNotFound);
+	}
+
+	public void Bind()
+	{
+		for (var (name, entry) in _entries)
+		{
+			AssetHandle<Texture> handle = entry.TextureHandle;
+			TextureCollection parentCollection = _parent;
+			TextureFlags flags = entry.Flags;
+
+			// If necessary, look for a texture in the parent collection
+			while (flags.HasFlag(.Unset) && parentCollection != null)
+			{
+				TextureEntry parentEntry = parentCollection._entries[name];
+				handle = parentEntry.TextureHandle;
+				parentCollection = parentCollection._parent;
+				flags = parentEntry.Flags;
+			}
+
+			Texture texture = handle.Get();
+
+			using (let viewBinding = texture?.GetViewBinding())
+			{
+				RenderCommand.BindTexture(viewBinding, entry.TextureSlot, .All);
+			}
+		}
+	}
+
+	protected extern Result<void> SetTexturePlatform();
 }

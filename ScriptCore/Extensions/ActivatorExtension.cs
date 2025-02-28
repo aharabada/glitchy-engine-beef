@@ -52,6 +52,43 @@ public static class ActivatorExtension
     }
 
     /// <summary>
+    /// Creates an instance of the given type inheriting from engine object and sets it's id.
+    /// </summary>
+    /// <param name="engineObjectType">The type of the engine object.</param>
+    /// <param name="objectId">The objects id.</param>
+    /// <returns>An instance of the engine object type; or <see langword="null"/> if the creation failed.</returns>
+    internal static EngineObject? CreateEngineObject(Type engineObjectType, UUID objectId)
+    {
+        EngineObject? engineObject = (EngineObject?)CreateInstanceSafe(engineObjectType);
+
+        if (engineObject != null)
+            engineObject._uuid = objectId;
+
+        return engineObject;
+    }
+
+    /// <summary>
+    /// Creates an instance of the given type inheriting from engine object and sets it's id.
+    /// </summary>
+    /// <param name="engineObjectType">The type of the engine object.</param>
+    /// <param name="objectId">The objects id.</param>
+    /// <returns>An instance of the engine object type; or <see langword="null"/> if the creation failed.</returns>
+    internal static T? CreateEngineObject<T>(Type engineObjectType, UUID objectId) where T : EngineObject
+    {
+        if (!typeof(T).IsAssignableFrom(engineObjectType))
+        {
+            return null;
+        }
+
+        EngineObject? engineObject = (EngineObject?)CreateInstanceSafe(engineObjectType);
+
+        if (engineObject != null)
+            engineObject._uuid = objectId;
+
+        return (T?)engineObject;
+    }
+
+    /// <summary>
     /// Creates an instance of the given component type and sets it's entities id.
     /// </summary>
     /// <param name="componentType">The type of the component.</param>

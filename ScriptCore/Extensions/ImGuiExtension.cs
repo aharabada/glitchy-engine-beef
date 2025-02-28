@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
+using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 using ImGuiNET;
 
@@ -72,6 +73,11 @@ public static class ImGuiExtension
     public static void ListElementGrabber()
     {
         ScriptGlue.ImGuiExtension_ListElementGrabber();
+    }
+
+    public static bool ShowAssetDropTarget(ref UUID uuid)
+    {
+        return ScriptGlue.ImGuiExtension_ShowAssetDropTarget(ref uuid);
     }
 
     public static bool Checkbox2(string label, ref bool2 value) => CheckboxN(2, label, ref value.X);
