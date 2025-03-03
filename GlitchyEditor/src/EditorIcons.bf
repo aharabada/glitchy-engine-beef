@@ -34,6 +34,8 @@ namespace GlitchyEditor
 		public SubTexture2D Icon_Save ~ _.ReleaseRef();
 		public SubTexture2D Icon_ContextMenu ~ _.ReleaseRef();
 		public SubTexture2D File_Hlsl ~ _.ReleaseRef();
+		public SubTexture2D Icon_Locked ~ _.ReleaseRef();
+		public SubTexture2D Icon_Unlocked ~ _.ReleaseRef();
 
 		public static EditorIcons Instance => _editorIcons;
 
@@ -73,6 +75,8 @@ namespace GlitchyEditor
 			Icon_Save = GetNextGridTexture(ref pen, iconSize);
 			Icon_ContextMenu = GetNextGridTexture(ref pen, iconSize);
 			File_Hlsl = GetNextGridTexture(ref pen, iconSize);
+			Icon_Locked = GetNextGridTexture(ref pen, iconSize);
+			Icon_Unlocked = GetNextGridTexture(ref pen, iconSize);
 		}
 
 		public ~this()

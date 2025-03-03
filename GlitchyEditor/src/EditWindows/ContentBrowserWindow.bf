@@ -637,7 +637,10 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
 			{
-				OpenEntry(entry);
+				if (ImGui.IsKeyDown(.LeftCtrl))
+					OpenPropertiesWindow(entry);
+				else
+					OpenEntry(entry);
 			}
 
 			if (_assetToRename == entry->Path)
@@ -870,12 +873,17 @@ namespace GlitchyEditor.EditWindows
 			
 			if (ImGui.MenuItem("Properties..."))
 			{
-				AssetHandle? assetHandle = fileOrFolder->AssetFile?.AssetConfig?.AssetHandle;
+				OpenPropertiesWindow(fileOrFolder);
+			}
+		}
 
-				if (assetHandle != null)
-				{
-					new PropertiesWindow(_editor, .Asset(assetHandle.Value));
-				}
+		private void OpenPropertiesWindow(TreeNode<AssetNode> fileOrFolder)
+		{
+			AssetHandle? assetHandle = fileOrFolder->AssetFile?.AssetConfig?.AssetHandle;
+
+			if (assetHandle != null)
+			{
+				new PropertiesWindow(_editor, .Asset(assetHandle.Value));
 			}
 		}
 

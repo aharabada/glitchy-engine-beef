@@ -8,6 +8,8 @@ using GlitchyEditor.Assets;
 using GlitchyEngine.Core;
 using System.Collections;
 using GlitchyEngine.World;
+using GlitchyEngine.Renderer;
+using GlitchyEditor.Assets.Editors;
 
 namespace GlitchyEditor.EditWindows;
 
@@ -140,25 +142,42 @@ class InspectorWindow : EditorWindow
 
 		AssetFile assetFile = assetNode->Value.AssetFile;
 
+		// TODO: assetFile.loadedAsset has the asset
+		// TODO: we need to manually load it
+		// TODO: if available, show editor for asset
+		// TODO: if asset changed, show save button?
+
 		if (ImGui.BeginPropertyTable("asset_properties", ImGui.GetID("asset_properties")))
 		{
 			assetFile.AssetConfig?.ImporterConfig?.ShowEditor(assetFile);
 			assetFile.AssetConfig?.ProcessorConfig?.ShowEditor(assetFile);
 			assetFile.AssetConfig?.ExporterConfig?.ShowEditor(assetFile);
 
+			if (assetFile.LoadedAsset != null)
+			{
+				// TODO: Where do we get the asset editor from?
+				if (let mat = assetFile.LoadedAsset as Material)
+				{
+					MaterialEditor.ShowEditor(assetFile);
+					//ImGui.TextUnformatted(assetFile.LoadedAsset.Identifier);
+				}
+			}
+
 			ImGui.EndTable();
 			
 			ImGui.Separator();
 		}
 
-		bool hasChanges = (assetFile.AssetConfig?.ImporterConfig?.Changed ?? false) || (assetFile.AssetConfig?.ProcessorConfig?.Changed ?? false) || (assetFile.AssetConfig?.ExporterConfig?.Changed ?? false);
+		bool hasChanges = (assetFile.AssetConfig?.ImporterConfig?.Changed == true) ||
+			(assetFile.AssetConfig?.ProcessorConfig?.Changed == true) ||
+			(assetFile.AssetConfig?.ExporterConfig?.Changed == true);
 
 		if (!hasChanges)
 			ImGui.BeginDisabled();
 
 		if (ImGui.Button("Apply"))
 		{
-			assetFile.SaveAssetConfig();
+			assetFile.SaveAssetConfigIfChanged();
 		}
 
 		if (!hasChanges)

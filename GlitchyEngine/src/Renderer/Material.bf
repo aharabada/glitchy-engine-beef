@@ -27,6 +27,9 @@ public class Material : Asset
 
 	private BufferCollection _bufferCollection ~ _?.ReleaseRef();
 
+	public Dictionary<StringView, BufferVariable> Variables => _variables;
+	public TextureCollection Textures => _textureCollection;
+
 	public Effect Effect
 	{
 		get => _effect;
@@ -313,7 +316,7 @@ public class Material : Asset
 	}
 }
 
-public class TextureCollection
+public class TextureCollection : IEnumerable<(String key, TextureEntry value)>
 {
 	public enum TextureFlags
 	{
@@ -328,7 +331,7 @@ public class TextureCollection
 		Readonly = 0x8
 	}
 
-	private struct TextureEntry
+	public struct TextureEntry
 	{
 		public AssetHandle<Texture> TextureHandle;
 		public int32? groupTarget;
@@ -465,4 +468,9 @@ public class TextureCollection
 	}
 
 	protected extern Result<void> SetTexturePlatform();
+
+	public Dictionary<String, TextureEntry>.Enumerator GetEnumerator()
+	{
+		return _entries.GetEnumerator();
+	}
 }

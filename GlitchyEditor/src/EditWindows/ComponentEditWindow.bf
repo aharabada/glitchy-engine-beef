@@ -504,7 +504,7 @@ namespace GlitchyEditor.EditWindows
 			ShowAssetDropTarget<Material>(ref spriteRendererComponent.Material);
 		}
 		
-		private static bool ShowAssetDropTarget(ref AssetHandle target)
+		public static bool ShowAssetDropTarget(ref AssetHandle target)
 		{
 			bool changed = false;
 
@@ -539,8 +539,10 @@ namespace GlitchyEditor.EditWindows
 			return changed;
 		}
 
-		private static void ShowAssetDropTarget<T>(ref AssetHandle<T> target) where T : Asset
+		public static bool ShowAssetDropTarget<T>(ref AssetHandle<T> target) where T : Asset
 		{
+			bool changed = false;
+
 			T currentAsset = target.Get();
 
 			StringView identifier = (target.IsValid ? "<Missing Asset>" : "None");
@@ -565,10 +567,13 @@ namespace GlitchyEditor.EditWindows
 
 					// TODO: Somehow validate the type, please!
 					target = (AssetHandle<T>)Content.LoadAsset(path);
+					changed = true;
 				}
 
 				ImGui.EndDragDropTarget();
 			}
+
+			return changed;
 		}
 
 		private static void ShowCircleRendererComponentEditor(Entity entity, CircleRendererComponent* circleRendererComponent)

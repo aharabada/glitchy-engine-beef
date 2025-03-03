@@ -54,6 +54,11 @@ extension ImGui
 	{
 		PropertyTableStartNewRow();
 
+		PropertyTableName(propertyName);
+	}
+
+	public static void PropertyTableName(StringView propertyName)
+	{
 		bool isFirstTableRow = ImGui.TableGetRowIndex() == 0;
 
 		if (isFirstTableRow)

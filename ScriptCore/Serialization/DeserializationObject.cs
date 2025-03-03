@@ -150,8 +150,18 @@ public class DeserializationObject
     [StructLayout(LayoutKind.Explicit)]
     private struct DataHelper
     {
+        [StructLayout(LayoutKind.Sequential)]
+        public unsafe struct StringView
+        {
+            public byte* Utf8Ptr;
+            public long Length;
+        }
+
         [FieldOffset(0)]
         public EngineObjectReferenceHelper EngineObjectReference;
+
+        [FieldOffset(0)]
+        public StringView String;
 
         [FieldOffset(0)]
         public ulong UInt;
@@ -172,35 +182,25 @@ public class DeserializationObject
     {
         string completeFieldName = $"{_structScopeName}{fieldName}";
 
-        // Decimal is the larges primitive we store so we use a decimal as stack allocated memory (because stackalloc doesn't seem to work :(
-        //decimal backingFieldOnStack = 0.0m;
-        //byte* rawData = (byte*)&backingFieldOnStack;
-        
-        //byte* rawData = stackalloc byte[sizeof(DataHelper)];
-        //ref DataHelper dataHelper = ref Unsafe.AsRef<DataHelper>(rawData);
-
         DataHelper dataHelper = new();
         byte* rawData = (byte*)Unsafe.AsPointer(ref dataHelper);
-
-        // //byte* rawData = stackalloc byte[sizeof(DataHelper)];
-        // //ref DataHelper dataHelper = ref Unsafe.AsRef<DataHelper>(rawData);
 
         ScriptGlue.Serialization_DeserializeField(_internalContext, expectedType, completeFieldName, rawData, out SerializationType actualType);
 
         string? GetString()
         {
-            // rawData contains a Pointer and a string length!
-            byte* utf8Ptr = *(byte**)rawData;
-
-            if (utf8Ptr == null)
+            if (dataHelper.String.Utf8Ptr == null)
                 return null;
-            
-            ulong length = *(ulong*)(rawData + 8);
 
-            if (length == 0)
+            if (dataHelper.String.Length == 0)
                 return string.Empty;
 
-            return Encoding.UTF8.GetString(utf8Ptr, (int)length);
+            if (dataHelper.String.Length is < 0 or > int.MaxValue)
+            {
+                throw new InvalidOperationException($"String length is invalid: {dataHelper.String.Length}");
+            }
+
+            return Encoding.UTF8.GetString(dataHelper.String.Utf8Ptr, (int)dataHelper.String.Utf8Ptr);
         }
 
         object? value = actualType switch

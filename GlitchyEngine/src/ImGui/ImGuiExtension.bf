@@ -176,7 +176,7 @@ namespace ImGui
 				(.(55, 55, 230), .(55, 55, 150), .(90, 90, 230)),
 				(.(230, 25, 45), .(230, 25, 45), .(230, 25, 45)));
 	
-		public static bool EditVector<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float columnWidth = 100f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .(), bool[NumComponents] componentEnabled = .()) where NumComponents : const int32
+		public static bool EditVector<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float columnWidth = 100f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .(), bool[NumComponents] componentEnabled = .(true, )) where NumComponents : const int32
 		{
 			const String[?] componentNames = .("X", "Y", "Z", "W");
 			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
@@ -185,27 +185,36 @@ namespace ImGui
 
 			bool changed = false;
 			bool deactivated = false;
-	
-			PushID(label);
-			defer PopID();
 
-			int currentId = ImGui.GetID("");
+			if (!label.IsEmpty)
+			{
+				PushID(label);
+				defer:: PopID();
+				
+				Columns(2);
+				defer:: Columns(1);
+				SetColumnWidth(0, columnWidth);
 	
-			Columns(2);
-			defer Columns(1);
-			SetColumnWidth(0, columnWidth);
+				//int currentId = ImGui.GetID("");
+		
+				TextUnformatted(label);
 	
-			TextUnformatted(label);
-	
-			NextColumn();
-	
-			PushMultiItemsWidths(NumComponents, CalcItemWidth());
-			
+				NextColumn();
+			}
+
 			float lineHeight = GetFont().FontSize + GetStyle().FramePadding.y * 2.0f;
 			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
-	
-			PushStyleVar(.ItemSpacing, Vec2.Zero);
+
+			float itemWidth = CalcItemWidth();
+
+			float itemWidthNoButton = itemWidth - buttonSize.y * NumComponents;
+
+			bool hideButtons = (itemWidthNoButton / NumComponents) < ImGui.CalcTextSize("0.000").x;
 			
+			PushMultiItemsWidths(NumComponents, hideButtons ? itemWidth : itemWidthNoButton);
+			
+			PushStyleVar(.ItemSpacing, Vec2.Zero);
+
 			for (int i < NumComponents)
 			{
 				if (i > 0)
@@ -219,13 +228,16 @@ namespace ImGui
 
 				ImGui.BeginDisabled(!componentEnabled[i]);
 
-				if (Button(componentNames[i], buttonSize))
+				if (!hideButtons)
 				{
-					value[i] = resetValues[i];
-					changed = true;
+					if (Button(componentNames[i], buttonSize))
+					{
+						value[i] = resetValues[i];
+						changed = true;
+					}
+		
+					SameLine();
 				}
-	
-				SameLine();
 
 				if (DragFloat(componentIds[i], &value[i], dragSpeed, minValue[i], maxValue[i]))
 				{
@@ -278,7 +290,7 @@ namespace ImGui
 			return VectorEditor<4>(label, ref *(float[4]*)&value, (float[4])resetValues, dragSpeed, (float[4])minValue, (float[4])maxValue, (bool[4])componentEnabled, format);
 		}
 
-		public static bool VectorEditor<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .(), bool[NumComponents] componentEnabled = .(), StringView[NumComponents] numberFormat = .()) where NumComponents : const int32
+		public static bool VectorEditor<NumComponents>(StringView label, ref float[NumComponents] value, float[NumComponents] resetValues = .(), float dragSpeed = 0.1f, float[NumComponents] minValue = .(), float[NumComponents] maxValue = .(), bool[NumComponents] componentEnabled = .(true, ), StringView[NumComponents] numberFormat = .()) where NumComponents : const int32
 		{
 			const String[?] componentNames = .("X", "Y", "Z", "W");
 			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
@@ -297,7 +309,16 @@ namespace ImGui
 			float lineHeight = GetFont().FontSize + GetStyle().FramePadding.y * 2.0f;
 			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
 
-			float dragFloatWidth = componentWidth - buttonSize.x - GetStyle().FramePadding.x;
+			float dragFloatWidth = componentWidth - buttonSize.x;
+
+			bool showButtons = dragFloatWidth > CalcTextSize("0.000").x;
+
+			if (!showButtons)
+			{
+				dragFloatWidth = componentWidth;
+			}
+
+			dragFloatWidth -= GetStyle().FramePadding.x * 2;
 
 			componentLoop: for (int i < NumComponents)
 			{
@@ -314,15 +335,18 @@ namespace ImGui
 
 				//PushItemWidth(buttonSize.x);
 
-				if (Button(componentNames[i], buttonSize))
+				if (showButtons)
 				{
-					value[i] = resetValues[i];
-					changed = true;
+					if (Button(componentNames[i], buttonSize))
+					{
+						value[i] = resetValues[i];
+						changed = true;
+					}
+
+					PushStyleVar(.ItemSpacing, Vec2.Zero);
+
+					SameLine();
 				}
-
-				PushStyleVar(.ItemSpacing, Vec2.Zero);
-
-				SameLine();
 
 				StringView format = "0.#####";
 				
@@ -356,7 +380,8 @@ namespace ImGui
 
 				PopItemWidth();
 				
-				PopStyleVar();
+				if (showButtons)
+					PopStyleVar();
 
 				EndDisabled();
 				
