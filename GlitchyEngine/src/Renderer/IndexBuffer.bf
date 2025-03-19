@@ -8,7 +8,7 @@ namespace GlitchyEngine.Renderer
 		/**
 		 * Returns the size in bytes of an index of the IndexFormat.
 		 */
-		public int IndexSize => this == Index16Bit ? 2 : 4
+		public int IndexSize => this == Index16Bit ? 2 : 4;
 	}
 
 	public class IndexBuffer : Buffer

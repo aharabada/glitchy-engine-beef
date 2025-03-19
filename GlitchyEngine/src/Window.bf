@@ -22,7 +22,7 @@ namespace GlitchyEngine
 			Icon = icon;
 		}
 
-		public static readonly WindowDescription Default => .(1280, 720, "Glitchy Engine")
+		public static readonly WindowDescription Default => .(1280, 720, "Glitchy Engine");
 	}
 
 	public class Window

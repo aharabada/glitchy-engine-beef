@@ -9,7 +9,7 @@ namespace GlitchyEngine.Events
 		[Inline]
 		public Key KeyCode => _keyCode;
 
-		public override EventCategory Category => .Input | .Keyboard
+		public override EventCategory Category => .Input | .Keyboard;
 
 		protected this(Key keyCode)
 		{
@@ -61,7 +61,7 @@ namespace GlitchyEngine.Events
 		[Inline]
 		public char16 Char => _char;
 
-		public override EventCategory Category => .Input | .Keyboard
+		public override EventCategory Category => .Input | .Keyboard;
 
 		public override EventType EventType => .KeyTyped;
 		public static EventType StaticType => .KeyTyped;

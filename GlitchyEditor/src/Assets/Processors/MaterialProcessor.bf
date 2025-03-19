@@ -50,7 +50,7 @@ class MaterialProcessor : IAssetProcessor
 		return new AssetProcessorConfig();
 	}
 
-	public static Type ProcessedAssetType => typeof(NewMaterialFile)
+	public static Type ProcessedAssetType => typeof(NewMaterialFile);
 
 	public Result<void> Process(ImportedResource importedResource, AssetConfig config, List<ProcessedResource> outProcessedResources)
 	{
