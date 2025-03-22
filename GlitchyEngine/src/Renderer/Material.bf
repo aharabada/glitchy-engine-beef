@@ -95,7 +95,7 @@ public class Material : Asset
 
 		BufferCollection parentBuffers = _parent?._bufferCollection ?? _effect.Buffers;
 
-		for (let (bufferName, buffer) in parentBuffers)
+		for (let (bufferName, engineBufferName, buffer) in parentBuffers)
 		{
 			if (buffer == null)
 				continue;
@@ -104,7 +104,7 @@ public class Material : Asset
 			{
 				using (OverridingConstantBuffer childConstBuffer = new OverridingConstantBuffer(parentConstBuffer))
 				{
-					_bufferCollection.Add(@bufferName.Index, childConstBuffer.Name, childConstBuffer);
+					_bufferCollection.Add(@bufferName.Index, childConstBuffer.Name, engineBufferName, childConstBuffer);
 					InitVariables(childConstBuffer);
 				}
 			}
@@ -177,7 +177,7 @@ public class Material : Asset
 	{
 		Debug.Profiler.ProfileRendererFunction!();
 		
-		for (let (bufferName, buffer) in _bufferCollection)
+		for (let (bufferName, engineBufferName, buffer) in _bufferCollection)
 		{
 			if (let cbuffer = buffer as ConstantBuffer)
 			{

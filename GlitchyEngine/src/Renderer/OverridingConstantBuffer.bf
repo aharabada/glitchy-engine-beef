@@ -12,7 +12,7 @@ class OverridingConstantBuffer : ConstantBuffer
 
 	public ConstantBuffer Parent => _parent;
 
-	public this(ConstantBuffer parent) : base(parent.Name, parent.RawData.Length)
+	public this(ConstantBuffer parent) : base(parent.Name, parent.RawData.Length, parent.EngineBufferName)
 	{
 		Log.EngineLogger.AssertDebug(parent != null);
 		_parent = parent;
@@ -25,7 +25,7 @@ class OverridingConstantBuffer : ConstantBuffer
 		for (BufferVariable parentVariable in _parent.Variables)
 		{
 			BufferVariable newVariable = new BufferVariable(parentVariable.Name, this, parentVariable.ElementType, parentVariable.Columns,
-				parentVariable.Rows, parentVariable.Offset, parentVariable._sizeInBytes, parentVariable.ArrayElements, parentVariable.IsUsed);
+				parentVariable.Rows, parentVariable.Offset, parentVariable._sizeInBytes, parentVariable.ArrayElements, parentVariable.IsUsed, parentVariable.PreviewName, parentVariable.EditorTypeName);
 
 			if (parentVariable.Flags.HasFlag(.Locked))
 			{

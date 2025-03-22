@@ -109,11 +109,25 @@ class ReflectedTexture
 class ReflectedConstantBufferVariable
 {
 	private String _name ~ delete _;
+	private String _previewName ~ delete _;
+	private String _editorType ~ delete _;
 
 	public StringView Name
 	{
 		get => _name;
 		set => String.NewOrSet!(_name, value);
+	}
+
+	public StringView PreviewName
+	{
+		get => _previewName;
+		set => String.NewOrSet!(_previewName, value);
+	}
+	
+	public StringView EditorType
+	{
+		get => _editorType;
+		set => String.NewOrSet!(_editorType, value);
 	}
 
 	public int Offset;
@@ -125,6 +139,9 @@ class ReflectedConstantBufferVariable
 	public int Columns;
 	
 	public int ArraySize;
+	
+	public Variant MinValue;
+	public Variant MaxValue;
 }
 
 // TODO: Dx11
@@ -146,30 +163,43 @@ class ShaderCompiler
 
 		CompiledShader shader = new CompiledShader();
 
-		Try!(PlatformCompileShaderFromSource(code, assetIdentifier, entryPoint, compileTarget, defines, shader));
+		ShaderCompilationContext context = scope .();
 
-		Try!(PlatformReflectShader(shader));
+		Try!(PlatformCompileShaderFromSource(code, assetIdentifier, entryPoint, compileTarget, defines, shader, context));
+
+		Try!(PlatformReflectShader(shader, context));
 
 		return shader;
 	}
 
-	protected static extern Result<void> PlatformCompileShaderFromSource(StringView code, AssetIdentifier fileName, StringView entryPoint, StringView compileTarget, Span<ShaderDefineValue> defines, CompiledShader outShader);
+	protected static extern Result<void> PlatformCompileShaderFromSource(StringView code, AssetIdentifier fileName, StringView entryPoint, StringView compileTarget, Span<ShaderDefineValue> defines, CompiledShader outShader, ShaderCompilationContext context);
 
-	protected static extern Result<void> PlatformReflectShader(CompiledShader shader);
+	protected static extern Result<void> PlatformReflectShader(CompiledShader shader, ShaderCompilationContext context);
+}
+
+class ShaderCompilationContext
+{
+	public append String VsName = String();
+	public append String PsName = String();
+
+	public append Dictionary<StringView, ShaderVariable> Variables = .() ~ ClearDictionaryAndDeleteValues!(_);
+	public append List<String> BufferNames = .() ~ ClearAndDeleteItems!(_);
+	// Name in Shader -> Name in Engine
+	public append Dictionary<StringView, StringView> EngineBuffers = .();
 }
 
 // TODO: Dx11
 extension ShaderCompiler
 {
 	// TODO: This should be a setting per shader, really!
-	protected const ShaderCompileFlags DefaultCompileFlags = .EnableStrictness | 
+	protected const ShaderCompileFlags DefaultCompileFlags = .EnableStrictness |
 #if DEBUG
 	.Debug;
 #else
 	.OptimizationLevel3;
 #endif
 
-	protected static override Result<void> PlatformCompileShaderFromSource(StringView code, AssetIdentifier fileName, StringView entryPoint, StringView compileTarget, Span<ShaderDefineValue> defines, CompiledShader outShader)
+	protected static override Result<void> PlatformCompileShaderFromSource(StringView code, AssetIdentifier fileName, StringView entryPoint, StringView compileTarget, Span<ShaderDefineValue> defines, CompiledShader outShader, ShaderCompilationContext context)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 		
@@ -192,7 +222,11 @@ extension ShaderCompiler
 
 		Path.GetDirectoryPath(fileName, directory);
 
-		using (let includer = Includer(directory))
+		String shaderCode = new:ScopedAlloc! String(code);
+		
+		Try!(ShaderCodePreprocessor.ProcessFileContent(shaderCode, context.VsName, context.PsName, context.Variables, context.BufferNames, context.EngineBuffers));
+
+		using (let includer = PreprocessingIncluder(directory, context))
 		{
 			var result = D3DCompiler.D3DCompile(code.Ptr, (.)code.Length, fileName.FullIdentifier.ToScopeCStr!(), nativeMacros, &includer, entryPoint.ToScopeCStr!(),
 				compileTarget.ToScopeCStr!(), DefaultCompileFlags /* Pass down compile flags? */, .None, &outShader._shaderBlob, &errorBlob);
@@ -210,7 +244,7 @@ extension ShaderCompiler
 		return .Ok;
 	}
 
-	protected override static Result<void> PlatformReflectShader(CompiledShader shader)
+	protected override static Result<void> PlatformReflectShader(CompiledShader shader, ShaderCompilationContext context)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
@@ -253,7 +287,7 @@ extension ShaderCompiler
 				// ConstantBuffer
 				if(bufferDesc.Type == .D3D11_CT_CBUFFER)
 				{
-					ReflectedConstantBuffer cbuffer = Try!(ReflectConstantBuffer(bindDesc, bufferReflection));
+					ReflectedConstantBuffer cbuffer = Try!(ReflectConstantBuffer(bindDesc, bufferReflection, context));
 					shader.AddConstantBuffer(cbuffer);
 				}
 			case .Texture:
@@ -290,7 +324,7 @@ extension ShaderCompiler
 		return .Ok;
 	}
 
-	private static Result<ReflectedConstantBuffer> ReflectConstantBuffer(ShaderInputBindDescription bindDesc, ID3D11ShaderReflectionConstantBuffer* bufferReflection)
+	private static Result<ReflectedConstantBuffer> ReflectConstantBuffer(ShaderInputBindDescription bindDesc, ID3D11ShaderReflectionConstantBuffer* bufferReflection, ShaderCompilationContext context)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
@@ -310,17 +344,22 @@ extension ShaderCompiler
 		{
 			ID3D11ShaderReflectionVariable* variableReflection = bufferReflection.GetVariableByIndex(v);
 
-			if (ReflectConstantBufferVariable(buffer, variableReflection) case .Err)
+			if (ReflectConstantBufferVariable(buffer, variableReflection, context) case .Err)
 			{
 				delete buffer;
 				return .Err;
 			}
 		}
 
+		if (context.EngineBuffers.TryGetValue(buffer.Name, let engineBufferName))
+		{
+			buffer.EngineBufferName = engineBufferName;
+		}
+
 		return buffer;
 	}
 
-	private static Result<void> ReflectConstantBufferVariable(ReflectedConstantBuffer buffer, ID3D11ShaderReflectionVariable* variableReflection)
+	private static Result<void> ReflectConstantBufferVariable(ReflectedConstantBuffer buffer, ID3D11ShaderReflectionVariable* variableReflection, ShaderCompilationContext context)
 	{
 		Debug.Profiler.ProfileResourceFunction!();
 
@@ -375,13 +414,23 @@ extension ShaderCompiler
 			Internal.MemCpy(&buffer.RawData[variable.Offset], variableDescription.DefaultValue, variable.SizeInBytes);
 		}
 
+		if (context.Variables.TryGetValue(variable.Name, let variableAnnotation))
+		{
+			variable.PreviewName = variableAnnotation.PreviewName;
+			variable.EditorType = variableAnnotation.EditorType;
+			
+			// TODO: We need to somehow validate against our variable type
+			variable.MinValue = variableAnnotation.MinValue;
+			variable.MaxValue = variableAnnotation.MaxValue;
+		}
+
 		buffer.AddVariable(variable);
 
 		return .Ok;
 	}
 }
 
-struct Includer : ID3DInclude, IDisposable
+struct PreprocessingIncluder : ID3DInclude, IDisposable
 {
 	private VTable _vTable;
 
@@ -389,7 +438,9 @@ struct Includer : ID3DInclude, IDisposable
 
 	private String _parentFileDirectory;
 
-	public this(String parentFileDirectory)
+	private ShaderCompilationContext _context;
+
+	public this(String parentFileDirectory, ShaderCompilationContext context)
 	{
 		_parentFileDirectory = parentFileDirectory;
 		_loadedFiles = new Dictionary<StringView, (String FileName, String FileContent)>();
@@ -398,6 +449,8 @@ struct Includer : ID3DInclude, IDisposable
 		_vTable.Close = => Close;
 
 		_vt = &_vTable;
+
+		_context = context;
 	}
 
 	public void Dispose()
@@ -413,7 +466,7 @@ struct Includer : ID3DInclude, IDisposable
 
 	public static HResult Open(ID3DInclude* self, IncludeType includeType, char8* fileNamePtr, void* parentData, void** data, uint32* bytes)
 	{
-		Includer* includer = (.)self;
+		PreprocessingIncluder* includer = (.)self;
 
 		StringView fileName = StringView(fileNamePtr);
 
@@ -424,7 +477,7 @@ struct Includer : ID3DInclude, IDisposable
 
 			return .S_OK;
 		}
-
+		
 		String fullPath = scope .();
 
 		Path.Combine(fullPath, includer._parentFileDirectory, fileName);
@@ -453,6 +506,7 @@ struct Includer : ID3DInclude, IDisposable
 
 		if (fileStream == null)
 		{
+			return .E_FILENOTFOUND;
 		}
 		
 		String fileContent = new String();
@@ -469,6 +523,13 @@ struct Includer : ID3DInclude, IDisposable
 
 		delete fileStream;
 
+		String trashbin = scope String();
+
+		if (ShaderCodePreprocessor.ProcessFileContent(fileContent, trashbin, trashbin, includer._context.Variables, includer._context.BufferNames, includer._context.EngineBuffers) case .Err)
+		{
+			return .E_FAIL;
+		}
+
 		*data = (void*)fileContent.Ptr;
 		*bytes = (uint32)fileContent.Length;
 		
@@ -477,7 +538,7 @@ struct Includer : ID3DInclude, IDisposable
 
 	public static HResult Close(ID3DInclude* self, void** data)
 	{
-		Includer* includer = (.)self;
+		PreprocessingIncluder* includer = (.)self;
 
 		for (var v in includer._loadedFiles)
 		{

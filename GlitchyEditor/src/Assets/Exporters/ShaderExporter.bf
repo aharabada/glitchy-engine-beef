@@ -23,8 +23,8 @@ class ShaderExporter : IAssetExporter
 
 		File Format:
 		Vertex Shader Blob Length (uint64 / 8 bytes) (0 if null)
-		Vertex Shader Data...
 		Pixel Shader Blob Length (uint64 / 8 bytes) (0 if null)
+		Vertex Shader Data...
 		Pixel Shader Data...
 		Texture Count (uint16)
 		Textures
@@ -57,6 +57,11 @@ class ShaderExporter : IAssetExporter
 				ArraySize (uint64)
 				Name Length (uint16)
 				Name Data...
+				Preview Name Length (uint16)
+				Preview Name Data...
+				Type Editor Name Length (uint16)
+				Type Editor Name Data...
+				# TODO: Min and Max
 			}
 			RawData...
 		}
@@ -92,11 +97,7 @@ class ShaderExporter : IAssetExporter
 			Try!(stream.Write((uint8)textureEntry.TextureDimension));
 			Try!(stream.Write((int32)textureEntry.VertexShaderBindPoint));
 			Try!(stream.Write((int32)textureEntry.PixelShaderBindPoint));
-
-			Log.EngineLogger.Assert(textureName.Length < int16.MaxValue);
-
-			Try!(stream.Write((int16)textureName.Length));
-			Try!(stream.Write(textureName));
+			WriteSizedString<uint16>(stream, textureName);
 		}
 
 		return .Ok;
@@ -116,19 +117,10 @@ class ShaderExporter : IAssetExporter
 
 			Try!(stream.Write((int32)bufferEntry.VertexShaderBindPoint));
 			Try!(stream.Write((int32)bufferEntry.PixelShaderBindPoint));
+			
+			WriteSizedString<uint16>(stream, bufferName);
 
-			Log.EngineLogger.Assert(bufferName.Length < int16.MaxValue);
-
-			Try!(stream.Write((uint16)bufferName.Length));
-			Try!(stream.Write(bufferName));
-
-			int engineBufferNameLength = bufferEntry.ConstantBuffer.EngineBufferName.Length;
-			Log.EngineLogger.Assert(engineBufferNameLength < int16.MaxValue);
-
-			Try!(stream.Write((uint16)engineBufferNameLength));
-
-			if (engineBufferNameLength > 0)
-				Try!(stream.Write(bufferEntry.ConstantBuffer.EngineBufferName));
+			WriteSizedString<uint16>(stream, bufferEntry.ConstantBuffer.EngineBufferName);
 
 			Log.EngineLogger.Assert(buffer.Variables.Count < int16.MaxValue);
 
@@ -148,14 +140,29 @@ class ShaderExporter : IAssetExporter
 				Try!(stream.Write((uint8)variable.Columns));
 				Try!(stream.Write((uint64)variable.ArraySize));
 				
-				Log.EngineLogger.Assert(variableName.Length < int16.MaxValue);
-
-				Try!(stream.Write((uint16)variableName.Length));
-				Try!(stream.Write(variableName));
+				WriteSizedString<uint16>(stream, variableName);
+				WriteSizedString<uint16>(stream, variable.PreviewName);
+				WriteSizedString<uint16>(stream, variable.EditorType);
 			}
 
 			Try!(stream.Write(Span<uint8>(buffer.RawData, 0, buffer.Size)));
 		}
+
+		return .Ok;
+	}
+
+	private static Result<void> WriteSizedString<Tint>(Stream stream, StringView string)
+		where Tint : IInteger
+		where int : operator explicit Tint
+		where Tint : operator explicit int
+		where Tint : struct
+	{
+		Log.EngineLogger.Assert(string.Length < (int)typeof(Tint).MaxValue);
+
+		Try!(stream.Write((Tint)string.Length));
+		
+		if (string.Length > 0)
+			Try!(stream.WriteStrUnsized(string));
 
 		return .Ok;
 	}

@@ -24,6 +24,8 @@ namespace GlitchyEngine.Renderer
 		private ConstantBuffer _constantBuffer;
 
 		private String _name ~ delete _;
+		protected String _previewName ~ delete _;
+		protected String _editorTypeName ~ delete _;
 
 		private ShaderVariableType _elementType;
 
@@ -41,6 +43,8 @@ namespace GlitchyEngine.Renderer
 		public ShaderVariableType ElementType => _elementType;
 
 		public String Name => _name;
+		public StringView PreviewName => _previewName;
+		public StringView EditorTypeName => _editorTypeName;
 
 		public bool IsUsed => _flags.HasFlag(.Used);
 
@@ -70,9 +74,11 @@ namespace GlitchyEngine.Renderer
 		[Inline]
 		internal uint8* firstByte => _constantBuffer.rawData.CArray() + _offset;
 
-		public this(StringView name, ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 arrayElements, bool isUsed)
+		public this(StringView name, ConstantBuffer constantBuffer, ShaderVariableType type, uint32 columns, uint32 rows, uint32 offset, uint32 sizeInBytes, uint32 arrayElements, bool isUsed, StringView previewName, StringView editorTypeName)
 		{
 			_name = new String(name);
+			_previewName = new String(previewName);
+			_editorTypeName = new String(editorTypeName);
 			_constantBuffer = constantBuffer; // Only hold a weak reference. This variable has to die with the buffer
 			_elementType = type;
 			_columns = columns;

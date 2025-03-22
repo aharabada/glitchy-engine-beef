@@ -86,6 +86,22 @@ class ShaderLoader : IProcessedAssetLoader
 		return effect;
 	}
 
+	private static mixin ReadScopedSizedString<Tint>(Stream stream)
+		where Tint : IInteger
+		where int : operator explicit Tint
+		where Tint : operator explicit int
+		where Tint : struct
+	{
+		int bufferNameLength = (int)Try!(stream.Read<Tint>());
+
+		String string = scope:mixin String(bufferNameLength);
+
+		if (bufferNameLength > 0)
+			stream.ReadStrSized32(bufferNameLength, string);
+
+		string
+	}
+
 	private static Result<void> LoadBuffer(Stream stream, Effect effect)
 	{
 		int64 bufferSize = Try!(stream.Read<int64>());
@@ -93,24 +109,10 @@ class ShaderLoader : IProcessedAssetLoader
 		int32 vertexShaderBindPoint = Try!(stream.Read<int32>());
 		int32 pixelShaderBindPoint = Try!(stream.Read<int32>());
 
-		int16 bufferNameLength = Try!(stream.Read<int16>());
-		String bufferName = scope String(bufferNameLength);
-		stream.ReadStrSized32(bufferNameLength, bufferName);
+		String bufferName = ReadScopedSizedString!<uint16>(stream);
+		String engineBufferName = ReadScopedSizedString!<uint16>(stream);
 
-		int16 engineBufferNameLength = Try!(stream.Read<int16>());
-		String engineBufferName = null;
-
-		if (engineBufferNameLength > 0)
-		{
-			scope String(engineBufferNameLength);
-			stream.ReadStrSized32(engineBufferNameLength, engineBufferName);
-
-			// TODO: Engine buffers currently do nothing. The bind points for each engine buffer are hardcoded.
-			// It only marks the buffer as engine buffer, preventing the variables from becomming accessible.
-			//effect.[Friend]_engineBuffers.Add()
-		}
-
-		using (ConstantBuffer buffer = new ConstantBuffer(bufferName, bufferSize))
+		using (ConstantBuffer buffer = new ConstantBuffer(bufferName, bufferSize, engineBufferName))
 		{
 			uint16 variableCount = Try!(stream.Read<uint16>());
 
@@ -124,26 +126,25 @@ class ShaderLoader : IProcessedAssetLoader
 				uint8 columns = Try!(stream.Read<uint8>());
 				uint64 arraySize = Try!(stream.Read<uint64>());
 
-				int16 variableNameLength = Try!(stream.Read<int16>());
-				String variableName = scope String(variableNameLength);
-				stream.ReadStrSized32(variableNameLength, variableName);
+				String variableName = ReadScopedSizedString!<uint16>(stream);
+				String previewName = ReadScopedSizedString!<uint16>(stream);
+				String editorTypeName = ReadScopedSizedString!<uint16>(stream);
 
-				if (engineBufferName == null)
-					buffer.AddVariable(variableName, variableOffset, sizeInBytes, isUsed, type, rows, columns, arraySize);
+				buffer.AddVariable(variableName, previewName, editorTypeName, variableOffset, sizeInBytes, isUsed, type, rows, columns, arraySize);
 			}
 
 			Try!(stream.TryRead(buffer.RawData));
 			Try!(buffer.Apply());
 
 			if (vertexShaderBindPoint != -1)
-				effect.VertexShader.Buffers.Add(vertexShaderBindPoint, buffer.Name, buffer);
+				effect.VertexShader.Buffers.Add(vertexShaderBindPoint, buffer.Name, engineBufferName, buffer);
 
 			if (pixelShaderBindPoint != -1)
-				effect.PixelShader.Buffers.Add(pixelShaderBindPoint, buffer.Name, buffer);
+				effect.PixelShader.Buffers.Add(pixelShaderBindPoint, buffer.Name, engineBufferName, buffer);
 
 			// TODO: Allow binding buffers to different indices? Does this theoretically work with textures?
 			let tempBindPoint = (vertexShaderBindPoint != -1) ? vertexShaderBindPoint : pixelShaderBindPoint;
-			effect.Buffers.Add(tempBindPoint, buffer.Name, buffer);
+			effect.Buffers.Add(tempBindPoint, buffer.Name, engineBufferName, buffer);
 
 			for (var variable in buffer.Variables)
 			{

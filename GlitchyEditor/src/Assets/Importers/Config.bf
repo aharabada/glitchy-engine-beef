@@ -8,7 +8,7 @@ namespace GlitchyEditor.Assets.Importers;
 abstract class Config
 {
 	[BonIgnore]
-	protected bool _changed = true;
+	protected bool _changed = false;
 
 	public bool Changed => _changed;
 

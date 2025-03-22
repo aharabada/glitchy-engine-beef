@@ -172,16 +172,14 @@ class InspectorWindow : EditorWindow
 			(assetFile.AssetConfig?.ProcessorConfig?.Changed == true) ||
 			(assetFile.AssetConfig?.ExporterConfig?.Changed == true);
 
-		if (!hasChanges)
-			ImGui.BeginDisabled();
+		ImGui.BeginDisabled(!hasChanges);
 
 		if (ImGui.Button("Apply"))
 		{
 			assetFile.SaveAssetConfigIfChanged();
 		}
 
-		if (!hasChanges)
-			ImGui.EndDisabled();
+		ImGui.EndDisabled();
 	}
 
 	private static void ShowEntityProperties(UUID entityId, Editor editor, Type componentType = null)

@@ -4,15 +4,16 @@ using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Renderer
 {
-	public class BufferCollection : RefCounter, IEnumerable<(String Name, Buffer Buffer)>
+	public class BufferCollection : RefCounter, IEnumerable<(String Name, String EngineBufferName, Buffer Buffer)>
 	{
 		public static extern int MaxBufferSlotCount { get; }
 
-		public typealias BufferEntry = (String Name, Buffer Buffer);
+		public typealias BufferEntry = (String Name, String EngineBufferName, Buffer Buffer);
 
 		BufferEntry[] _buffers ~ DeleteBufferEntries!(_);
 
 		Dictionary<StringView, BufferEntry*> _strToBuf ~ delete _;
+		Dictionary<StringView, BufferEntry*> _engineBuffers ~ delete _;
 
 		[AllowAppend]
 		public this()
@@ -22,9 +23,11 @@ namespace GlitchyEngine.Renderer
 			// Todo: append allocate as soon as it's fixed
 			let buffers = new BufferEntry[MaxBufferSlotCount];
 			let strToBuf = new Dictionary<StringView, BufferEntry*>();
+			let engineBuffers = new Dictionary<StringView, BufferEntry*>();
 
 			_buffers = buffers;
 			_strToBuf = strToBuf;
+			_engineBuffers = engineBuffers;
 		}
 
 		public ~this()
@@ -40,6 +43,7 @@ namespace GlitchyEngine.Renderer
 			for(let entry in entries)
 			{
 				delete entry.Name;
+				delete entry.EngineBufferName;
 				entry.Buffer?.ReleaseRef();
 			}
 
@@ -120,12 +124,20 @@ namespace GlitchyEngine.Renderer
 			}
 		}
 
-		public void Add(int slot, StringView name, Buffer buffer)
+		public void Add(int slot, StringView name, StringView engineBufferName, Buffer buffer)
 		{
 			ref BufferEntry bufferEntry = ref _buffers[slot];
 
 			SetReference!(bufferEntry.Buffer, buffer);
 			String.NewOrSet!(bufferEntry.Name, name);
+
+			if (engineBufferName.IsEmpty)
+				DeleteAndNullify!(bufferEntry.EngineBufferName);
+			else
+			{
+				String.NewOrSet!(bufferEntry.EngineBufferName, engineBufferName);
+				_engineBuffers.Add(bufferEntry.EngineBufferName, &bufferEntry);
+			}
 
 			_strToBuf.Add(bufferEntry.Name, &bufferEntry);
 		}

@@ -9,6 +9,7 @@ namespace GlitchyEngine.Renderer
 	public class ConstantBuffer : Buffer
 	{
 		protected String _name ~ delete _;
+		protected String _engineBufferName ~ delete _;
 
 		/**
 		 * The buffer that contains the buffer data on the CPU.
@@ -23,6 +24,7 @@ namespace GlitchyEngine.Renderer
 
 		/// Gets the name of the constant buffer.
 		public StringView Name => _name;
+		public StringView EngineBufferName => _engineBufferName;
 
 		public BufferVariableCollection Variables => _variables;
 
@@ -31,9 +33,15 @@ namespace GlitchyEngine.Renderer
 
 		protected this() {}
 
-		public this(StringView name, int64 size)
+		public this(StringView name, int64 size, StringView engineBufferName = "")
 		{
 			_name = new String(name);
+
+			if (!engineBufferName.IsEmpty)
+			{
+				_engineBufferName = new String(engineBufferName);
+			}
+
 			rawData = new uint8[size];
 			ConstructBuffer();
 		}
@@ -43,9 +51,9 @@ namespace GlitchyEngine.Renderer
 			_variables.Add(ownVariable);
 		}
 
-		public void AddVariable(StringView name, uint64 offset, uint64 sizeInBytes, bool isUsed, ShaderVariableType type, uint8 rows, uint8 columns, uint64 arraySize)
+		public void AddVariable(StringView name, StringView previewName, StringView editorTypeName, uint64 offset, uint64 sizeInBytes, bool isUsed, ShaderVariableType type, uint8 rows, uint8 columns, uint64 arraySize)
 		{
-			_variables.Add(new BufferVariable(name, this, type, columns, rows, (uint32)offset, (uint32)sizeInBytes, (uint32)arraySize, isUsed));
+			_variables.Add(new BufferVariable(name, this, type, columns, rows, (uint32)offset, (uint32)sizeInBytes, (uint32)arraySize, isUsed, previewName, editorTypeName));
 		}
 
 		/**
