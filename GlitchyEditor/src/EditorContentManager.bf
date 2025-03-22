@@ -972,16 +972,22 @@ class EditorContentManager : IContentManager
 		{
 			TreeNode<AssetNode> assetNode = TrySilent!(AssetHierarchy.GetNodeFromAssetHandle(handle));
 			
-			_assetConverter.QueueForProcessing(assetNode->AssetFile, isBlocking);
-
 			var isBlocking;
 			isBlocking = true;
+
+			_assetConverter.QueueForProcessing(assetNode->AssetFile, isBlocking);
 
 			if (isBlocking)
 			{
 				asset = _assetCache.GetCacheEntry(handle);
 
-				Log.EngineLogger.Assert(asset != null, "Failed to load asset.");
+				//Log.EngineLogger.Assert(asset != null, "Failed to load asset.");
+
+				if (asset == null)
+				{
+					Log.EngineLogger.Error($"Failed to load Asset \"{assetNode->Path}\" (Handle: {handle})");
+					return new NewPlaceholderAsset(handle, .Error);
+				}
 			}
 			else
 			{
