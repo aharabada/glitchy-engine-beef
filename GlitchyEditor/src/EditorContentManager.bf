@@ -26,9 +26,9 @@ class EditorContentManager : IContentManager
 
 	private append Dictionary<AssetHandle, Asset> _handleToAsset = .();
 
-	private append AssetHierarchy _assetHierarchy = .(this);
-	private append AssetCache _assetCache = .(this);
-	private append AssetConverter _assetConverter = .(this);
+	private AssetHierarchy _assetHierarchy = new .(this) ~ delete _;
+	private AssetCache _assetCache = new .(this) ~ delete _;
+	private AssetConverter _assetConverter = new .(this) ~ delete _;
 
 	private append List<AssetHandle> _reloadQueue = .();
 	
