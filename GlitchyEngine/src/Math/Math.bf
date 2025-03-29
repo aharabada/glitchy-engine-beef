@@ -864,4 +864,75 @@ static
 	// transpose und determinante für Matrizen
 
 	// sin, cos, tan, asin, acos, atan, atan2, cosh, sinh, tanh
+
+#region Fancy Stuff
+
+	/// @brief Calculates the greates common divisor (greates common factor) of two unsgined integer a and b.
+	/// Based on https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+	public static uint64 gcd(uint64 u, uint64 v)
+	{
+		if (u == 0)
+			return v;
+		if (v == 0)
+			return u;
+
+		var u, v;
+
+		// Essentially we want to know how many trailing zeros a and b have.
+		// TODO: If we have an efficient algorithm for that, this might become a lot faster.
+		uint64 trailingZerosU = 0;
+		while ((u % 2) == 0)
+		{
+			u >>= 1;
+			trailingZerosU++;
+		}
+		
+		uint64 trailingZerosV = 0;
+		while ((v % 2) == 0)
+		{
+			v >>= 1;
+			trailingZerosV++;
+		}
+
+		uint64 k = Math.Min(trailingZerosU, trailingZerosV);
+
+		while (true)
+		{
+			Log.EngineLogger.AssertDebug(u % 2 == 1, "a should be odd");
+			Log.EngineLogger.AssertDebug(v % 2 == 1, "b should be odd");
+
+			if (u > v)
+			{
+				(u, v) = (v, u);
+			}
+
+			v -= u;
+			// b is now even
+
+			if (v == 0)
+			{
+				return u << k;
+			}
+
+			// Make v odd again
+			while ((v % 2) == 0)
+			{
+				v >>= 1;
+			}
+		}
+	}
+	
+	/// @brief Calculates the greates common divisor (greates common factor) of two signed integer a and b.
+	/// Based on https://en.wikipedia.org/wiki/Binary_GCD_algorithm
+	public static int64 gcd(int64 u, int64 v)
+	{
+		return (int64)gcd((uint64)Math.Abs(u), (uint64)Math.Abs(v));
+	}
+
+	public static this()
+	{
+		int64 i = (int64)gcd(38, 123);
+	}
+
+#endregion
 }

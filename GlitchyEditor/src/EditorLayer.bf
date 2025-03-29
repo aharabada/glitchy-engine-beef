@@ -365,7 +365,7 @@ namespace GlitchyEditor
 					ColorTargetDescriptions = TargetDescription[](
 						.(.R8G8B8A8_UNorm))
 				});
-			_editorViewportTarget.[Friend]Identifier = "Game Viewport Target";
+			_gameViewportTarget.[Friend]Identifier = "Game Viewport Target";
 
 			_editorIcons = new EditorIcons("Resources/Textures/EditorIcons.dds", .(64, 64));
 			_editorIcons.SamplerState = SamplerStateManager.AnisotropicClamp;
@@ -460,8 +460,8 @@ namespace GlitchyEditor
 			{
 				_gameSceneRenderer.Scene = _activeScene;
 
-				_activeScene.SetViewportSize((uint32)_editor.GameViewportWindow.ViewportSize.X, (uint32)_editor.GameViewportWindow.ViewportSize.Y);
-				_gameSceneRenderer.SetViewportSize((uint32)_editor.GameViewportWindow.ViewportSize.X, (uint32)_editor.GameViewportWindow.ViewportSize.Y);
+				_activeScene.SetViewportSize((uint32)_editor.GameViewportWindow.RenderedViewportSize.X, (uint32)_editor.GameViewportWindow.RenderedViewportSize.Y);
+				_gameSceneRenderer.SetViewportSize((uint32)_editor.GameViewportWindow.RenderedViewportSize.X, (uint32)_editor.GameViewportWindow.RenderedViewportSize.Y);
 
 				RenderCommand.Clear(_gameViewportTarget, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 				_gameSceneRenderer.RenderRuntime(gameTime, _gameViewportTarget);
@@ -960,10 +960,10 @@ namespace GlitchyEditor
 			{
 				/*
 				 * Update the viewport size because if the game windows size changed in
-				 * "Game"-mode the updated aspect-rations will reset once we go back
+				 * "Game"-mode the updated aspect-ratios will reset once we go back
 				 * into "Editor"-mode (because Game-Mode works on a copy of the scene).
 				 */
-				GameViewportSizeChanged(null, _editor.GameViewportWindow.ViewportSize);
+				GameViewportSizeChanged(null, _editor.GameViewportWindow.RenderedViewportSize);
 			}
 			
 			if (Application.Instance.Settings.EditorSettings.SwitchToEditorOnStop)
