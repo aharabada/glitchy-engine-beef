@@ -33,7 +33,7 @@ static class Handles
 #unwarn
 		bool result = ImGuizmo.Manipulate((.)&View, (.)&Projection, gizmoType, globalGizmo ? .WORLD : .LOCAL, (.)&transform, null, _snap.HasValue ? (.)&_snap : null);
 
-		_usedGizmo |= ImGuizmo.IsUsing();
+		_usedGizmo = ImGuizmo.IsUsing();
 
 		return result;
 	}
