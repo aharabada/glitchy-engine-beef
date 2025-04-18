@@ -106,34 +106,34 @@ void SwizzleColor(int swizzleMode, float4 colorToSwizzle, inout float output)
 
 /**
  * Returns whether or not the current pixel lies on the border between two texels.
+ * @param texelPosition The position in texel coordinates [0...Texels)
+ * @param color The sampled color at the current position. This will be modified if the pixel is on a texel border.
  */
 void ApplyTexelBorder(float2 texelPosition, inout float4 color)
 {
     // Calculate derivatives of texelPosition -> how many texels to we move if we move one pixel in x/y direction
-    float2 dudx = ddx(texelPosition);
-    float2 dudy = ddy(texelPosition);
-
-    // This is the reciprocal of the screen size of one texel.
-    float grad = float2(length(dudx), length(dudy));
-    
-    float2 pixelsPerTexel = 1.0f / grad;
-
-    // Threshold is half the size of a screen pixel in texel-space.
-    float2 threshold = grad / 2.0f;
+    float2 grad = fwidth(texelPosition);
+    float texelsPerPixel = min(grad.x, grad.y);
+    float pixelsPerTexel = 1.0 / texelsPerPixel;
 
     // Calculate the distance between the screen pixel and the texel border in texels.
     float2 fracPart = frac(texelPosition);
     float2 distanceToBorder = min(fracPart, 1.0 - fracPart);
-    
-    if (any(distanceToBorder < threshold))
-    {
-        // Ensure the border is always at least 0.5 luminance away from the texel.
-        // TODO: This can flicker while moving/zooming, because we are by design on a texel border!
-        float luminance = ColorToLuminance(color.rgb);
-        float4 borderColor = (luminance > 0.5f) ? float4(0, 0, 0, 1) : float4(1, 1, 1, 1);
 
-        color = lerp(color, borderColor, clamp((min(pixelsPerTexel.x, pixelsPerTexel.y) - TexelBorderCutoff / 2.0) / TexelBorderCutoff, 0.0f, 0.8f));
-    }
+    // One, if texel is closer to border than threshold.
+    // Threshold is half the size of a screen pixel in texel-space.
+    float2 borderTest = step(distanceToBorder, texelsPerPixel / 2.0);
+    //float2 borderTest = saturate(1.0 - distanceToBorder / grad);
+    float isOnLine = max(borderTest.x, borderTest.y);
+
+    float fade = saturate((pixelsPerTexel - TexelBorderCutoff / 2.0) / (TexelBorderCutoff / 2.0));
+
+    // TODO: This can flicker while moving/zooming, because we are by design on a texel border!
+    float luminance = ColorToLuminance(color.rgb);
+    // Ensure the border is always at least 0.5 luminance away from the texel.
+    float4 borderColor = float4(((luminance + 0.5) % 1).xxx, 1.0);
+
+    color = lerp(color, borderColor, isOnLine * fade * 0.8);
 }
 
 float4 PS(PS_Input input) : SV_Target0
