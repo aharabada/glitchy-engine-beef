@@ -5,6 +5,8 @@ using GlitchyEngine;
 using GlitchyEngine.Events;
 using static System.Windows;
 using GlitchyEngine.Math;
+using System.Collections;
+using System.IO;
 
 namespace GlitchyEditor.Platform.Windows;
 
@@ -18,6 +20,8 @@ static
 	public static extern void OleUninitialize();
 	[Import("Ole32.lib"), CLink]
 	public static extern HResult RegisterDragDrop(HWnd windowHandle, IDropTarget* dropTarget);
+	[Import("Ole32.lib"), CLink]
+	public static extern HResult RevokeDragDrop(HWnd windowHandle);
 }
 
 [CRepr]
@@ -31,7 +35,7 @@ struct IDropTarget : IUnknown
 		public function [CallingConvention(.Stdcall)] HResult(IDropTarget* self, /*IDataObject*/ IUnknown* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect) DragEnter;
 		public function [CallingConvention(.Stdcall)] HResult(IDropTarget* self, uint32 grfKeyState, int2 point, ref DropEffect effect) DragOver;
 		public function [CallingConvention(.Stdcall)] HResult(IDropTarget* self) DragLeave;
-		public function [CallingConvention(.Stdcall)] HResult(IDropTarget* self, /*IDataObject*/ IUnknown* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect) Drop;
+		public function [CallingConvention(.Stdcall)] HResult(IDropTarget* self, IDataObject* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect) Drop;
 	}
 
 	public new VTable* VT => (VTable*)mVT;
@@ -51,9 +55,85 @@ struct IDropTarget : IUnknown
 		return VT.DragLeave(&this);
 	}
 	
-	public HResult Drop(/*IDataObject*/ IUnknown* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect) mut
+	public HResult Drop(IDataObject* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect) mut
 	{
 		return VT.Drop(&this, dataObject, grfKeyState, point, ref effect);
+	}
+}
+[CRepr]
+public struct DVTARGETDEVICE
+{
+	public uint32 tdSize;
+	public uint16 tdDriverNameOffset;
+	public uint16 tdDeviceNameOffset;
+	public uint16 tdPortNameOffset;
+	public uint16 tdExtDevmodeOffset;
+	public uint8[1] tdData_array;
+	
+	public uint8* tdData mut => &tdData_array[0];
+}
+[CRepr]
+public struct FORMATETC
+{
+	public uint16 cfFormat;
+	public DVTARGETDEVICE* ptd;
+	public uint32 dwAspect;
+	public int32 lindex;
+	public uint32 tymed;
+}
+	public typealias HDROP = int;
+	public typealias HBITMAP = int;
+	public typealias HENHMETAFILE = int;
+	public typealias PWSTR = char16*;
+	public typealias BOOL = int32;
+[CRepr]
+public struct STGMEDIUM
+{
+	public uint32 tymed;
+	public using _Anonymous_e__Union Anonymous;
+	public IUnknown* pUnkForRelease;
+	
+	[CRepr, Union]
+	public struct _Anonymous_e__Union
+	{
+		public HBITMAP hBitmap;
+		public void* hMetaFilePict;
+		public HENHMETAFILE hEnhMetaFile;
+		public int hGlobal;
+		public PWSTR lpszFileName;
+		public /*IStream*/IUnknown* pstm;
+		public /*IStorage*/IUnknown* pstg;
+	}
+}
+[CRepr]
+public struct IDataObject : IUnknown
+{
+	public const new Guid IID = .(0x0000010e, 0x0000, 0x0000, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
+	
+	public new VTable* VT { get => (.)mVT; }
+	
+	public HResult GetData(ref FORMATETC pformatetcIn, out STGMEDIUM pmedium) mut => VT.GetData(ref this, ref pformatetcIn, out pmedium);
+	public HResult GetDataHere(ref FORMATETC pformatetc, out STGMEDIUM pmedium) mut => VT.GetDataHere(ref this, ref pformatetc, out pmedium);
+	public HResult QueryGetData(ref FORMATETC pformatetc) mut => VT.QueryGetData(ref this, ref pformatetc);
+	public HResult GetCanonicalFormatEtc(ref FORMATETC pformatectIn, out FORMATETC pformatetcOut) mut => VT.GetCanonicalFormatEtc(ref this, ref pformatectIn, out pformatetcOut);
+	public HResult SetData(ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BOOL fRelease) mut => VT.SetData(ref this, ref pformatetc, ref pmedium, fRelease);
+	public HResult EnumFormatEtc(uint32 dwDirection, out /*IEnumFORMATETC*/ IUnknown* ppenumFormatEtc) mut => VT.EnumFormatEtc(ref this, dwDirection, out ppenumFormatEtc);
+	public HResult DAdvise(ref FORMATETC pformatetc, uint32 advf, ref /*IAdviseSink*/ IUnknown* pAdvSink, out uint32 pdwConnection) mut => VT.DAdvise(ref this, ref pformatetc, advf, ref pAdvSink, out pdwConnection);
+	public HResult DUnadvise(uint32 dwConnection) mut => VT.DUnadvise(ref this, dwConnection);
+	public HResult EnumDAdvise(out /*IEnumSTATDATA*/ IUnknown* ppenumAdvise) mut => VT.EnumDAdvise(ref this, out ppenumAdvise);
+
+	[CRepr]
+	public struct VTable : IUnknown.VTable
+	{
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetcIn, out STGMEDIUM pmedium) GetData;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, out STGMEDIUM pmedium) GetDataHere;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc) QueryGetData;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatectIn, out FORMATETC pformatetcOut) GetCanonicalFormatEtc;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BOOL fRelease) SetData;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, uint32 dwDirection, out /*IEnumFORMATETC*/ IUnknown* ppenumFormatEtc) EnumFormatEtc;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, uint32 advf, ref /*IAdviseSink*/ IUnknown* pAdvSink, out uint32 pdwConnection) DAdvise;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, uint32 dwConnection) DUnadvise;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, out /*IEnumSTATDATA*/ IUnknown* ppenumAdvise) EnumDAdvise;
 	}
 }
 
@@ -65,6 +145,49 @@ enum DropEffect
 	Move = 2,
 	Link = 4,
 	Scroll = 0x80000000,
+}
+
+public enum CLIPBOARD_FORMATS : uint32
+{
+	TEXT = 1,
+	BITMAP = 2,
+	METAFILEPICT = 3,
+	SYLK = 4,
+	DIF = 5,
+	TIFF = 6,
+	OEMTEXT = 7,
+	DIB = 8,
+	PALETTE = 9,
+	PENDATA = 10,
+	RIFF = 11,
+	WAVE = 12,
+	UNICODETEXT = 13,
+	ENHMETAFILE = 14,
+	HDROP = 15,
+	LOCALE = 16,
+	DIBV5 = 17,
+	MAX = 18,
+	OWNERDISPLAY = 128,
+	DSPTEXT = 129,
+	DSPBITMAP = 130,
+	DSPMETAFILEPICT = 131,
+	DSPENHMETAFILE = 142,
+	PRIVATEFIRST = 512,
+	PRIVATELAST = 767,
+	GDIOBJFIRST = 768,
+	GDIOBJLAST = 1023,
+}
+
+public enum TYMED : int32
+{
+	HGLOBAL = 1,
+	FILE = 2,
+	ISTREAM = 4,
+	ISTORAGE = 8,
+	GDI = 16,
+	MFPICT = 32,
+	ENHMF = 64,
+	NULL = 0,
 }
 
 abstract class IDropTargetImplBase : RefCounted
@@ -99,6 +222,12 @@ abstract class IDropTargetImplBase : RefCounted
 	{
 		HResult result = RegisterDragDrop(Application.Instance.Window.[Friend]_windowHandle, &impl);
 		Log.EngineLogger.Assert(result not case .E_OUTOFMEMORY, "Failed to register drag drop handler (E_OUTOFMEMORY). Make sure you called OleInitialize and not CoInitialize[Ex]");
+		Log.EngineLogger.Assert(result case .S_OK);
+	}
+
+	public void Unregister()
+	{
+		HResult result = RevokeDragDrop(Application.Instance.Window.[Friend]_windowHandle);
 		Log.EngineLogger.Assert(result case .S_OK);
 	}
 
@@ -188,11 +317,51 @@ abstract class IDropTargetImplBase : RefCounted
 
 		return .E_FAIL;
 	}
-	
+
+	[Import("shell32.dll"), CLink, CallingConvention(.Stdcall)]
+	public static extern uint32 DragQueryFileW(HDROP hDrop, uint32 iFile, char16* lpszFile, uint32 cch);
+
+	[Import("ole32.dll"), CLink, CallingConvention(.Stdcall)]
+	public static extern void ReleaseStgMedium(ref STGMEDIUM param0);
+
 	[CallingConvention(.Stdcall)]
-	private static HResult DropImpl(IDropTarget* self, /*IDataObject*/ IUnknown* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect)
+	private static HResult DropImpl(IDropTarget* self, IDataObject* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect)
 	{
 		Self instance = GetInstance(self);
+
+		// render the data into stgm using the data description in fmte
+		FORMATETC format = .()
+		{
+			cfFormat = (.)CLIPBOARD_FORMATS.HDROP,
+			ptd = null,
+			lindex = -1,
+			tymed = (.)TYMED.HGLOBAL
+		};
+
+		if (dataObject.GetData(ref format, var stgm).Succeeded)
+		{
+			HDROP hdrop = (HDROP)stgm.hGlobal;
+			uint32 fileCount = DragQueryFileW(hdrop, 0xFFFFFFFF, null, 0);
+			
+			List<char16> buffer = scope List<char16>();
+			buffer.Resize(256);
+
+			for (uint32 i < fileCount)
+			{
+				uint32 requiredSize = DragQueryFileW(hdrop, i, null, 0);
+				buffer.Resize(requiredSize + 1);
+
+				uint32 retrievedSize = DragQueryFileW(hdrop, i, buffer.Ptr, (.)buffer.Count);
+				if (retrievedSize > 0 && retrievedSize < buffer.Count)
+				{
+					String str = scope String(buffer.Ptr);
+					Log.EngineLogger.Info($"Dropped File: {str}");
+				}
+			}
+
+			ReleaseStgMedium(ref stgm);
+		}
+
 		Result<DropEffect> result = instance.OnDrop(point);
 
 		if (result case .Ok(out effect))

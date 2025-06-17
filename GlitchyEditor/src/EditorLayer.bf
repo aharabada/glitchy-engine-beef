@@ -1206,9 +1206,10 @@ namespace GlitchyEditor
 
 			if (_isDraggingFromOutside)
 			{
+				// Reset drop effect, so the drop targets have to set it themselves (and don't "leak" it).
 				SetDropEffect(.None);
 
-				if (ImGui.BeginDragDropSource(.SourceExtern | .SourceAutoExpirePayload))
+				if (ImGui.BeginDragDropSource(.SourceExtern | .SourceAutoExpirePayload | .SourceNoPreviewTooltip))
 				{
 					ImGui.SetDragDropPayload(.ExternFiles, null, 0);
 					ImGui.EndDragDropSource();
