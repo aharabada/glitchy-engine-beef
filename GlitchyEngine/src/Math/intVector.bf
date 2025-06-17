@@ -3,7 +3,7 @@ using System;
 
 namespace GlitchyEngine.Math;
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<int32, 2>]
 [ComparableVector<int32, 2>]
 [VectorMath<int32, 2>]
@@ -26,7 +26,7 @@ public struct int2
 	}
 }
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<int32, 3>]
 [ComparableVector<int32, 3>]
 [VectorMath<int32, 3>]
@@ -50,7 +50,7 @@ public struct int3
 	}
 }
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<int32, 4>]
 [ComparableVector<int32, 4>]
 [VectorMath<int32, 4>]
@@ -80,6 +80,7 @@ public struct int4
 [ComparableVector<uint32, 2>]
 //[VectorMath<uint32, 2>]
 [SwizzleVector(2, "GlitchyEngine.Math.uint")]
+[CRepr]
 public struct uint2
 {
 	public const uint2 Zero  = .(0, 0);
@@ -103,6 +104,7 @@ public struct uint2
 [ComparableVector<uint32, 3>]
 //[VectorMath<uint32, 3>]
 [SwizzleVector(3, "GlitchyEngine.Math.uint")]
+[CRepr]
 public struct uint3
 {
 	public const uint3 Zero     = .(0, 0, 0);
@@ -127,6 +129,7 @@ public struct uint3
 [ComparableVector<uint32, 4>]
 //[VectorMath<uint32, 4>]
 [SwizzleVector(4, "GlitchyEngine.Math.uint")]
+[CRepr]
 public struct uint4
 {
 	public const uint4 Zero		= .(0, 0, 0, 0);

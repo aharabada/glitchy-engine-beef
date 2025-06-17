@@ -3,7 +3,7 @@ using System;
 
 namespace GlitchyEngine.Math
 {
-	[BonTarget]
+	[BonTarget, CRepr]
 	public struct Quaternion
 	{
 		public const Quaternion Zero = .();

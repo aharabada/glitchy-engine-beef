@@ -14,8 +14,7 @@ namespace GlitchyEngine.Math
 	/**
 	Represents a four component floating point color
 	*/
-	[BonTarget]
-	[CRepr]
+	[BonTarget, CRepr]
 	struct ColorRGBA
 	{
 		// from DirectXColors.h

@@ -3,7 +3,7 @@ using System;
 
 namespace GlitchyEngine.Math;
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<half, 2>]
 [ComparableVector<half, 2>]
 [VectorMath<half, 2>]
@@ -16,7 +16,7 @@ public struct half2
 	}
 }
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<half, 3>]
 [ComparableVector<half, 3>]
 [VectorMath<half, 3>]
@@ -29,7 +29,7 @@ public struct half3
 	}
 }
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<half, 4>]
 [ComparableVector<half, 4>]
 [VectorMath<half, 4>]

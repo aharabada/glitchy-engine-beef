@@ -3,7 +3,7 @@ using System;
 
 namespace GlitchyEngine.Math;
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<float, 2>]
 [ComparableVector<float, 2>]
 [VectorMath<float, 2>]
@@ -34,7 +34,7 @@ public struct float2
 	public static implicit operator Self(in Box2D.b2Vec2 value) => *(Self*)&value;
 }
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<float, 3>]
 [ComparableVector<float, 3>]
 [VectorMath<float, 3>]
@@ -65,7 +65,7 @@ public struct float3
 	}
 }
 
-[BonTarget]
+[BonTarget, CRepr]
 [Vector<float, 4>]
 [ComparableVector<float, 4>]
 [VectorMath<float, 4>]

@@ -6,8 +6,7 @@ using internal GlitchyEngine.Math;
 namespace GlitchyEngine.Math
 {
 	/// Represents an RGB color.
-	[CRepr]
-	[BonTarget]
+	[BonTarget, CRepr]
 	public struct ColorRGB
 	{
 		/**
