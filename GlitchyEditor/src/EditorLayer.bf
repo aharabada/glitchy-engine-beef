@@ -135,7 +135,7 @@ namespace GlitchyEditor
 
 			public override Result<void> OnDragLeave()
 			{
-				DragDropEvent event = scope DragDropEvent(.Over, .(-1, -1));
+				DragDropEvent event = scope DragDropEvent(.Leave, .(-1, -1));
 				Application.Instance.OnEvent(event);
 				return .Ok;
 			}
@@ -149,13 +149,16 @@ namespace GlitchyEditor
 		}
 
 		private GlobalDragDropTarget _dragDropTarget ~ _?.ReleaseRef();
-
+		
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
 			Application.Instance.Window.IsVSync = true;
 
 			ScriptEngine.ApplicationInfo.IsEditor = true;
+
+			// TODO: Das muss weg
+			_layer = this;
 
 			_dragDropTarget = new .();
 			_dragDropTarget.Register();
@@ -1201,6 +1204,17 @@ namespace GlitchyEditor
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
 
+			if (_isDraggingFromOutside)
+			{
+				SetDropEffect(.None);
+
+				if (ImGui.BeginDragDropSource(.SourceExtern | .SourceAutoExpirePayload))
+				{
+					ImGui.SetDragDropPayload(.ExternFiles, null, 0);
+					ImGui.EndDragDropSource();
+				}
+			}
+
 			DrawMainMenuBar();
 
 #if GE_EDITOR_IMGUI_DEMO
@@ -1657,23 +1671,41 @@ namespace GlitchyEditor
 		}
 
 		private bool _isDraggingFromOutside;
-		private bool _droppedFromOutside;
 		private DropEffect _effectWhenDropping = .None;
+
+		private static EditorLayer _layer;
+
+		public static void SetDropEffect(DropEffect effect)
+		{
+			if (!_layer._isDraggingFromOutside)
+			{
+				Log.EngineLogger.Warning("Setting drop effect, eventhou the user is currently not dragging.");
+			}
+
+			_layer._effectWhenDropping = effect;
+		}
 
 		private bool OnDragDrop(DragDropEvent e)
 		{
 			Log.EngineLogger.Info($"D'n'D: {e.DragDropType} {e.CursorPosition.X} {e.CursorPosition.Y}");
 
+			if (all(e.CursorPosition != .(-1,-1)))
+			{
+				ImGui.GetIO().MousePos = .(e.CursorPosition.X, e.CursorPosition.Y);
+			}
+
 			switch (e.DragDropType)
 			{
 			case .Enter:
 				_isDraggingFromOutside = true;
-				_droppedFromOutside = false;
+				ImGui.GetIO().MouseDown[0] = true;
 			case .Over:
 			case .Leave:
 				_isDraggingFromOutside = false;
+				ImGui.ClearDragDrop();
 			case .Drop:
-				_droppedFromOutside = true;
+				_isDraggingFromOutside = false;
+				ImGui.GetIO().MouseDown[0] = false;
 			}
 
 			e.OutDropEffect = _effectWhenDropping;

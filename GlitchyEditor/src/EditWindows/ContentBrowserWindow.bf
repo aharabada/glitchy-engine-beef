@@ -187,6 +187,25 @@ namespace GlitchyEditor.EditWindows
 				}
 
 				ImGui.EndTable();
+				
+				if (ImGui.BeginDragDropTarget())
+				{
+					ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ExternFiles, .AcceptBeforeDelivery);
+
+					if (peekPayload != null)
+					{
+						if (peekPayload.IsDelivery())
+						{
+							Log.EngineLogger.Info("Buup!");
+						}
+						else
+						{
+							EditorLayer.SetDropEffect(.Copy);
+						}
+					}
+
+					ImGui.EndDragDropTarget();
+				}
 			}
 
 			ImGui.PopStyleVar(1);

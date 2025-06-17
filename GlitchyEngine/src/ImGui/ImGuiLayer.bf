@@ -220,7 +220,7 @@ namespace GlitchyEngine.ImGui
 				Debug.Profiler.ProfileScope!("ImGuiRenderEvent");
 
 				var event = scope ImGuiRenderEvent();
-				Application.Get().OnEvent(event);
+				Application.Instance.OnEvent(event);
 			}
 
 			End();

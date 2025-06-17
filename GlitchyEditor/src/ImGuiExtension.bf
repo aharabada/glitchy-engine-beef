@@ -6,6 +6,7 @@ enum DragDropPayloadType
 {
 	case ContentBrowserItem;
 	case Entity;
+	case ExternFiles;
 
 	public String GetName()
 	{
@@ -15,6 +16,8 @@ enum DragDropPayloadType
 			return "CONTENT_BROWSER_ITEM";
 		case .Entity:
 			return "ENTITY";
+		case .ExternFiles:
+			return "EXTERN_FILES";
 		}
 	}
 }
