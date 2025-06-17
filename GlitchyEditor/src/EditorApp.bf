@@ -5,6 +5,8 @@ using GlitchyEditor.Assets;
 using GlitchyEditor.Assets.Importers;
 using GlitchyEditor.Assets.Processors;
 using GlitchyEditor.Assets.Exporters;
+using DirectX.Common;
+using GlitchyEditor.Platform.Windows;
 
 namespace GlitchyEditor
 {
@@ -16,8 +18,18 @@ namespace GlitchyEditor
 		{
 			Log.ClientLogger = new EditorLogger();
 			Log.EngineLogger = new EditorLogger() { IsEngineLogger = true };
+			
+			// TODO: Windows only
+			HResult result = OleInitialize(null);
+			Log.EngineLogger.Assert(result case .S_OK);
 
 			PushLayer(new EditorLayer(args, _contentManager));
+
+		}
+
+		public ~this()
+		{
+			OleUninitialize();
 		}
 
 		protected override IContentManager InitContentManager()

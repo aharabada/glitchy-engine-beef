@@ -15,6 +15,7 @@ using System.IO;
 using GlitchyEngine.Core;
 using GlitchyEditor.Assets;
 using GlitchyEngine.Scripting;
+using GlitchyEditor.Platform.Windows;
 
 namespace GlitchyEditor
 {
@@ -115,12 +116,49 @@ namespace GlitchyEditor
 		private bool _showImguiDemoWindow;
 #endif
 
+		/// Registers a drag'n'drop target that will fire corresponding DragDropEvent using the engine's event system.
+		class GlobalDragDropTarget : IDropTargetImplBase
+		{
+			public override Result<DropEffect> OnDragEnter(int2 cursorPosition)
+			{
+				DragDropEvent event = scope DragDropEvent(.Enter, cursorPosition);
+				Application.Instance.OnEvent(event);
+				return event.OutDropEffect;
+			}
+
+			public override Result<DropEffect> OnDragOver(int2 cursorPosition)
+			{
+				DragDropEvent event = scope DragDropEvent(.Over, cursorPosition);
+				Application.Instance.OnEvent(event);
+				return event.OutDropEffect;
+			}
+
+			public override Result<void> OnDragLeave()
+			{
+				DragDropEvent event = scope DragDropEvent(.Over, .(-1, -1));
+				Application.Instance.OnEvent(event);
+				return .Ok;
+			}
+
+			public override Result<DropEffect> OnDrop(int2 cursorPosition)
+			{
+				DragDropEvent event = scope DragDropEvent(.Drop, cursorPosition);
+				Application.Instance.OnEvent(event);
+				return event.OutDropEffect;
+			}
+		}
+
+		private GlobalDragDropTarget _dragDropTarget ~ _?.ReleaseRef();
+
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
-			Application.Get().Window.IsVSync = true;
+			Application.Instance.Window.IsVSync = true;
 
 			ScriptEngine.ApplicationInfo.IsEditor = true;
+
+			_dragDropTarget = new .();
+			_dragDropTarget.Register();
 
 			_contentManager = contentManager;
 
@@ -675,6 +713,13 @@ namespace GlitchyEditor
 			{
 				ImGui.TextUnformatted("Project Name:");
 				ImGui.InputText("##projectName", &projectNameBuffer, projectNameBuffer.Count - 1);
+				
+				StringView projectName = StringView(&projectNameBuffer);
+
+				if (projectName.IsWhiteSpace)
+				{
+					ImGui.TextColored(.(1, 0, 0, 1), "Project Name required!");
+				}
 
 				ImGui.NewLine();
 
@@ -693,7 +738,6 @@ namespace GlitchyEditor
 					}
 				}
 
-				StringView projectName = StringView(&projectNameBuffer);
 				StringView directory = StringView(&projectDirectoryBuffer);
 
 				String target = scope String();
@@ -703,9 +747,9 @@ namespace GlitchyEditor
 
 				ImGui.Text($"The Project will be in:\n{target}");
 
-				if (Directory.Exists(target))
+				if (Directory.Exists(target) && !Directory.IsEmpty(target))
 				{
-					ImGui.TextColored(.(1, 0, 0, 1), "The directory is not empty!");
+					ImGui.TextColored(.(1, 1, 0, 1), "The directory is not empty!");
 				}
 
 				ImGui.NewLine();
@@ -1521,6 +1565,7 @@ namespace GlitchyEditor
 			dispatcher.Dispatch<WindowResizeEvent>(scope (e) => OnWindowResize(e));
 			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
 			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));
+			dispatcher.Dispatch<DragDropEvent>(scope (e) => OnDragDrop(e));
 		}
 
 		private bool OnWindowResize(WindowResizeEvent e)
@@ -1609,6 +1654,31 @@ namespace GlitchyEditor
 				return true;
 
 			return false;
+		}
+
+		private bool _isDraggingFromOutside;
+		private bool _droppedFromOutside;
+		private DropEffect _effectWhenDropping = .None;
+
+		private bool OnDragDrop(DragDropEvent e)
+		{
+			Log.EngineLogger.Info($"D'n'D: {e.DragDropType} {e.CursorPosition.X} {e.CursorPosition.Y}");
+
+			switch (e.DragDropType)
+			{
+			case .Enter:
+				_isDraggingFromOutside = true;
+				_droppedFromOutside = false;
+			case .Over:
+			case .Leave:
+				_isDraggingFromOutside = false;
+			case .Drop:
+				_droppedFromOutside = true;
+			}
+
+			e.OutDropEffect = _effectWhenDropping;
+
+			return true;
 		}
 
 #endregion
