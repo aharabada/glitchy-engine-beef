@@ -140,9 +140,10 @@ namespace GlitchyEditor
 				return .Ok;
 			}
 
-			public override Result<DropEffect> OnDrop(int2 cursorPosition)
+			public override Result<DropEffect> OnDrop(int2 cursorPosition, List<String> fileNames)
 			{
 				DragDropEvent event = scope DragDropEvent(.Drop, cursorPosition);
+				event.FileNames = fileNames;
 				Application.Instance.OnEvent(event);
 				return event.OutDropEffect;
 			}
@@ -1204,16 +1205,29 @@ namespace GlitchyEditor
 			ImGui.Viewport* viewport = ImGui.GetMainViewport();
 			ImGui.DockSpaceOverViewport(viewport);
 
-			if (_isDraggingFromOutside)
+			if (_isDraggingFromOutside not case .None)
 			{
 				// Reset drop effect, so the drop targets have to set it themselves (and don't "leak" it).
 				SetDropEffect(.None);
 
 				if (ImGui.BeginDragDropSource(.SourceExtern | .SourceAutoExpirePayload | .SourceNoPreviewTooltip))
 				{
-					ImGui.SetDragDropPayload(.ExternFiles, null, 0);
+					void* ptr = Internal.UnsafeCastToPtr(_droppedFiles);
+					ImGui.SetDragDropPayload(.ExternFiles, &ptr, sizeof(int));
+					
 					ImGui.EndDragDropSource();
 				}
+
+				if (_isDraggingFromOutside case .Dropping)
+				{
+					_isDraggingFromOutside = .None;
+				}
+			}
+			else
+			{
+				// TODO: Can Imgui handle this, somehow?
+				DeleteContainerAndItems!(_droppedFiles);
+				_droppedFiles = null;
 			}
 
 			DrawMainMenuBar();
@@ -1671,14 +1685,23 @@ namespace GlitchyEditor
 			return false;
 		}
 
-		private bool _isDraggingFromOutside;
+		enum DragDropState
+		{
+			None,
+			Dragging,
+			Dropping
+		}
+
+		private DragDropState _isDraggingFromOutside;
 		private DropEffect _effectWhenDropping = .None;
 
 		private static EditorLayer _layer;
 
+		private List<String> _droppedFiles;
+
 		public static void SetDropEffect(DropEffect effect)
 		{
-			if (!_layer._isDraggingFromOutside)
+			if (_layer._isDraggingFromOutside == .None)
 			{
 				Log.EngineLogger.Warning("Setting drop effect, eventhou the user is currently not dragging.");
 			}
@@ -1688,27 +1711,46 @@ namespace GlitchyEditor
 
 		private bool OnDragDrop(DragDropEvent e)
 		{
-			Log.EngineLogger.Info($"D'n'D: {e.DragDropType} {e.CursorPosition.X} {e.CursorPosition.Y}");
-
 			if (all(e.CursorPosition != .(-1,-1)))
 			{
 				ImGui.GetIO().MousePos = .(e.CursorPosition.X, e.CursorPosition.Y);
 			}
 
+			if (e.FileNames == null)
+			{
+				DeleteContainerAndItems!(_droppedFiles);
+				_droppedFiles = null;
+			}
+			else
+			{
+				if (_droppedFiles == null)
+				{
+					_droppedFiles = new List<String>();
+				}
+
+				for (String fileName in e.FileNames)
+				{
+					if (!_droppedFiles.Contains(fileName, .Ordinal))
+					{
+						_droppedFiles.Add(new String(fileName));
+					}
+				}
+			}
+
 			switch (e.DragDropType)
 			{
 			case .Enter:
-				_isDraggingFromOutside = true;
+				_isDraggingFromOutside = .Dragging;
 				ImGui.GetIO().MouseDown[0] = true;
 			case .Over:
 			case .Leave:
-				_isDraggingFromOutside = false;
+				_isDraggingFromOutside = .None;
 				ImGui.ClearDragDrop();
 			case .Drop:
-				_isDraggingFromOutside = false;
+				_isDraggingFromOutside = .Dropping;
 				ImGui.GetIO().MouseDown[0] = false;
 			}
-
+			
 			e.OutDropEffect = _effectWhenDropping;
 
 			return true;

@@ -646,4 +646,101 @@ class AssetHierarchy
 	public delegate void FileRenamedFunc(AssetNode node, StringView oldName);
 
 	public Event<FileRenamedFunc> OnFileRenamed ~ _.Dispose();
+
+	public enum CopyError
+	{
+		TargetDirectoryIsNotDirectory,
+		SourceDoesntExist,
+		TargetExists
+	}
+
+	public enum OverwriteMode
+	{
+		None,
+		Overwrite,
+		KeepBoth,
+		Combine
+ 	}
+
+	public Result<void, CopyError> CopyExternFileToNode(TreeNode<AssetNode> targetDirectory, String sourcePath, OverwriteMode overwrite)
+	{
+		if (!targetDirectory->IsDirectory)
+			return .Err(.TargetDirectoryIsNotDirectory);
+
+		if (!File.Exists(sourcePath))
+			return .Err(.SourceDoesntExist);
+
+
+		FileInfo sourceInfo = scope FileInfo(sourcePath);
+
+		String fileName = scope .();
+		Path.GetFileName(sourcePath, fileName);
+
+		String targetPath = scope .();
+		Path.Combine(targetPath, targetDirectory->Path, fileName);
+		
+		FileInfo targetInfo = scope FileInfo(targetPath);
+		
+		if (sourceInfo.IsDirectory)
+		{
+			bool forceOverwrite = false;
+			if (targetInfo.Exists)
+			{
+				switch (overwrite)
+				{
+				case .KeepBoth:
+					String fileExtension = scope .();
+					Path.GetExtension(targetPath, fileExtension);
+					FindFreePath(targetDirectory->Path, fileName.Substring(0..<^fileExtension.Length), fileExtension, targetPath..Clear());
+				case .Overwrite:
+					forceOverwrite = true;
+				default:
+					return .Err(.TargetExists);
+				}
+			}
+		}
+		else
+		{
+			bool forceOverwrite = false;
+			if (targetInfo.Exists)
+			{
+				switch (overwrite)
+				{
+				case .KeepBoth:
+					String fileExtension = scope .();
+					Path.GetExtension(targetPath, fileExtension);
+					FindFreePath(targetDirectory->Path, fileName.Substring(0..<^fileExtension.Length), fileExtension, targetPath..Clear());
+				case .Overwrite:
+					forceOverwrite = true;
+				default:
+					return .Err(.TargetExists);
+				}
+			}
+
+			File.Copy(sourcePath, targetPath, forceOverwrite);
+		}
+
+		return .Ok;
+	}
+
+	public void FindFreePath(StringView directory, StringView wantedName, StringView fileExtension, String outFreePath)
+	{
+		int fileNumber = 0;
+
+		String currentFileName = scope $"{wantedName}{fileExtension}";
+		while (true)
+		{
+			Path.Combine(outFreePath..Clear(), directory, currentFileName);
+			
+			FileInfo targetInfo = scope FileInfo(outFreePath);
+
+			if (!targetInfo.Exists)
+			{
+				break;
+			}
+
+			fileNumber++;
+			currentFileName..Clear().AppendF($"{wantedName} ({fileNumber}){fileExtension}");
+		}
+	}
 }

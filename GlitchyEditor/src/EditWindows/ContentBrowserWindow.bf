@@ -174,7 +174,9 @@ namespace GlitchyEditor.EditWindows
 
 				if (ImGui.BeginChild("Files"))
 				{
-					DrawCurrentDirectory();
+					TreeNode<AssetNode> currentDirectoryNode = TrySilent!(_manager.AssetHierarchy.GetNodeFromPath(_currentDirectory));
+
+					DrawCurrentDirectory(currentDirectoryNode);
 
 					// Context menu when clicking on the background.
 					if (ImGui.BeginPopupContextWindow())
@@ -184,34 +186,39 @@ namespace GlitchyEditor.EditWindows
 					}
 
 					ImGui.EndChild();
+				
+					FileDropTarget(currentDirectoryNode, .External);
 				}
 
 				ImGui.EndTable();
-				
-				if (ImGui.BeginDragDropTarget())
-				{
-					ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ExternFiles, .AcceptBeforeDelivery);
-
-					if (peekPayload != null)
-					{
-						if (peekPayload.IsDelivery())
-						{
-							Log.EngineLogger.Info("Buup!");
-						}
-						else
-						{
-							EditorLayer.SetDropEffect(.Copy);
-						}
-					}
-
-					ImGui.EndDragDropTarget();
-				}
 			}
 
 			ImGui.PopStyleVar(1);
 
 			ImGui.End();
 		}
+
+		/*private void ExternalFileDropTarget()
+		{
+			if (ImGui.BeginDragDropTarget())
+			{
+				ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ExternFiles, .AcceptBeforeDelivery);
+
+				if (peekPayload != null)
+				{
+					if (peekPayload.IsDelivery())
+					{
+						Log.EngineLogger.Info("Buup!");
+					}
+					else
+					{
+						EditorLayer.SetDropEffect(.Copy);
+					}
+				}
+
+				ImGui.EndDragDropTarget();
+			}
+		}*/	
 
 		private void SelectFile(StringView fullFileName)
 		{
@@ -399,6 +406,8 @@ namespace GlitchyEditor.EditWindows
 
 			bool isOpen = ImGui.TreeNodeEx(name, flags, $"{name}");
 
+			FileDropTarget(tree, .Internal | .External);
+
 			if (!ImGui.IsItemToggledOpen() && ImGui.IsItemClicked(.Left))
 			{
 				_currentDirectory.Set(tree->Path);
@@ -419,8 +428,8 @@ namespace GlitchyEditor.EditWindows
 
 		const float2 padding = .(24, 24);
 
-		/// Renders the contents of _currentDirectory.
-		private void DrawCurrentDirectory()
+		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
+		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
 		{
 			List<TreeNode<AssetNode>> files = null;
 			
@@ -443,28 +452,21 @@ namespace GlitchyEditor.EditWindows
 			}
 			else
 			{
-				if (_currentDirectory.IsEmpty)
-					return;
-
-				// Get the node of the current directory.
-				var currentDirectoryNode = _manager.AssetHierarchy.GetNodeFromPath(_currentDirectory);
-	
-				if (currentDirectoryNode case .Err)
+				if (currentDirectoryNode == null)
 				{
-					Log.EngineLogger.Error($"No node exists for {_currentDirectory}.");
 					ImGui.TextUnformatted("Failed to display contents of directory.");
 					return;
 				}
 
-				files = currentDirectoryNode->Children;
-
+				files = currentDirectoryNode.Children;
+				
 				// show back button (".."-File)
-				if (currentDirectoryNode->Parent != _manager.AssetHierarchy.RootNode)
+				if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
 				{
 					ImGui.PushID("Back");
 	
-					DrawBackButton(currentDirectoryNode->Parent);
-	
+					DrawBackButton(currentDirectoryNode.Parent);
+					
 					// X-Coordinate of the right side of the current entry.
 					float currentButtonRight = ImGui.GetItemRectMax().x;
 					// Expected right-Coordinate if next entry was on the same line.
@@ -506,7 +508,7 @@ namespace GlitchyEditor.EditWindows
 				ShowNewFile();
 	
 				ImGui.PopID();
-			}	
+			}
 		}
 		
 		float _zoom = 1.0f;
@@ -543,7 +545,7 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.PopStyleColor();
 
-			FileDropTarget(entry);
+			FileDropTarget(entry, .Internal | .External);
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
 			{
@@ -564,33 +566,70 @@ namespace GlitchyEditor.EditWindows
 			ImGui.EndChild();
 		}
 
-		/// Makes a drop target for the given asset node that files and directories can be dropped on, so that Files can be moved
-		private void FileDropTarget(TreeNode<AssetNode> dropTarget)
+		enum DropTargetMode
 		{
-			if (dropTarget->IsDirectory && ImGui.BeginDragDropTarget())
+			Internal = 1,
+			External = 2
+		}
+
+		/// Makes a drop target for the given asset node that files and directories can be dropped on, so that Files can be moved
+		private void FileDropTarget(TreeNode<AssetNode> dropTarget, DropTargetMode mode)
+		{
+			if (dropTarget != null && dropTarget->IsDirectory && ImGui.BeginDragDropTarget())
 			{
 				bool allowDrop = false;
 
-				ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ContentBrowserItem, .AcceptPeekOnly);
-
-				if (peekPayload != null)
+				if (mode.HasFlag(.Internal))
 				{
-					StringView assetIdentifier = .((char8*)peekPayload.Data, (int)peekPayload.DataSize);
+					ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ContentBrowserItem, .AcceptBeforeDelivery);
 
-					allowDrop = assetIdentifier != dropTarget->Identifier;
-				}
-
-				if (allowDrop)
-				{
-					ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
-
-					if (payload != null)
+					if (peekPayload != null)
 					{
-						StringView movedChild = .((char8*)payload.Data, (int)payload.DataSize);
+						StringView assetIdentifier = .((char8*)peekPayload.Data, (int)peekPayload.DataSize);
 
-						_manager.AssetHierarchy.MoveFileToNode(movedChild, dropTarget);
+						allowDrop = assetIdentifier != dropTarget->Identifier;
+
+						if (allowDrop && peekPayload.IsDelivery())
+						{
+							_manager.AssetHierarchy.MoveFileToNode(assetIdentifier, dropTarget);
+						}
 					}
 				}
+
+				if (mode.HasFlag(.External))
+				{
+					ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ExternFiles, .AcceptBeforeDelivery);
+
+					if (peekPayload != null)
+					{
+						if (peekPayload.IsDelivery())
+						{
+							Log.EngineLogger.Info($"Dropping into {dropTarget->Path}");
+
+							List<String> droppedFiles = (.)Internal.UnsafeCastToObject(*(void**)peekPayload.Data);
+
+							for (String path in droppedFiles)
+							{
+								Log.EngineLogger.Info($"Dropping file {path}");
+								
+								_manager.AssetHierarchy.CopyExternFileToNode(dropTarget, path, .None);
+							}
+						}
+						else
+						{
+							EditorLayer.SetDropEffect(.Copy);
+
+							if (dropTarget->Path == _currentDirectory)
+							{
+								ImGui.SetTooltip($"Copy here ({dropTarget->Name})");
+							}
+							else
+							{
+								ImGui.SetTooltip($"Copy to {dropTarget->Name}");
+							}
+						}
+					}
+				}	
 
 				ImGui.EndDragDropTarget();
 			}
@@ -643,7 +682,7 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndDragDropSource();
 			}
 
-			FileDropTarget(entry);
+			FileDropTarget(entry, .Internal | .External);
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
 			{

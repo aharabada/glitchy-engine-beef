@@ -279,7 +279,7 @@ abstract class IDropTargetImplBase : RefCounted
 	public abstract Result<DropEffect> OnDragEnter(int2 cursorPosition);
 	public abstract Result<DropEffect> OnDragOver(int2 cursorPosition);
 	public abstract Result<void> OnDragLeave();
-	public abstract Result<DropEffect> OnDrop(int2 cursorPosition);
+	public abstract Result<DropEffect> OnDrop(int2 cursorPosition, List<String> fileNames);
 
 	[CallingConvention(.Stdcall)]
 	private static HResult DragEnterImpl(IDropTarget* self, /*IDataObject*/ IUnknown* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect)
@@ -338,11 +338,16 @@ abstract class IDropTargetImplBase : RefCounted
 			tymed = (.)TYMED.HGLOBAL
 		};
 
+		List<String> files = null;
+		defer {DeleteContainerAndItems!(files);}
+
 		if (dataObject.GetData(ref format, var stgm).Succeeded)
 		{
 			HDROP hdrop = (HDROP)stgm.hGlobal;
 			uint32 fileCount = DragQueryFileW(hdrop, 0xFFFFFFFF, null, 0);
-			
+
+			files = new List<String>(fileCount);
+
 			List<char16> buffer = scope List<char16>();
 			buffer.Resize(256);
 
@@ -354,15 +359,15 @@ abstract class IDropTargetImplBase : RefCounted
 				uint32 retrievedSize = DragQueryFileW(hdrop, i, buffer.Ptr, (.)buffer.Count);
 				if (retrievedSize > 0 && retrievedSize < buffer.Count)
 				{
-					String str = scope String(buffer.Ptr);
-					Log.EngineLogger.Info($"Dropped File: {str}");
+					String str = new String(buffer.Ptr);
+					files.Add(str);
 				}
 			}
 
 			ReleaseStgMedium(ref stgm);
 		}
 
-		Result<DropEffect> result = instance.OnDrop(point);
+		Result<DropEffect> result = instance.OnDrop(point, files);
 
 		if (result case .Ok(out effect))
 			return .S_OK;
@@ -424,6 +429,9 @@ public class DragDropEvent : Event, IEvent
 	public int2 CursorPosition { get; private set; }
 
 	public DropEffect OutDropEffect { get; set; }
+
+	// Do not keep references to this list or any of it's items outside of the event handler, they will not survive it.
+	public List<String> FileNames { get; set; }
 
 	// TODO: Keys, or perhaps just make the listeners query them...
 
