@@ -149,7 +149,11 @@ namespace GlitchyEditor
 			}
 		}
 
-		private GlobalDragDropTarget _dragDropTarget ~ _?.ReleaseRef();
+		private GlobalDragDropTarget _dragDropTarget ~
+		{
+			_.Unregister();
+			_?.ReleaseRef();
+		}
 		
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
