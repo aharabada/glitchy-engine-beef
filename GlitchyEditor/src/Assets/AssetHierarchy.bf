@@ -691,7 +691,7 @@ class AssetHierarchy
 			return .Err;*/
 
 		CopyBackgroundTask copyTask = new CopyBackgroundTask(sourcePaths, targetDirectory->Path);
-		copyTask.DeleteWhenStopped = true;
+		copyTask.DeleteWhenEnded = true;
 
 		EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(copyTask);
 
