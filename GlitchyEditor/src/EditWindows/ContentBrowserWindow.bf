@@ -608,12 +608,14 @@ namespace GlitchyEditor.EditWindows
 
 							List<String> droppedFiles = (.)Internal.UnsafeCastToObject(*(void**)peekPayload.Data);
 
-							for (String path in droppedFiles)
+							_manager.AssetHierarchy.CopyExternFilesToNodeBackground(dropTarget, droppedFiles, .None);
+
+							/*for (String path in droppedFiles)
 							{
 								Log.EngineLogger.Info($"Dropping file {path}");
 								
-								_manager.AssetHierarchy.CopyExternFileToNode(dropTarget, path, .None);
-							}
+								//_manager.AssetHierarchy.CopyExternFileToNodeBackground(dropTarget, path, .None);
+							}*/
 						}
 						else
 						{

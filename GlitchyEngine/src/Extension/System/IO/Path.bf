@@ -34,6 +34,7 @@ extension Path
 			path.Remove(0, 1);
 	}
 
+	
 	public static void Combine(String target, params StringView[] components)
 	{
 		for (var component in components)
@@ -45,5 +46,33 @@ extension Path
 		}
 
 		target.Replace(Path.AltDirectorySeparatorChar, Path.DirectorySeparatorChar);
+	}
+
+	/**
+	 * If a file with the given path ([targetDirectory]/[wantedName][fileExtension]) already exists it will add a number at the end of the file name.
+	 * @param targetDirectory The directory in which the file will be put.
+	 * @param wantedFileName The wanted name of the file. If it already exists a number will be put behind it.
+	 * @param fileExtension The file extension. This should contain the dot.
+	 * @param outFreePath The string that will contain the resulting filepath. Note: This will be cleared before writing the file name.
+	 */
+	public static void FindFreePath(StringView targetDirectory, StringView wantedName, StringView fileExtension, String outFreePath)
+	{
+		int fileNumber = 0;
+
+		String currentFileName = scope $"{wantedName}{fileExtension}";
+		while (true)
+		{
+			Path.Combine(outFreePath..Clear(), targetDirectory, currentFileName);
+			
+			FileInfo targetInfo = scope FileInfo(outFreePath);
+
+			if (!targetInfo.Exists)
+			{
+				break;
+			}
+
+			fileNumber++;
+			currentFileName..Clear().AppendF($"{wantedName} ({fileNumber}){fileExtension}");
+		}
 	}
 }

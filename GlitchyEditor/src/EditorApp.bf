@@ -7,6 +7,8 @@ using GlitchyEditor.Assets.Processors;
 using GlitchyEditor.Assets.Exporters;
 using DirectX.Common;
 using GlitchyEditor.Platform.Windows;
+using GlitchyEditor.Multithreading;
+using System.Threading;
 
 namespace GlitchyEditor
 {
@@ -14,22 +16,31 @@ namespace GlitchyEditor
 	{
 		EditorContentManager _contentManager;
 
+		public new static EditorApp Instance => Application.Instance as EditorApp;
+
+		private append BackgroundTaskManager _backgroundTaskManager = .();
+
+		public BackgroundTaskManager BackgroundTaskManager => _backgroundTaskManager;
+		
 		public this(String[] args)
 		{
 			Log.ClientLogger = new EditorLogger();
 			Log.EngineLogger = new EditorLogger() { IsEngineLogger = true };
-			
+
+			_backgroundTaskManager.Init();
+
 			// TODO: Windows only
 			HResult result = OleInitialize(null);
 			Log.EngineLogger.Assert(result case .S_OK);
 
 			PushLayer(new EditorLayer(args, _contentManager));
-
 		}
 
 		public ~this()
 		{
 			OleUninitialize();
+
+			_backgroundTaskManager.Deinit();
 		}
 
 		protected override IContentManager InitContentManager()

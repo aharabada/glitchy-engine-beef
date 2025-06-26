@@ -52,6 +52,8 @@ class MaterialEditor
 				if (DrawLockButton(bufferVariable.Flags.HasFlag(.Locked)) && !readOnly)
 				{
 					bufferVariable.[Friend]_flags ^= .Locked;
+					// Also mark as dirty so we update our children!
+					bufferVariable.[Friend]_flags |= .Dirty;
 				}
 
 				ImGui.SameLine();
@@ -165,6 +167,8 @@ class MaterialEditor
 				if (DrawLockButton(texture.Flags.HasFlag(.Locked)) && !readOnly)
 				{
 					texture.Flags ^= .Locked;
+					// Also mark as dirty so we update our children!
+					texture.Flags |= .Dirty;
 				}
 
 				ImGui.SameLine();

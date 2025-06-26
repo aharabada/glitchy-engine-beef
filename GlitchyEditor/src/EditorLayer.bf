@@ -1243,6 +1243,8 @@ namespace GlitchyEditor
 			}
 #endif
 
+			EditorApp.Instance.BackgroundTaskManager.ImGuiRender();
+
 			_editor.SceneViewportWindow.RenderTarget = _editorViewportTarget;
 			_editor.GameViewportWindow.RenderTarget = _gameViewportTarget;
 

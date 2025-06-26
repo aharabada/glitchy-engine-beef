@@ -6,6 +6,7 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using GlitchyEngine.Content;
+using GlitchyEditor.Multithreading;
 
 namespace GlitchyEditor.Assets;
 
@@ -662,6 +663,41 @@ class AssetHierarchy
 		Combine
  	}
 
+	/*public Result<BackgroundTask> CopyExternFileToNodeBackground(TreeNode<AssetNode> targetDirectory, String sourcePath, OverwriteMode overwrite)
+	{
+		if (!targetDirectory->IsDirectory)
+			return .Err;
+		
+		FileInfo sourceInfo = scope FileInfo(sourcePath);
+
+		if (!sourceInfo.Exists)
+			return .Err;
+
+		CopyBackgroundTask copyTask = new CopyBackgroundTask(sourcePath, targetDirectory->Path);
+
+		EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(copyTask);
+
+		return copyTask;
+	}*/
+
+	public Result<BackgroundTask> CopyExternFilesToNodeBackground(TreeNode<AssetNode> targetDirectory, List<String> sourcePaths, OverwriteMode overwrite)
+	{
+		if (!targetDirectory->IsDirectory)
+			return .Err;
+		
+		/*FileInfo sourceInfo = scope FileInfo(sourcePath);
+
+		if (!sourceInfo.Exists)
+			return .Err;*/
+
+		CopyBackgroundTask copyTask = new CopyBackgroundTask(sourcePaths, targetDirectory->Path);
+		copyTask.DeleteWhenStopped = true;
+
+		EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(copyTask);
+
+		return copyTask;
+	}
+
 	public Result<void, CopyError> CopyExternFileToNode(TreeNode<AssetNode> targetDirectory, String sourcePath, OverwriteMode overwrite)
 	{
 		if (!targetDirectory->IsDirectory)
@@ -691,7 +727,7 @@ class AssetHierarchy
 				case .KeepBoth:
 					String fileExtension = scope .();
 					Path.GetExtension(targetPath, fileExtension);
-					FindFreePath(targetDirectory->Path, fileName.Substring(0..<^fileExtension.Length), fileExtension, targetPath..Clear());
+					Path.FindFreePath(targetDirectory->Path, fileName.Substring(0..<^fileExtension.Length), fileExtension, targetPath..Clear());
 				case .Overwrite:
 					forceOverwrite = true;
 				default:
@@ -709,7 +745,7 @@ class AssetHierarchy
 				case .KeepBoth:
 					String fileExtension = scope .();
 					Path.GetExtension(targetPath, fileExtension);
-					FindFreePath(targetDirectory->Path, fileName.Substring(0..<^fileExtension.Length), fileExtension, targetPath..Clear());
+					Path.FindFreePath(targetDirectory->Path, fileName.Substring(0..<^fileExtension.Length), fileExtension, targetPath..Clear());
 				case .Overwrite:
 					forceOverwrite = true;
 				default:
@@ -721,26 +757,5 @@ class AssetHierarchy
 		}
 
 		return .Ok;
-	}
-
-	public void FindFreePath(StringView directory, StringView wantedName, StringView fileExtension, String outFreePath)
-	{
-		int fileNumber = 0;
-
-		String currentFileName = scope $"{wantedName}{fileExtension}";
-		while (true)
-		{
-			Path.Combine(outFreePath..Clear(), directory, currentFileName);
-			
-			FileInfo targetInfo = scope FileInfo(outFreePath);
-
-			if (!targetInfo.Exists)
-			{
-				break;
-			}
-
-			fileNumber++;
-			currentFileName..Clear().AppendF($"{wantedName} ({fileNumber}){fileExtension}");
-		}
 	}
 }
