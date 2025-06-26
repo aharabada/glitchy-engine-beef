@@ -13,7 +13,7 @@ class CopyBackgroundTask : BackgroundTask
 
 	private int _totalEntriesToCopy;
 	private append Queue<CopyInfo> _pathsToCopy = .() ~ ClearAndDeleteItems!(_);
-	private append Queue<String> _scanQueue = .() ~ ClearAndDeleteItems!(_);
+	private append Queue<CopyInfo> _scanQueue = .() ~ ClearAndDeleteItems!(_);
 	
 	private enum OverwriteMode
 	{
@@ -31,19 +31,17 @@ class CopyBackgroundTask : BackgroundTask
 
 	private class CopyInfo
 	{
-		public String SourcePath ~ delete:append _;
-		public String TargetPath ~ delete:append _;
+		public append String SourcePath = .();
+		// If this entry is actually inside a directory we copy, this contains the path of this entry inside this directory.
+		public append String SubPath = .();
+		public append String TargetPath = .();
 		public OverwriteMode OverwriteMode;
 
 		[AllowAppend]
 		public this(StringView sourcePath, StringView targetPath, OverwriteMode overwriteMode)
 		{
-			String src = append String(sourcePath);
-			String tgt = append String(targetPath);
-
-			SourcePath = src;
-			TargetPath = tgt;
-
+			SourcePath.Set(sourcePath);
+			TargetPath.Set(targetPath);
 			OverwriteMode = overwriteMode;
 		}
 	}
@@ -62,7 +60,7 @@ class CopyBackgroundTask : BackgroundTask
 		for (String path in sourcePaths)
 		{
 			_sourcePath.Add(new String(path));
-			_scanQueue.Add(new String(path));
+			_scanQueue.Add(new CopyInfo(path, "", .None));
 		}
 
 		_totalEntriesToCopy = sourcePaths.Count;
@@ -94,38 +92,58 @@ class CopyBackgroundTask : BackgroundTask
 
 	private Result<void, CopyError> CollectFilesToCopy()
 	{
-		void RemoveFront()
+		CopyInfo currentEntry = null;
+		defer
 		{
-			String path = _scanQueue.PopFront();
-			delete path;
+			if (currentEntry != null && @return case .Err)
+			{
+				_scanQueue.AddFront(currentEntry);
+			}
 		}
 
 		while (!_scanQueue.IsEmpty && Running)
 		{
 			//Thread.Sleep(1000);
 
-			String currentPath = _scanQueue.Peek();
-
-			//FileInfo sourceInfo = scope FileInfo(currentPath);
+			currentEntry = _scanQueue.PopFront();
 			
-			String fileName = scope .();
-			Path.GetFileName(currentPath, fileName);
+			let sourcePath = (StringView)currentEntry.SourcePath;
 
-			String targetPath = scope .();
-			Path.Combine(targetPath, _targetDirectoryPath, fileName);
+			let fileName = scope String();
+			Path.GetFileName(sourcePath, fileName);
 
-			//FileInfo targetInfo = scope FileInfo(targetPath);
+			let targetPath = scope String();
+			Path.Combine(targetPath, _targetDirectoryPath, currentEntry.SubPath, fileName);
 
-			if (Directory.Exists(currentPath))
+			if (Directory.Exists(sourcePath))
 			{
-				/*for (FileFindEntry e in Directory.Enumerate(currentPath))
+				if (Directory.Exists(targetPath))
 				{
-					String entryPath = new String();
-					e.GetFilePath(entryPath);
-					_scanQueue.Add(entryPath);
-				}*/
+					switch (CurrentFileMode)
+					{
+					case .KeepBoth, .CombineDirectories, .Skip:
+					default:
+						return .Err(.TargetDirectoryExists(new String(fileName)));
+					}
+				}
+				
+				if (!CurrentFileMode.HasFlag(.Skip))
+				{
+					_pathsToCopy.Add(currentEntry);
+					currentEntry.OverwriteMode = CurrentFileMode;
+					for (FileFindEntry e in Directory.Enumerate(currentEntry.SourcePath))
+					{
+						let entryPath = scope String();
+						e.GetFilePath(entryPath);
+
+						let newEntry = new CopyInfo(entryPath, "", .None);
+						_scanQueue.Add(newEntry);
+						Path.Combine(newEntry.SubPath, currentEntry.SubPath, fileName);
+					}
+				}
+				_nextFileMode = .None;
 			}
-			else if (File.Exists(currentPath))
+			else if (File.Exists(sourcePath))
 			{
 				if (File.Exists(targetPath))
 				{
@@ -137,8 +155,11 @@ class CopyBackgroundTask : BackgroundTask
 					}
 				}
 
-				_pathsToCopy.Add(new CopyInfo(currentPath, targetPath, CurrentFileMode));
-				RemoveFront();
+				if (!CurrentFileMode.HasFlag(.Skip))
+				{
+					_pathsToCopy.Add(currentEntry);
+					currentEntry.OverwriteMode = CurrentFileMode;
+				}
 				_nextFileMode = .None;
 			}
 		}
@@ -175,35 +196,52 @@ class CopyBackgroundTask : BackgroundTask
 		return .Finished;
 	}
 
-	private Result<void> CopyPath(CopyInfo sourcePath)
+	private Result<void> CopyPath(CopyInfo copyInfo)
 	{
-		if (Directory.Exists(sourcePath.SourcePath))
+		if (Directory.Exists(copyInfo.SourcePath))
 		{
+			//bool forceOverwrite = false;
+			if (Directory.Exists(copyInfo.TargetPath))
+			{
+				switch (CurrentFileMode)
+				{
+				case .KeepBoth:
+					String fileName = scope .();
+					Path.GetFileName(copyInfo.SourcePath, fileName);
+
+					Path.FindFreePath(_targetDirectoryPath, fileName, "", copyInfo.TargetPath..Clear());
+				case .CombineDirectories:
+					return .Ok;
+				default:
+					return .Err;//(.TargetDirectoryExists);
+				}
+			}
+
+			Directory.CreateDirectory(copyInfo.TargetPath);
 		}
-		else if (File.Exists(sourcePath.SourcePath))
+		else if (File.Exists(copyInfo.SourcePath))
 		{
 			bool forceOverwrite = false;
-			if (File.Exists(sourcePath.TargetPath))
+			if (File.Exists(copyInfo.TargetPath))
 			{
-				switch (sourcePath.OverwriteMode)
+				switch (copyInfo.OverwriteMode)
 				{
 				case .KeepBoth:
 					String fileExtension = scope .();
-					Path.GetExtension(sourcePath.TargetPath, fileExtension);
+					Path.GetExtension(copyInfo.TargetPath, fileExtension);
 
 					String fileName = scope .();
-					Path.GetFileName(sourcePath.SourcePath, fileName);
+					Path.GetFileName(copyInfo.SourcePath, fileName);
 
-					Path.FindFreePath(_targetDirectoryPath, fileName.Substring(0..<^fileExtension.Length), fileExtension, sourcePath.TargetPath..Clear());
+					Path.FindFreePath(_targetDirectoryPath, fileName.Substring(0..<^fileExtension.Length), fileExtension, copyInfo.TargetPath..Clear());
 				case .OverwriteFile:
 					forceOverwrite = true;
-				case .Skip:
 				default:
 					return .Err;//(.TargetFileExists);
 				}
 			}
 
-			File.Copy(sourcePath.SourcePath, sourcePath.TargetPath, forceOverwrite);
+			File.Copy(copyInfo.SourcePath, copyInfo.TargetPath, forceOverwrite);
 		}
 		else
 		{
