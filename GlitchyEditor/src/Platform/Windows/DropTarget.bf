@@ -9,6 +9,7 @@ using static System.Windows;
 using GlitchyEngine.Math;
 using System.Collections;
 using System.IO;
+using GlitchyEngine.Platform.Windows.Com;
 
 namespace GlitchyEditor.Platform.Windows;
 
@@ -191,28 +192,10 @@ public enum TYMED : int32
 	NULL = 0,
 }
 
-abstract class IDropTargetImplBase : RefCounted
+abstract class IDropTargetImplBase : IUnknownImplBase<IDropTarget, IDropTarget.VTable>
 {
-	[CRepr]
-	private struct IDropTargetImpl : IDropTarget
+	protected override void InitVTable(ref IDropTarget.VTable vTable)
 	{
-		public void* ClassPtr;
-	}
-
-	IDropTargetImpl impl;
-
-	IDropTarget.VTable vTable;
-
-	public this()
-	{
-		impl = .();
-		impl.[Friend]mVT = &vTable;
-		impl.ClassPtr = Internal.UnsafeCastToPtr(this);
-		
-		vTable.QueryInterface = => QueryInterfaceImpl;
-		vTable.AddRef = => AddRefImpl;
-		vTable.Release = => ReleaseImpl;
-
 		vTable.DragEnter = => DragEnterImpl;
 		vTable.DragOver = => DragOverImpl;
 		vTable.DragLeave = => DragLeaveImpl;
@@ -221,7 +204,7 @@ abstract class IDropTargetImplBase : RefCounted
 
 	public void Register()
 	{
-		HResult result = RegisterDragDrop(Application.Instance.Window.[Friend]_windowHandle, &impl);
+		HResult result = RegisterDragDrop(Application.Instance.Window.[Friend]_windowHandle, InterfacePtr);
 		Log.EngineLogger.Assert(result not case .E_OUTOFMEMORY, "Failed to register drag drop handler (E_OUTOFMEMORY). Make sure you called OleInitialize and not CoInitialize[Ex]");
 		Log.EngineLogger.Assert(result case .S_OK);
 	}
@@ -234,50 +217,6 @@ abstract class IDropTargetImplBase : RefCounted
 		OleUninitialize();
 	}
 
-	private static IDropTargetImplBase GetInstance(IUnknown* self)
-	{
-		IDropTargetImpl* impl = (.)self;
-
-		return (.)Internal.UnsafeCastToObject(impl.ClassPtr);
-	}
-
-	private static HResult QueryInterfaceImpl(IUnknown* self, ref Guid riid, void** output)
-	{
-		Self instance = GetInstance(self);
-
-		HResult result = .E_NOINTERFACE;
-		*output = null;
-
-		if (riid == IUnknown.IID || riid == IDropTarget.IID) 
-		{
-			*output = (IUnknown*)&instance.impl;
-			instance.AddRef();
-			result = .S_OK;
-		}
-
-		return result;
-	}
-
-	private static uint32 AddRefImpl(IUnknown* self)
-	{
-		Self instance = GetInstance(self);
-
-		instance.AddRef();
-		return (uint32)instance.RefCount;
-	}
-
-	private static uint32 ReleaseImpl(IUnknown* self)
-	{
-		Self instance = GetInstance(self);
-
-		uint32 count = (uint32)instance.ReleaseRefNoDelete();
-
-		if (count == 0)
-			delete instance;
-
-		return count;
-	}
-
 	// TODO: Data object? KeyState? 
 	public abstract Result<DropEffect> OnDragEnter(int2 cursorPosition);
 	public abstract Result<DropEffect> OnDragOver(int2 cursorPosition);
@@ -287,7 +226,7 @@ abstract class IDropTargetImplBase : RefCounted
 	[CallingConvention(.Stdcall)]
 	private static HResult DragEnterImpl(IDropTarget* self, /*IDataObject*/ IUnknown* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect)
 	{
-		Self instance = GetInstance(self);
+		Self instance = GetInstance<Self>(self);
 
 		Result<DropEffect> result = instance.OnDragEnter(point);
 
@@ -300,7 +239,7 @@ abstract class IDropTargetImplBase : RefCounted
 	[CallingConvention(.Stdcall)]
 	private static HResult DragOverImpl(IDropTarget* self, uint32 grfKeyState, int2 point, ref DropEffect effect)
 	{
-		Self instance = GetInstance(self);
+		Self instance = GetInstance<Self>(self);
 		Result<DropEffect> result = instance.OnDragOver(point);
 
 		if (result case .Ok(out effect))
@@ -312,7 +251,7 @@ abstract class IDropTargetImplBase : RefCounted
 	[CallingConvention(.Stdcall)]
 	private static HResult DragLeaveImpl(IDropTarget* self)
 	{
-		Self instance = GetInstance(self);
+		Self instance = GetInstance<Self>(self);
 		Result<void> result = instance.OnDragLeave();
 
 		if (result case .Ok)
@@ -330,7 +269,7 @@ abstract class IDropTargetImplBase : RefCounted
 	[CallingConvention(.Stdcall)]
 	private static HResult DropImpl(IDropTarget* self, IDataObject* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect)
 	{
-		Self instance = GetInstance(self);
+		Self instance = GetInstance<Self>(self);
 
 		// render the data into stgm using the data description in fmte
 		FORMATETC format = .()
@@ -368,7 +307,7 @@ abstract class IDropTargetImplBase : RefCounted
 					int endIndex = paths.Length;
 
 					// StringViews might be invalid until fixup step down below
-					files.Add(StringView(paths, startIndex, endIndex - startIndex));
+					files.Add(StringView(paths, startIndex, endIndex - startIndex - 1));
 				}
 			}
 
@@ -381,7 +320,7 @@ abstract class IDropTargetImplBase : RefCounted
 		for (ref StringView path in ref files)
 		{
 			path.Ptr = paths.Ptr + index;
-			index += path.Length;
+			index += path.Length + 1;
 		}
 
 		Result<DropEffect> result = instance.OnDrop(point, files);
