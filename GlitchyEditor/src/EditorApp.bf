@@ -9,6 +9,7 @@ using DirectX.Common;
 using GlitchyEditor.Platform.Windows;
 using GlitchyEditor.Multithreading;
 using System.Threading;
+using GlitchyEditor.Platform;
 
 namespace GlitchyEditor
 {
@@ -29,16 +30,14 @@ namespace GlitchyEditor
 
 			_backgroundTaskManager.Init();
 
-			// TODO: Windows only
-			HResult result = OleInitialize(null);
-			Log.EngineLogger.Assert(result case .S_OK);
+			DragDropManager.Init();
 
 			PushLayer(new EditorLayer(args, _contentManager));
 		}
 
 		public ~this()
 		{
-			OleUninitialize();
+			DragDropManager.Deinit();
 
 			_backgroundTaskManager.Deinit();
 		}

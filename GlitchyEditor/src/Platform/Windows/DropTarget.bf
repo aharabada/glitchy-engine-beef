@@ -1,3 +1,5 @@
+#if BF_PLATFORM_WINDOWS
+
 using System;
 using DirectX.Common;
 using DirectX.Math;
@@ -10,18 +12,18 @@ using System.IO;
 
 namespace GlitchyEditor.Platform.Windows;
 
-// This entire thing is so platform dependent, that it really doesn't make sense to abstract while we are windows only.
-
 static
 {
-	[Import("Ole32.lib"), CLink]
+	[Import("Ole32.lib"), CLink, CallingConvention(.Stdcall)]
 	public static extern HResult OleInitialize(void* reserved);
-	[Import("Ole32.lib"), CLink]
+	[Import("Ole32.lib"), CLink, CallingConvention(.Stdcall)]
 	public static extern void OleUninitialize();
-	[Import("Ole32.lib"), CLink]
+	[Import("Ole32.lib"), CLink, CallingConvention(.Stdcall)]
 	public static extern HResult RegisterDragDrop(HWnd windowHandle, IDropTarget* dropTarget);
-	[Import("Ole32.lib"), CLink]
+	[Import("Ole32.lib"), CLink, CallingConvention(.Stdcall)]
 	public static extern HResult RevokeDragDrop(HWnd windowHandle);
+	[Import("ole32.dll"), CLink, CallingConvention(.Stdcall)]
+	public static extern HResult DoDragDrop(IDataObject* pDataObj, IDropSource* pDropSource, DropEffect dwOKEffects, out DropEffect pdwEffect);
 }
 
 [CRepr]
@@ -85,7 +87,6 @@ public struct FORMATETC
 	public typealias HBITMAP = int;
 	public typealias HENHMETAFILE = int;
 	public typealias PWSTR = char16*;
-	public typealias BOOL = int32;
 [CRepr]
 public struct STGMEDIUM
 {
@@ -116,7 +117,7 @@ public struct IDataObject : IUnknown
 	public HResult GetDataHere(ref FORMATETC pformatetc, out STGMEDIUM pmedium) mut => VT.GetDataHere(ref this, ref pformatetc, out pmedium);
 	public HResult QueryGetData(ref FORMATETC pformatetc) mut => VT.QueryGetData(ref this, ref pformatetc);
 	public HResult GetCanonicalFormatEtc(ref FORMATETC pformatectIn, out FORMATETC pformatetcOut) mut => VT.GetCanonicalFormatEtc(ref this, ref pformatectIn, out pformatetcOut);
-	public HResult SetData(ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BOOL fRelease) mut => VT.SetData(ref this, ref pformatetc, ref pmedium, fRelease);
+	public HResult SetData(ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BigBool fRelease) mut => VT.SetData(ref this, ref pformatetc, ref pmedium, fRelease);
 	public HResult EnumFormatEtc(uint32 dwDirection, out /*IEnumFORMATETC*/ IUnknown* ppenumFormatEtc) mut => VT.EnumFormatEtc(ref this, dwDirection, out ppenumFormatEtc);
 	public HResult DAdvise(ref FORMATETC pformatetc, uint32 advf, ref /*IAdviseSink*/ IUnknown* pAdvSink, out uint32 pdwConnection) mut => VT.DAdvise(ref this, ref pformatetc, advf, ref pAdvSink, out pdwConnection);
 	public HResult DUnadvise(uint32 dwConnection) mut => VT.DUnadvise(ref this, dwConnection);
@@ -129,7 +130,7 @@ public struct IDataObject : IUnknown
 		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, out STGMEDIUM pmedium) GetDataHere;
 		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc) QueryGetData;
 		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatectIn, out FORMATETC pformatetcOut) GetCanonicalFormatEtc;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BOOL fRelease) SetData;
+		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BigBool fRelease) SetData;
 		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, uint32 dwDirection, out /*IEnumFORMATETC*/ IUnknown* ppenumFormatEtc) EnumFormatEtc;
 		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, uint32 advf, ref /*IAdviseSink*/ IUnknown* pAdvSink, out uint32 pdwConnection) DAdvise;
 		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, uint32 dwConnection) DUnadvise;
@@ -229,6 +230,8 @@ abstract class IDropTargetImplBase : RefCounted
 	{
 		HResult result = RevokeDragDrop(Application.Instance.Window.[Friend]_windowHandle);
 		Log.EngineLogger.Assert(result case .S_OK);
+
+		OleUninitialize();
 	}
 
 	private static IDropTargetImplBase GetInstance(IUnknown* self)
@@ -279,7 +282,7 @@ abstract class IDropTargetImplBase : RefCounted
 	public abstract Result<DropEffect> OnDragEnter(int2 cursorPosition);
 	public abstract Result<DropEffect> OnDragOver(int2 cursorPosition);
 	public abstract Result<void> OnDragLeave();
-	public abstract Result<DropEffect> OnDrop(int2 cursorPosition, List<String> fileNames);
+	public abstract Result<DropEffect> OnDrop(int2 cursorPosition, Span<StringView> fileNames);
 
 	[CallingConvention(.Stdcall)]
 	private static HResult DragEnterImpl(IDropTarget* self, /*IDataObject*/ IUnknown* dataObject, uint32 grfKeyState, int2 point, ref DropEffect effect)
@@ -338,15 +341,16 @@ abstract class IDropTargetImplBase : RefCounted
 			tymed = (.)TYMED.HGLOBAL
 		};
 
-		List<String> files = null;
-		defer {DeleteContainerAndItems!(files);}
+		String paths = scope .();
+		List<StringView> files = null;
+		defer { delete files; }
 
 		if (dataObject.GetData(ref format, var stgm).Succeeded)
 		{
 			HDROP hdrop = (HDROP)stgm.hGlobal;
 			uint32 fileCount = DragQueryFileW(hdrop, 0xFFFFFFFF, null, 0);
 
-			files = new List<String>(fileCount);
+			files = new List<StringView>(fileCount);
 
 			List<char16> buffer = scope List<char16>();
 			buffer.Resize(256);
@@ -359,12 +363,25 @@ abstract class IDropTargetImplBase : RefCounted
 				uint32 retrievedSize = DragQueryFileW(hdrop, i, buffer.Ptr, (.)buffer.Count);
 				if (retrievedSize > 0 && retrievedSize < buffer.Count)
 				{
-					String str = new String(buffer.Ptr);
-					files.Add(str);
+					int startIndex = paths.Length;
+					paths.Append(buffer);
+					int endIndex = paths.Length;
+
+					// StringViews might be invalid until fixup step down below
+					files.Add(StringView(paths, startIndex, endIndex - startIndex));
 				}
 			}
 
 			ReleaseStgMedium(ref stgm);
+		}
+
+		int index = 0;
+
+		// Fixup pointer of string views
+		for (ref StringView path in ref files)
+		{
+			path.Ptr = paths.Ptr + index;
+			index += path.Length;
 		}
 
 		Result<DropEffect> result = instance.OnDrop(point, files);
@@ -430,8 +447,8 @@ public class DragDropEvent : Event, IEvent
 
 	public DropEffect OutDropEffect { get; set; }
 
-	// Do not keep references to this list or any of it's items outside of the event handler, they will not survive it.
-	public List<String> FileNames { get; set; }
+	/// Do not keep references to this list or any of it's items outside of the event handler, they will not survive it.
+	public Span<StringView> FileNames { get; set; }
 
 	// TODO: Keys, or perhaps just make the listeners query them...
 
@@ -449,3 +466,5 @@ namespace GlitchyEngine.Events
 		case DragDropEvent;
 	}
 }
+
+#endif

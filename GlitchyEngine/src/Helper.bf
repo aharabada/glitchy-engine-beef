@@ -31,6 +31,13 @@ namespace GlitchyEngine
 			value?.ReleaseRef();
 			value = null;
 		}
+
+		/// Releases the reference to value and nullifies it.
+		public static mixin ReleaseRefAndNullify<T>(T value) where T: RefCounted
+		{
+			value?.ReleaseRef();
+			value = null;
+		}
 		
 		public static mixin DeleteContainerAndReleaseItems(var container)
 		{

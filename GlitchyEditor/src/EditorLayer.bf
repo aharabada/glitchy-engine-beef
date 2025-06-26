@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using ImGui;
 using GlitchyEngine;
 using GlitchyEditor.EditWindows;
@@ -116,45 +117,6 @@ namespace GlitchyEditor
 		private bool _showImguiDemoWindow;
 #endif
 
-		/// Registers a drag'n'drop target that will fire corresponding DragDropEvent using the engine's event system.
-		class GlobalDragDropTarget : IDropTargetImplBase
-		{
-			public override Result<DropEffect> OnDragEnter(int2 cursorPosition)
-			{
-				DragDropEvent event = scope DragDropEvent(.Enter, cursorPosition);
-				Application.Instance.OnEvent(event);
-				return event.OutDropEffect;
-			}
-
-			public override Result<DropEffect> OnDragOver(int2 cursorPosition)
-			{
-				DragDropEvent event = scope DragDropEvent(.Over, cursorPosition);
-				Application.Instance.OnEvent(event);
-				return event.OutDropEffect;
-			}
-
-			public override Result<void> OnDragLeave()
-			{
-				DragDropEvent event = scope DragDropEvent(.Leave, .(-1, -1));
-				Application.Instance.OnEvent(event);
-				return .Ok;
-			}
-
-			public override Result<DropEffect> OnDrop(int2 cursorPosition, List<String> fileNames)
-			{
-				DragDropEvent event = scope DragDropEvent(.Drop, cursorPosition);
-				event.FileNames = fileNames;
-				Application.Instance.OnEvent(event);
-				return event.OutDropEffect;
-			}
-		}
-
-		private GlobalDragDropTarget _dragDropTarget ~
-		{
-			_.Unregister();
-			_?.ReleaseRef();
-		}
-		
 		[AllowAppend]
 		public this(String[] args, EditorContentManager contentManager) : base("Editor")
 		{
@@ -164,9 +126,6 @@ namespace GlitchyEditor
 
 			// TODO: Das muss weg
 			_layer = this;
-
-			_dragDropTarget = new .();
-			_dragDropTarget.Register();
 
 			_contentManager = contentManager;
 
@@ -1709,7 +1668,7 @@ namespace GlitchyEditor
 		{
 			if (_layer._isDraggingFromOutside == .None)
 			{
-				Log.EngineLogger.Warning("Setting drop effect, eventhou the user is currently not dragging.");
+				Log.EngineLogger.Warning("Setting drop effect, even though the user is currently not dragging.");
 			}
 
 			_layer._effectWhenDropping = effect;
@@ -1722,7 +1681,7 @@ namespace GlitchyEditor
 				ImGui.GetIO().MousePos = .(e.CursorPosition.X, e.CursorPosition.Y);
 			}
 
-			if (e.FileNames == null)
+			if (e.FileNames.IsEmpty)
 			{
 				DeleteContainerAndItems!(_droppedFiles);
 				_droppedFiles = null;
@@ -1734,12 +1693,27 @@ namespace GlitchyEditor
 					_droppedFiles = new List<String>();
 				}
 
-				for (String fileName in e.FileNames)
+				int firstIndexToRemove = 0;
+
+				for (StringView filePath in e.FileNames)
 				{
-					if (!_droppedFiles.Contains(fileName, .Ordinal))
+					int index = _droppedFiles.IndexOfAlt(filePath);
+					if (index == -1)
 					{
-						_droppedFiles.Add(new String(fileName));
+						index = _droppedFiles.Count;
+						_droppedFiles.Add(new String(filePath));
 					}
+
+					// Make sure, all paths that are in e.FileNames are before firstIndexToRemove
+					Swap!(_droppedFiles[firstIndexToRemove], _droppedFiles[index]);
+
+					firstIndexToRemove++;
+				}
+
+				// Remove all paths beyond firstIndexToRemove
+				for (int i = _droppedFiles.Count; i > firstIndexToRemove; i--)
+				{
+					delete _droppedFiles.PopBack();
 				}
 			}
 
