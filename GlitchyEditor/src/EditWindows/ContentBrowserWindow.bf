@@ -902,15 +902,22 @@ namespace GlitchyEditor.EditWindows
 					ImGui.SetClipboardText(fileOrFolder->Path);
 				}
 				
-				ImGui.AttachTooltip("Copies the full file path of this asset.");
-				
+				ImGui.AttachTooltip(scope $"Copies the full file path of this asset.\n(\"{fileOrFolder->Path}\")");
+
+				if (ImGui.MenuItem("File name"))
+				{
+					ImGui.SetClipboardText(fileOrFolder->Name);
+				}
+
+				ImGui.AttachTooltip(scope $"Copies the file name of this asset.\n(\"{fileOrFolder->Name}\")");
+
 				if (ImGui.MenuItem("Asset identifier"))
 				{
 					ImGui.SetClipboardText(fileOrFolder->Identifier.FullIdentifier.Ptr);
 				}
 
-				ImGui.AttachTooltip("Copies the identifier of this asset.");
-
+				ImGui.AttachTooltip(scope $"Copies the identifier of this asset.\n(\"{fileOrFolder->Identifier.FullIdentifier}\")");
+				
 				ImGui.EndMenu();
 			}
 
