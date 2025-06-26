@@ -19,4 +19,9 @@ extension Enum
 		else
 			ClearFlag<T>(ref value, flag);
 	}
+
+	public static bool HasAnyFlag<T>(T value, T flags) where T : enum
+	{
+		return (value.Underlying & flags.Underlying) != default;
+	}
 }

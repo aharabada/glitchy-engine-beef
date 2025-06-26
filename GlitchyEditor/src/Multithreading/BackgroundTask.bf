@@ -50,7 +50,7 @@ abstract class BackgroundTask
 
 	public bool Ended => Finished || Aborted;
 
-	public bool DeleteWhenStopped { get; set; }
+	public bool DeleteWhenEnded { get; set; }
 
 	public abstract RunResult Run();
 
@@ -63,10 +63,7 @@ abstract class BackgroundTask
 
 	public void Pause()
 	{
-		if (State == .Ready || State == .Running)
-		{
-			State = .Paused;
-		}
+		_taskManager.Pause(this);
 	}
 
 	public void Abort()

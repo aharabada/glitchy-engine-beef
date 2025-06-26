@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Collections;
 
 namespace System.IO;
 
@@ -34,8 +35,8 @@ extension Path
 			path.Remove(0, 1);
 	}
 
-	
-	public static void Combine(String target, params StringView[] components)
+	// Compared to the original Combine, this one makes sure we don't add multiple seperators. Also makes sure, the path contains only the main Separator char.
+	new public static void Combine(String target, params StringView[] components)
 	{
 		for (var component in components)
 		{
@@ -54,25 +55,24 @@ extension Path
 	 * @param wantedFileName The wanted name of the file. If it already exists a number will be put behind it.
 	 * @param fileExtension The file extension. This should contain the dot.
 	 * @param outFreePath The string that will contain the resulting filepath. Note: This will be cleared before writing the file name.
+	 * @param outFreeFilename Optional, if set to a string, the final file name that is free will be stored in this varialbe.
+	 * @param blockedPaths Optional, can be used to provide a collection of paths that will be considered as existing.
 	 */
-	public static void FindFreePath(StringView targetDirectory, StringView wantedName, StringView fileExtension, String outFreePath)
+	public static void FindFreePath(StringView targetDirectory, StringView wantedName, StringView fileExtension, String outFreePath, String outFreeFilename = null, ICollection<StringView> blockedPaths = null)
 	{
 		int fileNumber = 0;
 
-		String currentFileName = scope $"{wantedName}{fileExtension}";
+		String currentFileName = outFreeFilename ?? scope .();
+		currentFileName.SetF($"{wantedName}{fileExtension}");
 		while (true)
 		{
 			Path.Combine(outFreePath..Clear(), targetDirectory, currentFileName);
 			
-			FileInfo targetInfo = scope FileInfo(outFreePath);
-
-			if (!targetInfo.Exists)
-			{
+			if (!File.Exists(outFreePath) && !Directory.Exists(outFreePath) && !(blockedPaths?.Contains(outFreePath) ?? false))
 				break;
-			}
 
 			fileNumber++;
-			currentFileName..Clear().AppendF($"{wantedName} ({fileNumber}){fileExtension}");
+			currentFileName.SetF($"{wantedName} ({fileNumber}){fileExtension}");
 		}
 	}
 }

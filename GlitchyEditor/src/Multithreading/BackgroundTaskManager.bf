@@ -20,6 +20,8 @@ class BackgroundTaskManager
 	private append BackgroundTaskList _waitingTasks = .();
 	private append Monitor _queueLock = .();
 
+	private append Dictionary<BackgroundTask, BackgroundTask.RunState> _deferredStateChanges = .();
+
 	public void Init()
 	{
 		_run = true;
@@ -54,6 +56,25 @@ class BackgroundTaskManager
 				BackgroundTask.RunResult runResult = task.Run();
 				_runningTask = null;
 
+				if (_deferredStateChanges.TryGetValue(task, let desiredState))
+				{
+					// If the task already finished or aborted by itself, we don't care about the desired state, because it no longer applies.
+					if (runResult != .Finished && runResult != .Abort)
+					{
+						switch (desiredState)
+						{
+						case .Paused:
+							runResult = .Pause;
+						case .Aborted:
+							runResult = .Abort;
+						default:
+							Log.EngineLogger.Error($"Tasks can't explicitly switch to state {desiredState}.");
+						}
+					}
+
+					_deferredStateChanges.Remove(task);
+				}
+				
 				switch (runResult)
 				{
 				case .Continue:
@@ -71,14 +92,14 @@ class BackgroundTaskManager
 				case .Finished:
 					task.State = .Finished;
 		
-					if (task.DeleteWhenStopped)
+					if (task.DeleteWhenEnded)
 					{
 						delete task;
 					}
 				case .Abort:
 					task.State = .Aborted;
 
-					if (task.DeleteWhenStopped)
+					if (task.DeleteWhenEnded)
 					{
 						delete task;
 					}
@@ -123,21 +144,10 @@ class BackgroundTaskManager
 		Log.EngineLogger.AssertDebug(task._taskManager == this);
 		Log.EngineLogger.AssertDebug(!task.Ended);
 
-		Application.Instance.InvokeOnMainThread(new () =>
-			{
-				if (task.State == .Paused)
-				{
-					task.State = .Ready;
-		
-					using (_queueLock.Enter())
-					{
-						Log.EngineLogger.AssertDebug(!_readyQueue.Contains(task));
-						// We assume this was a user interaction so this task will get some priority.
-						_readyQueue.AddFirst(task);
-					}
-				}
-				return true;
-			});
+		if (task.State == .Paused)
+		{
+			_deferredStateChanges.Add(task, .Ready);
+		}
 	}
 	
 	internal void Pause(BackgroundTask task)
@@ -145,20 +155,10 @@ class BackgroundTaskManager
 		Log.EngineLogger.AssertDebug(task._taskManager == this);
 		Log.EngineLogger.AssertDebug(!task.Ended);
 		
-		Application.Instance.InvokeOnMainThread(new () =>
-			{
-				if (task.State == .Ready)
-				{
-					task.State = .Ready;
-
-					using (_queueLock.Enter())
-					{
-						Log.EngineLogger.AssertDebug(!_waitingTasks.Contains(task));
-						_waitingTasks.AddLast(task);
-					}
-				}
-				return true;
-			});
+		if (task.State == .Ready || task.State == .Running)
+		{
+			_deferredStateChanges.Add(task, .Paused);
+		}
 	}
 	
 	internal void AbortTask(BackgroundTask task)
@@ -166,24 +166,10 @@ class BackgroundTaskManager
 		Log.EngineLogger.AssertDebug(task._taskManager == this);
 		Log.EngineLogger.AssertDebug(!task.Ended);
 		
-		Application.Instance.InvokeOnMainThread(new () =>
-			{
-				if (task.State != .Aborted)
-				{
-					task.State = .Aborted;
-
-					using (_queueLock.Enter())
-					{
-						_waitingTasks.Remove(task);
-					}
-
-					if (task.DeleteWhenStopped)
-					{
-						delete task;
-					}
-				}
-				return true;
-			});
+		if (task.State != .Aborted)
+		{
+			_deferredStateChanges.Add(task, .Aborted);
+		}
 	}
 
 	public void ImGuiRender()
@@ -210,6 +196,59 @@ class BackgroundTaskManager
 
 				wtask.OnRenderPopup();
 				wtask = wtask._next;
+			}
+
+			for (var (task, desiredState) in _deferredStateChanges)
+			{
+				bool deleteEntry = true;
+
+				switch (desiredState)
+				{
+				case .Ready:
+					task.State = .Ready;
+					// We assume this was a user interaction so this task will get priority.
+					_readyQueue.AddFirst(task);
+				case .Paused:
+					if (task.Ready)
+					{
+						Log.EngineLogger.AssertDebug(!_waitingTasks.Contains(task));
+						_waitingTasks.AddLast(task);
+					}
+					else if (task.Running)
+					{
+						// The task is running, we have to hope that it cooperates and handle the rest in the worker thread.
+						deleteEntry = false;
+					}
+
+					task.State = .Paused;
+				case .Aborted:
+					if (task.Ready || task.Paused)
+					{
+						_waitingTasks.Remove(task);
+						
+						task.State = .Aborted;
+
+						if (task.DeleteWhenEnded)
+						{
+							delete task;
+							task = null;
+						}
+					}
+					else if (task.Running)
+					{
+						task.State = .Aborted;
+
+						// The task is running, we have to hope that it cooperates and handle the rest in the worker thread.
+						deleteEntry = false;
+					}
+				default:
+					Log.EngineLogger.Error($"Tasks can't explicitly switch to state {desiredState}.");
+				}
+
+				if (deleteEntry)
+				{
+					@task.Remove();
+				}	
 			}
 		}
 	}

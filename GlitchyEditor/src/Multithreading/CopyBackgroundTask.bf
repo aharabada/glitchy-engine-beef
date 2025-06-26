@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections;
 using System.Diagnostics;
 using ImGui;
+using System.Threading;
 
 namespace GlitchyEditor.Multithreading;
 
@@ -14,20 +15,25 @@ class CopyBackgroundTask : BackgroundTask
 	private int _totalEntriesToCopy;
 	private append Queue<CopyInfo> _pathsToCopy = .() ~ ClearAndDeleteItems!(_);
 	private append Queue<CopyInfo> _scanQueue = .() ~ ClearAndDeleteItems!(_);
+	/// Contains the file paths, that will definitely exist after copying. This is used for file renaming during scanning.
+	private append HashSet<StringView> _targetPaths = .();
 	
-	private enum OverwriteMode
+	private enum ConflictResolutionMode
 	{
 		None,
 		OverwriteFile = 1,
 		KeepBoth = 2,
 		CombineDirectories = 4,
-		Skip = 8
+		SkipFiles = 8,
+		SkipDirectories = 16,
+		SkipNotFound = 32,
+		IgnoreUnexpectedErrors = 64
 	}
 
-	private OverwriteMode _nextFileMode;
-	private OverwriteMode _allFilesMode;
+	private ConflictResolutionMode _nextFileMode;
+	private ConflictResolutionMode _allFilesMode;
 
-	private OverwriteMode CurrentFileMode => _nextFileMode | _allFilesMode;
+	private ConflictResolutionMode CurrentFileMode => _nextFileMode | _allFilesMode;
 
 	private class CopyInfo
 	{
@@ -35,14 +41,14 @@ class CopyBackgroundTask : BackgroundTask
 		// If this entry is actually inside a directory we copy, this contains the path of this entry inside this directory.
 		public append String SubPath = .();
 		public append String TargetPath = .();
-		public OverwriteMode OverwriteMode;
+		public ConflictResolutionMode ConflictResolutionMode;
 
 		[AllowAppend]
-		public this(StringView sourcePath, StringView targetPath, OverwriteMode overwriteMode)
+		public this(StringView sourcePath, StringView targetPath, ConflictResolutionMode conflictResolutionMode)
 		{
 			SourcePath.Set(sourcePath);
 			TargetPath.Set(targetPath);
-			OverwriteMode = overwriteMode;
+			ConflictResolutionMode = conflictResolutionMode;
 		}
 	}
 
@@ -70,9 +76,10 @@ class CopyBackgroundTask : BackgroundTask
 	{
 		case None;
 		case TargetDirectoryIsNotDirectory;
-		case SourceDoesntExist(String SourcePath);
 		case TargetFileExists(String FileName);
 		case TargetDirectoryExists(String DirectoryName);
+		case EntryNotFound(String SourcePath);
+		case UnexpectedError(String Message);
 
 		public void Dispose()
 		{
@@ -80,12 +87,14 @@ class CopyBackgroundTask : BackgroundTask
 			{
 			case .None:
 			case .TargetDirectoryIsNotDirectory:
-			case .SourceDoesntExist(let SourcePath):
-				delete SourcePath;
 			case .TargetFileExists(let FileName):
 				delete FileName;
 			case .TargetDirectoryExists(let DirectoryName):
 				delete DirectoryName;
+			case .EntryNotFound(let SourcePath):
+				delete SourcePath;
+			case .UnexpectedError(let Message):
+				delete Message;
 			}
 		}
 	}
@@ -101,10 +110,16 @@ class CopyBackgroundTask : BackgroundTask
 			}
 		}
 
+		void AddToCopyQueue(CopyInfo entry, StringView targetPath, ConflictResolutionMode conflictResolutionMode)
+		{
+			entry.TargetPath.Set(targetPath);
+			entry.ConflictResolutionMode = conflictResolutionMode;
+			_pathsToCopy.Add(entry);
+			_targetPaths.Add(entry.TargetPath);
+		}
+
 		while (!_scanQueue.IsEmpty && Running)
 		{
-			//Thread.Sleep(1000);
-
 			currentEntry = _scanQueue.PopFront();
 			
 			let sourcePath = (StringView)currentEntry.SourcePath;
@@ -117,49 +132,90 @@ class CopyBackgroundTask : BackgroundTask
 
 			if (Directory.Exists(sourcePath))
 			{
-				if (Directory.Exists(targetPath))
+				bool skip = false;
+
+				if (Directory.Exists(targetPath) || _targetPaths.Contains(targetPath))
 				{
-					switch (CurrentFileMode)
+					if (CurrentFileMode.HasFlag(.KeepBoth))
 					{
-					case .KeepBoth, .CombineDirectories, .Skip:
-					default:
+						Path.FindFreePath(_targetDirectoryPath, fileName, "", targetPath, fileName, _targetPaths);
+					}
+					else if (CurrentFileMode.HasFlag(.SkipDirectories))
+					{
+						skip = true;
+					}
+					else if (Enum.HasAnyFlag(CurrentFileMode, .CombineDirectories))
+					{
+						// Intentionally do nothing.
+					}
+					else
+					{
 						return .Err(.TargetDirectoryExists(new String(fileName)));
 					}
 				}
 				
-				if (!CurrentFileMode.HasFlag(.Skip))
+				if (skip)
 				{
-					_pathsToCopy.Add(currentEntry);
-					currentEntry.OverwriteMode = CurrentFileMode;
+					delete currentEntry;
+				}
+				else
+				{
+					// Current node is ready, add it to copy-queue.
+					AddToCopyQueue(currentEntry, targetPath, CurrentFileMode);
+					
+					// Add nested files and directories to the scan-queue.
 					for (FileFindEntry e in Directory.Enumerate(currentEntry.SourcePath))
 					{
 						let entryPath = scope String();
 						e.GetFilePath(entryPath);
 
-						let newEntry = new CopyInfo(entryPath, "", .None);
+						let newEntry = new CopyInfo(entryPath, targetPath, .None);
 						_scanQueue.Add(newEntry);
+
 						Path.Combine(newEntry.SubPath, currentEntry.SubPath, fileName);
 					}
 				}
+
 				_nextFileMode = .None;
 			}
 			else if (File.Exists(sourcePath))
 			{
-				if (File.Exists(targetPath))
+				bool skip = false;
+
+				if (File.Exists(targetPath) || _targetPaths.Contains(targetPath))
 				{
-					switch (CurrentFileMode)
+					if (CurrentFileMode.HasFlag(.KeepBoth))
 					{
-					case .KeepBoth, .OverwriteFile, .Skip:
-					default:
+						let fileExtension = scope String();
+						Path.GetExtension(targetPath, fileExtension);
+
+						StringView fileNameWithoutExtension = fileName.Substring(0..<^fileExtension.Length);
+	
+						Path.FindFreePath(_targetDirectoryPath, fileNameWithoutExtension, fileExtension, targetPath, fileName, _targetPaths);
+					}
+					else if (CurrentFileMode.HasFlag(.SkipFiles))
+					{
+						skip = true;
+					}
+					else if (Enum.HasAnyFlag(CurrentFileMode, .OverwriteFile))
+					{
+						// Intentionally do nothing.
+					}
+					else
+					{
 						return .Err(.TargetFileExists(new String(fileName)));
 					}
 				}
-
-				if (!CurrentFileMode.HasFlag(.Skip))
+				
+				if (skip)
 				{
-					_pathsToCopy.Add(currentEntry);
-					currentEntry.OverwriteMode = CurrentFileMode;
+					delete currentEntry;
 				}
+				else
+				{
+					AddToCopyQueue(currentEntry, targetPath, CurrentFileMode);
+				}
+
 				_nextFileMode = .None;
 			}
 		}
@@ -175,78 +231,76 @@ class CopyBackgroundTask : BackgroundTask
 	{
 		_currentError.Dispose();
 		_currentError = .None;
-		if (CollectFilesToCopy() case .Err(out _currentError))
+		if (CollectFilesToCopy() case .Err(out _currentError) || Paused)
 		{
 			return .Pause;
 		}
 		
 		while (!_pathsToCopy.IsEmpty && Running)
 		{
-			//Thread.Sleep(1000);
 			CopyInfo currentPath = _pathsToCopy.PopFront();
 
-			defer
+			if (CopyPath(currentPath) case .Err(out _currentError) || Paused)
 			{
-				delete currentPath;
+				return .Pause;
 			}
 
-			CopyPath(currentPath);
+			delete currentPath;
 		}
 
 		return .Finished;
 	}
 
-	private Result<void> CopyPath(CopyInfo copyInfo)
+	private Result<void, CopyError> CopyPath(CopyInfo copyInfo)
 	{
 		if (Directory.Exists(copyInfo.SourcePath))
 		{
-			//bool forceOverwrite = false;
 			if (Directory.Exists(copyInfo.TargetPath))
 			{
-				switch (CurrentFileMode)
+				if (copyInfo.ConflictResolutionMode.HasFlag(.CombineDirectories))
 				{
-				case .KeepBoth:
-					String fileName = scope .();
-					Path.GetFileName(copyInfo.SourcePath, fileName);
-
-					Path.FindFreePath(_targetDirectoryPath, fileName, "", copyInfo.TargetPath..Clear());
-				case .CombineDirectories:
+					// We don't have to do anything, because we will be using the target directory.
 					return .Ok;
-				default:
-					return .Err;//(.TargetDirectoryExists);
+				}
+				else if (!CurrentFileMode.HasFlag(.IgnoreUnexpectedErrors))
+				{
+					return .Err(.UnexpectedError(new $"The target directory already exists, but it wasn't properly handled during the scanning phase."));
 				}
 			}
 
-			Directory.CreateDirectory(copyInfo.TargetPath);
+			if (Directory.CreateDirectory(copyInfo.TargetPath) case .Err(let err) &&
+				!CurrentFileMode.HasFlag(.IgnoreUnexpectedErrors))
+			{
+				return .Err(.UnexpectedError(new $"Failed to create Directory {copyInfo.TargetPath}: {err}"));
+			}
 		}
 		else if (File.Exists(copyInfo.SourcePath))
 		{
 			bool forceOverwrite = false;
 			if (File.Exists(copyInfo.TargetPath))
 			{
-				switch (copyInfo.OverwriteMode)
+				if (copyInfo.ConflictResolutionMode.HasFlag(.OverwriteFile))
 				{
-				case .KeepBoth:
-					String fileExtension = scope .();
-					Path.GetExtension(copyInfo.TargetPath, fileExtension);
-
-					String fileName = scope .();
-					Path.GetFileName(copyInfo.SourcePath, fileName);
-
-					Path.FindFreePath(_targetDirectoryPath, fileName.Substring(0..<^fileExtension.Length), fileExtension, copyInfo.TargetPath..Clear());
-				case .OverwriteFile:
 					forceOverwrite = true;
-				default:
-					return .Err;//(.TargetFileExists);
+				}
+				else if (!CurrentFileMode.HasFlag(.IgnoreUnexpectedErrors))
+				{
+					return .Err(.UnexpectedError(new $"The target file already exists, but it wasn't properly handled during the scanning phase."));
 				}
 			}
-
-			File.Copy(copyInfo.SourcePath, copyInfo.TargetPath, forceOverwrite);
+			
+			if (File.Copy(copyInfo.SourcePath, copyInfo.TargetPath, forceOverwrite) case .Err(let err) &&
+				!CurrentFileMode.HasFlag(.IgnoreUnexpectedErrors))
+			{
+				return .Err(.UnexpectedError(new $"Failed to copy File {copyInfo.TargetPath}: {err}"));
+			}
 		}
 		else
 		{
-			// TODO error
-			return .Err;
+			if (copyInfo.ConflictResolutionMode.HasFlag(.SkipNotFound))
+				return .Ok;
+			else
+				return .Err(.EntryNotFound(new String(copyInfo.SourcePath)));
 		}
 
 		return .Ok;
@@ -254,7 +308,9 @@ class CopyBackgroundTask : BackgroundTask
 
 	public override void OnRenderPopup()
 	{
-		if (ImGui.Begin("Copying files..."))
+		String title = scope .("Copying files...");
+
+		if (ImGui.Begin(title, null, .NoDocking | .NoCollapse | .Modal | .NoResize | .AlwaysAutoResize))
 		{
 			if (ScanningFiles)
 			{
@@ -267,89 +323,188 @@ class CopyBackgroundTask : BackgroundTask
 				ImGui.ProgressBar(copiedFiles / _totalEntriesToCopy, .(-1, 0), scope $"Copied {copiedFiles} / {_totalEntriesToCopy} files.");
 			}
 
+			
 			switch (_currentError)
 			{
-			case .None:
-				// Do nothing
-			case .TargetDirectoryIsNotDirectory:
-				// This shouldn't be possible
-				Debug.Break();
-			case .SourceDoesntExist(let SourcePath):
-				// This isn't good!
 			case .TargetFileExists(let fileName):
 				ImGui.PushStyleColor(.Text, 0xFF0000FF);
 				ImGui.TextUnformatted(scope $"A file with the name \"{fileName}\" already exists.");
 				ImGui.PopStyleColor();
-
-				if (ImGui.Button("Overwrite"))
-				{
-					_nextFileMode = .OverwriteFile;
-					Continue();
-				}
-				ImGui.AttachTooltip("Overwrites the existing file. Will ask again if another conflict occurs.");
-
-				if (ImGui.Button("Overwrite All"))
-				{
-					_allFilesMode = .OverwriteFile;
-					Continue();
-				}
-				ImGui.AttachTooltip("Overwrites all existing files.");
-
-				if (ImGui.Button("Keep both"))
-				{
-					_nextFileMode = .KeepBoth;
-					Continue();
-				}
-				ImGui.AttachTooltip("Keeps both the existing file as well as the new one, differentiates by adding a number to the name. Will ask again if another conflict occurs.");
-
-				if (ImGui.Button("Keep all"))
-				{
-					_allFilesMode = .KeepBoth;
-					Continue();
-				}
-				ImGui.AttachTooltip("Keeps both the existing files as well as the new ones, differentiates by adding a number to the name.");
-				
-				if (ImGui.Button("Cancel"))
-				{
-					Abort();
-				}
 			case .TargetDirectoryExists(let directoryName):
 				ImGui.PushStyleColor(.Text, 0xFF0000FF);
-				ImGui.TextUnformatted(scope $"A file with the name \"{directoryName}\" already exists.");
+				ImGui.TextUnformatted(scope $"A directory with the name \"{directoryName}\" already exists.");
 				ImGui.PopStyleColor();
-
-				if (ImGui.Button("Combine"))
+			case .EntryNotFound(let SourcePath):
+				ImGui.PushStyleColor(.Text, 0xFF0000FF);
+				ImGui.TextUnformatted(scope $"\"{SourcePath}\" doesn't exist.");
+				ImGui.PopStyleColor();
+			case .UnexpectedError(let Message):
+				ImGui.PushStyleColor(.Text, 0xFF0000FF);
+				ImGui.TextUnformatted(scope $"Unexpected error: {Message}");
+				ImGui.PopStyleColor();
+			default:
+				// Do nothing
+			}
+			
+			if (ImGui.BeginTable("buttonTable", 2))
+			{
+				switch (_currentError)
 				{
-					_nextFileMode = .CombineDirectories;
-					Continue();
-				}
-				ImGui.AttachTooltip("Merges the copied directory into the target directory. Will ask again if another conflict occurs.");
+				case .None:
+					// Do nothing
+				case .TargetDirectoryIsNotDirectory:
+					// This shouldn't be possible
+					Debug.Break();
+				case .TargetFileExists(let fileName):
+					ImGui.TableNextRow();
+					ImGui.TableSetColumnIndex(0);
 
-				if (ImGui.Button("Combine All"))
-				{
-					_allFilesMode = .CombineDirectories;
-					Continue();
-				}
-				ImGui.AttachTooltip("Merges all copied directories into the target directories.");
+					if (ImGui.Button("Overwrite the target file."))
+					{
+						_nextFileMode = .OverwriteFile;
+						Continue();
+					}
+					ImGui.TableSetColumnIndex(1);
+					if (ImGui.Button("Overwrite all conflicting target files."))
+					{
+						_allFilesMode |= .OverwriteFile;
+						Continue();
+					}
+					
+					ImGui.TableNextRow();
+					ImGui.TableSetColumnIndex(0);
 
-				if (ImGui.Button("Keep both"))
-				{
-					_nextFileMode = .KeepBoth;
-					Continue();
-				}
-				ImGui.AttachTooltip("Renames the copied directory, so that they no longer conflict. Will ask again if another conflict occurs.");
+					if (ImGui.Button("Rename copied file."))
+					{
+						_nextFileMode = .KeepBoth;
+						Continue();
+					}
+					ImGui.TableSetColumnIndex(1);
+					if (ImGui.Button("Rename all conflicting copied files."))
+					{
+						_allFilesMode |= .KeepBoth;
+						Continue();
+					}
+					
+					ImGui.TableNextRow();
+					ImGui.TableSetColumnIndex(0);
 
-				if (ImGui.Button("Keep all"))
-				{
-					_allFilesMode = .KeepBoth;
-					Continue();
+					if (ImGui.Button("Skip this file."))
+					{
+						_nextFileMode = .SkipFiles;
+						Continue();
+					}
+					ImGui.TableSetColumnIndex(1);
+					if (ImGui.Button("Skip all conflicting files."))
+					{
+						_allFilesMode |= .SkipFiles;
+						Continue();
+					}
+					
+				case .TargetDirectoryExists(let directoryName):
+					ImGui.TableNextRow();
+					ImGui.TableSetColumnIndex(0);
+	
+					if (ImGui.Button("Combine with target."))
+					{
+						_nextFileMode |= .CombineDirectories;
+						Continue();
+					}
+					ImGui.TableSetColumnIndex(1);
+					if (ImGui.Button("Combine all conflicting directories."))
+					{
+						_allFilesMode |= .CombineDirectories;
+						Continue();
+					}
+
+					ImGui.TableNextRow();
+					ImGui.TableSetColumnIndex(0);
+					
+					if (ImGui.Button("Rename copied directory."))
+					{
+						_nextFileMode |= .KeepBoth;
+						Continue();
+					}
+					ImGui.TableSetColumnIndex(1);
+					if (ImGui.Button("Rename all conflicting directories."))
+					{
+						_allFilesMode |= .KeepBoth;
+						Continue();
+					}
+					
+					ImGui.TableNextRow();
+					ImGui.TableSetColumnIndex(0);
+
+					if (ImGui.Button("Skip this directory."))
+					{
+						_nextFileMode |= .SkipDirectories;
+						Continue();
+					}
+					ImGui.TableSetColumnIndex(1);
+					if (ImGui.Button("Skip all conflicting directories."))
+					{
+						_allFilesMode |= .SkipFiles;
+						Continue();
+					}
+				case .EntryNotFound(let SourcePath):
+					if (ImGui.Button("Skip"))
+					{
+						_nextFileMode |= .SkipNotFound;
+						Continue();
+					}
+					ImGui.SameLine();
+					if (ImGui.Button("Skip all"))
+					{
+						_allFilesMode |= .SkipNotFound;
+						Continue();
+					}
+				case .UnexpectedError(let Message):
+					if (ImGui.Button("Retry"))
+					{
+						Continue();
+					}
+					ImGui.SameLine();
+					if (ImGui.Button("Ignore"))
+					{
+						_nextFileMode |= .IgnoreUnexpectedErrors;
+						Continue();
+					}
+					ImGui.SameLine();
+					if (ImGui.Button("Ignore all unexpected"))
+					{
+						_allFilesMode |= .IgnoreUnexpectedErrors;
+						Continue();
+					}
 				}
-				ImGui.AttachTooltip("Renames the copied directory, so that they no longer conflict.");
 				
+				ImGui.TableNextRow();
+				ImGui.TableNextColumn();
+
+				if (_currentError case .None)
+				{
+					if (Paused)
+					{
+						if (ImGui.Button("Continue"))
+						{
+							Continue();
+						}
+					}
+					else
+					{
+						if (ImGui.Button("Pause"))
+						{
+							Pause();
+						}
+					}
+	
+					ImGui.SameLine();
+				}
+	
 				if (ImGui.Button("Cancel"))
 				{
 					Abort();
 				}
+				ImGui.EndTable();
 			}
 			
 			ImGui.End();
