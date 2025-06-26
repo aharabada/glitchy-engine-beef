@@ -23,5 +23,16 @@ namespace System
 		{
 			// TODO!
 		}
+		
+		public void SetF(IFormatProvider formatProvider, StringView format, params Span<Object> args)
+		{
+			Clear();
+			AppendF(formatProvider, format, params args);
+		}
+
+		public void SetF(StringView format, params Span<Object> args)
+		{
+			SetF((IFormatProvider)null, format, params args);
+		}
 	}
 }
