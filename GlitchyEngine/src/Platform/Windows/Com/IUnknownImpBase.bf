@@ -19,7 +19,7 @@ abstract class IUnknownImplBase<TInterface, TVTable> : RefCounter where TInterfa
 
 	private static TVTable vTable;
 
-	protected TInterface* InterfacePtr => (TInterface*)&impl;
+	public TInterface* InterfacePtr => (TInterface*)&impl;
 
 	public this()
 	{

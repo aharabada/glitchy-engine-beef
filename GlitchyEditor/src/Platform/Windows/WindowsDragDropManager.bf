@@ -27,20 +27,6 @@ extension DragDropManager
 		_dragDropTarget.Unregister();
 		ReleaseRefAndNullify!(_dragDropTarget);
 	}
-
-	private static bool _isDragging;
-
-	public static void StartDragDrop()
-	{
-		if (_isDragging)
-			return;
-
-		_isDragging = true;
-
-		IDataObject* dataObject = null;
-		
-		//HResult result = DoDragDrop(ref dataObject);
-	}
 }
 
 /// Registers a Windows drag'n'drop target that will fire Windows drop related events using the engine's event system.

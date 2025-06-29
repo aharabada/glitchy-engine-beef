@@ -101,41 +101,10 @@ public struct STGMEDIUM
 		public HBITMAP hBitmap;
 		public void* hMetaFilePict;
 		public HENHMETAFILE hEnhMetaFile;
-		public int hGlobal;
+		public Handle hGlobal;
 		public PWSTR lpszFileName;
 		public /*IStream*/IUnknown* pstm;
 		public /*IStorage*/IUnknown* pstg;
-	}
-}
-[CRepr]
-public struct IDataObject : IUnknown
-{
-	public const new Guid IID = .(0x0000010e, 0x0000, 0x0000, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x46);
-	
-	public new VTable* VT { get => (.)mVT; }
-	
-	public HResult GetData(ref FORMATETC pformatetcIn, out STGMEDIUM pmedium) mut => VT.GetData(ref this, ref pformatetcIn, out pmedium);
-	public HResult GetDataHere(ref FORMATETC pformatetc, out STGMEDIUM pmedium) mut => VT.GetDataHere(ref this, ref pformatetc, out pmedium);
-	public HResult QueryGetData(ref FORMATETC pformatetc) mut => VT.QueryGetData(ref this, ref pformatetc);
-	public HResult GetCanonicalFormatEtc(ref FORMATETC pformatectIn, out FORMATETC pformatetcOut) mut => VT.GetCanonicalFormatEtc(ref this, ref pformatectIn, out pformatetcOut);
-	public HResult SetData(ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BigBool fRelease) mut => VT.SetData(ref this, ref pformatetc, ref pmedium, fRelease);
-	public HResult EnumFormatEtc(uint32 dwDirection, out /*IEnumFORMATETC*/ IUnknown* ppenumFormatEtc) mut => VT.EnumFormatEtc(ref this, dwDirection, out ppenumFormatEtc);
-	public HResult DAdvise(ref FORMATETC pformatetc, uint32 advf, ref /*IAdviseSink*/ IUnknown* pAdvSink, out uint32 pdwConnection) mut => VT.DAdvise(ref this, ref pformatetc, advf, ref pAdvSink, out pdwConnection);
-	public HResult DUnadvise(uint32 dwConnection) mut => VT.DUnadvise(ref this, dwConnection);
-	public HResult EnumDAdvise(out /*IEnumSTATDATA*/ IUnknown* ppenumAdvise) mut => VT.EnumDAdvise(ref this, out ppenumAdvise);
-
-	[CRepr]
-	public struct VTable : IUnknown.VTable
-	{
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetcIn, out STGMEDIUM pmedium) GetData;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, out STGMEDIUM pmedium) GetDataHere;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc) QueryGetData;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatectIn, out FORMATETC pformatetcOut) GetCanonicalFormatEtc;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, ref STGMEDIUM pmedium, BigBool fRelease) SetData;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, uint32 dwDirection, out /*IEnumFORMATETC*/ IUnknown* ppenumFormatEtc) EnumFormatEtc;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, ref FORMATETC pformatetc, uint32 advf, ref /*IAdviseSink*/ IUnknown* pAdvSink, out uint32 pdwConnection) DAdvise;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, uint32 dwConnection) DUnadvise;
-		public new function [CallingConvention(.Stdcall)] HResult(ref IDataObject self, out /*IEnumSTATDATA*/ IUnknown* ppenumAdvise) EnumDAdvise;
 	}
 }
 

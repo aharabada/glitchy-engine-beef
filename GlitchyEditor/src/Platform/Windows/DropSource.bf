@@ -31,6 +31,9 @@ abstract class IDropSourceImplBase : IUnknownImplBase<IDropSource, IDropSource.V
 		vTable.QueryContinueDrag = => QueryContinueDragImpl;
 		vTable.GiveFeedback = => GiveFeedbackImpl;
 	}
+	
+	private const int32 DRAGDROP_S_DROP = 262400;
+	private const int32 DRAGDROP_S_CANCEL = 262401;
 
 	[CallingConvention(.Stdcall)]
 	private static HResult QueryContinueDragImpl(IDropSource* self, BigBool fEscapePressed, uint32 grfKeyState)
@@ -39,12 +42,15 @@ abstract class IDropSourceImplBase : IUnknownImplBase<IDropSource, IDropSource.V
 
 		// TODO: Translate keyStates (MK_CONTROL, etc...)
 
-		if (instance.QueryContinueDrag(fEscapePressed, grfKeyState) case .Ok)
+		switch (instance.QueryContinueDrag(fEscapePressed, grfKeyState))
 		{
+		case .Continue:
 			return .S_OK;
+		case .Drop:
+			return (.)DRAGDROP_S_DROP;
+		case .Cancel:
+			return (.)DRAGDROP_S_CANCEL;
 		}
-
-		return .E_FAIL;
 	}
 
 	[CallingConvention(.Stdcall)]
@@ -59,22 +65,16 @@ abstract class IDropSourceImplBase : IUnknownImplBase<IDropSource, IDropSource.V
 
 		return .E_FAIL;
 	}
-	
-	public abstract Result<void> QueryContinueDrag(bool escapePressed, uint32 grfKeyState);
+
+	public enum ContinueDrag
+	{
+		Continue,
+		Drop,
+		Cancel
+	}
+
+	public abstract ContinueDrag QueryContinueDrag(bool escapePressed, uint32 grfKeyState);
 	public abstract Result<void> GiveFeedback(DropEffect effect);
-}
-
-class MyDropSource : IDropSourceImplBase
-{
-	public override Result<void> QueryContinueDrag(bool escapePressed, uint32 grfKeyState)
-	{
-		Runtime.NotImplemented();
-	}
-
-	public override Result<void> GiveFeedback(DropEffect effect)
-	{
-		Runtime.NotImplemented();
-	}
 }
 
 #endif
