@@ -465,7 +465,7 @@ namespace GlitchyEditor.EditWindows
 				{
 					ImGui.PushID("Back");
 	
-					DrawBackButton(currentDirectoryNode.Parent);
+					DrawDirectoryEntry(currentDirectoryNode.Parent, .ParentDirectory);
 					
 					// X-Coordinate of the right side of the current entry.
 					float currentButtonRight = ImGui.GetItemRectMax().x;
@@ -500,7 +500,7 @@ namespace GlitchyEditor.EditWindows
 
 			    ImGui.PushID(entry->Name);
 
-				DrawDirectoryItem(entry);
+				DrawDirectoryEntry(entry, .Default);
 
 				// X-Coordinate of the right side of the current entry.
 				float currentButtonRight = ImGui.GetItemRectMax().x;
@@ -528,56 +528,6 @@ namespace GlitchyEditor.EditWindows
 		static readonly float2 IconBaseSize = .(100, 100);
 
 		float2 IconSize => IconBaseSize * _zoom;
-
-		/// Renders the button for the given directory item.
-		private void DrawBackButton(TreeNode<AssetNode> entry)
-		{
-			ImGui.PushStyleVar(.WindowPadding, .(0, 0));
-			ImGui.PushStyleVar(.FramePadding, .(0, 0));
-			ImGui.PushStyleVar(.ItemSpacing, .(0, 0));
-
-			defer {ImGui.PopStyleVar(3); }
-
-			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
-
-			ImGui.BeginChild("item", (.)DirectoryItemSize, .None, .NoScrollbar);
-
-			if (entry->Path == _selectedFile)
-			{
-				var color = ImGui.GetStyleColorVec4(.ButtonHovered);
-				ImGui.PushStyleColor(.Button, *color);
-			}
-			else
-			{
-				ImGui.PushStyleColor(.Button, ImGui.Vec4(0, 0, 0, 0));
-			}
-			
-			SubTexture2D image = s_FolderTexture;
-
-			ImGui.ImageButton("BackFolder", image, (.)IconSize);
-
-			ImGui.PopStyleColor();
-
-			FileDropTarget(entry, .Internal | .External);
-
-			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
-			{
-				if (_selectedFile != entry->Path)
-				{
-					SelectFile(entry->Path);
-					_assetToRename.Clear();
-				}
-			}
-
-			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
-			{
-				OpenEntry(entry);
-			}
-
-			ImGui.TextUnformatted("..");
-
-			ImGui.EndChild();
-		}
 
 		enum DropTargetMode
 		{
@@ -650,8 +600,14 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		/// Renders the button for the given directory item.
-		private void DrawDirectoryItem(TreeNode<AssetNode> entry)
+		enum DirectoryItemType
+		{
+			Default,
+			ParentDirectory
+		}
+
+		/// Renders the button for the given directory entry.
+		private void DrawDirectoryEntry(TreeNode<AssetNode> entry, DirectoryItemType itemType)
 		{
 			ImGui.PushStyleVar(.WindowPadding, .(0, 0));
 			ImGui.PushStyleVar(.FramePadding, .(0, 0));
@@ -674,6 +630,7 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			// TODO: preview images
+			// TODO: Special Icon for back-folder?
 			SubTexture2D image = _thumbnailManager.GetThumbnail(entry.Value);
 
 			ImGui.ImageButton("FileImage", image, (.)IconSize);
@@ -746,14 +703,14 @@ namespace GlitchyEditor.EditWindows
 			}
 			else
 			{
-				ImGui.TextUnformatted(entry->Name);
+				ImGui.TextUnformatted(itemType == .ParentDirectory ? ".." : entry->Name);
 			}
 
 			bool wantsDelete = false;
 
 			if (ImGui.BeginPopupContextWindow())
 			{
-			    ShowItemContextMenu(entry, ref wantsDelete);
+			    ShowItemContextMenu(entry, itemType, ref wantsDelete);
 			    ImGui.EndPopup();
 			}
 
@@ -888,7 +845,7 @@ namespace GlitchyEditor.EditWindows
 		}
 
 		/// Shows the context menu for the given file/folder.
-		private void ShowItemContextMenu(TreeNode<AssetNode> fileOrFolder, ref bool wantsDelete)
+		private void ShowItemContextMenu(TreeNode<AssetNode> fileOrFolder, DirectoryItemType itemType, ref bool wantsDelete)
 		{
 			bool isFile = !fileOrFolder->IsDirectory;
 
@@ -934,19 +891,22 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndMenu();
 			}
 
-			ImGui.Separator();
-
-			if (ImGui.MenuItem("Rename"))
+			if (itemType != .ParentDirectory)
 			{
-				// Copy the path, just for the rare case that fileOrFolder gets deleted
-				_assetToRename.Set(fileOrFolder->Path);
+				ImGui.Separator();
 
-				fileOrFolder->Name.CopyTo(_renameFileNameBuffer);
-			}
+				if (ImGui.MenuItem("Rename"))
+				{
+					// Copy the path, just for the rare case that fileOrFolder gets deleted
+					_assetToRename.Set(fileOrFolder->Path);
 
-			if (ImGui.MenuItem("Delete"))
-			{
-				wantsDelete = true;
+					fileOrFolder->Name.CopyTo(_renameFileNameBuffer);
+				}
+
+				if (ImGui.MenuItem("Delete"))
+				{
+					wantsDelete = true;
+				}
 			}
 
 			ImGui.Separator();
