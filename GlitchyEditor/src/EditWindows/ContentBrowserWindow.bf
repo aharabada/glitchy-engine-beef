@@ -431,7 +431,7 @@ namespace GlitchyEditor.EditWindows
 		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
 		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
 		{
-			List<TreeNode<AssetNode>> files = null;
+			List<TreeNode<AssetNode>> directoryEntries = null;
 			
 			ImGui.Style* style = ImGui.GetStyle();
 
@@ -441,12 +441,12 @@ namespace GlitchyEditor.EditWindows
 
 			if (_searchEverywhere && searchFilter.Length > 0)
 			{
-				files = scope:: List<TreeNode<AssetNode>>();
+				directoryEntries = scope:: List<TreeNode<AssetNode>>();
 				_manager.AssetHierarchy.[Friend]_assetRootNode.ForEach(scope (node) =>
 				{
 					if (node->Name.Contains(searchFilter, true))
 					{
-						files.Add(node);
+						directoryEntries.Add(node);
 					}
 				});
 			}
@@ -458,7 +458,7 @@ namespace GlitchyEditor.EditWindows
 					return;
 				}
 
-				files = currentDirectoryNode.Children;
+				directoryEntries = currentDirectoryNode.Children;
 				
 				// show back button (".."-File)
 				if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
@@ -480,7 +480,20 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 
-			for (var entry in files)
+			directoryEntries.Sort((entry1, entry2) => {
+				// Try to sort so that directories are before files.
+				int score = entry2->IsDirectory <=> entry1->IsDirectory;
+
+				if (score == 0)
+				{
+					// If both are either directories or files sort alphabetically.
+					score = StringView.Compare(entry1->Name, entry2->Name, true);
+				}
+
+				return score;
+			});
+
+			for (var entry in directoryEntries)
 			{
 				if (!entry->Name.Contains(searchFilter, true))
 					continue;
@@ -495,7 +508,7 @@ namespace GlitchyEditor.EditWindows
 				float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
 
 				// If we aren't the last entry and the next button won't fit on the same line we start a new line.
-				if ((entry != files.Back || _showNewFile) && expectedButtonRight < window_visible_x2)
+				if ((entry != directoryEntries.Back || _showNewFile) && expectedButtonRight < window_visible_x2)
 				    ImGui.SameLine();
 
 				ImGui.PopID();
