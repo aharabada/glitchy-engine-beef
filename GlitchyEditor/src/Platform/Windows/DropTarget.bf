@@ -301,37 +301,6 @@ abstract class IDropTargetImplBase : IUnknownImplBase<IDropTarget, IDropTarget.V
 	}
 }
 
-struct S
-{
-	bool b1;
-	int32 i32;
-	bool b2;
-	int64 i64;
-	int32 i322;
-}
-
-struct SB
-{
-	int64 i64;
-	int32 i32;
-	int32 i322;
-	bool b1;
-	bool b2;
-}
-
-struct SC
-{
-	bool b1;
-	//filler 56
-	int32 i32;
-	//filler 32
-	bool b2;
-	//filler 56
-	int64 i64;
-	int32 i322;
-	//filler 32
-}
-
 public enum DragDropType
 {
 	Enter,

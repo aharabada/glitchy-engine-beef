@@ -66,6 +66,30 @@ class AssetHierarchy
 		Log.EngineLogger.Trace($"Created root node");
 	}
 
+	public void DeletePathsBackground(Span<StringView> paths)
+	{
+		DeleteBackgroundTask deleteTask = new .(paths);
+		deleteTask.DeleteWhenEnded = true;
+
+		for (StringView path in paths)
+		{
+			Result<TreeNode<AssetNode>> nodeResult = GetNodeFromPath(path);
+
+			if (nodeResult case .Ok(TreeNode<AssetNode> assetNode))
+			{
+				StringView assetDescriptorPath = assetNode->AssetFile?.AssetConfigPath ?? "";
+	
+				// If it exists, also try to delete the .ass file
+				if (File.Exists(assetDescriptorPath))
+				{
+					deleteTask.AddPath(assetDescriptorPath);
+				}
+			}
+		}
+
+		EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(deleteTask);
+	}
+
 	/// Deletes the file that belongs to the given assetNode
 	public void DeleteFile(AssetNode assetNode)
 	{

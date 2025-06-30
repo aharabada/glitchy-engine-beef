@@ -61,7 +61,9 @@ namespace GlitchyEditor.EditWindows
 
 		private append String _currentDirectory = .();
 
-		private append String _selectedFile = .();
+		//private append String _selectedFile = .();
+
+		private append List<String> _selectedFiles = .() ~ ClearAndDeleteItems!(_);
 
 		private append String _assetToRename = .();
 		private char8[128] _renameFileNameBuffer;
@@ -73,7 +75,8 @@ namespace GlitchyEditor.EditWindows
 
 		public EditorContentManager _manager;
 
-		public StringView SelectedFile => _selectedFile;
+		// TODO: Update
+		public StringView SelectedFile => _selectedFiles.First();
 
 		char8[256] _newFileName = .();
 		bool _showNewFile = false;
@@ -125,6 +128,11 @@ namespace GlitchyEditor.EditWindows
 			parent.AddChild(("", null));
 		}
 
+		private SelectionMode _selectionMode;
+		private bool _addToSelection;
+		
+		bool _wantsDelete = false;
+
 		protected override void InternalShow()
 		{
 			_manager.Update();
@@ -135,10 +143,51 @@ namespace GlitchyEditor.EditWindows
 				_currentDirectory.Set(_manager.AssetDirectory);
 			}
 
-			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
+			// Update selection modifies
 			{
-				ImGui.End();
-				return;
+				if(!ImGui.Begin(s_WindowTitle, &_open, .None))
+				{
+					ImGui.End();
+					return;
+				}
+
+				_addToSelection = Input.IsKeyPressed(.Control);
+
+				if (Input.IsKeyPressed(.Shift))
+				{
+					_selectionMode = .Range;
+				}
+				else
+				{
+					_selectionMode = .SingleFile;
+				}
+			}
+
+			// Remove paths that no longer exist.
+			for (String path in _selectedFiles)
+			{
+				Result<TreeNode<AssetNode>> node = _manager.AssetHierarchy.GetNodeFromPath(path);
+				if (node case .Err)
+				{
+					@path.Remove();
+					delete path;
+				}
+			}
+
+			// Deletion
+			{
+				if (Input.IsKeyPressing(.Delete) && _selectedFiles.Count > 0)
+				{
+					_wantsDelete = true;
+				}
+
+				if (_wantsDelete)
+				{
+					ImGui.OpenPopup("Delete?");
+					_wantsDelete = false;
+				}
+
+				DrawDeleteItemPopup();
 			}
 
 			ImGui.PushStyleVar(.CellPadding, .(0, 0));
@@ -198,36 +247,52 @@ namespace GlitchyEditor.EditWindows
 			ImGui.End();
 		}
 
-		/*private void ExternalFileDropTarget()
+		private bool IsFileSelected(StringView fullFilePath)
 		{
-			if (ImGui.BeginDragDropTarget())
+			return _selectedFiles.ContainsAlt(fullFilePath);
+		}
+
+		enum SelectionMode
+		{
+			SingleFile,
+			Range
+		}
+
+		private void SelectFile(StringView fullFilePath, bool clearOldSelection, SelectionMode mode)
+		{
+			if (clearOldSelection)
 			{
-				ImGui.Payload* peekPayload = ImGui.AcceptDragDropPayload(.ExternFiles, .AcceptBeforeDelivery);
-
-				if (peekPayload != null)
-				{
-					if (peekPayload.IsDelivery())
-					{
-						Log.EngineLogger.Info("Buup!");
-					}
-					else
-					{
-						EditorLayer.SetDropEffect(.Copy);
-					}
-				}
-
-				ImGui.EndDragDropTarget();
+				_selectedFiles.ClearAndDeleteItems();
 			}
-		}*/	
 
-		private void SelectFile(StringView fullFileName)
-		{
-			if (_selectedFile == fullFileName)
-				return;
+			if (mode == .SingleFile)
+			{
+				if (IsFileSelected(fullFilePath))
+				{
+					String oldPath = _selectedFiles.GetAndRemoveAlt(fullFilePath);
+					delete oldPath;
+				}
+				else
+				{
+					_selectedFiles.Add(new String(fullFilePath));
+				}
+			}
+			else if (mode == .Range)
+			{
+				if (IsFileSelected(fullFilePath))
+				{
+					String oldPath = _selectedFiles.GetAndRemoveAlt(fullFilePath);
+					delete oldPath;
+				}
+				else
+				{
+					_selectedFiles.Add(new String(fullFilePath));
+				}
+			}
+			
 
-			_selectedFile.Set(fullFileName);
-
-			OnFileSelected(this, _selectedFile);
+			// TODO: Update event to also provide all selected paths?
+			OnFileSelected(this, fullFilePath);
 		}
 
 		private void DrawSearchBar()
@@ -431,6 +496,18 @@ namespace GlitchyEditor.EditWindows
 		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
 		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
 		{
+			var currentDirectoryNode;
+			if (Input.IsKeyPressed(.Alt) && Input.IsKeyPressing(.Up))
+			{
+				if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
+				{
+					_currentDirectory.Set(currentDirectoryNode.Parent->Path);
+
+					_selectedFiles.ClearAndDeleteItems();
+					currentDirectoryNode = currentDirectoryNode.Parent;
+				}
+			}
+
 			List<TreeNode<AssetNode>> directoryEntries = null;
 			
 			ImGui.Style* style = ImGui.GetStyle();
@@ -619,7 +696,7 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.BeginChild("item", (.)DirectoryItemSize, .None, .NoScrollbar);
 
-			if (entry->Path == _selectedFile)
+			if (IsFileSelected(entry->Path))
 			{
 				var color = ImGui.GetStyleColorVec4(.ButtonHovered);
 				ImGui.PushStyleColor(.Button, *color);
@@ -658,11 +735,9 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Left))
 			{
-				if (_selectedFile != entry->Path)
-				{
-					SelectFile(entry->Path);
-					_assetToRename.Clear();
-				}
+				SelectFile(entry->Path, !_addToSelection, _selectionMode);
+				// TODO: WHY?
+				_assetToRename.Clear();
 			}
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
@@ -706,16 +781,11 @@ namespace GlitchyEditor.EditWindows
 				ImGui.TextUnformatted(itemType == .ParentDirectory ? ".." : entry->Name);
 			}
 
-			bool wantsDelete = false;
-
 			if (ImGui.BeginPopupContextWindow())
 			{
-			    ShowItemContextMenu(entry, itemType, ref wantsDelete);
+			    ShowItemContextMenu(entry, itemType, ref _wantsDelete);
 			    ImGui.EndPopup();
 			}
-
-			if (wantsDelete)
-            	ImGui.OpenPopup("Delete?");
 
 			// TODO: Sub assets are probably borked now... I don't know if they ever worked, didn't test them
 			if (entry->SubAssets?.Count > 0)
@@ -746,9 +816,7 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.EndPopup();
 			}
-
-			DeleteItemPopup(entry);
-
+			
 			ImGui.EndChild();
 
 			ImGui.AttachTooltip(entry->Name);
@@ -807,8 +875,11 @@ namespace GlitchyEditor.EditWindows
 			ImGui.EndChild();
 		}
 
-		private void DeleteItemPopup(TreeNode<AssetNode> fileOrFolder)
+		private void DrawDeleteItemPopup()
 		{
+			if (_selectedFiles.IsEmpty)
+				return;
+
 			// Always center this window when appearing
 			ImGui.Vec2 center = ImGui.GetMainViewport().GetCenter();
 			ImGui.SetNextWindowPos(center, .Appearing, ImGui.Vec2(0.5f, 0.5f));
@@ -817,17 +888,42 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginPopupModal("Delete?", null, .AlwaysAutoResize))
 			{
-				ImGui.Text($"""
-					Delete "{fileOrFolder->Name}"?
+				if (_selectedFiles.Count == 1)
+				{
+					Result<TreeNode<AssetNode>> nodeResult = _manager.AssetHierarchy.GetNodeFromPath(_selectedFiles[0]);
+					
+					if (nodeResult case .Ok(TreeNode<AssetNode> node))
+					{
+						ImGui.Text(
+							$"""
+							Do you really want to delete "{node->Name}"?
 
 
-					""");
+							""");
+					}
+				}
+				else
+				{
+					ImGui.Text(
+						$"""
+						Do you really want to delete {_selectedFiles.Count} directories/assets?
+	
+	
+						""");
+				}
+
 
 				ImGui.Separator();
 
 				if (ImGui.Button("Yes", ImGui.Vec2(120, 0)))
 				{
-					_manager.AssetHierarchy.DeleteFile(fileOrFolder.Value);
+					List<StringView> paths = scope .();
+					for (String path in _selectedFiles)
+					{
+						paths.Add(path);
+					}
+
+					_manager.AssetHierarchy.DeletePathsBackground(paths);
 
 					ImGui.CloseCurrentPopup();
 				}

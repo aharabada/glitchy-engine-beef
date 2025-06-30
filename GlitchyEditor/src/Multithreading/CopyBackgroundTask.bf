@@ -238,13 +238,14 @@ class CopyBackgroundTask : BackgroundTask
 		
 		while (!_pathsToCopy.IsEmpty && Running)
 		{
-			CopyInfo currentPath = _pathsToCopy.PopFront();
+			CopyInfo currentPath = _pathsToCopy.Peek();
 
 			if (CopyPath(currentPath) case .Err(out _currentError) || Paused)
 			{
 				return .Pause;
 			}
 
+			_pathsToCopy.PopFront();
 			delete currentPath;
 		}
 
