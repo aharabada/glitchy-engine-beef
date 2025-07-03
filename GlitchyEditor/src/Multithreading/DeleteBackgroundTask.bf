@@ -86,8 +86,6 @@ class DeleteBackgroundTask : BackgroundTask
 
 		while (!_scanQueue.IsEmpty && Running)
 		{
-			Thread.Sleep(500);
-
 			// Pop from back, so that we delete children before parent directories
 			currentPath = _scanQueue.PopBack();
 			
@@ -132,8 +130,6 @@ class DeleteBackgroundTask : BackgroundTask
 		
 		while (!_pathsToDelete.IsEmpty && Running)
 		{
-			Thread.Sleep(500);
-
 			String currentPath = _pathsToDelete.Back;
 
 			if (DeletePath(currentPath) case .Err(out _currentError) || Paused)
