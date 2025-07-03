@@ -20,6 +20,8 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 		GenerateEqualityOperators(type);
 
 		GenerateArrayAccess(type);
+
+		GenerateToString(type);
 	}
 	
 	[Comptime]
@@ -307,9 +309,35 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 					(&X)[index] = value;	
 				}}
 			}}
+
 			""";
 
 		Compiler.EmitTypeBody(type, arrayAccess);
+	}
+	
+	[Comptime]
+	private static void GenerateToString(Type type)
+	{
+		String toString = scope .();
+
+		for (int i < ComponentCount)
+		{
+			toString.AppendF($"""
+				\toutString.Append(\"{(i == 0 ? "(" : ", ")}{ComponentNames[i]}: \");
+				\t{ComponentNames[i]}.ToString(outString);
+
+				""");
+		}
+
+		String func = scope $"""
+			public void ToString(String outString)
+			{{
+			{toString}
+				outString.Append(')');
+			}}
+
+			""";
+		Compiler.EmitTypeBody(type, func);
 	}
 }
 
@@ -369,6 +397,117 @@ struct VectorMathAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply wh
 
 		String unaryMinus = scope $"""
 			public static {typeName} operator-({typeName} value)
+			{{
+				return {typeName}({resultArguments});
+			}}
+
+			""";
+
+		Compiler.EmitTypeBody(type, unaryMinus);
+	}
+
+	[Comptime]
+	public static void GenerateOperatorOverloads(Type type, String op)
+	{
+		String typeName = type.GetName(.. scope String());
+		String componentTypeName = typeof(T).GetName(.. scope String());
+		
+		[Comptime]
+		void EmitOperatorOverload(String leftType, String rightType, String resultArguments)
+		{
+			String func = scope $"""
+				public static {typeName} operator{op}({leftType} left, {rightType} right)
+				{{
+					return {typeName}({resultArguments});
+				}}
+
+				""";
+
+			Compiler.EmitTypeBody(type, func);
+		}
+
+		// Vector + Vector
+		String resultArguments = scope .();
+		
+		for (int i < ComponentCount)
+		{
+			if (i != 0)
+				resultArguments.Append(", ");
+
+			resultArguments.AppendF($"left.{ComponentNames[i]} {op} right.{ComponentNames[i]}");
+		}
+
+		EmitOperatorOverload(typeName, typeName, resultArguments);
+		
+		// Vector + Scalar
+		resultArguments.Clear();
+		
+		for (int i < ComponentCount)
+		{
+			if (i != 0)
+				resultArguments.Append(", ");
+
+			resultArguments.AppendF($"left.{ComponentNames[i]} {op} right");
+		}
+
+		EmitOperatorOverload(typeName, componentTypeName, resultArguments);
+		
+		// Scalar + Vector
+		resultArguments.Clear();
+		
+		for (int i < ComponentCount)
+		{
+			if (i != 0)
+				resultArguments.Append(", ");
+
+			resultArguments.AppendF($"left {op} right.{ComponentNames[i]}");
+		}
+
+		EmitOperatorOverload(componentTypeName, typeName, resultArguments);
+	}
+}
+
+[AttributeUsage(.Struct | .Class)]
+struct VectorConditionalsAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where ComponentCount : const int
+{
+	public const String[4] ComponentNames = .("X", "Y", "Z", "W");
+
+	[Comptime]
+	public void ApplyToType(Type type)
+	{
+		GenerateUnaryOperatorOverloads(type);
+
+		GenerateOperatorOverloads(type, "&&");
+		GenerateOperatorOverloads(type, "||");
+	}
+
+	[Comptime]
+	public static void GenerateUnaryOperatorOverloads(Type type)
+	{
+		String typeName = type.GetName(.. scope String());
+		/*
+		
+		String unaryAdd = scope $"""
+			public static {typeName} operator+({typeName} value) => value; 
+
+			""";
+
+		Compiler.EmitTypeBody(type, unaryAdd);*/
+
+
+
+		String resultArguments = scope .();
+		
+		for (int i < ComponentCount)
+		{
+			if (i != 0)
+				resultArguments.Append(", ");
+
+			resultArguments.AppendF($"!value.{ComponentNames[i]}");
+		}
+
+		String unaryMinus = scope $"""
+			public static {typeName} operator!({typeName} value)
 			{{
 				return {typeName}({resultArguments});
 			}}
