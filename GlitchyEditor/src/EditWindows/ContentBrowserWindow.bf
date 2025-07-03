@@ -59,9 +59,77 @@ namespace GlitchyEditor.EditWindows
 
 		public const String s_WindowTitle = "Content Browser";
 
-		private append String _currentDirectory = .();
+		class History
+		{
+			AssetHierarchy _hierarchy;
 
-		//private append String _selectedFile = .();
+			public AssetHierarchy AssetHierarchy
+			{
+				get => _hierarchy;
+				set => _hierarchy = value;
+			}
+
+			private append List<String> _history = .() ~ ClearAndDeleteItems!(_);
+			private int _currentIndex = -1;
+
+			public StringView CurrentDirectoryPath => _currentIndex >= 0 ? _history[_currentIndex] : "";
+
+			public void Navigate(StringView nextPath)
+			{
+				_currentIndex++;
+				_history.Insert(_currentIndex, new String(nextPath));
+
+				TrimHistory();
+			}
+
+			private void TrimHistory()
+			{
+				while (_history.Count > (_currentIndex + 1))
+				{
+					delete _history.PopBack();
+				}
+			}
+
+			public void Replace(StringView nextPath)
+			{
+				if (_currentIndex == -1)
+				{
+					_currentIndex = 0;
+					_history.AddFront(new String(nextPath));
+				}
+				else
+				{
+					_history[_currentIndex].Set(nextPath);
+				}
+
+				TrimHistory();
+			}
+
+			public bool Back()
+			{
+				if (_currentIndex > 0)
+				{
+					_currentIndex--;
+					return true;
+				}
+				return false;
+			}
+
+			public bool Forward()
+			{
+				if ((_currentIndex + 1) < _history.Count)
+				{
+					_currentIndex++;
+					return true;
+				}
+
+				return false;
+			}
+		}
+
+		private append History _directoryHistory = .();
+
+		public StringView CurrentDirectory => _directoryHistory.CurrentDirectoryPath;
 
 		private append List<String> _selectedFiles = .() ~ ClearAndDeleteItems!(_);
 
@@ -136,21 +204,48 @@ namespace GlitchyEditor.EditWindows
 		protected override void InternalShow()
 		{
 			_manager.Update();
+
+			// Show History
+			if (ImGui.Begin("Debug History"))
+			{
+				for (String path in _directoryHistory.[Friend]_history)
+				{
+					if (_directoryHistory.CurrentDirectoryPath === StringView(path))
+					{
+						ImGui.Text("==>");
+						ImGui.SameLine();
+					}
+					ImGui.Text(path);
+				}
+				
+				//if (!_selectionRectStart.X.IsNaN)
+				{
+					ImGui.TextUnformatted(_selectionRect.ToString(.. scope .()));
+				}
+
+				ImGui.End();
+			}
 			
 			// Make sure we are in an existing directory.
-			if (!_manager.AssetHierarchy.FileExists(_currentDirectory))
+			if (!_manager.AssetHierarchy.FileExists(CurrentDirectory))
 			{
-				_currentDirectory.Set(_manager.AssetDirectory);
+				_directoryHistory.Replace(_manager.AssetDirectory);
 			}
+			
+			let originalWindowPadding = ImGui.GetStyle().WindowPadding;
+			ImGui.PushStyleVar(.WindowPadding, float2(0,0));
+			defer ImGui.PopStyleVar();
+
+			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
+			{
+				ImGui.End();
+				return;
+			}
+			
+			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + originalWindowPadding.y);
 
 			// Update selection modifies
 			{
-				if(!ImGui.Begin(s_WindowTitle, &_open, .None))
-				{
-					ImGui.End();
-					return;
-				}
-
 				_addToSelection = Input.IsKeyPressed(.Control);
 
 				if (Input.IsKeyPressed(.Shift))
@@ -163,7 +258,7 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 
-			// Remove paths that no longer exist.
+			// Remove paths from selection that no longer exist.
 			for (String path in _selectedFiles)
 			{
 				Result<TreeNode<AssetNode>> node = _manager.AssetHierarchy.GetNodeFromPath(path);
@@ -223,9 +318,12 @@ namespace GlitchyEditor.EditWindows
 
 				if (ImGui.BeginChild("Files"))
 				{
-					TreeNode<AssetNode> currentDirectoryNode = TrySilent!(_manager.AssetHierarchy.GetNodeFromPath(_currentDirectory));
+					Result<TreeNode<AssetNode>> currentDirectoryNode = _manager.AssetHierarchy.GetNodeFromPath(_directoryHistory.CurrentDirectoryPath);
 
-					DrawCurrentDirectory(currentDirectoryNode);
+					if (currentDirectoryNode case .Ok(TreeNode<AssetNode> currentDirectory))
+					{
+						DrawCurrentDirectory(currentDirectoryNode);
+					}
 
 					// Context menu when clicking on the background.
 					if (ImGui.BeginPopupContextWindow())
@@ -235,8 +333,16 @@ namespace GlitchyEditor.EditWindows
 					}
 
 					ImGui.EndChild();
-				
-					FileDropTarget(currentDirectoryNode, .External);
+					
+					if (ImGui.IsItemClicked(.Left | .Right))
+					{
+						_selectedFiles.ClearAndDeleteItems();
+					}
+					
+					if (currentDirectoryNode case .Ok(TreeNode<AssetNode> currentDirectory))
+					{
+						FileDropTarget(currentDirectory, .External);
+					}
 				}
 
 				ImGui.EndTable();
@@ -258,14 +364,14 @@ namespace GlitchyEditor.EditWindows
 			Range
 		}
 
-		private void SelectFile(StringView fullFilePath, bool clearOldSelection, SelectionMode mode)
+		private void SelectFile(StringView fullFilePath, bool clearOldSelection, SelectionMode mode, bool toggle = true)
 		{
 			if (clearOldSelection)
 			{
 				_selectedFiles.ClearAndDeleteItems();
 			}
 
-			if (mode == .SingleFile)
+			if (mode == .SingleFile && toggle)
 			{
 				if (IsFileSelected(fullFilePath))
 				{
@@ -273,6 +379,13 @@ namespace GlitchyEditor.EditWindows
 					delete oldPath;
 				}
 				else
+				{
+					_selectedFiles.Add(new String(fullFilePath));
+				}
+			}
+			else if (mode == .SingleFile && !toggle)
+			{
+				if (!IsFileSelected(fullFilePath))
 				{
 					_selectedFiles.Add(new String(fullFilePath));
 				}
@@ -295,6 +408,12 @@ namespace GlitchyEditor.EditWindows
 			OnFileSelected(this, fullFilePath);
 		}
 
+		private void DeselectFile(StringView fullFilePath)
+		{
+			String oldPath = TrySilent!(_selectedFiles.GetAndRemoveAlt(fullFilePath));
+			delete oldPath;
+		}
+
 		private void DrawSearchBar()
 		{
 			ImGui.TextUnformatted("Search:");
@@ -309,7 +428,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			if (ImGui.MenuItem("Open in file browser..."))
 			{
-				if (Path.OpenFolder(_currentDirectory) case .Err)
+				if (Path.OpenFolder(CurrentDirectory) case .Err)
 					Log.EngineLogger.Error("Failed to open directory in file browser.");
 			}
 			
@@ -319,14 +438,14 @@ namespace GlitchyEditor.EditWindows
 			{
 				if (ImGui.MenuItem("Full path"))
 				{
-					ImGui.SetClipboardText(_currentDirectory);
+					ImGui.SetClipboardText(CurrentDirectory.ToScopeCStr!());
 				}
 				
 				ImGui.AttachTooltip("Copies the full file path of the current folder.");
 
 				if (ImGui.MenuItem("Asset identifier"))
 				{
-					Result<TreeNode<AssetNode>> assetNode = _manager.AssetHierarchy.GetNodeFromPath(_currentDirectory);
+					Result<TreeNode<AssetNode>> assetNode = _manager.AssetHierarchy.GetNodeFromPath(CurrentDirectory);
 
 					if (assetNode case .Ok(let treeNode))
 					{
@@ -404,14 +523,14 @@ namespace GlitchyEditor.EditWindows
 		/// Creates a new asset with the given creator
 		private void CreateAsset()
 		{
-			if (!Directory.Exists(_currentDirectory))
+			if (!Directory.Exists(CurrentDirectory))
 			{
-				Log.EngineLogger.Error($"Directory {_currentDirectory} doesn't exist.");
+				Log.EngineLogger.Error($"Directory {CurrentDirectory} doesn't exist.");
 				return;
 			}
 			
 			String currentFile = scope String();
-			Path.Combine(currentFile, _currentDirectory, StringView(&_newFileName));
+			Path.Combine(currentFile, CurrentDirectory, StringView(&_newFileName));
 
 			// Add file extension, if necessary
 			if (!currentFile.EndsWith(_newFileCreator.FileExtension))
@@ -459,7 +578,7 @@ namespace GlitchyEditor.EditWindows
 			if(tree.Children.Where(scope (node) => node->IsDirectory).Count() == 0)
 				flags |= .Leaf;
 
-			if (tree->Path == _currentDirectory)
+			if (tree->Path == CurrentDirectory)
 				flags |= .Selected;
 
 			// TODO: this kinda works, but the user should be able to close the directory
@@ -475,7 +594,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (!ImGui.IsItemToggledOpen() && ImGui.IsItemClicked(.Left))
 			{
-				_currentDirectory.Set(tree->Path);
+				_directoryHistory.Navigate(tree->Path);
 			}
 
 			if(isOpen)
@@ -493,20 +612,39 @@ namespace GlitchyEditor.EditWindows
 
 		const float2 padding = .(24, 24);
 
+		//private Rectangle _selectionRect = .(float.NaN, -1);
+		private float2 _selectionRectStart = float.NaN;
+		private float2 _selectionRectEnd = float.NaN;
+		private float4 _selectionRect;
+
 		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
 		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
 		{
 			var currentDirectoryNode;
-			if (Input.IsKeyPressed(.Alt) && Input.IsKeyPressing(.Up))
+			if (Input.IsKeyPressed(.Alt))
 			{
-				if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
+				if (Input.IsKeyPressing(.Up))
 				{
-					_currentDirectory.Set(currentDirectoryNode.Parent->Path);
+					if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
+					{
+						_directoryHistory.Navigate(currentDirectoryNode.Parent->Path);
+	
+						_selectedFiles.ClearAndDeleteItems();
+						currentDirectoryNode = currentDirectoryNode.Parent;
+					}
+				}
 
-					_selectedFiles.ClearAndDeleteItems();
-					currentDirectoryNode = currentDirectoryNode.Parent;
+				if (Input.IsKeyPressing(.Left))
+				{
+					_directoryHistory.Back();
+				}
+				if (Input .IsKeyPressing(.Right))
+				{
+					_directoryHistory.Forward();
 				}
 			}
+
+			ImGui.BeginRectangleSelection(ref _selectionRect, ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right));
 
 			List<TreeNode<AssetNode>> directoryEntries = null;
 			
@@ -661,7 +799,7 @@ namespace GlitchyEditor.EditWindows
 						{
 							EditorLayer.SetDropEffect(.Copy);
 
-							if (dropTarget->Path == _currentDirectory)
+							if (dropTarget->Path == CurrentDirectory)
 							{
 								ImGui.SetTooltip($"Copy here ({dropTarget->Name})");
 							}
@@ -711,6 +849,18 @@ namespace GlitchyEditor.EditWindows
 			SubTexture2D image = _thumbnailManager.GetThumbnail(entry.Value);
 
 			ImGui.ImageButton("FileImage", image, (.)IconSize);
+
+			if (ImGui.IsRectangleSelecting(ref _selectionRect))
+			{
+				if (ImGui.IsInRectangleSelection(ref _selectionRect))
+				{
+					SelectFile(entry->Path, false, .SingleFile, false);
+				}
+				else
+				{
+					DeselectFile(entry->Path);
+				}
+			}
 
 			ImGui.PopStyleColor();
 
@@ -816,7 +966,7 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.EndPopup();
 			}
-			
+
 			ImGui.EndChild();
 
 			ImGui.AttachTooltip(entry->Name);
@@ -1027,7 +1177,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			if (entry->IsDirectory)
 			{
-				_currentDirectory.Set(entry->Path);
+				_directoryHistory.Navigate(entry->Path);
 			}
 			else
 			{

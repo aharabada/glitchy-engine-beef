@@ -38,6 +38,95 @@ namespace ImGui
 			public static explicit operator float4(Vec4 v) => .(v.x, v.y, v.z, v.w);
 			public static explicit operator Vec4(float4 v) => .(v.X, v.Y, v.Z, v.W);
 		}
+		
+		extension Color
+		{
+			public static explicit operator ColorRGBA(Color c) => .(c.Value.x, c.Value.y, c.Value.z, c.Value.w);
+			public static explicit operator Color(ColorRGBA c) => .(c.R, c.G, c.B, c.A);
+		}
+
+		enum RectangleSelectionFlags
+		{
+			None,
+			NoRender
+		}
+
+		public static bool BeginRectangleSelection(ref float4 selectionRectangle, bool isMouseDown, RectangleSelectionFlags flags = .None)
+		{
+			/*let storage = ImGui.GetStateStorage();
+			ref float selectionRectX = ref *storage.GetFloatRef(ImGui.GetID("SelectionRect.X"), float.NaN);*/
+
+			float2 minRegion = (.)ImGui.GetCursorPos() + (.)ImGui.GetWindowPos();
+			float2 maxRegion = minRegion + (float2)ImGui.GetContentRegionAvail();
+
+			ImGui.DrawRect((.)minRegion, (.)maxRegion, ImGui.Color(0,1f,0));
+
+			bool selectionValid() => !any(isnan(selectionRectangle));
+
+			if (isMouseDown)
+			{
+				if (!selectionValid() && IsWindowHovered())
+				{
+					selectionRectangle.XY = (float2)ImGui.GetMousePos();
+				}
+
+				selectionRectangle.ZW = (.)ImGui.GetMousePos();
+			}
+			else
+			{
+				selectionRectangle.XYZW = float.NaN;
+				return false;
+			}
+
+			selectionRectangle.XY = clamp(selectionRectangle.XY, minRegion, maxRegion);
+			selectionRectangle.ZW = clamp(selectionRectangle.ZW, minRegion, maxRegion);
+
+			if (!flags.HasFlag(.NoRender) && selectionValid())
+			{
+				let drawList = ImGui.GetForegroundDrawList();
+				drawList.AddRect((.)selectionRectangle.XY, (.)selectionRectangle.ZW, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 255).Value));
+				drawList.AddRectFilled((.)selectionRectangle.XY, (.)selectionRectangle.ZW, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 50).Value));
+			}
+
+			return true;
+		}
+		
+		/// Returns true if the user is currently doing a rectangle selection
+		public static bool IsRectangleSelecting(ref float4 selectionRectangle)
+		{
+			return !any(isnan(selectionRectangle));
+		}
+
+		/// Returns true if the current item is intersecting the selection rectangle
+		public static bool IsInRectangleSelection(ref float4 selectionRectangle)
+		{
+			if (any(isnan(selectionRectangle)))
+			{
+				return false;
+			}
+
+			ImGui.DebugDrawItemRect();
+
+			float2 minRect = (.)ImGui.GetItemRectMin();
+			float2 maxRect = (.)ImGui.GetItemRectMax();
+			
+			float2 topLeft = min(minRect, maxRect);
+			float2 bottomRight = max(minRect, maxRect);
+
+			Rectangle itemRectangle = .(topLeft, 0);
+			itemRectangle.BottomRight = bottomRight;
+			
+			let drawList = ImGui.GetForegroundDrawList();
+			drawList.AddRect((.)itemRectangle.TopLeft, (.)itemRectangle.BottomRight, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 255).Value));
+
+			float2 selectionTopLeft = min(selectionRectangle.XY, selectionRectangle.ZW);
+			float2 selectionTottomRight = max(selectionRectangle.XY, selectionRectangle.ZW);
+
+			Rectangle rect = .(selectionTopLeft, 0);
+			rect.BottomRight = selectionTottomRight;
+
+			return rect.Intersects(itemRectangle);
+		}
 
 		public static Payload<T>? AcceptDragDropPayload<T>(char8* type, DragDropFlags flags = .None) where T : struct
 		{
