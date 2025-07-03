@@ -673,29 +673,22 @@ namespace GlitchyEditor.EditWindows
 					return;
 				}
 
-				directoryEntries = currentDirectoryNode.Children;
-				
-				// show back button (".."-File)
+				directoryEntries = scope:: List<TreeNode<AssetNode>>();
+				currentDirectoryNode.Children.CopyTo(directoryEntries);
+
 				if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
 				{
-					ImGui.PushID("Back");
-	
-					DrawDirectoryEntry(currentDirectoryNode.Parent, .ParentDirectory);
-					
-					// X-Coordinate of the right side of the current entry.
-					float currentButtonRight = ImGui.GetItemRectMax().x;
-					// Expected right-Coordinate if next entry was on the same line.
-					float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
-	
-					// If the next button won't fit on the same line we start a new line.
-					if (expectedButtonRight < window_visible_x2)
-					    ImGui.SameLine();
-	
-					ImGui.PopID();
+					directoryEntries.Add(currentDirectoryNode.Parent);
 				}
 			}
 
 			directoryEntries.Sort((entry1, entry2) => {
+				// Place parent directory at front
+				if (entry1 == currentDirectoryNode.Parent)
+					return -1;
+				if (entry2 == currentDirectoryNode.Parent)
+					return 1;
+
 				// Try to sort so that directories are before files.
 				int score = entry2->IsDirectory <=> entry1->IsDirectory;
 
@@ -708,23 +701,31 @@ namespace GlitchyEditor.EditWindows
 				return score;
 			});
 
+			ImGui.PushStyleVar(.ItemSpacing, float2(0, 0));
+			defer ImGui.PopStyleVar();
+
+			float buttonsPerRow = ImGui.GetContentRegionAvail().x / (DirectoryItemSize.X + ImGui.GetStyle().ItemSpacing.x);
+			int actualButtonsPerRow = (int)buttonsPerRow;
+
+			float actualSpace = (ImGui.GetContentRegionAvail().x - actualButtonsPerRow * DirectoryItemSize.X) / (actualButtonsPerRow + 1);
+
+			int column = 0;
+
 			for (var entry in directoryEntries)
 			{
 				if (!entry->Name.Contains(searchFilter, true))
 					continue;
 
-			    ImGui.PushID(entry->Name);
+			    ImGui.PushID(entry->Path);
 
-				DrawDirectoryEntry(entry, .Default);
+				DrawDirectoryEntry(entry, entry == currentDirectoryNode.Parent ? .ParentDirectory : .Default);
+				
+				column++;
 
-				// X-Coordinate of the right side of the current entry.
-				float currentButtonRight = ImGui.GetItemRectMax().x;
-				// Expected right-Coordinate if next entry was on the same line.
-				float expectedButtonRight = currentButtonRight + style.ItemSpacing.x + DirectoryItemSize.X;
-
-				// If we aren't the last entry and the next button won't fit on the same line we start a new line.
-				if ((entry != directoryEntries.Back || _showNewFile) && expectedButtonRight < window_visible_x2)
-				    ImGui.SameLine();
+				if (column < actualButtonsPerRow)
+					ImGui.SameLine((DirectoryItemSize.X + actualSpace) * column);
+				else
+					column = 0;
 
 				ImGui.PopID();
 			}
