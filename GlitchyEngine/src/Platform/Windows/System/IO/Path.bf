@@ -47,7 +47,7 @@ extension Path
 {
 	/// Opens the file browser and selects the specified file.
 	/// @param path The path of the file to select.
-	public static override Result<void> OpenFolderAndSelectItem(String path)
+	public static override Result<void> OpenFolderAndSelectItem(StringView path)
 	{
 		String fullPath = GetScopedFullPath!(path);
 
@@ -59,7 +59,7 @@ extension Path
 	
 	/// Opens the file browser in the given directory.
 	/// @param directory The directory to show in the file browser.
-	public static override Result<void> OpenFolder(String directory)
+	public static override Result<void> OpenFolder(StringView directory)
 	{
 		String fullPath = GetScopedFullPath!(directory);
 
@@ -69,7 +69,7 @@ extension Path
 		return scope SpawnedProcess().Start(processInfo);
 	}
 
-	public static override Result<void> OpenWithDialog(String filePath)
+	public static override Result<void> OpenWithDialog(StringView filePath)
 	{
 		String fullPath = GetScopedFullPath!(filePath);
 

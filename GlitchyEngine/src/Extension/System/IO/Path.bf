@@ -5,7 +5,7 @@ namespace System.IO;
 
 extension Path
 {
-	public static mixin GetScopedFullPath(String path)
+	public static mixin GetScopedFullPath(StringView path)
 	{
 		String fullPath = scope:: String(Path.MaxPath);
 		Path.GetFullPath(path, fullPath);
@@ -15,15 +15,15 @@ extension Path
 
 	/// Opens the file browser and selects the specified file.
 	/// @param path The path of the file to select.
-	public static extern Result<void> OpenFolderAndSelectItem(String path);
+	public static extern Result<void> OpenFolderAndSelectItem(StringView path);
 
 	/// Opens the file browser in the given directory.
 	/// @param directory The directory to show in the file browser.
-	public static extern Result<void> OpenFolder(String directory);
+	public static extern Result<void> OpenFolder(StringView directory);
 
 	/// Shows a dialog in which the user can select which program to open the given file with.
 	/// @param The Path of the file to open.
-	public static extern Result<void> OpenWithDialog(String filePath);
+	public static extern Result<void> OpenWithDialog(StringView filePath);
 
 	public static void Fixup(String path)
 	{
