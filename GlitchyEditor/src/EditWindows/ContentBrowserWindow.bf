@@ -619,8 +619,6 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private static float2 DirectoryItemSize = .(110, 110);
-
 		const float2 padding = .(24, 24);
 
 		//private Rectangle _selectionRect = .(float.NaN, -1);
@@ -659,10 +657,6 @@ namespace GlitchyEditor.EditWindows
 
 			List<TreeNode<AssetNode>> directoryEntries = null;
 			
-			ImGui.Style* style = ImGui.GetStyle();
-
-			float window_visible_x2 = ImGui.GetWindowPos().x + ImGui.GetWindowContentRegionMax().x;
-
 			StringView searchFilter = StringView(&_filesFilter);
 
 			if (_searchEverywhere && searchFilter.Length > 0)
@@ -712,13 +706,10 @@ namespace GlitchyEditor.EditWindows
 				return score;
 			});
 
-			ImGui.PushStyleVar(.ItemSpacing, float2(0, 0));
-			defer ImGui.PopStyleVar();
-
-			float buttonsPerRow = ImGui.GetContentRegionAvail().x / (DirectoryItemSize.X + ImGui.GetStyle().ItemSpacing.x);
+			float buttonsPerRow = ImGui.GetContentRegionAvail().x / (IconSize.X + ImGui.GetStyle().ItemSpacing.x);
 			int actualButtonsPerRow = (int)buttonsPerRow;
 
-			float actualSpace = (ImGui.GetContentRegionAvail().x - actualButtonsPerRow * DirectoryItemSize.X) / (actualButtonsPerRow + 1);
+			float actualSpace = (ImGui.GetContentRegionAvail().x - actualButtonsPerRow * IconSize.X) / (actualButtonsPerRow);
 
 			int column = 0;
 
@@ -730,11 +721,11 @@ namespace GlitchyEditor.EditWindows
 			    ImGui.PushID(entry->Path);
 
 				DrawDirectoryEntry(entry, entry == currentDirectoryNode.Parent ? .ParentDirectory : .Default);
-				
+
 				column++;
 
 				if (column < actualButtonsPerRow)
-					ImGui.SameLine((DirectoryItemSize.X + actualSpace) * column);
+					ImGui.SameLine((IconSize.X + actualSpace) * column);
 				else
 					column = 0;
 
@@ -842,9 +833,7 @@ namespace GlitchyEditor.EditWindows
 
 			defer {ImGui.PopStyleVar(3); }
 
-			float2 DirectoryItemSize = IconSize + (float2)ImGui.GetStyle().WindowPadding * 2 + float2(0, ImGui.GetFontSize());
-
-			ImGui.BeginChild("item", (.)DirectoryItemSize, .None, .NoScrollbar);
+			ImGui.BeginGroup();
 
 			if (IsFileSelected(entry->Path))
 			{
@@ -940,7 +929,9 @@ namespace GlitchyEditor.EditWindows
 			}
 			else
 			{
-				ImGui.TextUnformatted(itemType == .ParentDirectory ? ".." : entry->Name);
+				ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + IconSize.X);
+				ImGui.Text(itemType == .ParentDirectory ? ".." : entry->Name);
+				ImGui.PopTextWrapPos();
 			}
 
 			if (ImGui.BeginPopupContextWindow())
@@ -979,7 +970,7 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndPopup();
 			}
 
-			ImGui.EndChild();
+			ImGui.EndGroup();
 
 			ImGui.AttachTooltip(entry->Name);
 		}
