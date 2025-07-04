@@ -208,6 +208,7 @@ namespace GlitchyEditor.EditWindows
 			// Show History
 			if (ImGui.Begin("Debug History"))
 			{
+				ImGui.CollapsingHeader("History");
 				for (String path in _directoryHistory.[Friend]_history)
 				{
 					if (_directoryHistory.CurrentDirectoryPath === StringView(path))
@@ -217,6 +218,15 @@ namespace GlitchyEditor.EditWindows
 					}
 					ImGui.Text(path);
 				}
+
+				ImGui.CollapsingHeader("Selected Files");
+
+				for (String path in _selectedFiles)
+				{
+					ImGui.Text(path);
+				}
+
+				ImGui.CollapsingHeader("Selection Rect");
 				
 				//if (!_selectionRectStart.X.IsNaN)
 				{
@@ -334,7 +344,7 @@ namespace GlitchyEditor.EditWindows
 
 					ImGui.EndChild();
 					
-					if (ImGui.IsItemClicked(.Left | .Right))
+					if (ImGui.IsItemClicked(.Left) || ImGui.IsItemClicked(.Right))
 					{
 						_selectedFiles.ClearAndDeleteItems();
 					}
@@ -595,6 +605,7 @@ namespace GlitchyEditor.EditWindows
 			if (!ImGui.IsItemToggledOpen() && ImGui.IsItemClicked(.Left))
 			{
 				_directoryHistory.Navigate(tree->Path);
+				_selectedFiles.ClearAndDeleteItems();
 			}
 
 			if(isOpen)
@@ -1179,6 +1190,7 @@ namespace GlitchyEditor.EditWindows
 			if (entry->IsDirectory)
 			{
 				_directoryHistory.Navigate(entry->Path);
+				_selectedFiles.ClearAndDeleteItems();
 			}
 			else
 			{
