@@ -56,8 +56,8 @@ namespace ImGui
 			/*let storage = ImGui.GetStateStorage();
 			ref float selectionRectX = ref *storage.GetFloatRef(ImGui.GetID("SelectionRect.X"), float.NaN);*/
 
-			float2 minRegion = (.)ImGui.GetCursorPos() + (.)ImGui.GetWindowPos();
-			float2 maxRegion = minRegion + (float2)ImGui.GetContentRegionAvail();
+			float2 minRegion = (.)ImGui.GetWindowPos();
+			float2 maxRegion = (.)ImGui.GetCursorPos() + minRegion + (float2)ImGui.GetContentRegionAvail();
 
 			ImGui.DrawRect((.)minRegion, (.)maxRegion, ImGui.Color(0,1f,0));
 
@@ -65,7 +65,7 @@ namespace ImGui
 
 			if (isMouseDown)
 			{
-				if (!selectionValid() && IsWindowHovered())
+				if (!selectionValid() && IsWindowHovered() && !IsAnyItemHovered())
 				{
 					selectionRectangle.XY = (float2)ImGui.GetMousePos();
 				}

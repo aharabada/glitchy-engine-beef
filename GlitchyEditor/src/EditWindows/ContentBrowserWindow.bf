@@ -336,15 +336,15 @@ namespace GlitchyEditor.EditWindows
 					}
 
 					// Context menu when clicking on the background.
-					if (ImGui.BeginPopupContextWindow())
+					if (ImGui.BeginPopupContextWindow("FilePopup", .AnyPopup | .MouseButtonRight))
 					{
-					    ShowCurrentFolderContextMenu();
+					    ShowContextMenu();
 					    ImGui.EndPopup();
 					}
 
 					ImGui.EndChild();
 					
-					if (ImGui.IsItemClicked(.Left) || ImGui.IsItemClicked(.Right))
+					if (!ImGui.IsAnyItemHovered() && (ImGui.IsItemClicked(.Left) || ImGui.IsItemClicked(.Right)))
 					{
 						_selectedFiles.ClearAndDeleteItems();
 					}
@@ -431,6 +431,18 @@ namespace GlitchyEditor.EditWindows
 			ImGui.InputText("##search", &_filesFilter, _filesFilter.Count);
 			ImGui.SameLine();
 			ImGui.Checkbox("Search everywhere", &_searchEverywhere);
+		}
+
+		private void ShowContextMenu()
+		{
+			if (_selectedFiles.IsEmpty)
+			{
+				ShowCurrentFolderContextMenu();
+			}
+			else
+			{
+				ShowItemContextMenu();
+			}
 		}
 
 		/// Renders the context menu that is shown when the user right clicks on the background of the file browser.
@@ -653,8 +665,6 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 
-			ImGui.BeginRectangleSelection(ref _selectionRect, ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right));
-
 			List<TreeNode<AssetNode>> directoryEntries = null;
 			
 			StringView searchFilter = StringView(&_filesFilter);
@@ -731,6 +741,8 @@ namespace GlitchyEditor.EditWindows
 
 				ImGui.PopID();
 			}
+			
+			ImGui.BeginRectangleSelection(ref _selectionRect, ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right));
 
 			if (_showNewFile)
 			{
@@ -890,6 +902,18 @@ namespace GlitchyEditor.EditWindows
 				// TODO: WHY?
 				_assetToRename.Clear();
 			}
+			
+			if (ImGui.IsItemHovered() && ImGui.IsMouseClicked(.Right))
+			{
+				// If we right click on a selected file we want to open the context menu for all selected files
+				// If we click on an unselected file we want to select it (and potentially clear the selection)
+				if (!IsFileSelected(entry->Path))
+				{
+					SelectFile(entry->Path, !_addToSelection, _selectionMode);
+				}
+				// TODO: WHY?
+				_assetToRename.Clear();
+			}
 
 			if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
 			{
@@ -934,11 +958,11 @@ namespace GlitchyEditor.EditWindows
 				ImGui.PopTextWrapPos();
 			}
 
-			if (ImGui.BeginPopupContextWindow())
+			/*if (ImGui.BeginPopupContextWindow())
 			{
 			    ShowItemContextMenu(entry, itemType, ref _wantsDelete);
 			    ImGui.EndPopup();
-			}
+			}*/
 
 			// TODO: Sub assets are probably borked now... I don't know if they ever worked, didn't test them
 			if (entry->SubAssets?.Count > 0)
@@ -1094,53 +1118,81 @@ namespace GlitchyEditor.EditWindows
 		}
 
 		/// Shows the context menu for the given file/folder.
-		private void ShowItemContextMenu(TreeNode<AssetNode> fileOrFolder, DirectoryItemType itemType, ref bool wantsDelete)
+		private void ShowItemContextMenu() //(TreeNode<AssetNode> fileOrFolder, DirectoryItemType itemType, ref bool wantsDelete)
 		{
-			bool isFile = !fileOrFolder->IsDirectory;
+			bool singleEntry = _selectedFiles.Count == 1;
 
-		    if (ImGui.MenuItem("Show in file browser..."))
+			bool isFile = false;
+
+			List<TreeNode<AssetNode>> entries = new:ScopedAlloc! .(_selectedFiles.Count);
+
+			_selectedFiles.Select(scope (e) => {
+				return _manager.AssetHierarchy.GetNodeFromPath(e);
+			}).Where(scope (e) => e case .Ok).Select(scope (e) => e.Get()).ToList(entries);
+
+			bool sameParent = entries.Select(scope (e) => e.Parent).Distinct().Count() == 1;
+
+			TreeNode<AssetNode> firstEntry = entries.First();
+			TreeNode<AssetNode> parent = sameParent ? entries.First().Parent : null;
+
+			if (singleEntry)
+			{
+				isFile = !firstEntry->IsDirectory;
+			}
+
+		    if ((singleEntry || sameParent) && ImGui.MenuItem("Show in file browser..."))
 		    {
-				if (Path.OpenFolderAndSelectItem(fileOrFolder->Path) case .Err)
+				if (singleEntry)
 				{
-					Log.EngineLogger.Error("Failed to show path in file browser.");
+					if (Path.OpenFolderAndSelectItem(firstEntry->Path) case .Err)
+					{
+						Log.EngineLogger.Error("Failed to show path in file browser.");
+					}
+				}
+				else
+				{
+					if (Path.OpenFolder(parent->Path) case .Err)
+					{
+						Log.EngineLogger.Error("Failed to show path in file browser.");
+					}
 				}
 		    }
 
 			if (isFile && ImGui.MenuItem("Open file with..."))
 			{
-				if (Path.OpenWithDialog(fileOrFolder->Path) case .Err)
+				if (Path.OpenWithDialog(firstEntry->Path) case .Err)
 				{
 					Log.EngineLogger.Error("Failed to show \"Open with...\" dialog.");
 				}
 			}
 			
-			if (ImGui.BeginMenu("Copy path"))
+			if (singleEntry && ImGui.BeginMenu("Copy path"))
 			{
 				if (ImGui.MenuItem("Full path"))
 				{
-					ImGui.SetClipboardText(fileOrFolder->Path);
+					ImGui.SetClipboardText(firstEntry->Path);
 				}
 				
-				ImGui.AttachTooltip(scope $"Copies the full file path of this asset.\n(\"{fileOrFolder->Path}\")");
+				ImGui.AttachTooltip(scope $"Copies the full file path of this asset.\n(\"{firstEntry->Path}\")");
 
 				if (ImGui.MenuItem("File name"))
 				{
-					ImGui.SetClipboardText(fileOrFolder->Name);
+					ImGui.SetClipboardText(firstEntry->Name);
 				}
 
-				ImGui.AttachTooltip(scope $"Copies the file name of this asset.\n(\"{fileOrFolder->Name}\")");
+				ImGui.AttachTooltip(scope $"Copies the file name of this asset.\n(\"{firstEntry->Name}\")");
 
 				if (ImGui.MenuItem("Asset identifier"))
 				{
-					ImGui.SetClipboardText(fileOrFolder->Identifier.FullIdentifier.Ptr);
+					ImGui.SetClipboardText(firstEntry->Identifier.FullIdentifier.Ptr);
 				}
 
-				ImGui.AttachTooltip(scope $"Copies the identifier of this asset.\n(\"{fileOrFolder->Identifier.FullIdentifier}\")");
+				ImGui.AttachTooltip(scope $"Copies the identifier of this asset.\n(\"{firstEntry->Identifier.FullIdentifier}\")");
 				
 				ImGui.EndMenu();
 			}
 
-			if (itemType != .ParentDirectory)
+			/*if (singleEntry && itemType != .ParentDirectory)
 			{
 				ImGui.Separator();
 
@@ -1157,12 +1209,12 @@ namespace GlitchyEditor.EditWindows
 					wantsDelete = true;
 				}
 			}
-
+*/
 			ImGui.Separator();
 			
-			if (ImGui.MenuItem("Properties..."))
+			if (singleEntry && ImGui.MenuItem("Properties..."))
 			{
-				OpenPropertiesWindow(fileOrFolder);
+				OpenPropertiesWindow(firstEntry);
 			}
 		}
 
