@@ -629,5 +629,113 @@ namespace ImGui
 
 			SameLine(0, style.FramePadding.x * 2.0f);
 		}
+
+		[AllowDuplicates, CRepr]
+		public enum TypedStyleVar
+		{
+			case Alpha(float Value);
+		    case DisabledAlpha(float Value);
+		    case WindowPadding(float2 Value);
+		    case WindowRounding(float Value);
+		    case WindowBorderSize(float Value);
+		    case WindowMinSize(float2 Value);
+		    case WindowTitleAlign(float2 Value);
+		    case ChildRounding(float Value);
+		    case ChildBorderSize(float Value);
+		    case PopupRounding(float Value);
+		    case PopupBorderSize (float Value);
+		    case FramePadding (float2 Value);
+		    case FrameRounding (float Value);
+		    case FrameBorderSize (float Value);
+		    case ItemSpacing (float2 Value);
+		    case ItemInnerSpacing (float2 Value);
+		    case IndentSpacing (float Value);
+		    case CellPadding (float2 Value);
+		    case ScrollbarSize (float Value);
+		    case ScrollbarRounding (float Value);
+		    case GrabMinSize (float Value);
+		    case GrabRounding (float Value);
+		    case TabRounding (float Value);
+		    case TabBarBorderSize (float Value);
+		    case ButtonTextAlign (float2 Value);
+		    case SelectableTextAlign (float2 Value);
+		    case SeparatorTextBorderSize (float Value);
+		    case SeparatorTextAlign (float2 Value);
+		    case SeparatorTextPadding (float2 Value);
+		    case DockingSeparatorSize (float Value);
+		}
+
+		public static mixin PushScopedStyleVar(TypedStyleVar value)
+		{
+			PushStyleVar(value);
+			defer:mixin PopStyleVar();
+		}	
+
+		public static void PushStyleVar(TypedStyleVar value)
+		{
+			switch (value)
+			{
+			case .Alpha(let Value):
+				PushStyleVar(.Alpha, Value);
+			case .DisabledAlpha(let Value):
+				PushStyleVar(.DisabledAlpha, Value);
+			case .WindowPadding(let Value):
+				PushStyleVar(.WindowPadding, Value);
+			case .WindowRounding(let Value):
+				PushStyleVar(.WindowRounding, Value);
+			case .WindowBorderSize(let Value):
+				PushStyleVar(.WindowBorderSize, Value);
+			case .WindowMinSize(let Value):
+				PushStyleVar(.WindowMinSize, Value);
+			case .WindowTitleAlign(let Value):
+				PushStyleVar(.WindowTitleAlign, Value);
+			case .ChildRounding(let Value):
+				PushStyleVar(.ChildRounding, Value);
+			case .ChildBorderSize(let Value):
+				PushStyleVar(.ChildBorderSize, Value);
+			case .PopupRounding(let Value):
+				PushStyleVar(.PopupRounding, Value);
+			case .PopupBorderSize(let Value):
+				PushStyleVar(.PopupBorderSize, Value);
+			case .FramePadding(let Value):
+				PushStyleVar(.FramePadding, Value);
+			case .FrameRounding(let Value):
+				PushStyleVar(.FrameRounding, Value);
+			case .FrameBorderSize(let Value):
+				PushStyleVar(.FrameBorderSize, Value);
+			case .ItemSpacing(let Value):
+				PushStyleVar(.ItemSpacing, Value);
+			case .ItemInnerSpacing(let Value):
+				PushStyleVar(.ItemInnerSpacing, Value);
+			case .IndentSpacing(let Value):
+				PushStyleVar(.IndentSpacing, Value);
+			case .CellPadding(let Value):
+				PushStyleVar(.CellPadding, Value);
+			case .ScrollbarSize(let Value):
+				PushStyleVar(.ScrollbarSize, Value);
+			case .ScrollbarRounding(let Value):
+				PushStyleVar(.ScrollbarRounding, Value);
+			case .GrabMinSize(let Value):
+				PushStyleVar(.GrabMinSize, Value);
+			case .GrabRounding(let Value):
+				PushStyleVar(.GrabRounding, Value);
+			case .TabRounding(let Value):
+				PushStyleVar(.TabRounding, Value);
+			case .TabBarBorderSize(let Value):
+				PushStyleVar(.TabBarBorderSize, Value);
+			case .ButtonTextAlign(let Value):
+				PushStyleVar(.ButtonTextAlign, Value);
+			case .SelectableTextAlign(let Value):
+				PushStyleVar(.SelectableTextAlign, Value);
+			case .SeparatorTextBorderSize(let Value):
+				PushStyleVar(.SeparatorTextBorderSize, Value);
+			case .SeparatorTextAlign(let Value):
+				PushStyleVar(.SeparatorTextAlign, Value);
+			case .SeparatorTextPadding(let Value):
+				PushStyleVar(.SeparatorTextPadding, Value);
+			case .DockingSeparatorSize(let Value):
+				PushStyleVar(.DockingSeparatorSize, Value);
+			}
+		}
 	}
 }
