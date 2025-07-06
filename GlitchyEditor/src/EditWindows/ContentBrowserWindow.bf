@@ -63,24 +63,61 @@ namespace GlitchyEditor.EditWindows
 		{
 			AssetHierarchy _hierarchy;
 
+			private append List<String> _history = .() ~ ClearAndDeleteItems!(_);
+			private int _currentIndex = -1;
+
+			private int _nextIndex = -1;
+			private String _pathToInsert = null;
+			private bool replace = false;
+			private bool trim = false;
+
 			public AssetHierarchy AssetHierarchy
 			{
 				get => _hierarchy;
 				set => _hierarchy = value;
 			}
 
-			private append List<String> _history = .() ~ ClearAndDeleteItems!(_);
-			private int _currentIndex = -1;
+			public int CurrentIndex => _currentIndex;
+			public int HistoryLength => _history.Count;
+
+			public Span<String> History => _history;
 
 			public StringView CurrentDirectoryPath => _currentIndex >= 0 ? _history[_currentIndex] : "";
 
 			public bool CanGoBack => _currentIndex > 0;
 			public bool CanGoForward => (_currentIndex + 1) < _history.Count;
 
+			public void Update()
+			{
+				// We always defer the actual navigation to the next frame, so that the UI-rendering and updates are more robust and don't flicker for one frame
+				_currentIndex = _nextIndex;
+				if (_pathToInsert != null)
+				{
+					if (replace)
+					{
+						_history[_currentIndex].Set(_pathToInsert);
+						delete _pathToInsert;
+					}
+					else
+					{
+						_history.Insert(_currentIndex, _pathToInsert);
+					}
+
+					if (trim)
+					{
+						TrimHistory();
+					}
+
+					_pathToInsert = null;
+					replace = false;
+					trim = false;
+				}
+			}
+
 			public void Navigate(StringView nextPath)
 			{
-				_currentIndex++;
-				_history.Insert(_currentIndex, new String(nextPath));
+				_nextIndex++;
+				_pathToInsert = new String(nextPath);
 
 				TrimHistory();
 			}
@@ -95,24 +132,24 @@ namespace GlitchyEditor.EditWindows
 
 			public void Replace(StringView nextPath)
 			{
+				_pathToInsert = new String(nextPath);
 				if (_currentIndex == -1)
 				{
-					_currentIndex = 0;
-					_history.AddFront(new String(nextPath));
+					_nextIndex = 0;
 				}
 				else
 				{
-					_history[_currentIndex].Set(nextPath);
+					replace = true;
 				}
 
-				TrimHistory();
+				trim = true;
 			}
 
 			public bool Back()
 			{
 				if (CanGoBack)
 				{
-					_currentIndex--;
+					_nextIndex--;
 					return true;
 				}
 				return false;
@@ -122,11 +159,24 @@ namespace GlitchyEditor.EditWindows
 			{
 				if (CanGoForward)
 				{
-					_currentIndex++;
+					_nextIndex++;
 					return true;
 				}
 
 				return false;
+			}
+
+			public bool NavigateToIndex(int index)
+			{
+				if (index < 0)
+					return false;
+
+				if (index >= _history.Count)
+					return false;
+
+				_nextIndex = index;
+
+				return true;
 			}
 		}
 
@@ -233,8 +283,19 @@ namespace GlitchyEditor.EditWindows
 
 		private void Navigate(TreeNode<AssetNode> node)
 		{
+			if (node == _currentDirectoryNode)
+				return;
+
 			_directoryHistory.Navigate(node->Path);
 			_selectedFiles.ClearAndDeleteItems();
+		}
+
+		private void NavigateToIndex(int index)
+		{
+			if (_directoryHistory.NavigateToIndex(index))
+			{
+				_selectedFiles.ClearAndDeleteItems();
+			}
 		}
 		
 		private bool CanNavigateUp => _currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode;
@@ -272,13 +333,6 @@ namespace GlitchyEditor.EditWindows
 					ImGui.Text(path);
 				}
 
-				ImGui.CollapsingHeader("Selection Rect");
-				
-				//if (!_selectionRectStart.X.IsNaN)
-				{
-					ImGui.TextUnformatted(_rectangleSelection.ToString(.. scope .()));
-				}
-
 				ImGui.End();
 			}
 			
@@ -287,10 +341,9 @@ namespace GlitchyEditor.EditWindows
 			{
 				_directoryHistory.Replace(_manager.AssetDirectory);
 			}
+
+			_directoryHistory.Update();
 			
-			/*let originalWindowPadding = ImGui.GetStyle().WindowPadding;
-			ImGui.PushStyleVar(.WindowPadding, float2(0,0));
-			defer ImGui.PopStyleVar();*/
 
 			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
 			{
@@ -298,8 +351,6 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 			
-			//ImGui.SetCursorPosY(ImGui.GetCursorPosY() + originalWindowPadding.y);
-
 			DrawNavigationBar();
 
 			// Update selection modifies
@@ -1276,16 +1327,63 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		private TreeNode<AssetNode> _directoryToShowChildren;
-
 		void DrawNavigationBar()
 		{
+			String buttonText = scope .(128);
+			
+			void ShowHistoryContext(bool forward)
+			{
+				if (ImGui.BeginPopupContextItem())
+				{
+					int startIndex = -1;
+					int endIndex = -1;
+
+					if (forward)
+					{
+						startIndex = _directoryHistory.CurrentIndex + 1;
+						endIndex = _directoryHistory.HistoryLength;
+					}
+					else
+					{
+						startIndex = 0;
+						endIndex = _directoryHistory.CurrentIndex;
+					}	
+
+					for (int i = endIndex - 1; i >= startIndex; i--)
+					{
+						String path = _directoryHistory.History[i];
+						Result<TreeNode<AssetNode>> node = _manager.AssetHierarchy.GetNodeFromPath(path);
+
+						if (node case .Err)
+							continue;
+
+						buttonText.SetF($"{node.Get()->Name}##{i}");
+
+						if (ImGui.MenuItem(buttonText))
+						{
+							NavigateToIndex(i);
+
+							ImGui.CloseCurrentPopup();
+						}
+					}
+
+					ImGui.EndPopup();
+				}
+			}
+
 			ImGui.BeginDisabled(!_directoryHistory.CanGoBack);
 
 			if (ImGui.Button("<"))
 			{
 				NavigateBack();
 			}
+
+			if (ImGui.IsItemClicked(.Right))
+			{
+				ImGui.OpenPopup("History");
+			}
+
+			ShowHistoryContext(forward: false);
 
 			ImGui.AttachTooltip("Back (Alt + Left)");
 
@@ -1300,9 +1398,17 @@ namespace GlitchyEditor.EditWindows
 				NavigateForward();
 			}
 
+			if (ImGui.IsItemClicked(.Right))
+			{
+				ImGui.OpenPopup("History");
+			}
+			
+			ShowHistoryContext(forward: true);
+
 			ImGui.AttachTooltip("Forward (Alt + Right)");
 
 			ImGui.EndDisabled();
+			
 
 			ImGui.SameLine();
 
@@ -1333,8 +1439,6 @@ namespace GlitchyEditor.EditWindows
 			spacing.X = 0;
 			ImGui.PushScopedStyleVar!(ImGui.TypedStyleVar.ItemSpacing(spacing));
 			ImGui.PushScopedStyleVar!(ImGui.TypedStyleVar.FrameRounding(0));
-
-			String buttonText = scope .(128);
 
 			void DirectorySelectionContextMenu(TreeNode<AssetNode> parent, ImGui.PopupFlags flags = .MouseButtonRight)
 			{
