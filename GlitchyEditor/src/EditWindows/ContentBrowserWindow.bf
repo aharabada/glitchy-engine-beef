@@ -276,7 +276,7 @@ namespace GlitchyEditor.EditWindows
 				
 				//if (!_selectionRectStart.X.IsNaN)
 				{
-					ImGui.TextUnformatted(_selectionRect.ToString(.. scope .()));
+					ImGui.TextUnformatted(_rectangleSelection.ToString(.. scope .()));
 				}
 
 				ImGui.End();
@@ -681,10 +681,7 @@ namespace GlitchyEditor.EditWindows
 
 		const float2 padding = .(24, 24);
 
-		//private Rectangle _selectionRect = .(float.NaN, -1);
-		private float2 _selectionRectStart = float.NaN;
-		private float2 _selectionRectEnd = float.NaN;
-		private float4 _selectionRect;
+		private ImGui.RectangleSelectionData _rectangleSelection;
 
 		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
 		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
@@ -692,7 +689,6 @@ namespace GlitchyEditor.EditWindows
 			if (ImGui.IsWindowHovered())
 			{
 				// TODO: Come up with a good hotkey system...
-				var currentDirectoryNode;
 				if (Input.IsKeyPressed(.Alt))
 				{
 					if (Input.IsKeyPressing(.Up))
@@ -722,16 +718,15 @@ namespace GlitchyEditor.EditWindows
 				}
 			}
 
-			List<TreeNode<AssetNode>> directoryEntries = null;
+			List<TreeNode<AssetNode>> directoryEntries = scope List<TreeNode<AssetNode>>();
 			
 			StringView searchFilter = StringView(&_filesFilter);
 
 			if (_searchEverywhere && searchFilter.Length > 0)
 			{
-				directoryEntries = scope:: List<TreeNode<AssetNode>>();
 				_manager.AssetHierarchy.[Friend]_assetRootNode.ForEach(scope (node) =>
 				{
-					if (node->Name.Contains(searchFilter, true))
+					if (node->Name.Contains(searchFilter, ignoreCase: true))
 					{
 						directoryEntries.Add(node);
 					}
@@ -745,18 +740,17 @@ namespace GlitchyEditor.EditWindows
 					return;
 				}
 
-				directoryEntries = scope:: List<TreeNode<AssetNode>>();
-				currentDirectoryNode.Children.CopyTo(directoryEntries);
+				currentDirectoryNode.Children.Where((entry) => entry->Name.Contains(searchFilter, true)).ToList(directoryEntries);
 			}
 
 			directoryEntries.Sort((entry1, entry2) => {
-				// Try to sort so that directories are before files.
+				// Sort so that directories are before files.
 				int score = entry2->IsDirectory <=> entry1->IsDirectory;
 
 				if (score == 0)
 				{
 					// If both are either directories or files sort alphabetically.
-					score = StringView.Compare(entry1->Name, entry2->Name, true);
+					score = StringView.Compare(entry1->Name, entry2->Name, ignoreCase: true);
 				}
 
 				return score;
@@ -771,9 +765,6 @@ namespace GlitchyEditor.EditWindows
 
 			for (var entry in directoryEntries)
 			{
-				if (!entry->Name.Contains(searchFilter, true))
-					continue;
-
 			    ImGui.PushID(entry->Path);
 
 				DrawDirectoryEntry(entry);
@@ -788,7 +779,7 @@ namespace GlitchyEditor.EditWindows
 				ImGui.PopID();
 			}
 			
-			ImGui.BeginRectangleSelection(ref _selectionRect, ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right));
+			ImGui.BeginRectangleSelection(ref _rectangleSelection, ImGui.IsMouseDown(.Left) || ImGui.IsMouseDown(.Right));
 
 			if (_showNewFile)
 			{
@@ -903,9 +894,9 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.ImageButton("FileImage", image, (.)IconSize);
 
-			if (ImGui.IsRectangleSelecting(ref _selectionRect))
+			if (ImGui.IsRectangleSelecting(ref _rectangleSelection))
 			{
-				if (ImGui.IsInRectangleSelection(ref _selectionRect))
+				if (ImGui.IsInRectangleSelection(ref _rectangleSelection))
 				{
 					SelectFile(entry->Path, false, .SingleFile, false);
 				}
@@ -1166,11 +1157,11 @@ namespace GlitchyEditor.EditWindows
 
 			List<TreeNode<AssetNode>> entries = new:ScopedAlloc! .(_selectedFiles.Count);
 
-			_selectedFiles.Select(scope (e) => {
+			_selectedFiles.Select((e) => {
 				return _manager.AssetHierarchy.GetNodeFromPath(e);
-			}).Where(scope (e) => e case .Ok).Select(scope (e) => e.Get()).ToList(entries);
+			}).Where((e) => e case .Ok).Select((e) => e.Get()).ToList(entries);
 
-			bool sameParent = entries.Select(scope (e) => e.Parent).Distinct().Count() == 1;
+			bool sameParent = entries.Select((e) => e.Parent).Distinct().Count() == 1;
 
 			TreeNode<AssetNode> firstEntry = entries.First();
 			TreeNode<AssetNode> parent = sameParent ? entries.First().Parent : null;

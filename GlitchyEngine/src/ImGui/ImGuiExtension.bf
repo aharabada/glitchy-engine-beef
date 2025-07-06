@@ -51,61 +51,70 @@ namespace ImGui
 			NoRender
 		}
 
-		public static bool BeginRectangleSelection(ref float4 selectionRectangle, bool isMouseDown, RectangleSelectionFlags flags = .None)
+		public struct RectangleSelectionData
 		{
-			/*let storage = ImGui.GetStateStorage();
-			ref float selectionRectX = ref *storage.GetFloatRef(ImGui.GetID("SelectionRect.X"), float.NaN);*/
+			public float4 SelectionRectangle;
+			public float2 StartPosition;
+			public bool IsSelecting;
+		}
 
+
+		public static bool BeginRectangleSelection(ref RectangleSelectionData selectionData, bool isMouseDown, RectangleSelectionFlags flags = .None)
+		{
 			float2 minRegion = (.)ImGui.GetWindowPos();
 			float2 maxRegion = (.)ImGui.GetCursorPos() + minRegion + (float2)ImGui.GetContentRegionAvail();
 
-			ImGui.DrawRect((.)minRegion, (.)maxRegion, ImGui.Color(0,1f,0));
-
-			bool selectionValid() => !any(isnan(selectionRectangle));
+			// ImGui.DrawRect((.)minRegion, (.)maxRegion, ImGui.Color(0,1f,0));
 
 			if (isMouseDown)
 			{
-				if (!selectionValid() && IsWindowHovered() && !IsAnyItemHovered())
+				if (!selectionData.IsSelecting && IsWindowHovered() && !IsAnyItemHovered())
 				{
-					selectionRectangle.XY = (float2)ImGui.GetMousePos();
+					selectionData.StartPosition = (float2)ImGui.GetMousePos() - (float2)ImGui.GetCursorScreenPos();
+					selectionData.IsSelecting = true;
 				}
 
-				selectionRectangle.ZW = (.)ImGui.GetMousePos();
+				selectionData.SelectionRectangle.ZW = (float2)ImGui.GetMousePos();
 			}
 			else
 			{
-				selectionRectangle.XYZW = float.NaN;
+				selectionData.IsSelecting = false;
 				return false;
 			}
+			
+			selectionData.SelectionRectangle.XY = (float2)selectionData.StartPosition + (float2)ImGui.GetCursorScreenPos();
 
-			selectionRectangle.XY = clamp(selectionRectangle.XY, minRegion, maxRegion);
-			selectionRectangle.ZW = clamp(selectionRectangle.ZW, minRegion, maxRegion);
+			selectionData.SelectionRectangle.ZW = clamp(selectionData.SelectionRectangle.ZW, minRegion, maxRegion);
 
-			if (!flags.HasFlag(.NoRender) && selectionValid())
+
+			if (!flags.HasFlag(.NoRender) && selectionData.IsSelecting)
 			{
 				let drawList = ImGui.GetForegroundDrawList();
-				drawList.AddRect((.)selectionRectangle.XY, (.)selectionRectangle.ZW, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 255).Value));
-				drawList.AddRectFilled((.)selectionRectangle.XY, (.)selectionRectangle.ZW, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 50).Value));
+
+				float2 clampedStartPoint =  clamp(selectionData.SelectionRectangle.XY, minRegion, maxRegion);
+
+				drawList.AddRect((.)clampedStartPoint.XY, (.)selectionData.SelectionRectangle.ZW, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 255).Value));
+				drawList.AddRectFilled((.)clampedStartPoint.XY, (.)selectionData.SelectionRectangle.ZW, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 50).Value));
 			}
 
 			return true;
 		}
 		
 		/// Returns true if the user is currently doing a rectangle selection
-		public static bool IsRectangleSelecting(ref float4 selectionRectangle)
+		public static bool IsRectangleSelecting(ref RectangleSelectionData selectionData)
 		{
-			return !any(isnan(selectionRectangle));
+			return selectionData.IsSelecting;
 		}
 
 		/// Returns true if the current item is intersecting the selection rectangle
-		public static bool IsInRectangleSelection(ref float4 selectionRectangle)
+		public static bool IsInRectangleSelection(ref RectangleSelectionData selectionData)
 		{
-			if (any(isnan(selectionRectangle)))
+			if (!selectionData.IsSelecting)
 			{
 				return false;
 			}
 
-			ImGui.DebugDrawItemRect();
+			// ImGui.DebugDrawItemRect();
 
 			float2 minRect = (.)ImGui.GetItemRectMin();
 			float2 maxRect = (.)ImGui.GetItemRectMax();
@@ -116,11 +125,8 @@ namespace ImGui
 			Rectangle itemRectangle = .(topLeft, 0);
 			itemRectangle.BottomRight = bottomRight;
 			
-			let drawList = ImGui.GetForegroundDrawList();
-			drawList.AddRect((.)itemRectangle.TopLeft, (.)itemRectangle.BottomRight, ImGui.GetColorU32(ImGui.Color(0, 130, 216, 255).Value));
-
-			float2 selectionTopLeft = min(selectionRectangle.XY, selectionRectangle.ZW);
-			float2 selectionTottomRight = max(selectionRectangle.XY, selectionRectangle.ZW);
+			float2 selectionTopLeft = min(selectionData.SelectionRectangle.XY, selectionData.SelectionRectangle.ZW);
+			float2 selectionTottomRight = max(selectionData.SelectionRectangle.XY, selectionData.SelectionRectangle.ZW);
 
 			Rectangle rect = .(selectionTopLeft, 0);
 			rect.BottomRight = selectionTottomRight;
