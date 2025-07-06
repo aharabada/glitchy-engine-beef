@@ -74,6 +74,9 @@ namespace GlitchyEditor.EditWindows
 
 			public StringView CurrentDirectoryPath => _currentIndex >= 0 ? _history[_currentIndex] : "";
 
+			public bool CanGoBack => _currentIndex > 0;
+			public bool CanGoForward => (_currentIndex + 1) < _history.Count;
+
 			public void Navigate(StringView nextPath)
 			{
 				_currentIndex++;
@@ -107,7 +110,7 @@ namespace GlitchyEditor.EditWindows
 
 			public bool Back()
 			{
-				if (_currentIndex > 0)
+				if (CanGoBack)
 				{
 					_currentIndex--;
 					return true;
@@ -117,7 +120,7 @@ namespace GlitchyEditor.EditWindows
 
 			public bool Forward()
 			{
-				if ((_currentIndex + 1) < _history.Count)
+				if (CanGoForward)
 				{
 					_currentIndex++;
 					return true;
@@ -130,6 +133,17 @@ namespace GlitchyEditor.EditWindows
 		private append History _directoryHistory = .();
 
 		public StringView CurrentDirectory => _directoryHistory.CurrentDirectoryPath;
+		
+		TreeNode<AssetNode> _currentDirectoryNode => {
+			Result<TreeNode<AssetNode>> currentDirectoryNode = _manager.AssetHierarchy.GetNodeFromPath(_directoryHistory.CurrentDirectoryPath);
+
+			if (currentDirectoryNode case .Ok(TreeNode<AssetNode> currentDirectory))
+			{
+				return currentDirectory;
+			}
+
+			null
+		};
 
 		private append List<String> _selectedFiles = .() ~ ClearAndDeleteItems!(_);
 
@@ -201,6 +215,38 @@ namespace GlitchyEditor.EditWindows
 		
 		bool _wantsDelete = false;
 
+		private void NavigateForward()
+		{
+			if (_directoryHistory.Forward())
+			{
+				_selectedFiles.ClearAndDeleteItems();
+			}
+		}
+
+		private void NavigateBack()
+		{
+			if (_directoryHistory.Back())
+			{
+				_selectedFiles.ClearAndDeleteItems();
+			}
+		}
+
+		private void Navigate(TreeNode<AssetNode> node)
+		{
+			_directoryHistory.Navigate(node->Path);
+			_selectedFiles.ClearAndDeleteItems();
+		}
+		
+		private bool CanNavigateUp => _currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode;
+
+		private void NavigateUp()
+		{
+			if (CanNavigateUp)
+			{
+				Navigate(_currentDirectoryNode.Parent);
+			}
+		}
+
 		protected override void InternalShow()
 		{
 			_manager.Update();
@@ -242,9 +288,9 @@ namespace GlitchyEditor.EditWindows
 				_directoryHistory.Replace(_manager.AssetDirectory);
 			}
 			
-			let originalWindowPadding = ImGui.GetStyle().WindowPadding;
+			/*let originalWindowPadding = ImGui.GetStyle().WindowPadding;
 			ImGui.PushStyleVar(.WindowPadding, float2(0,0));
-			defer ImGui.PopStyleVar();
+			defer ImGui.PopStyleVar();*/
 
 			if(!ImGui.Begin(s_WindowTitle, &_open, .None))
 			{
@@ -252,7 +298,9 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 			
-			ImGui.SetCursorPosY(ImGui.GetCursorPosY() + originalWindowPadding.y);
+			//ImGui.SetCursorPosY(ImGui.GetCursorPosY() + originalWindowPadding.y);
+
+			DrawNavigationBar();
 
 			// Update selection modifies
 			{
@@ -657,11 +705,11 @@ namespace GlitchyEditor.EditWindows
 
 				if (Input.IsKeyPressing(.Left))
 				{
-					_directoryHistory.Back();
+					NavigateBack();
 				}
 				if (Input .IsKeyPressing(.Right))
 				{
-					_directoryHistory.Forward();
+					NavigateForward();
 				}
 			}
 
@@ -1246,6 +1294,79 @@ namespace GlitchyEditor.EditWindows
 				else if (Path.OpenFolder(entry->Path) case .Err)
 					Log.EngineLogger.Error("Failed to open file.");
 			}
+		}
+
+		void DrawNavigationBar()
+		{
+			ImGui.BeginDisabled(!_directoryHistory.CanGoBack);
+
+			if (ImGui.Button("<"))
+			{
+				NavigateBack();
+			}
+
+			ImGui.AttachTooltip("Back (Alt + Left)");
+
+			ImGui.EndDisabled();
+
+			ImGui.SameLine();
+
+			ImGui.BeginDisabled(!_directoryHistory.CanGoForward);
+
+			if (ImGui.Button(">"))
+			{
+				NavigateForward();
+			}
+
+			ImGui.AttachTooltip("Forward (Alt + Right)");
+
+			ImGui.EndDisabled();
+
+			ImGui.SameLine();
+
+			ImGui.BeginDisabled(!CanNavigateUp);
+
+			if (ImGui.Button("/\\"))
+			{
+				NavigateUp();
+			}
+
+			ImGui.AttachTooltip("Up (Alt + Up)");
+
+			ImGui.EndDisabled();
+
+			List<TreeNode<AssetNode>> path = scope .();
+
+			TreeNode<AssetNode> walker = _currentDirectoryNode;
+
+			repeat
+			{
+				path.AddFront(walker);
+				walker = walker.Parent;
+			} while (walker != _manager.AssetHierarchy.RootNode);
+
+			ImGui.SameLine();
+
+			float2 spacing = (.)ImGui.GetStyle().ItemSpacing;
+			spacing.X = 0;
+			ImGui.PushScopedStyleVar!(ImGui.TypedStyleVar.ItemSpacing(spacing));
+			ImGui.PushScopedStyleVar!(ImGui.TypedStyleVar.FrameRounding(0));
+
+			for (TreeNode<AssetNode> node in path)
+			{
+				if (ImGui.Button(node->Name) && node != _currentDirectoryNode)
+				{
+					Navigate(node);
+				}
+
+				ImGui.SameLine();
+
+				ImGui.Text("/");
+
+				ImGui.SameLine();
+			}
+
+			ImGui.NewLine();
 		}
 	}
 }
