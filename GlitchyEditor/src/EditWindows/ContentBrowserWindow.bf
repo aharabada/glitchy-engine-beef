@@ -689,28 +689,33 @@ namespace GlitchyEditor.EditWindows
 		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
 		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
 		{
+			// TODO: Yes we really have to come up with a good system for hotkeys...
 			var currentDirectoryNode;
 			if (Input.IsKeyPressed(.Alt))
 			{
 				if (Input.IsKeyPressing(.Up))
 				{
-					if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
-					{
-						_directoryHistory.Navigate(currentDirectoryNode.Parent->Path);
-	
-						_selectedFiles.ClearAndDeleteItems();
-						currentDirectoryNode = currentDirectoryNode.Parent;
-					}
+					NavigateUp();
 				}
 
 				if (Input.IsKeyPressing(.Left))
 				{
 					NavigateBack();
 				}
+
 				if (Input .IsKeyPressing(.Right))
 				{
 					NavigateForward();
 				}
+			}
+
+			if (Input.IsMouseButtonPressing(.XButton1))
+			{
+				NavigateForward();
+			}
+			if (Input.IsMouseButtonPressing(.XButton2))
+			{
+				NavigateBack();
 			}
 
 			List<TreeNode<AssetNode>> directoryEntries = null;
@@ -738,20 +743,9 @@ namespace GlitchyEditor.EditWindows
 
 				directoryEntries = scope:: List<TreeNode<AssetNode>>();
 				currentDirectoryNode.Children.CopyTo(directoryEntries);
-
-				if (currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode)
-				{
-					directoryEntries.Add(currentDirectoryNode.Parent);
-				}
 			}
 
 			directoryEntries.Sort((entry1, entry2) => {
-				// Place parent directory at front
-				if (entry1 == currentDirectoryNode.Parent)
-					return -1;
-				if (entry2 == currentDirectoryNode.Parent)
-					return 1;
-
 				// Try to sort so that directories are before files.
 				int score = entry2->IsDirectory <=> entry1->IsDirectory;
 
@@ -778,7 +772,7 @@ namespace GlitchyEditor.EditWindows
 
 			    ImGui.PushID(entry->Path);
 
-				DrawDirectoryEntry(entry, entry == currentDirectoryNode.Parent ? .ParentDirectory : .Default);
+				DrawDirectoryEntry(entry);
 
 				column++;
 
@@ -878,14 +872,8 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		enum DirectoryItemType
-		{
-			Default,
-			ParentDirectory
-		}
-
 		/// Renders the button for the given directory entry.
-		private void DrawDirectoryEntry(TreeNode<AssetNode> entry, DirectoryItemType itemType)
+		private void DrawDirectoryEntry(TreeNode<AssetNode> entry)
 		{
 			ImGui.PushStyleVar(.WindowPadding, .(0, 0));
 			ImGui.PushStyleVar(.FramePadding, .(0, 0));
@@ -1002,7 +990,7 @@ namespace GlitchyEditor.EditWindows
 			else
 			{
 				ImGui.PushTextWrapPos(ImGui.GetCursorPosX() + IconSize.X);
-				ImGui.Text(itemType == .ParentDirectory ? ".." : entry->Name);
+				ImGui.Text(entry->Name);
 				ImGui.PopTextWrapPos();
 			}
 
@@ -1352,9 +1340,13 @@ namespace GlitchyEditor.EditWindows
 			ImGui.PushScopedStyleVar!(ImGui.TypedStyleVar.ItemSpacing(spacing));
 			ImGui.PushScopedStyleVar!(ImGui.TypedStyleVar.FrameRounding(0));
 
+			String buttonText = scope .(128);
+
 			for (TreeNode<AssetNode> node in path)
 			{
-				if (ImGui.Button(node->Name) && node != _currentDirectoryNode)
+				buttonText.SetF($"{node->Name}##{node->Path}");
+
+				if (ImGui.Button(buttonText) && node != _currentDirectoryNode)
 				{
 					Navigate(node);
 				}
