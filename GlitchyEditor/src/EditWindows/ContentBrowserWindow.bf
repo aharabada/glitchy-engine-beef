@@ -1149,7 +1149,7 @@ namespace GlitchyEditor.EditWindows
 		}
 
 		/// Shows the context menu for the given file/folder.
-		private void ShowItemContextMenu() //(TreeNode<AssetNode> fileOrFolder, DirectoryItemType itemType, ref bool wantsDelete)
+		private void ShowItemContextMenu()
 		{
 			bool singleEntry = _selectedFiles.Count == 1;
 
@@ -1223,24 +1223,21 @@ namespace GlitchyEditor.EditWindows
 				ImGui.EndMenu();
 			}
 
-			/*if (singleEntry && itemType != .ParentDirectory)
+			ImGui.Separator();
+
+			if (ImGui.MenuItem("Rename"))
 			{
-				ImGui.Separator();
+				// Copy the path, just for the rare case that fileOrFolder gets deleted
+				_assetToRename.Set(firstEntry->Path);
 
-				if (ImGui.MenuItem("Rename"))
-				{
-					// Copy the path, just for the rare case that fileOrFolder gets deleted
-					_assetToRename.Set(fileOrFolder->Path);
-
-					fileOrFolder->Name.CopyTo(_renameFileNameBuffer);
-				}
-
-				if (ImGui.MenuItem("Delete"))
-				{
-					wantsDelete = true;
-				}
+				firstEntry->Name.CopyTo(_renameFileNameBuffer);
 			}
-*/
+
+			if (ImGui.MenuItem("Delete"))
+			{
+				_wantsDelete = true;
+			}
+
 			ImGui.Separator();
 			
 			if (singleEntry && ImGui.MenuItem("Properties..."))
@@ -1278,6 +1275,8 @@ namespace GlitchyEditor.EditWindows
 					Log.EngineLogger.Error("Failed to open file.");
 			}
 		}
+
+		private TreeNode<AssetNode> _directoryToShowChildren;
 
 		void DrawNavigationBar()
 		{
@@ -1337,6 +1336,48 @@ namespace GlitchyEditor.EditWindows
 
 			String buttonText = scope .(128);
 
+			void DirectorySelectionContextMenu(TreeNode<AssetNode> parent, ImGui.PopupFlags flags = .MouseButtonRight)
+			{
+				void ShowDirectories(TreeNode<AssetNode> parent)
+				{
+					for (TreeNode<AssetNode> node in parent.Children.Where((c) => c->IsDirectory))
+					{
+						buttonText.SetF($"{node->Name}##{node->Path}");
+	
+						if (node.Children.Any((c) => c->IsDirectory))
+						{
+							if (ImGui.BeginMenu(buttonText))
+							{
+								ShowDirectories(node);
+								ImGui.EndMenu();
+							}
+	
+							if (ImGui.IsItemClicked())
+							{
+								Navigate(node);
+								ImGui.CloseCurrentPopup();
+							}
+						}
+						else
+						{
+							if (ImGui.MenuItem(buttonText))
+							{
+								Navigate(node);
+								ImGui.CloseCurrentPopup();
+							}
+						}
+					}
+				}
+
+				// id == null -> Use ID of last Item
+				if (ImGui.BeginPopupContextItem(null, flags))
+				{
+					ShowDirectories(parent);
+
+					ImGui.EndPopup();
+				}
+			}
+
 			for (TreeNode<AssetNode> node in path)
 			{
 				buttonText.SetF($"{node->Name}##{node->Path}");
@@ -1346,11 +1387,20 @@ namespace GlitchyEditor.EditWindows
 					Navigate(node);
 				}
 
+				DirectorySelectionContextMenu(node.Parent);
+				
 				ImGui.SameLine();
 
 				ImGui.Text("/");
 
 				ImGui.SameLine();
+			}
+
+			if (_currentDirectoryNode.Children.Any((c) => c->IsDirectory))
+			{
+				ImGui.Button("...");
+
+				DirectorySelectionContextMenu(_currentDirectoryNode, .MouseButtonLeft);
 			}
 
 			ImGui.NewLine();
