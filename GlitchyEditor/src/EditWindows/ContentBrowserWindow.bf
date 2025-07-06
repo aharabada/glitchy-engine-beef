@@ -689,33 +689,37 @@ namespace GlitchyEditor.EditWindows
 		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
 		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
 		{
-			// TODO: Yes we really have to come up with a good system for hotkeys...
-			var currentDirectoryNode;
-			if (Input.IsKeyPressed(.Alt))
+			if (ImGui.IsWindowHovered())
 			{
-				if (Input.IsKeyPressing(.Up))
+				// TODO: Come up with a good hotkey system...
+				var currentDirectoryNode;
+				if (Input.IsKeyPressed(.Alt))
 				{
-					NavigateUp();
+					if (Input.IsKeyPressing(.Up))
+					{
+						NavigateUp();
+					}
+
+					if (Input.IsKeyPressing(.Left))
+					{
+						NavigateBack();
+					}
+
+					if (Input .IsKeyPressing(.Right))
+					{
+						NavigateForward();
+					}
 				}
 
-				if (Input.IsKeyPressing(.Left))
+				if (Input.IsMouseButtonPressing(.XButton1))
 				{
 					NavigateBack();
 				}
 
-				if (Input .IsKeyPressing(.Right))
+				if (Input.IsMouseButtonPressing(.XButton2))
 				{
 					NavigateForward();
 				}
-			}
-
-			if (Input.IsMouseButtonPressing(.XButton1))
-			{
-				NavigateForward();
-			}
-			if (Input.IsMouseButtonPressing(.XButton2))
-			{
-				NavigateBack();
 			}
 
 			List<TreeNode<AssetNode>> directoryEntries = null;
