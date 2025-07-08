@@ -1199,7 +1199,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		/// Shows the context menu for the given file/folder.
+		/// Shows the context menu for the selected files and directories.
 		private void ShowItemContextMenu()
 		{
 			bool singleEntry = _selectedFiles.Count == 1;

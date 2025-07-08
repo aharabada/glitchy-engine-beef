@@ -4,6 +4,8 @@ using GlitchyEngine;
 using System;
 using System.Collections;
 using System.Reflection;
+using GlitchyEngine.Math;
+using System.IO;
 
 namespace GlitchyEditor
 {
@@ -15,13 +17,15 @@ namespace GlitchyEditor
 			public String Name ~ delete _;
 			public String FieldName ~ delete _;
 			public StringView Tooltip;
+			public SettingEditor EditorType;
 
-			public this(StringView name, StringView fieldName, Object settingsObject, StringView tooltip)
+			public this(StringView name, StringView fieldName, Object settingsObject, StringView tooltip, SettingEditor editorType)
 			{
 				Name = new String(name);
 				FieldName = new String(fieldName);
 				SettingsObject = settingsObject;
 				Tooltip = tooltip;
+				EditorType = editorType;
 			}
 		}
 
@@ -38,9 +42,9 @@ namespace GlitchyEditor
 				Header = new String(header);
 			}
 
-			public void AddSetting(StringView name, StringView fieldName, Object settingsObject = null, StringView tooltip = "")
+			public void AddSetting(StringView name, StringView fieldName, Object settingsObject = null, StringView tooltip = "", SettingEditor editorType = .Default)
 			{
-				Binding binding = new .(name, fieldName, settingsObject ?? SettingsObject, tooltip);
+				Binding binding = new .(name, fieldName, settingsObject ?? SettingsObject, tooltip, editorType);
 				_bindings.Add(binding);
 			}
 		}
@@ -91,7 +95,7 @@ namespace GlitchyEditor
 
 				if (settingResult case .Ok(let settingInfo))
 				{
-					AddSetting(settingInfo.Category, settingInfo.Name, field.Name, container, settingInfo.Tooltip);
+					AddSetting(settingInfo.Category, settingInfo.Name, field.Name, container, settingInfo.Tooltip, settingInfo.EditorMode);
 				}
 				
 				Result<SettingContainerAttribute> containerResult = field.GetCustomAttribute<SettingContainerAttribute>();
@@ -112,11 +116,22 @@ namespace GlitchyEditor
 			}
 		}
 
-		void AddSetting(String categoryName, String name, StringView fieldName, Object container, StringView tooltip)
+		void AddSetting(String categoryName, String name, StringView fieldName, Object container, StringView tooltip, SettingEditor settingEditor)
 		{
 			Category category = AddCategory(categoryName);
 
-			category.AddSetting(name, fieldName, container, tooltip);
+			category.AddSetting(name, fieldName, container, tooltip, settingEditor);
+		}
+
+		private String _tabToSelect = new String() ~ delete _;
+		private String _SettingToHighlight = new String() ~ delete _;
+		private float _timeToHighlight;
+
+		public void HighlightSetting(StringView tabName, StringView settingName = "")
+		{
+			_tabToSelect.Set(tabName);
+			_SettingToHighlight.Set(settingName);
+			_timeToHighlight = 10;
 		}
 
 		protected override void InternalShow()
@@ -131,7 +146,15 @@ namespace GlitchyEditor
 
 			for (Category category in _categories.Values)
 			{
-				if (ImGui.BeginTabItem(category.Header))
+				ImGui.TabItemFlags flags = .None;
+
+				if (_tabToSelect == category.Header)
+				{
+					flags |= .SetSelected;
+					_tabToSelect.Clear();
+				}
+
+				if (ImGui.BeginTabItem(category.Header, null, flags))
 				{
 					ShowCategory(category);
 					ImGui.EndTabItem();
@@ -260,6 +283,7 @@ namespace GlitchyEditor
 
 						_settingsChanged = true;
 					case typeof(String):
+
 						String value = GetSettingValue!<String>();
 
 						char8[256] buffer = .();
@@ -274,6 +298,38 @@ namespace GlitchyEditor
 								SetSettingValue!(new String(&buffer));
 
 							_settingsChanged = true;
+						}
+
+						/*if (setting.EditorType == .FilePath)
+						{
+							ImGui.SameLine();
+
+							if (ImGui.Button("..."))
+							{
+								OpenFileDialog ofd = scope .();
+								ofd.InitialDirectory = value;
+								ofd.SetFilter("All Files (*.*)|*.*");
+								ofd.Multiselect = false;
+
+								if (ofd.ShowDialog() case .Ok(let result) && result == .OK)
+								{
+								SetSettingValue!(new String(ofd.FileNames[0]));
+								}
+							}
+						}*/
+					}
+
+					if (setting.Name == _SettingToHighlight)
+					{
+						let min = (float2)ImGui.GetItemRectMin() - 2;
+						let max = (float2)ImGui.GetItemRectMax() + 2;
+	
+						ImGui.DrawRect((.)min, (.)max, (.)ColorRGBA.Yellow);
+
+						_timeToHighlight -= Application.Instance.GameTime.DeltaTime;
+						if (_timeToHighlight < 0)
+						{
+							_SettingToHighlight.Clear();
 						}
 					}
 					

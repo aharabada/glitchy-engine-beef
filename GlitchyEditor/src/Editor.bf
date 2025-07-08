@@ -27,6 +27,7 @@ namespace GlitchyEditor
 		private InspectorWindow _inspectorWindow ~ delete _;
 		private AssetViewer _assetViewer ~ delete _;
 		private LogWindow _logWindow ~ delete _;
+		private SettingsWindow _settingsWindow ~ delete _;
 
 		private List<ClosableWindow> _windows = new .() ~ DeleteContainerAndItems!(_);
 
@@ -67,6 +68,7 @@ namespace GlitchyEditor
 		public InspectorWindow InspectorWindow => _inspectorWindow;
 		public AssetViewer AssetViewer => _assetViewer;
 		public LogWindow LogWindow => _logWindow;
+		public SettingsWindow SettingsWindow => _settingsWindow;
 
 		public EditorCamera* CurrentCamera { get; set; }
 
@@ -108,10 +110,13 @@ namespace GlitchyEditor
 			_inspectorWindow = new InspectorWindow(this);
 			_assetViewer = new AssetViewer((.)Application.Get().ContentManager);
 			_logWindow = new LogWindow();
+			_settingsWindow = new SettingsWindow();
 		}
 
 		public void Update()
 		{
+			PopupService.Instance.ImGuiDraw();
+
 			_sceneViewportWindow.Show();
 			_gameViewportWindow.Show();
 			_entityHierarchyWindow.Show();
@@ -120,6 +125,7 @@ namespace GlitchyEditor
 			_inspectorWindow.Show();
 			_assetViewer.Show();
 			_logWindow.Show();
+			_settingsWindow.Show();
 
 			for (ClosableWindow window in _windows)
 				window.Show();
@@ -134,6 +140,11 @@ namespace GlitchyEditor
 		{
 			_windows.Remove(closableWindow);
 			delete closableWindow;
+		}
+
+		public void ShowSettings()
+		{
+			_settingsWindow.Open = true;
 		}
 	}
 }

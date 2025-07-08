@@ -17,6 +17,12 @@ namespace GlitchyEngine
 	{
 	}
 
+	enum SettingEditor
+	{
+		case Default;
+		case Path;//(bool MultiSelect, bool OpenFolderDialog, StringView Filter);
+	}
+
 	/// Fields with this Attribute will be exposed as settings.
 	[AttributeUsage(.Field, .ReflectAttribute)]
 	struct SettingAttribute : Attribute
@@ -24,12 +30,14 @@ namespace GlitchyEngine
 		public String Category;
 		public String Name;
 		public String Tooltip;
+		public SettingEditor EditorMode;
 
-		public this(String category, String name, String tooltip = "")
+		public this(String category, String name, String tooltip = "", SettingEditor editorMode = .Default)
 		{
 			Category = category;
 			Name = name;
 			Tooltip = tooltip;
+			EditorMode = editorMode;
 		}
 	}
 

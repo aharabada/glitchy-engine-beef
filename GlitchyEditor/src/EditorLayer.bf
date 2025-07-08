@@ -63,8 +63,6 @@ namespace GlitchyEditor
 		RenderTargetGroup _editorViewportTarget ~ _.ReleaseRef();
 		RenderTargetGroup _gameViewportTarget ~ _.ReleaseRef();
 
-		SettingsWindow _settingsWindow = new .() ~ delete _;
-
 		ProjectUserSettings _projectUserSettings;
 
 		EditorCamera _camera ~ _.Dispose();
@@ -656,91 +654,83 @@ namespace GlitchyEditor
 			return .Ok;
 		}
 
-		/// If set to true, the popup for creating a new project will be shown.
-		private bool _openCreateProjectModal;
-
-		private void ShowCreateNewProjectModal()
+		public void OpenCreateNewProjectModal()
 		{
+			PopupService.Instance.OpenPopup("Create new Project", new => ShowCreateNewProjectModal);
+		}
+
+		private void ShowCreateNewProjectModal(out bool close)
+		{
+			close = false;
+
 			static char8[128] projectNameBuffer = .();
-			static char8[256] projectDirectoryBuffer = .();
-
-			if (_openCreateProjectModal)
-			{
-				ImGui.OpenPopup("Create new Project");
-				_openCreateProjectModal = false;
-
-				projectNameBuffer = .();
-			}
+			static char8[1024] projectDirectoryBuffer = .();
 
 			// Always center this window when appearing
 			var center = ImGui.GetMainViewport().GetCenter();
 			ImGui.SetNextWindowPos(center, .Appearing, .(0.5f, 0.5f));
 
-			if (ImGui.BeginPopupModal("Create new Project", null, .AlwaysAutoResize))
+			ImGui.TextUnformatted("Project Name:");
+			ImGui.InputText("##projectName", &projectNameBuffer, projectNameBuffer.Count - 1);
+			
+			StringView projectName = StringView(&projectNameBuffer);
+
+			if (projectName.IsWhiteSpace)
 			{
-				ImGui.TextUnformatted("Project Name:");
-				ImGui.InputText("##projectName", &projectNameBuffer, projectNameBuffer.Count - 1);
-				
-				StringView projectName = StringView(&projectNameBuffer);
+				ImGui.TextColored(.(1, 0, 0, 1), "Project Name required!");
+			}
 
-				if (projectName.IsWhiteSpace)
+			ImGui.NewLine();
+
+			ImGui.TextUnformatted("Directory:");
+			ImGui.InputText("##directory", &projectDirectoryBuffer, projectDirectoryBuffer.Count - 1);
+			ImGui.SameLine();
+
+			if (ImGui.Button("..."))
+			{
+				FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
+				Result<DialogResult> result = folderDialog.ShowDialog();
+
+				if (result case .Ok(let dialogResult) && dialogResult case .OK)
 				{
-					ImGui.TextColored(.(1, 0, 0, 1), "Project Name required!");
+					folderDialog.SelectedPath.CopyTo(projectDirectoryBuffer);
 				}
+			}
 
-				ImGui.NewLine();
+			StringView directory = StringView(&projectDirectoryBuffer);
 
-				ImGui.TextUnformatted("Directory:");
-				ImGui.InputText("##directory", &projectDirectoryBuffer, projectDirectoryBuffer.Count - 1);
-				ImGui.SameLine();
+			String target = scope String();
+			Path.Combine(target, directory, projectName);
+			
+			ImGui.NewLine();
 
-				if (ImGui.Button("..."))
-				{
-					FolderBrowserDialog folderDialog = scope FolderBrowserDialog();
-					Result<DialogResult> result = folderDialog.ShowDialog();
+			ImGui.Text($"The Project will be in:\n{target}");
 
-					if (result case .Ok(let dialogResult) && dialogResult case .OK)
-					{
-						folderDialog.SelectedPath.CopyTo(projectDirectoryBuffer);
-					}
-				}
+			if (Directory.Exists(target) && !Directory.IsEmpty(target))
+			{
+				ImGui.TextColored(.(1, 1, 0, 1), "The directory is not empty!");
+			}
 
-				StringView directory = StringView(&projectDirectoryBuffer);
+			ImGui.NewLine();
 
-				String target = scope String();
-				Path.Combine(target, directory, projectName);
-				
-				ImGui.NewLine();
+			ImGui.BeginDisabled(directory.IsWhiteSpace || projectName.IsWhiteSpace);
 
-				ImGui.Text($"The Project will be in:\n{target}");
+			if (ImGui.Button("Create"))
+			{
+				Result<void> result = CreateNewProject(target, projectName);
 
-				if (Directory.Exists(target) && !Directory.IsEmpty(target))
-				{
-					ImGui.TextColored(.(1, 1, 0, 1), "The directory is not empty!");
-				}
+				if (result case .Ok)
+				close = true;
 
-				ImGui.NewLine();
+			}
 
-				ImGui.BeginDisabled(directory.IsWhiteSpace || projectName.IsWhiteSpace);
+			ImGui.EndDisabled();
 
-				if (ImGui.Button("Create"))
-				{
-					Result<void> result = CreateNewProject(target, projectName);
+			ImGui.SameLine();
 
-					if (result case .Ok)
-						ImGui.CloseCurrentPopup();
-				}
-
-				ImGui.EndDisabled();
-
-				ImGui.SameLine();
-
-				if (ImGui.Button("Cancel"))
-				{
-					ImGui.CloseCurrentPopup();
-				}
-
-				ImGui.EndPopup();
+			if (ImGui.Button("Cancel"))
+			{
+				close = true;
 			}
 		}
 
@@ -1209,9 +1199,6 @@ namespace GlitchyEditor
 
 			_editor.Update();
 
-			_settingsWindow.Show();
-			ShowCreateNewProjectModal();
-
 			return false;
 		}
 
@@ -1479,7 +1466,7 @@ namespace GlitchyEditor
 				ImGui.Separator();
 				
 				if (ImGui.MenuItem("Create new Project...", "Ctrl+ALT+N"))
-					_openCreateProjectModal = true;
+					OpenCreateNewProjectModal();
 
 				if (ImGui.MenuItem("Open Project...", "Ctrl+ALT+O"))
 					ShowOpenProjectDialog();
@@ -1493,7 +1480,7 @@ namespace GlitchyEditor
 				ImGui.Separator();
 
 				if (ImGui.MenuItem("Settings"))
-					_settingsWindow.Open = true;
+					Editor.Instance.SettingsWindow.Open = true;
 				
 				ImGui.Separator();
 				
@@ -1611,7 +1598,7 @@ namespace GlitchyEditor
 				case .N:
 					if (alt)
 						// "Create new Project..."
-						_openCreateProjectModal = true;
+						OpenCreateNewProjectModal();
 					else
 						// "New Scene"
 						CreateAndOpenNewScene();

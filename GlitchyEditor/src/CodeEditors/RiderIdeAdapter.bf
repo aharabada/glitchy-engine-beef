@@ -2,6 +2,10 @@ using System;
 using System.Diagnostics;
 using GlitchyEngine;
 using System.Collections;
+using System.IO;
+using System.IO;
+using GlitchyEditor.EditWindows;
+using ImGui;
 
 namespace GlitchyEditor.CodeEditors;
 
@@ -29,6 +33,23 @@ class RiderIdeAdapter : IIdeAdapter
 		String solutionPath = scope .();
 		Editor.Instance.CurrentProject.PathInProject(solutionPath, scope $"{Editor.Instance.CurrentProject.Name}.sln");
 
+		if (!File.Exists(solutionPath))
+		{
+			Log.EngineLogger.Error("Could not find solution file?");
+			return;
+		}
+
+		if (!File.Exists(Application.Instance.Settings.ScriptSettings.RiderPath))
+		{
+			Editor.Instance.ShowSettings();
+			Editor.Instance.SettingsWindow.HighlightSetting("Tools", "Rider path");
+
+			PopupService.Instance.ShowMessageBox("Rider not found.",
+				"The rider path could not be found. Please select the correct path.");
+
+			return;
+		}
+
 		ProcessStartInfo startInfo = scope .();
 		startInfo.SetFileName(Application.Instance.Settings.ScriptSettings.RiderPath);
 		startInfo.SetArguments(solutionPath);
@@ -36,3 +57,4 @@ class RiderIdeAdapter : IIdeAdapter
 		scope SpawnedProcess().Start(startInfo);
 	}
 }
+
