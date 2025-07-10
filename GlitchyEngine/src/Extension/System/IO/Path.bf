@@ -62,8 +62,10 @@ extension Path
 	{
 		int fileNumber = 0;
 
+		String wantedNameCopy = new:ScopedAlloc! .(wantedName);
+
 		String currentFileName = outFreeFilename ?? scope .();
-		currentFileName.SetF($"{wantedName}{fileExtension}");
+		currentFileName.SetF($"{wantedNameCopy}{fileExtension}");
 		while (true)
 		{
 			Path.Combine(outFreePath..Clear(), targetDirectory, currentFileName);
@@ -72,7 +74,7 @@ extension Path
 				break;
 
 			fileNumber++;
-			currentFileName.SetF($"{wantedName} ({fileNumber}){fileExtension}");
+			currentFileName.SetF($"{wantedNameCopy} ({fileNumber}){fileExtension}");
 		}
 	}
 }
