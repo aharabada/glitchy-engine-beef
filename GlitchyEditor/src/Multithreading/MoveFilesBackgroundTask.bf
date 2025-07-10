@@ -7,13 +7,13 @@ using System.Threading;
 
 namespace GlitchyEditor.Multithreading;
 
-class CopyBackgroundTask : BackgroundTask
+class MoveFilesBackgroundTask : BackgroundTask
 {
 	private List<String> _sourcePath ~ {ClearAndDeleteItems!(_); delete:append _;};
 	private String _targetDirectoryPath ~ delete:append _;
 
-	private int _totalEntriesToCopy;
-	private append Queue<CopyInfo> _pathsToCopy = .() ~ ClearAndDeleteItems!(_);
+	private int _totalEntriesToMove;
+	private append Queue<CopyInfo> _pathsToMove = .() ~ ClearAndDeleteItems!(_);
 	private append Queue<CopyInfo> _scanQueue = .() ~ ClearAndDeleteItems!(_);
 	/// Contains the file paths, that will definitely exist after copying. This is used for file renaming during scanning.
 	private append HashSet<StringView> _targetPaths = .();
@@ -69,7 +69,7 @@ class CopyBackgroundTask : BackgroundTask
 			_scanQueue.Add(new CopyInfo(path, "", .None));
 		}
 
-		_totalEntriesToCopy = sourcePaths.Count;
+		_totalEntriesToMove = sourcePaths.Count;
 	}
 	
 	public enum CopyError : IDisposable
@@ -99,7 +99,7 @@ class CopyBackgroundTask : BackgroundTask
 		}
 	}
 
-	private Result<void, CopyError> CollectFilesToCopy()
+	private Result<void, CopyError> CollectFilesToMove()
 	{
 		CopyInfo currentEntry = null;
 		defer
@@ -110,11 +110,11 @@ class CopyBackgroundTask : BackgroundTask
 			}
 		}
 
-		void AddToCopyQueue(CopyInfo entry, StringView targetPath, ConflictResolutionMode conflictResolutionMode)
+		void AddToMoveQueue(CopyInfo entry, StringView targetPath, ConflictResolutionMode conflictResolutionMode)
 		{
 			entry.TargetPath.Set(targetPath);
 			entry.ConflictResolutionMode = conflictResolutionMode;
-			_pathsToCopy.Add(entry);
+			_pathsToMove.Add(entry);
 			_targetPaths.Add(entry.TargetPath);
 		}
 
@@ -136,7 +136,7 @@ class CopyBackgroundTask : BackgroundTask
 
 				if (Directory.Exists(targetPath) || _targetPaths.Contains(targetPath))
 				{
-					if (CurrentFileMode.HasFlag(.KeepBoth) || targetPath == sourcePath)
+					if (CurrentFileMode.HasFlag(.KeepBoth))
 					{
 						Path.FindFreePath(_targetDirectoryPath, fileName, "", targetPath, fileName, _targetPaths);
 					}
@@ -160,19 +160,22 @@ class CopyBackgroundTask : BackgroundTask
 				}
 				else
 				{
-					// Current node is ready, add it to copy-queue.
-					AddToCopyQueue(currentEntry, targetPath, CurrentFileMode);
-					
-					// Add nested files and directories to the scan-queue.
-					for (FileFindEntry e in Directory.Enumerate(currentEntry.SourcePath))
+					// Current node is ready, add it to move-queue.
+					AddToMoveQueue(currentEntry, targetPath, CurrentFileMode);
+
+					if (Enum.HasAnyFlag(CurrentFileMode, .CombineDirectories))
 					{
-						let entryPath = scope String();
-						e.GetFilePath(entryPath);
-
-						let newEntry = new CopyInfo(entryPath, targetPath, .None);
-						_scanQueue.Add(newEntry);
-
-						Path.Combine(newEntry.SubPath, currentEntry.SubPath, fileName);
+						// Add nested files and directories to the scan-queue.
+						for (FileFindEntry e in Directory.Enumerate(currentEntry.SourcePath))
+						{
+							let entryPath = scope String();
+							e.GetFilePath(entryPath);
+	
+							let newEntry = new CopyInfo(entryPath, targetPath, .None);
+							_scanQueue.Add(newEntry);
+	
+							Path.Combine(newEntry.SubPath, currentEntry.SubPath, fileName);
+						}
 					}
 				}
 
@@ -184,7 +187,7 @@ class CopyBackgroundTask : BackgroundTask
 
 				if (File.Exists(targetPath) || _targetPaths.Contains(targetPath))
 				{
-					if (CurrentFileMode.HasFlag(.KeepBoth) || targetPath == sourcePath)
+					if (CurrentFileMode.HasFlag(.KeepBoth))
 					{
 						let fileExtension = scope String();
 						Path.GetExtension(targetPath, fileExtension);
@@ -213,14 +216,14 @@ class CopyBackgroundTask : BackgroundTask
 				}
 				else
 				{
-					AddToCopyQueue(currentEntry, targetPath, CurrentFileMode);
+					AddToMoveQueue(currentEntry, targetPath, CurrentFileMode);
 				}
 
 				_nextFileMode = .None;
 			}
 		}
 
-		_totalEntriesToCopy = _pathsToCopy.Count;
+		_totalEntriesToMove = _pathsToMove.Count;
 
 		return .Ok;
 	}
@@ -231,28 +234,28 @@ class CopyBackgroundTask : BackgroundTask
 	{
 		_currentError.Dispose();
 		_currentError = .None;
-		if (CollectFilesToCopy() case .Err(out _currentError) || Paused)
+		if (CollectFilesToMove() case .Err(out _currentError) || Paused)
 		{
 			return .Pause;
 		}
 		
-		while (!_pathsToCopy.IsEmpty && Running)
+		while (!_pathsToMove.IsEmpty && Running)
 		{
-			CopyInfo currentPath = _pathsToCopy.Peek();
+			CopyInfo currentPath = _pathsToMove.Peek();
 
-			if (CopyPath(currentPath) case .Err(out _currentError) || Paused)
+			if (MovePath(currentPath) case .Err(out _currentError) || Paused)
 			{
 				return .Pause;
 			}
 
-			_pathsToCopy.PopFront();
+			_pathsToMove.PopFront();
 			delete currentPath;
 		}
 
 		return .Finished;
 	}
 
-	private Result<void, CopyError> CopyPath(CopyInfo copyInfo)
+	private Result<void, CopyError> MovePath(CopyInfo copyInfo)
 	{
 		if (Directory.Exists(copyInfo.SourcePath))
 		{
@@ -269,10 +272,10 @@ class CopyBackgroundTask : BackgroundTask
 				}
 			}
 
-			if (Directory.CreateDirectory(copyInfo.TargetPath) case .Err(let err) &&
+			if (Directory.Move(copyInfo.SourcePath, copyInfo.TargetPath) case .Err(let err) &&
 				!CurrentFileMode.HasFlag(.IgnoreUnexpectedErrors))
 			{
-				return .Err(.UnexpectedError(new $"Failed to create Directory {copyInfo.TargetPath}: {err}"));
+				return .Err(.UnexpectedError(new $"Failed to move Directory {copyInfo.TargetPath}: {err}"));
 			}
 		}
 		else if (File.Exists(copyInfo.SourcePath))
@@ -290,10 +293,10 @@ class CopyBackgroundTask : BackgroundTask
 				}
 			}
 			
-			if (File.Copy(copyInfo.SourcePath, copyInfo.TargetPath, forceOverwrite) case .Err(let err) &&
+			if (File.Move(copyInfo.SourcePath, copyInfo.TargetPath) case .Err(let err) &&
 				!CurrentFileMode.HasFlag(.IgnoreUnexpectedErrors))
 			{
-				return .Err(.UnexpectedError(new $"Failed to copy File {copyInfo.TargetPath}: {err}"));
+				return .Err(.UnexpectedError(new $"Failed to move File {copyInfo.TargetPath}: {err}"));
 			}
 		}
 		else
@@ -315,13 +318,13 @@ class CopyBackgroundTask : BackgroundTask
 		{
 			if (ScanningFiles)
 			{
-				ImGui.ProgressBar(-1.0f * (float)ImGui.GetTime(), .(-1, 0), scope $"Found {_pathsToCopy.Count} files...");
+				ImGui.ProgressBar(-1.0f * (float)ImGui.GetTime(), .(-1, 0), scope $"Found {_pathsToMove.Count} files...");
 			}
 			else
 			{
-				int copiedFiles = _totalEntriesToCopy - _pathsToCopy.Count;
+				int copiedFiles = _totalEntriesToMove - _pathsToMove.Count;
 
-				ImGui.ProgressBar(copiedFiles / _totalEntriesToCopy, .(-1, 0), scope $"Copied {copiedFiles} / {_totalEntriesToCopy} files.");
+				ImGui.ProgressBar(copiedFiles / _totalEntriesToMove, .(-1, 0), scope $"Copied {copiedFiles} / {_totalEntriesToMove} files.");
 			}
 
 			

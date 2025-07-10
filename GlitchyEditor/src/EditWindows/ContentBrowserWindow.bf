@@ -11,6 +11,7 @@ using GlitchyEngine;
 using GlitchyEditor.Assets;
 using System.Diagnostics;
 using GlitchyEditor.CodeEditors;
+using GlitchyEditor.Multithreading;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -196,6 +197,9 @@ namespace GlitchyEditor.EditWindows
 		};
 
 		private append List<String> _selectedFiles = .() ~ ClearAndDeleteItems!(_);
+		
+		private append List<String> _filesToCopy = .() ~ ClearAndDeleteItems!(_);
+		private bool _cutFiles = false;
 
 		private append String _assetToRename = .();
 		private char8[128] _renameFileNameBuffer;
@@ -591,6 +595,13 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			ImGui.AttachTooltip("Opens the C# Solution of this project.");
+			
+			ImGui.Separator();
+			
+			if (!_filesToCopy.IsEmpty && ImGui.MenuItem("Paste", "Ctrl+V"))
+			{
+				PasteFiles(CurrentDirectory);
+			}
 		}
 
 		/// Shows the menu for the given asset creator tree.
@@ -766,6 +777,24 @@ namespace GlitchyEditor.EditWindows
 				if (Input.IsMouseButtonPressing(.XButton2))
 				{
 					NavigateForward();
+				}
+
+				if (Input.IsKeyPressed(.Control))
+				{
+					if (Input.IsKeyPressing(.C))
+					{
+						CopySelectedFiles(cutFiles: false);
+					}
+					
+					if (Input.IsKeyPressing(.X))
+					{
+						CopySelectedFiles(cutFiles: true);
+					}
+
+					if (Input.IsKeyPressing(.V))
+					{
+						PasteFiles(CurrentDirectory);
+					}
 				}
 			}
 
@@ -943,7 +972,14 @@ namespace GlitchyEditor.EditWindows
 			// TODO: Special Icon for back-folder?
 			SubTexture2D image = _thumbnailManager.GetThumbnail(entry.Value);
 
-			ImGui.ImageButton("FileImage", image, (.)IconSize);
+			ColorRGBA imageColor = ColorRGBA.White;
+
+			if (_filesToCopy.Contains(entry->Path) && _cutFiles)
+			{
+				imageColor = ColorRGBA(1, 1, 1, 0.5f);
+			}
+
+			ImGui.ImageButton("FileImage", image, (.)IconSize, tint_col: (.)(float4)imageColor);
 
 			if (ImGui.IsRectangleSelecting(ref _rectangleSelection))
 			{
@@ -1275,6 +1311,23 @@ namespace GlitchyEditor.EditWindows
 			}
 
 			ImGui.Separator();
+			
+			if (ImGui.MenuItem("Cut", "Ctrl+X"))
+			{
+				CopySelectedFiles(cutFiles: true);
+			}
+			
+			if (ImGui.MenuItem("Copy", "Ctrl+C"))
+			{
+				CopySelectedFiles(cutFiles: false);
+			}
+
+			if (!_filesToCopy.IsEmpty && singleEntry && parent != null && ImGui.MenuItem("Paste", "Ctrl+V"))
+			{
+				PasteFiles(parent->Path);
+			}
+
+			ImGui.Separator();
 
 			if (ImGui.MenuItem("Rename"))
 			{
@@ -1295,6 +1348,31 @@ namespace GlitchyEditor.EditWindows
 			{
 				OpenPropertiesWindow(firstEntry);
 			}
+		}
+
+		private void CopySelectedFiles(bool cutFiles)
+		{
+			_filesToCopy.ClearAndDeleteItems();
+			_selectedFiles.Select((file) => new String(file)).ToList(_filesToCopy);
+			_cutFiles = cutFiles;
+		}
+
+		private void PasteFiles(StringView targetDirectoryPath)
+		{
+			BackgroundTask backgroundTask;
+			if (_cutFiles)
+			{
+				 backgroundTask = new MoveFilesBackgroundTask(_filesToCopy, targetDirectoryPath);
+				_filesToCopy.ClearAndDeleteItems();
+				_cutFiles = false;
+			}
+			else
+			{
+				 backgroundTask = new CopyBackgroundTask(_filesToCopy, targetDirectoryPath);
+			}
+			backgroundTask.DeleteWhenEnded = true;
+
+			EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(backgroundTask);
 		}
 
 		private void OpenPropertiesWindow(TreeNode<AssetNode> fileOrFolder)
