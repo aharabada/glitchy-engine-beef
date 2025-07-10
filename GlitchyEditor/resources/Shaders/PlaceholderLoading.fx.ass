@@ -1,0 +1,11 @@
+{
+	AssetLoader = null,
+	Config = null,
+	Importer = "ShaderImporter",
+	ImporterConfig = null,
+	Processor = null,
+	ProcessorConfig = null,
+	Exporter = null,
+	ExporterConfig = null,
+	AssetHandle = 3052446500956620342
+}

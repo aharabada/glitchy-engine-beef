@@ -27,7 +27,10 @@ class MaterialLoader : IProcessedAssetLoader
 			String textureName = scope String(textureNameLength);
 			stream.ReadStrSized32(textureNameLength, textureName);
 
-			material.SetTexture(textureName, textureHandle);
+			if (material.SetTexture(textureName, textureHandle) case .Err(let error))
+			{
+				Log.EngineLogger.Error($"Failed to set texture slot {textureName}: {error}");
+			}
 		}
 
 		uint16 bufferCount = Try!(stream.Read<uint16>());

@@ -367,7 +367,16 @@ class EditorContentManager : IContentManager
 
 		if (!_handleToAsset.TryGetValue(handle, out asset))
 		{
-			LoadAsset(handle, blocking);
+			AssetHandle handleAfterLoading = LoadAsset(handle, blocking);
+
+			if (handleAfterLoading == .Invalid)
+			{
+				// TODO: If the asset existed at some point, the cache might still know of it.
+				// Or we store the asset name somewhere else. (For the editor in the asset using it?)
+				asset = new NewPlaceholderAsset(handle, .Error);
+
+				AssignHandleAndManage(asset, handle);
+			}
 		}
 
 		if (var placeholder = asset as PlaceholderAsset)
@@ -401,6 +410,8 @@ class EditorContentManager : IContentManager
 
 	private Asset GetPlaceholderAsset(Type assetType, PlaceholderType placeholderType)
 	{
+		// TODO: Probably don't hardcode paths here.
+		// TODO: Probably verify existence at start of application.
 		switch (assetType)
 		{
 		case typeof(Texture2D):
@@ -412,6 +423,17 @@ class EditorContentManager : IContentManager
 			else if (placeholderType == .Error)
 			{
 				AssetHandle handle = LoadAsset("Resources/Textures/ErrorTexture2D.png", true);
+				return GetAsset(null, handle);
+			}
+		case typeof(Effect):
+			if (placeholderType == .Loading)
+			{
+				AssetHandle handle = LoadAsset("Resources/Shaders/PlaceholderLoading.fx", true);
+				return GetAsset(null, handle);
+			}
+			else if (placeholderType == .Error)
+			{
+				AssetHandle handle = LoadAsset("Resources/Shaders/PlaceholderError.fx", true);
 				return GetAsset(null, handle);
 			}
 		}
@@ -623,6 +645,7 @@ class EditorContentManager : IContentManager
 		using (_finishedEntriesLock.Enter())
 		{
 			loadedAsset.Identifier = assetNode.Identifier;
+			// TODO: AssignHandleAndManage
 			loadedAsset.[Friend]_contentManager = this;
 			loadedAsset.[Friend]_handle = handle;
 	
@@ -874,14 +897,23 @@ class EditorContentManager : IContentManager
 			// If this happens too often we could use a different random generator
 		}
 
-		//_handles.Add(asset.Identifier, handle);
+		AssignHandleAndManage(asset, handle);
+
+		return handle;
+	}
+
+	private void AssignHandleAndManage(Asset asset, AssetHandle handle)
+	{
+		if (_handleToAsset.TryGetValue(handle, let existingAsset))
+		{
+			existingAsset.ReleaseRef();
+		}
+
 		_handleToAsset.Add(handle, asset);
 
 		asset.[Friend]_contentManager = this;
 		asset.[Friend]_handle = handle;
 		asset.AddRef();
-
-		return handle;
 	}
 
 	private void SwapAsset(Asset oldAsset, Asset newAsset)

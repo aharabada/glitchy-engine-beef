@@ -532,7 +532,7 @@ namespace GlitchyEngine.Renderer
 			
 			s_quadBatchMaterial.SetVariable("ViewProjection", sceneViewProjection);
 			//s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
-			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
+			//s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
 			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
 
 			s_drawOrder = drawOrder;
@@ -574,7 +574,7 @@ namespace GlitchyEngine.Renderer
 			
 			//s_currentQuadEffect.Get()?.Variables["ViewProjection"].SetData(viewProjection);
 			s_quadBatchMaterial.SetVariable("ViewProjection", sceneViewProjection);
-			s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
+			//s_currentCircleEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
 			s_currentLineEffect.Get()?.Variables["ViewProjection"].SetData(sceneViewProjection);
 
 			s_drawOrder = drawOrder;

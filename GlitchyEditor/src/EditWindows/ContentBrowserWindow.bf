@@ -316,8 +316,7 @@ namespace GlitchyEditor.EditWindows
 		{
 			_manager.Update();
 
-			// Show History
-			if (ImGui.Begin("Debug History"))
+			/*if (ImGui.Begin("Debug History"))
 			{
 				ImGui.CollapsingHeader("History");
 				for (String path in _directoryHistory.[Friend]_history)
@@ -338,7 +337,7 @@ namespace GlitchyEditor.EditWindows
 				}
 
 				ImGui.End();
-			}
+			}*/
 			
 			// Make sure we are in an existing directory.
 			if (!_manager.AssetHierarchy.FileExists(CurrentDirectory))
@@ -745,57 +744,81 @@ namespace GlitchyEditor.EditWindows
 
 		private ImGui.RectangleSelectionData _rectangleSelection;
 
+		enum Modifiers
+		{
+			None,
+			Alt,
+			Ctrl,
+			Shift
+		}
+
+		private void HandleShortcuts()
+		{
+			Modifiers modifiers = .None;
+
+			Enum.SetFlagConditionally(ref modifiers, .Alt, Input.IsKeyPressed(.Alt));
+			Enum.SetFlagConditionally(ref modifiers, .Ctrl, Input.IsKeyPressed(.Control));
+			Enum.SetFlagConditionally(ref modifiers, .Shift, Input.IsKeyPressed(.Shift));
+
+			// TODO: Come up with a good hotkey system...
+			if (modifiers == .Alt)
+			{
+				if (Input.IsKeyPressing(.Up))
+				{
+					NavigateUp();
+				}
+
+				if (Input.IsKeyPressing(.Left))
+				{
+					NavigateBack();
+				}
+
+				if (Input .IsKeyPressing(.Right))
+				{
+					NavigateForward();
+				}
+			}
+
+			if (Input.IsMouseButtonPressing(.XButton1))
+			{
+				NavigateBack();
+			}
+
+			if (Input.IsMouseButtonPressing(.XButton2))
+			{
+				NavigateForward();
+			}
+
+			if (modifiers == .Ctrl)
+			{
+				if (Input.IsKeyPressing(.C))
+				{
+					CopySelectedFiles(cutFiles: false);
+				}
+				
+				if (Input.IsKeyPressing(.X))
+				{
+					CopySelectedFiles(cutFiles: true);
+				}
+
+				if (Input.IsKeyPressing(.V))
+				{
+					PasteFiles(CurrentDirectory);
+				}
+			}
+
+			if (modifiers == .Ctrl | .Shift)
+			{
+
+			}
+		}
+
 		/// Renders the contents of _currentDirectory. Returns the node of the current directory, or null if the browser isn't in a directory.
 		private void DrawCurrentDirectory(TreeNode<AssetNode> currentDirectoryNode)
 		{
 			if (ImGui.IsWindowHovered())
 			{
-				// TODO: Come up with a good hotkey system...
-				if (Input.IsKeyPressed(.Alt))
-				{
-					if (Input.IsKeyPressing(.Up))
-					{
-						NavigateUp();
-					}
-
-					if (Input.IsKeyPressing(.Left))
-					{
-						NavigateBack();
-					}
-
-					if (Input .IsKeyPressing(.Right))
-					{
-						NavigateForward();
-					}
-				}
-
-				if (Input.IsMouseButtonPressing(.XButton1))
-				{
-					NavigateBack();
-				}
-
-				if (Input.IsMouseButtonPressing(.XButton2))
-				{
-					NavigateForward();
-				}
-
-				if (Input.IsKeyPressed(.Control))
-				{
-					if (Input.IsKeyPressing(.C))
-					{
-						CopySelectedFiles(cutFiles: false);
-					}
-					
-					if (Input.IsKeyPressing(.X))
-					{
-						CopySelectedFiles(cutFiles: true);
-					}
-
-					if (Input.IsKeyPressing(.V))
-					{
-						PasteFiles(CurrentDirectory);
-					}
-				}
+				HandleShortcuts();
 			}
 
 			List<TreeNode<AssetNode>> directoryEntries = scope List<TreeNode<AssetNode>>();
