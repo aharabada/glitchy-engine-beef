@@ -655,6 +655,7 @@ class EditorContentManager : IContentManager
 			_identiferToHandle.Add(loadedAsset.Identifier, handle);
 
 			file.[Friend]_loadedAsset = loadedAsset;
+			loadedAsset.ReleaseRef();
 		}
 
 		return handle;
