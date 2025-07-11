@@ -365,6 +365,11 @@ class EditorContentManager : IContentManager
 	{
 		Asset asset = null;
 
+		if (handle == .Invalid)
+		{
+			return null;
+		}
+
 		if (!_handleToAsset.TryGetValue(handle, out asset))
 		{
 			AssetHandle handleAfterLoading = LoadAsset(handle, blocking);
@@ -373,9 +378,10 @@ class EditorContentManager : IContentManager
 			{
 				// TODO: If the asset existed at some point, the cache might still know of it.
 				// Or we store the asset name somewhere else. (For the editor in the asset using it?)
-				asset = new NewPlaceholderAsset(handle, .Error);
-
-				AssignHandleAndManage(asset, handle);
+				using(asset = new NewPlaceholderAsset(handle, .Error))
+				{
+					AssignHandleAndManage(asset, handle);
+				}
 			}
 		}
 
@@ -645,11 +651,7 @@ class EditorContentManager : IContentManager
 		using (_finishedEntriesLock.Enter())
 		{
 			loadedAsset.Identifier = assetNode.Identifier;
-			// TODO: AssignHandleAndManage
-			loadedAsset.[Friend]_contentManager = this;
-			loadedAsset.[Friend]_handle = handle;
-	
-			_handleToAsset.Add(handle, loadedAsset);
+			AssignHandleAndManage(loadedAsset, handle);
 			_identiferToHandle.Add(loadedAsset.Identifier, handle);
 
 			file.[Friend]_loadedAsset = loadedAsset;
@@ -904,6 +906,12 @@ class EditorContentManager : IContentManager
 
 	private void AssignHandleAndManage(Asset asset, AssetHandle handle)
 	{
+		if (_handleToAsset.Remove(asset.Handle))
+		{
+			// We need to remove one ref, but it might be the only one, so defer it.
+			defer:: asset.ReleaseRef();
+		}
+
 		if (_handleToAsset.TryGetValue(handle, let existingAsset))
 		{
 			existingAsset.ReleaseRef();
