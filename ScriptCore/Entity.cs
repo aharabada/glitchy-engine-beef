@@ -414,12 +414,18 @@ public class Entity : EngineObject
         return new Entity(newEntityId);
     }
 
-    // Will be executed once after the entity has be created.
-    // void OnCreate();
+    /// <summary>
+    /// Will be executed once after the entity has be created.
+    /// </summary>
+    protected internal virtual void OnCreate() { }
 
-    // Will be executed every frame.
-    // void OnUpdate(GameTime);
+    /// <summary>
+    /// Is called once every frame.
+    /// </summary>
+    protected internal virtual void OnUpdate(float deltaTime) { }
 
-    // Will be executed once when the entity is being destroyed.
-    // void OnDestroy();
+    /// <summary>
+    /// Will be executed once when the entity is being destroyed.
+    /// </summary>
+    protected internal virtual void OnDestroy() { }
 }

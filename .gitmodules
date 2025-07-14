@@ -34,3 +34,6 @@
 [submodule "vendor/ImGui.NET"]
 	path = vendor/ImGui.NET
 	url = https://github.com/aharabada/ImGui.NET.git
+[submodule "vendor/NetHostBeef"]
+	path = vendor/NetHostBeef
+	url = https://github.com/aharabada/NetHostBeef.git

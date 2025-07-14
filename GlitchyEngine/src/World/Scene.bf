@@ -394,9 +394,10 @@ namespace GlitchyEngine.World
 						collision.OtherEntity = colliderEntityB.UUID;
 						collision.Rigidbody = rigidbodyEntityA.UUID;
 						collision.OtherRigidbody = rigidbodyEntityB.UUID;
-						
-						scriptOfColliderA?.Instance?.InvokeOnCollisionEnter2D(collision);
-						scriptOfRigidbodyA?.Instance?.InvokeOnCollisionEnter2D(collision);
+
+						// TODO:
+						//scriptOfColliderA?.Instance?.InvokeOnCollisionEnter2D(collision);
+						//scriptOfRigidbodyA?.Instance?.InvokeOnCollisionEnter2D(collision);
 					}
 
 					bool fireEventB = colliderEntityB.TryGetComponent<ScriptComponent>(let scriptOfColliderB);
@@ -410,8 +411,8 @@ namespace GlitchyEngine.World
 						collision.Rigidbody = rigidbodyEntityB.UUID;
 						collision.OtherRigidbody = rigidbodyEntityA.UUID;
 						
-						scriptOfColliderB?.Instance?.InvokeOnCollisionEnter2D(collision);
-						scriptOfRigidbodyB?.Instance?.InvokeOnCollisionEnter2D(collision);
+						//scriptOfColliderB?.Instance?.InvokeOnCollisionEnter2D(collision);
+						//scriptOfRigidbodyB?.Instance?.InvokeOnCollisionEnter2D(collision);
 					}
 				};
 			_contactListener.endContactCallback = (contact, userData) => {
@@ -446,8 +447,8 @@ namespace GlitchyEngine.World
 					collision.Rigidbody = rigidbodyEntityA.UUID;
 					collision.OtherRigidbody = rigidbodyEntityB.UUID;
 					
-					scriptOfColliderA?.Instance?.InvokeOnCollisionLeave2D(collision);
-					scriptOfRigidbodyA?.Instance?.InvokeOnCollisionLeave2D(collision);
+					//scriptOfColliderA?.Instance?.InvokeOnCollisionLeave2D(collision);
+					//scriptOfRigidbodyA?.Instance?.InvokeOnCollisionLeave2D(collision);
 				}
 
 				bool fireEventB = colliderEntityB.TryGetComponent<ScriptComponent>(let scriptOfColliderB);
@@ -461,8 +462,8 @@ namespace GlitchyEngine.World
 					collision.Rigidbody = rigidbodyEntityB.UUID;
 					collision.OtherRigidbody = rigidbodyEntityA.UUID;
 					
-					scriptOfColliderB?.Instance?.InvokeOnCollisionLeave2D(collision);
-					scriptOfRigidbodyB?.Instance?.InvokeOnCollisionLeave2D(collision);
+					//scriptOfColliderB?.Instance?.InvokeOnCollisionLeave2D(collision);
+					//scriptOfRigidbodyB?.Instance?.InvokeOnCollisionLeave2D(collision);
 				}
 			};
 
@@ -992,13 +993,13 @@ namespace GlitchyEngine.World
 
 					if (sourceScript.Instance != null)
 					{
-						scriptSerializer.SerializeScriptInstance(sourceScript.Instance);
+						//scriptSerializer.SerializeScriptInstance(sourceScript.Instance);
 						
 						// Initializes the created instance
 						// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
 						ScriptEngine.InitializeInstance(copy, targetScript);
 						
-						newScripts.Add((original.UUID, targetScript.Instance));
+						//newScripts.Add((original.UUID, targetScript.Instance));
 					}
 				}
 

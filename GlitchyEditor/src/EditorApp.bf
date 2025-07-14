@@ -10,6 +10,7 @@ using GlitchyEditor.Platform.Windows;
 using GlitchyEditor.Multithreading;
 using System.Threading;
 using GlitchyEditor.Platform;
+using System.Diagnostics;
 
 namespace GlitchyEditor
 {
@@ -25,6 +26,11 @@ namespace GlitchyEditor
 		
 		public this(String[] args)
 		{
+			while(!Debug.IsDebuggerPresent)
+			{
+				Thread.Sleep(10);
+			}
+
 			Log.ClientLogger = new EditorLogger();
 			Log.EngineLogger = new EditorLogger() { IsEngineLogger = true };
 

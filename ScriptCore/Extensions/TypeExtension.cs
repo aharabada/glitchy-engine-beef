@@ -148,7 +148,7 @@ public static class TypeExtension
         string name = fullName.TrimEnd(']').ToString();
 
         // Non generic type, easy!
-        foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies().Reverse())
+        foreach (Assembly assembly in ((IEnumerable<Assembly>)AppDomain.CurrentDomain.GetAssemblies()).Reverse())
         {
             Type? type = assembly.GetType(name);
 

@@ -1,4 +1,5 @@
-﻿using GlitchyEngine.Math.Attributes;
+﻿using System;
+using GlitchyEngine.Math.Attributes;
 
 namespace GlitchyEngine.Math;
 

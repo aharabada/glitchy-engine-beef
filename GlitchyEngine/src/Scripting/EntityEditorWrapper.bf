@@ -1,37 +1,28 @@
 using System;
 using Mono;
 using GlitchyEngine.Core;
+using System.Diagnostics;
 
 namespace GlitchyEngine.Scripting;
 
 using internal GlitchyEngine.Scripting;
 
-class EntityEditorWrapper : ScriptClass
+class EntityEditorWrapper : NewScriptClass
 {
-	function void ShowEntityEditorFunc(MonoObject* scriptInstance, MonoException** exception);
+	function void ShowEntityEditorFunc(UUID entityId);
 
 	private ShowEntityEditorFunc _showEntityEditorFunc;
 
 	[AllowAppend]
-	public this(StringView classNamespace, StringView className, MonoImage* image) : base(classNamespace, className, image)
+	public this() : base(FullName, .Empty, .None, false)
 	{
-		_showEntityEditorFunc = (ShowEntityEditorFunc)GetMethodThunk("ShowEntityEditor", 1);
-		
-		if (_showEntityEditorFunc == null)
-		{
-			Log.EngineLogger.Error("Entity editor has no show entity editor func.");
-		}
+		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "ShowEntityEditor", out _showEntityEditorFunc);
+
+		Debug.Assert(_showEntityEditorFunc != null);
 	}
 
-	public void ShowEntityEditor(ScriptInstance instance, UUID entityId)
+	public void ShowEntityEditor(NewScriptInstance instance, UUID entityId)
 	{
-		MonoException* exception = null;
-
-		_showEntityEditorFunc(instance.MonoInstance, &exception);
-
-		if (exception != null)
-		{
-			ScriptEngine.HandleMonoException(exception, entityId);
-		}
+		_showEntityEditorFunc(entityId);
 	}
 }

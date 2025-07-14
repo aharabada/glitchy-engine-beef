@@ -1,0 +1,98 @@
+using System;
+using GlitchyEngine.Core;
+using static GlitchyEngine.Scripting.ScriptEngine;
+namespace GlitchyEngine.Scripting;
+
+class NewScriptClass
+{
+	public String FullName ~ delete _;
+	public StringView Name;
+	public Guid Guid;
+	public ScriptMethods Methods;
+	
+	public bool RunInEditMode;
+
+	public this(StringView fullName, Guid guid, ScriptMethods methods, bool runInEditMode = false)
+	{
+		FullName = new String(fullName);
+		Guid = guid;
+
+		int lastDotIndex = FullName.LastIndexOf('.');
+
+		if (lastDotIndex == -1)
+			Name = FullName;
+		else
+			Name = FullName.Substring(lastDotIndex + 1);
+
+		Methods = methods;
+
+		RunInEditMode = runInEditMode;
+	}
+}
+
+using internal GlitchyEngine.Scripting;
+
+class NewScriptInstance : RefCounter
+{
+	private NewScriptClass _scriptClass;
+
+	private UUID _entityId;
+
+	private bool _isCreated = false;
+
+	public NewScriptClass ScriptClass => _scriptClass;
+
+	/// Gets whether or not the instance has ben initialized.
+	public bool IsInitialized {get; private set;};
+
+	/// Gets whether or not the Create-Method of this instance has been called before.
+	public bool IsCreated => _isCreated;
+
+	public UUID EntityId => _entityId;
+
+	public this(UUID entityId, NewScriptClass scriptClass)
+	{
+		Log.EngineLogger.AssertDebug(scriptClass != null);
+
+		_entityId = entityId;
+		_scriptClass = scriptClass;
+	}
+
+	public ~this()
+	{
+		Destroy();
+	}
+
+	public void Instantiate()
+	{
+		CoreClrHelper.CreateScriptInstance(_entityId, _scriptClass.FullName);
+		IsInitialized = true;
+	}
+
+	public void InvokeOnCreate()
+	{
+		if (_scriptClass.Methods.HasFlag(.OnCreate))
+			CoreClrHelper._entityScriptFunctions.OnCreate();
+	}
+
+	public void InvokeOnUpdate(float deltaTime)
+	{
+		if (_scriptClass.Methods.HasFlag(.OnUpdate))
+			CoreClrHelper._entityScriptFunctions.OnUpdate(deltaTime);
+	}
+
+	public void Destroy()
+	{
+		if (!IsInitialized)
+			return;
+
+		if (_scriptClass.Methods.HasFlag(.OnDestroy) && (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode))
+		{
+			CoreClrHelper._entityScriptFunctions.OnDestroy();
+		}
+
+		IsInitialized = false;
+		
+		ScriptEngine.UnregisterScriptInstance(_entityId);
+	}
+}

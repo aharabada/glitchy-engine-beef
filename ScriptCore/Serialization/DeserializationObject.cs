@@ -148,7 +148,7 @@ public class DeserializationObject
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    private struct DataHelper
+    public struct DataHelper
     {
         [StructLayout(LayoutKind.Sequential)]
         public unsafe struct StringView

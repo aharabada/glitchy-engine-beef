@@ -81,8 +81,8 @@ class ScriptClass : SharpClass
 		// TODO: This is only relevant for the editor!
 		MonoCustomAttrInfo* attributes = Mono.mono_custom_attrs_from_class(_monoClass);
 
-		if (attributes != null && ScriptEngine.Classes.RunInEditModeAttribute != null)
-			_runInEditMode = Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Classes.RunInEditModeAttribute._monoClass);
+		//if (attributes != null && ScriptEngine.Classes.RunInEditModeAttribute != null)
+		//	_runInEditMode = Mono.mono_custom_attrs_has_attr(attributes, ScriptEngine.Classes.RunInEditModeAttribute._monoClass);
 	}
 
 	private MonoMethod* FindConstructor()
@@ -148,8 +148,8 @@ class ScriptClass : SharpClass
 
 		if (_onCollisionEnter2D != null)
 		{
-			MonoObject* monoObject = ScriptEngine.Classes.Collision2D.BoxValue(collision);
-			_onCollisionEnter2D(instance, monoObject, &exception);
+			//MonoObject* monoObject = ScriptEngine.Classes.Collision2D.BoxValue(collision);
+			//_onCollisionEnter2D(instance, monoObject, &exception);
 		}
 	}
 	
@@ -159,8 +159,8 @@ class ScriptClass : SharpClass
 		
 		if (_onCollisionEnter2D != null)
 		{
-			MonoObject* monoObject = ScriptEngine.Classes.Collision2D.BoxValue(collision);
-			_onCollisionLeave2D(instance, monoObject, &exception);
+			//MonoObject* monoObject = ScriptEngine.Classes.Collision2D.BoxValue(collision);
+			//_onCollisionLeave2D(instance, monoObject, &exception);
 		}
 	}
 

@@ -23,12 +23,12 @@ public class ScriptInstanceSerializer
 	public void Clear()
 	{
 		ClearDictionaryAndDeleteValues!(_serializedData);
-		ScriptEngine.Classes.EntitySerializer.DestroySerializationContext(this);
+		//ScriptEngine.Classes.EntitySerializer.DestroySerializationContext(this);
 	}
 
 	public void Init()
 	{
-		ScriptEngine.Classes.EntitySerializer.CreateSerializationContext(this);
+		//ScriptEngine.Classes.EntitySerializer.CreateSerializationContext(this);
 	}
 
 	/// Serializes all script instances that are currently managed by the ScriptEngine.
@@ -36,7 +36,11 @@ public class ScriptInstanceSerializer
 	{
 		Debug.Profiler.ProfileFunction!();
 
-		Init();
+		Log.EngineLogger.Error("SerializeScriptInstances not implemented.");
+
+		return;
+
+		/*Init();
 
 		for (let (id, scriptInstance) in ScriptEngine._entityScriptInstances)
 		{
@@ -46,7 +50,7 @@ public class ScriptInstanceSerializer
 		for (let (name, scriptClass) in ScriptEngine.EntityClasses)
 		{
 			SerializeStaticScriptClassFields(scriptClass);
-		}
+		}*/
 	}
 
 	/// Serializes the given script instance.
@@ -67,8 +71,12 @@ public class ScriptInstanceSerializer
 	public void DeserializeScriptInstances()
 	{
 		Debug.Profiler.ProfileFunction!();
+		
+		Log.EngineLogger.Error("SerializeScriptInstances not implemented.");
 
-		Init();
+		return;
+
+		/*Init();
 
 		for (let (id, script) in ScriptEngine._entityScriptInstances)
 		{
@@ -78,7 +86,7 @@ public class ScriptInstanceSerializer
 		for (let (name, scriptClass) in ScriptEngine.EntityClasses)
 		{
 			DeserializeStaticScriptClassFields(scriptClass);
-		}
+		}*/
 	}
 
 	/// Deserializes the data into the given script instance, if there is data available.

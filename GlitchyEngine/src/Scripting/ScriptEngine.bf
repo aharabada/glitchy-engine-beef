@@ -15,31 +15,31 @@ using internal GlitchyEngine.Scripting;
 class EngineClasses
 {
 	// TODO: Not all of these are actually ScriptClasses (actually none of them are...)
-
-	private ScriptClass s_ComponentRoot;
-	private ScriptClass s_EntityRoot;
-	private ScriptClass s_EngineObject;
+	
+	private NewScriptClass s_EngineObject;
+	private NewScriptClass s_ComponentRoot;
+	private NewScriptClass s_EntityRoot;
 
 	private EntityEditorWrapper s_EntityEditor;
 
 	private EntitySerializerWrapper s_EntitySerializer;
-	private ScriptClass s_SerializationContext;
+	//private NewScriptClass s_SerializationContext;
 
-	private ScriptClass s_Collision2D;
+	private NewScriptClass s_Collision2D;
 
-	private ScriptClass s_RunInEditModeAttribute;
-
-	public ScriptClass ComponentRoot => s_ComponentRoot;
-	public ScriptClass EntityRoot => s_EntityRoot;
-	public ScriptClass EngineObject => s_EngineObject;
+	private NewScriptClass s_RunInEditModeAttribute;
+	
+	public NewScriptClass EngineObject => s_EngineObject;
+	public NewScriptClass ComponentRoot => s_ComponentRoot;
+	public NewScriptClass EntityRoot => s_EntityRoot;
 
 	public EntityEditorWrapper EntityEditor => s_EntityEditor;
 
 	public EntitySerializerWrapper EntitySerializer => s_EntitySerializer;
 
-	public ScriptClass Collision2D => s_Collision2D;
+	public NewScriptClass Collision2D => s_Collision2D;
 
-	public ScriptClass RunInEditModeAttribute => s_RunInEditModeAttribute;
+	public NewScriptClass RunInEditModeAttribute => s_RunInEditModeAttribute;
 
 	public ~this()
 	{
@@ -48,37 +48,37 @@ class EngineClasses
 
 	internal void ReleaseAndNullify()
 	{
-		ReleaseRefAndNullify!(s_EngineObject);
-		ReleaseRefAndNullify!(s_EntityRoot);
-		ReleaseRefAndNullify!(s_ComponentRoot);
+		DeleteAndNullify!(s_EngineObject);
+		DeleteAndNullify!(s_EntityRoot);
+		DeleteAndNullify!(s_ComponentRoot);
 
-		ReleaseRefAndNullify!(s_EntityEditor);
+		DeleteAndNullify!(s_EntityEditor);
 
 		ReleaseRefAndNullify!(s_EntitySerializer);
-		ReleaseRefAndNullify!(s_SerializationContext);
+		//ReleaseRefAndNullify!(s_SerializationContext);
 
-		ReleaseRefAndNullify!(s_Collision2D);
+		DeleteAndNullify!(s_Collision2D);
 
-		ReleaseRefAndNullify!(s_RunInEditModeAttribute);
+		DeleteAndNullify!(s_RunInEditModeAttribute);
 	}
 
-	internal void LoadClasses(MonoImage* image)
+	internal void LoadClasses()
 	{
 		ReleaseAndNullify();
 
-		s_EngineObject = new ScriptClass("GlitchyEngine.Core", "EngineObject", image);
-		s_EntityRoot = new ScriptClass("GlitchyEngine", "Entity", image);
-		s_ComponentRoot = new ScriptClass("GlitchyEngine.Core", "Component", image);
+		s_EngineObject = new NewScriptClass("GlitchyEngine.Core.EngineObject", .Empty, .None);
+		s_EntityRoot = new NewScriptClass("GlitchyEngine.Core.Entity", .Empty, .None);
+		s_ComponentRoot = new NewScriptClass("GlitchyEngine.Core.Component", .Empty, .None);
 
 		// Editor classes
-		s_EntityEditor = new EntityEditorWrapper("GlitchyEngine.Editor", "EntityEditor", image);
+		s_EntityEditor = new EntityEditorWrapper();
 
-		s_EntitySerializer = new EntitySerializerWrapper("GlitchyEngine.Serialization", "EntitySerializer", image);
+		//s_EntitySerializer = new EntitySerializerWrapper("GlitchyEngine.Serialization", "EntitySerializer");
 
-		s_Collision2D = new ScriptClass("GlitchyEngine.Physics", "Collision2D", image);
+		s_Collision2D = new NewScriptClass("GlitchyEngine.Physics.Collision2D", .Empty, .None);
 
 		// Attributes
-		s_RunInEditModeAttribute = new ScriptClass("GlitchyEngine.Editor", "RunInEditModeAttribute", image);
+		s_RunInEditModeAttribute = new NewScriptClass("GlitchyEngine.Editor.RunInEditModeAttribute", .Empty, .None);
 	}
 }
 
@@ -99,9 +99,9 @@ static class ScriptEngine
 
 	public static EngineClasses Classes => _classes;
 
-	private static Dictionary<StringView, ScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndReleaseValues!(_);
+	private static Dictionary<StringView, NewScriptClass> _entityScripts = new .() ~ DeleteDictionaryAndValues!(_);
 
-	internal static Dictionary<UUID, ScriptInstance> _entityScriptInstances = new .() ~ {
+	internal static Dictionary<UUID, NewScriptInstance> _entityScriptInstances = new .() ~ {
 		for (var entry in _)
 		{
 			entry.value?.ReleaseRef();
@@ -109,7 +109,7 @@ static class ScriptEngine
 		delete _;
 	}
 
-	public static Dictionary<StringView, ScriptClass> EntityClasses => _entityScripts;
+	public static Dictionary<StringView, NewScriptClass> EntityClasses => _entityScripts;
 
 	/// Gets or sets the current scene context for the runtime.
 	public static Scene Context
@@ -189,7 +189,8 @@ static class ScriptEngine
 
 	public static void Init()
 	{
-		InitMono();
+		InitRuntime();
+		//InitMono();
 
 		LoadScriptAssemblies();
 	}
@@ -202,7 +203,17 @@ static class ScriptEngine
 		ReloadAssemblies();
 	}
 
-	static void InitMono()
+	static void InitRuntime()
+	{
+		// TODO: We currently have the utility methods (e.g. assembly loading) in ScriptCore,
+		// the problem is, that CoreCLR currently can't unload the initial assembly.
+		// this means that we cannot easily reload changes to ScriptCore.
+		// Since this basic infrastructure shouldn't really ever change we could make a tiny
+		// library with only that enabling us to reload script core.
+		CoreClrHelper.Init("resources/scripts/ScriptCore.dll");
+	}	
+
+	/*static void InitMono()
 	{
 		Mono.mono_set_assemblies_path("mono/lib/4.5");
 
@@ -226,7 +237,7 @@ static class ScriptEngine
 		}
 
 		Mono.mono_thread_set_main(Mono.mono_thread_current());
-	}
+	}*/
 	
 	static bool _requestingReload = false;
 
@@ -278,26 +289,27 @@ static class ScriptEngine
 
 		ScriptGlue.Init();
 
-		CreateAppDomain("GlitchyEngineScriptRuntime");
-		(s_CoreAssembly, s_CoreAssemblyImage) = LoadAssembly("resources/scripts/ScriptCore.dll", _debuggingEnabled);
-
+		// TODO: Check if files exist
 		if (File.Exists(_appAssemblyPath))
-			(s_AppAssembly, s_AppAssemblyImage) = LoadAssembly(_appAssemblyPath, _debuggingEnabled);
-		else
 		{
-			s_AppAssembly = null;
-			s_AppAssemblyImage = null;
+			List<uint8> data = new:ScopedAlloc! List<uint8>(1024);
+			File.ReadAll(_appAssemblyPath, data);
+
+			List<uint8> pdbData = new:ScopedAlloc! List<uint8>(1024);
+
+			String pdbPath = scope .();
+			Path.ChangeExtension(_appAssemblyPath, ".pdb", pdbPath);
+
+			File.ReadAll(pdbPath, pdbData);
+
+			CoreClrHelper.LoadAppAssembly(data, pdbData);
+			
+			GetEntitiesFromAssemblies();
+			
+			//ScriptGlue.RegisterManagedComponents();
 		}
 
-		Classes.LoadClasses(s_CoreAssemblyImage);
-
-		ClearDictionaryAndReleaseValues!(_entityScripts);
-
-		GetEntitiesFromAssemblies();
-
-		ScriptGlue.RegisterManagedComponents();
-
-		InitAssemblyWatcher();
+		//InitAssemblyWatcher();
 	}
 
 	/// Starts the script runtime and sets the context scene.
@@ -338,14 +350,16 @@ static class ScriptEngine
 	/// Disposes of and replaces the old instance, if one exists.
 	public static bool InitializeInstance(Entity entity, ScriptComponent* script)
 	{
-		ScriptClass scriptClass = GetScriptClass(script.ScriptClassName);
+		Log.EngineLogger.Error($"{Compiler.CallerMemberName} not updated yet.");
+
+		NewScriptClass scriptClass = GetScriptClass(script.ScriptClassName);
 
 		if (scriptClass == null)
 			return false;
 
 		UUID entityId = entity.UUID;
 
-		script.Instance = new ScriptInstance(entityId, scriptClass);
+		script.Instance = new NewScriptInstance(entityId, scriptClass);
 		script.Instance..ReleaseRef();
 
 		if (_entityScriptInstances.TryGetValue(entityId, let currentInstance))
@@ -353,7 +367,7 @@ static class ScriptEngine
 
 		_entityScriptInstances[entityId] = script.Instance..AddRef();
 
-		script.Instance.Instantiate(entityId);
+		script.Instance.Instantiate();
 
 		return true;
 	}
@@ -381,109 +395,50 @@ static class ScriptEngine
 		_entityScriptInstances.Remove(entityId);
 	}
 
-	private static MonoAssembly* LoadCSharpAssembly(StringView assemblyPath, bool loadPDB = false)
+	public enum ScriptMethods : uint32
 	{
-		Debug.Profiler.ProfileFunction!();
-
-		List<uint8> data = new List<uint8>(1024);
-
-		File.ReadAll(assemblyPath, data);
-	
-	    // NOTE: We can't use this image for anything other than loading the assembly because this image doesn't have a reference to the assembly
-	    MonoImageOpenStatus status = .ImageInvalid;
-	    MonoImage* image = Mono.mono_image_open_from_data_full(data.Ptr, (.)data.Count, true, &status, false);
-
-		delete data;
-
-	    if (status != .Ok)
-	    {
-	        char8* errorMessage = Mono.mono_image_strerror(status);
-
-			Log.EngineLogger.Error($"Failed to load C# Assembly: \"{StringView(errorMessage)}\"");
-
-	        return null;
-	    }
-
-		if (loadPDB)
-		{
-			String pdbPath = scope .();
-			Path.ChangeExtension(assemblyPath, ".pdb", pdbPath);
-
-			if (File.Exists(pdbPath))
-			{
-				Log.EngineLogger.Trace($"Loading PDB \"{pdbPath}\"...");
-
-				List<uint8> pdbData = new List<uint8>(1024);
-
-				let result = File.ReadAll(pdbPath, pdbData);
-
-				if (result case .Err(let error))
-				{
-					Log.EngineLogger.Error("Failed to load PDB file ({error}).");
-				}
-
-				Mono.mono_debug_open_image_from_memory(image, pdbData.Ptr, (int32)pdbData.Count);
-
-				delete pdbData;
-			}
-			else
-			{
-				Log.EngineLogger.Warning($"Debugging enabled but no PDB-File found \"{assemblyPath}\".");
-			}
-		}
-	
-	    MonoAssembly* assembly = Mono.mono_assembly_load_from_full(image, assemblyPath.ToScopeCStr!(), &status, 0);
-
-	    Mono.mono_image_close(image);
-
-	    return assembly;
+	    None = 0,
+	    OnCreate = 0x1,
+	    OnUpdate = 0x2,
+	    OnDestroy = 0x4,
 	}
 
-	static void CreateAppDomain(StringView name)
+	struct ScriptClassInfo
 	{
-		s_AppDomain = Mono.mono_domain_create_appdomain(name.ToScopeCStr!(), null);
-		Mono.mono_domain_set(s_AppDomain, true);
-	}
-
-	static (MonoAssembly* assembly, MonoImage* image) LoadAssembly(StringView filepath, bool loadPDB = false)
-	{
-		Debug.Profiler.ProfileFunction!();
-
-		MonoAssembly* assembly = LoadCSharpAssembly(filepath, loadPDB);
-		MonoImage* image = Mono.mono_assembly_get_image(assembly);
-
-		return (assembly, image);
+		public char8* Name;
+		public Guid Guid;
+		public ScriptMethods Methods;
+		public bool RunInEditMode;
 	}
 
 	private static void GetEntitiesFromAssemblies()
 	{
 		Debug.Profiler.ProfileFunction!();
 
-		if (s_AppAssemblyImage == null)
-			return;
+		// TODO: We should probably verify, that all required types actually exist.
+		Classes.LoadClasses();
 
-	    MonoTableInfo* typeDefinitionsTable = Mono.mono_image_get_table_info(s_AppAssemblyImage, .MONO_TABLE_TYPEDEF);
-	    int32 numTypes = Mono.mono_table_info_get_rows(typeDefinitionsTable);
+		CoreClrHelper.GetScriptClasses(let data, let entryCount);
+		
+		Span<ScriptClassInfo> scriptClasses = .((.)data, entryCount);
+		
+		List<NewScriptClass> newClasses = scope .();
 
-	    for (int32 i = 0; i < numTypes; i++)
-	    {
-	        int32[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE] cols = .();
-	        Mono.mono_metadata_decode_row(typeDefinitionsTable, i, (.)&cols, (.)SOME_RANDOM_ENUM.MONO_TYPEDEF_SIZE);
+		ClearDictionaryAndDeleteValues!(_entityScripts);
 
-	        char8* nameSpace = Mono.mono_metadata_string_heap(s_AppAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAMESPACE]);
-			char8* name = Mono.mono_metadata_string_heap(s_AppAssemblyImage, (.)cols[(.)SOME_RANDOM_ENUM.MONO_TYPEDEF_NAME]);
-			
-			MonoClass* monoClass = Mono.mono_class_from_name(s_AppAssemblyImage, nameSpace, name);
-			
-			// Check if it is an entity
-			if (monoClass != null && Mono.mono_class_is_subclass_of(monoClass, Classes.EntityRoot.[Friend]_monoClass, false))
-			{
-				ScriptClass entityScript = new ScriptClass(StringView(nameSpace), StringView(name), s_AppAssemblyImage);
-				_entityScripts.Add(entityScript.FullName, entityScript);
+		for (var entry in scriptClasses)
+		{
+			NewScriptClass scriptClass = new .(StringView(entry.Name), entry.Guid, entry.Methods, entry.RunInEditMode);
 
-				Log.EngineLogger.Info($"Added entity \"{entityScript.FullName}\"");
-			}
-	    }
+			newClasses.Add(scriptClass);
+		}
+
+		for (var scriptClass in newClasses)
+		{
+			_entityScripts.Add(scriptClass.FullName, scriptClass);
+		}
+
+		CoreClrHelper.FreeScriptClassNames();
 	}
 
 	public static void ReloadAssemblies()
@@ -492,20 +447,20 @@ static class ScriptEngine
 
 		Log.EngineLogger.Info("Reloading script assemblies.");
 
+
 		ScriptInstanceSerializer contextSerializer = scope .();
 
 		contextSerializer.SerializeScriptInstances();
 
-		Mono.mono_domain_set(s_RootDomain, true);
-
-		Mono.mono_domain_unload(s_AppDomain);
+		// TODO: Unload script assemblies, remove class handles, fire unload events?
 
 		LoadScriptAssemblies();
 
 		{
 			Debug.Profiler.ProfileScope!("Initialize Instances");
 			
-			// We need to create a new instance for every entity
+			Log.EngineLogger.Error("Recreating and copying instances (ReloadAssemblies) not updated yet.");
+			/*// We need to create a new instance for every entity
 			for (let (id, scriptInstance) in _entityScriptInstances)
 			{
 				if (Context.GetEntityByID(id) case .Ok(let entity))
@@ -517,7 +472,7 @@ static class ScriptEngine
 				{
 					Log.EngineLogger.AssertDebug(false, "Entities script was just serialized but the entity doesn't exist anymore.");
 				}
-			}
+			}*/
 		}
 
 		contextSerializer.DeserializeScriptInstances();
@@ -527,25 +482,25 @@ static class ScriptEngine
 
 	public static void Shutdown()
 	{
-		Mono.mono_domain_set(s_RootDomain, false);
+		/*Mono.mono_domain_set(s_RootDomain, false);
 
 		Mono.mono_domain_unload(s_AppDomain);
 		s_AppDomain = null;
 
 		Mono.mono_jit_cleanup(s_RootDomain);
-		s_RootDomain = null;
+		s_RootDomain = null;*/
 	}
 
 	/// Returns the script instance or null.
 	public static MonoObject* GetManagedInstance(UUID entityId)
 	{
-		if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
-			return scriptInstance.MonoInstance;
+		//if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
+		//	return scriptInstance.MonoInstance;
 
 		return null;
 	}
 
-	public static ScriptClass GetScriptClass(StringView name)
+	public static NewScriptClass GetScriptClass(StringView name)
 	{
 		EntityClasses.TryGetValue(name, let scriptClass);
 

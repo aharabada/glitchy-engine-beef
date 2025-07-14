@@ -14,7 +14,10 @@ using GlitchyEngine.Editor;
 using GlitchyEngine.World.Components;
 using GlitchyEngine.Content;
 using GlitchyEngine.Renderer;
+using System.Diagnostics;
+using System.IO;
 using static GlitchyEngine.Renderer.Text.FontRenderer;
+using System.Linq;
 
 namespace GlitchyEngine.Scripting;
 
@@ -39,21 +42,249 @@ class MessageOrigin
 	}
 }
 
+struct RegisterCallAttribute : Attribute
+{
+	public String MethodName;
+
+	public this(String methodName)
+	{
+		MethodName = methodName;
+	}
+}
+
+struct TypeTranslationTemplate
+{
+	public String StartCode;
+	public String EndCode;
+	public String PrettyCSharpParamType;
+
+	public this(String startCode, String endCode, String prettyCSharpParamType)
+	{
+		StartCode = startCode;
+		EndCode = endCode;
+		PrettyCSharpParamType = prettyCSharpParamType;
+	}
+}
+
+[AttributeUsage(.Struct)]
+struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
+{
+	private static readonly Dictionary<String, String> BeefToCsharpTypeMap = new .()
+	{
+		("int32", "int"),
+		("char16*", "char*"),
+		("char8*", "byte*"),
+		("GlitchyEngine.Events.MouseButton", "GlitchyEngine.MouseButton")
+	};
+
+	// {0}... Out name, 
+	// {1}... In name
+	private static readonly Dictionary<String, TypeTranslationTemplate> BeefTypeToCSharpWrapperTemplate = new .()
+	{
+		("char8*", .("byte* {0} = (byte*)Marshal.StringToCoTaskMemUTF8({1});", "Marshal.FreeCoTaskMem((IntPtr){0});", "string")),
+		("char16*", .("fixed (char* {0} = {1})\n{{", "}}", "string")),
+	};
+	
+	private static readonly Dictionary<String, TypeTranslationTemplate> CSharpTypeToReturnValueTemplate = new .()
+	{
+		("void", .("", "", "void")),
+	};
+
+	private static String GetCSharpInterfaceType(String beefType)
+	{
+		if (BeefToCsharpTypeMap.TryGetValueAlt(beefType, let csharpType))
+		{
+			return csharpType;
+		}
+
+		return beefType;
+	}
+
+	private static TypeTranslationTemplate GetCSharpWrapperTemplate(String beefType)
+	{
+		if (BeefTypeToCSharpWrapperTemplate.TryGetValueAlt(beefType, let template))
+		{
+			return template;
+		}
+		
+		return .("", "", GetCSharpInterfaceType(beefType));
+	}
+
+	private static TypeTranslationTemplate GetCSharpReturnValueTemplate(String beefType)
+	{
+		if (CSharpTypeToReturnValueTemplate.TryGetValueAlt(beefType, let template))
+		{
+			return template;
+		}
+
+		return .("var returnValue = ", "return returnValue;", GetCSharpInterfaceType(beefType));
+	}
+
+	private static void GenerateCSharpFunctionPointer(MethodInfo method, String outString)
+	{
+		String parameters = new String();
+
+		for (int i < method.ParamCount)
+		{
+			if (i != 0)
+				parameters.Append(", ");
+
+			String typeHolder = scope String();
+
+			method.GetParamType(i).ToString(typeHolder);
+
+			StringView csharpType = GetCSharpInterfaceType(typeHolder);
+
+			parameters.AppendF($"{csharpType}");
+		}
+
+		String csharpFunctionPointer = scope $"    public delegate* unmanaged[Cdecl]<{parameters}{(parameters.IsEmpty ? "" : ", ")}{method.ReturnType}> {method.Name};\n";
+		outString.Append(csharpFunctionPointer);
+	}
+	
+	private static void GenerateCSharpWrapperMethod(MethodInfo method, String outString)
+	{
+		String wrapperParameters = new .();
+
+		String callArguments = new .();
+
+		String translation = new .();
+		String cleanup = new .();
+
+		for (int i < method.ParamCount)
+		{
+			String beefParameterType = scope String();
+			method.GetParamType(i).ToString(beefParameterType);
+
+			TypeTranslationTemplate template = GetCSharpWrapperTemplate(beefParameterType);
+
+			StringView paramName = method.GetParamName(i);
+
+			// Generate the parameter for the wrapper head.
+			{
+				if (i != 0)
+					wrapperParameters.Append(", ");
+
+				wrapperParameters.AppendF($"{template.PrettyCSharpParamType} {paramName}");
+			}
+
+			{
+				if (i != 0)
+					callArguments.Append(", ");
+
+				String translatedParamName = new String(paramName);
+
+				if (!template.StartCode.IsEmpty)
+				{
+					translatedParamName.Append("Converted");
+
+					callArguments.AppendF($"{translatedParamName}");
+					
+					translation.AppendF(template.StartCode, translatedParamName, paramName);
+					translation.Append('\n');
+				}
+				else
+				{
+					callArguments.AppendF($"{paramName}");
+				}
+
+				if (!template.EndCode.IsEmpty)
+				{
+					cleanup.AppendF(template.EndCode, translatedParamName, paramName);
+					cleanup.Append('\n');
+				}
+			}
+		}
+
+		String returnTypeName = new .();
+		method.ReturnType.ToString(returnTypeName);
+		String csharpReturnType = GetCSharpInterfaceType(returnTypeName);
+		TypeTranslationTemplate template = GetCSharpReturnValueTemplate(csharpReturnType);
+
+		outString.AppendF($"""
+			internal static unsafe {template.PrettyCSharpParamType} NEW_{method.Name}({wrapperParameters})
+			{{
+				{translation}
+				{template.StartCode}_engineFunctions.{method.Name}({callArguments});
+
+				{cleanup}
+				{template.EndCode}
+			}}
+
+
+			""");
+	}
+
+	[Comptime]
+	public void ApplyToType(Type self)
+    {
+		String csharpEngineFunctionsStruct = new String("""
+			using System;
+			using System.Runtime.InteropServices;
+			using GlitchyEngine;
+			using GlitchyEngine.Core;
+
+			namespace GlitchyEngine;
+
+			internal unsafe partial struct EngineFunctions
+			{
+
+			""");
+
+		String csharpScriptGlue = new String("""
+
+
+			internal static partial class ScriptGlue
+			{
+
+			""");
+
+        for (MethodInfo methodInfo in typeof(ScriptGlue).GetMethods(.Static | .NonPublic))
+		{
+			if (methodInfo.GetCustomAttribute<RegisterCallAttribute>() case .Ok(let attribute))
+			{
+				String parameters = new String();
+
+				for (int i < methodInfo.ParamCount)
+				{
+					if (i != 0)
+						parameters.Append(", ");
+
+					parameters.AppendF($"{methodInfo.GetParamType(i)}");
+				}
+
+				String line = scope $"public function {methodInfo.ReturnType}({parameters}) {methodInfo.Name};\n";
+
+				Compiler.EmitTypeBody(self, line);
+
+				GenerateCSharpFunctionPointer(methodInfo, csharpEngineFunctionsStruct);
+				
+				GenerateCSharpWrapperMethod(methodInfo, csharpScriptGlue);
+			}
+		}
+
+		csharpEngineFunctionsStruct.Append('}');
+		csharpScriptGlue.Append('}');
+
+		csharpEngineFunctionsStruct.Append(csharpScriptGlue);
+
+		if (File.WriteAllText("../ScriptCore/ScriptGlue.gen.cs", csharpEngineFunctionsStruct) case .Err)
+		{
+			Runtime.FatalError("Failed to write file");
+		}
+    }
+}
+
+[EngineFunctionsGenerator]
+struct EngineFunctions
+{
+}
+
 static class ScriptGlue
 {
 	private static Dictionary<MonoType*, function void(Entity entityId)> s_AddComponentMethods = new .() ~ delete _;
 	private static Dictionary<MonoType*, function bool(Entity entityId)> s_HasComponentMethods = new .() ~ delete _;
 	private static Dictionary<MonoType*, function void(Entity entityId)> s_RemoveComponentMethods = new .() ~ delete _;
-
-	struct RegisterCallAttribute : Attribute
-	{
-		public String MethodName;
-
-		public this(String methodName)
-		{
-			MethodName = methodName;
-		}
-	}
 
 	/* Adding this attribute to a method will log method entry and returned Result<T> errors */
 	[AttributeUsage(.Method)]
@@ -62,27 +293,47 @@ static class ScriptGlue
 	    [Comptime]
 	    public void OnMethodInit(MethodInfo method, Self* prev)
 	    {
+			String functionContent = new .();
+
+			int i = 0;
+
 	        for (var methodInfo in typeof(ScriptGlue).GetMethods(.Static))
 			{
 				if (methodInfo.GetCustomAttribute<RegisterCallAttribute>() case .Ok(let attribute))
 				{
-					String functionType = scope $"{methodInfo.ReturnType}({methodInfo.GetParamsDecl(.. scope .())})";
-
-					String line = scope $"RegisterCall<function {functionType}>(\"{attribute.MethodName}\", => {methodInfo.Name});\n";
-
-					Compiler.EmitMethodEntry(method, line);
+					functionContent.AppendF($"functions.{methodInfo.Name} = => {methodInfo.Name};\n");
+					//functionContent.AppendF($"functions[{i}] = (void*)( => {methodInfo.Name});\n");
+					i++;
 				}
 			}
+
+			functionContent.Insert(0, scope $"EngineFunctions functions = .();\n");
+
+			functionContent.Append("_setEngineFunctions(&functions);");
+
+			Compiler.EmitMethodEntry(method, functionContent);
 	    }
 	}
 
+
 	public static Event<delegate void()> OnRegisterNativeCalls ~ _.Dispose();
+
+	/*private function void SetEngineFunctions(EngineFunctions* engineFunctions);
+	private static SetEngineFunctions _setEngineFunctions;*/
+
+	private function void SetEngineFunctions(EngineFunctions* engineFunctions);
+	private static SetEngineFunctions _setEngineFunctions;
 
 	public static void Init()
 	{
+		if (_setEngineFunctions == null)
+		{
+			CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "SetEngineFunctions", out _setEngineFunctions);
+		}
+
 		RegisterCalls();
 
-		RegisterMathFunctions();
+		//RegisterMathFunctions();
 	}
 
 	public static void RegisterManagedComponents()
@@ -103,10 +354,17 @@ static class ScriptGlue
 		RegisterComponent<MeshRendererComponent>("GlitchyEngine.Graphics.MeshRenderer");
 	}
 
-	[RegisterMethod]
 	private static void RegisterCalls()
 	{
+		FillEngineFunctions();
+
 		OnRegisterNativeCalls.Invoke();
+	}
+	
+	[RegisterMethod]
+	private static void FillEngineFunctions()
+	{
+
 	}
 
 	private static void RegisterComponent<T>(StringView cSharpClassName = "") where T : struct, new
@@ -248,7 +506,7 @@ static class ScriptGlue
 	
 #region Log
 
-	[RegisterCall("ScriptGlue::Log_LogMessage")]
+	/*[RegisterCall("ScriptGlue::Log_LogMessage")]
 	static void Log_LogMessage(int32 logLevel, MonoString* message, MonoString* fileName, int lineNumber)
 	{
 		char8* utfMessage = Mono.mono_string_to_utf8(message);
@@ -275,6 +533,30 @@ static class ScriptGlue
 		}
 
 		Mono.mono_free(utfMessage);
+	}*/
+
+	[RegisterCall("ScriptGlue::Log_LogMessage")]
+	[CallingConvention(.Cdecl)]
+	static void Log_LogMessage(int32 logLevel, char16* messagePtr, char16* fileNamePtr, int lineNumber)
+	{
+		String escapedMessage = new:ScopedAlloc! String(messagePtr);
+
+		// Why exactly do we have to replace these? Can we get away without copying the string above?
+		escapedMessage.Replace("{", "{{");
+		escapedMessage.Replace("}", "}}");
+
+		if (fileNamePtr != null)
+		{
+			String fileName = new:ScopedAlloc! String(fileNamePtr);
+
+			MessageOrigin messageOrigin = scope MessageOrigin(fileName, lineNumber);
+
+			Log.ClientLogger.Log((LogLevel)logLevel, escapedMessage, messageOrigin);
+		}
+		else
+		{
+			Log.ClientLogger.Log((LogLevel)logLevel, escapedMessage);
+		}
 	}
 
 	[RegisterCall("ScriptGlue::Log_LogException")]
@@ -457,8 +739,8 @@ static class ScriptGlue
 			scriptComponent = entity.GetComponent<ScriptComponent>();
 		}
 
-		if (scriptComponent.Instance != null)
-			ScriptEngine.Context.DestroyScriptDeferred(scriptComponent.Instance, false);
+		//if (scriptComponent.Instance != null)
+		//	ScriptEngine.Context.DestroyScriptDeferred(scriptComponent.Instance, false);
 
 		scriptComponent.Instance = null;
 
@@ -470,7 +752,8 @@ static class ScriptGlue
 		// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
 		ScriptEngine.InitializeInstance(entity, scriptComponent);
 
-		return scriptComponent.Instance.MonoInstance;
+		//return scriptComponent.Instance.MonoInstance;
+		return null;
 	}
 	
 	[RegisterCall("ScriptGlue::Entity_RemoveScript")]
@@ -478,7 +761,7 @@ static class ScriptGlue
 	{
 		ScriptComponent* scriptComponent = GetComponentSafe<ScriptComponent>(entityId);
 
-		ScriptEngine.Context.DestroyScriptDeferred(scriptComponent.Instance, true);
+		//ScriptEngine.Context.DestroyScriptDeferred(scriptComponent.Instance, true);
 	}
 	
 	[RegisterCall("ScriptGlue::Entity_GetName")]
@@ -653,7 +936,7 @@ static class ScriptGlue
 	}
 
 	[Packed]
-	struct AxisAngle
+	public struct AxisAngle
 	{
 		public float3 Axis;
 		public float Angle;
@@ -1014,8 +1297,8 @@ static class ScriptGlue
 		innerRadius = circleRenderer.InnerRadius;
 	}
 
-	[RegisterCall("ScriptGlue::CircleRenderer_GetInnerRadius")]
-	static void CircleRenderer_GetInnerRadius(UUID entityId, float innerRadius)
+	[RegisterCall("ScriptGlue::CircleRenderer_SetInnerRadius")]
+	static void CircleRenderer_SetInnerRadius(UUID entityId, float innerRadius)
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
 		circleRenderer.InnerRadius = innerRadius;
@@ -1085,8 +1368,8 @@ static class ScriptGlue
 
 #region TextRenderer
 
-	[RegisterCall("ScriptGlue::TextRenderer_SetIsRichText")]
-	static bool TextRenderer_SetIsRichText(UUID entityId)
+	[RegisterCall("ScriptGlue::TextRenderer_GetIsRichText")]
+	static bool TextRenderer_GetIsRichText(UUID entityId)
 	{
 		return GetComponentSafe<TextRendererComponent>(entityId).IsRichText;
 	}
@@ -1419,7 +1702,7 @@ static class ScriptGlue
 	}
 
 	[RegisterCall("ScriptGlue::Asset_SetIdentifier")]
-	static void Asset_GetIdentifier(UUID assetId, MonoString* text)
+	static void Asset_SetIdentifier(UUID assetId, MonoString* text)
 	{
 		ThrowNotImplementedException("Asset.GetIdentifier is not implemented.");
 

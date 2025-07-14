@@ -674,7 +674,7 @@ namespace GlitchyEngine.World
 	{
 		private String _scriptClassName = null;
 
-		private ScriptInstance _instance = null;
+		private NewScriptInstance _instance = null;
 
 		public StringView ScriptClassName
 		{
@@ -688,7 +688,7 @@ namespace GlitchyEngine.World
 			}
 		}
 
-		public ScriptInstance Instance
+		public NewScriptInstance Instance
 		{
 			[Inline]
 			get => _instance;
