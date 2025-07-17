@@ -7,7 +7,7 @@ namespace GlitchyEngine.Core;
 /// </summary>
 [DebuggerDisplay("{ToString()}")]
 [EngineClass("GlitchyEngine.Core.UUID")]
-[EngineClass("GlitchyEngine.Core.AssetHandle")]
+[EngineClass("GlitchyEngine.Content.AssetHandle")]
 public struct UUID
 {
     private ulong _uuid;
@@ -32,7 +32,7 @@ public struct UUID
     /// <returns>The newly created <see cref="UUID"/></returns>
     public static UUID CreateNew()
     {
-        ScriptGlue.UUID_CreateNew(out UUID id);
+        ScriptGlue.UUID_Create(out UUID id);
         return id;
     }
 

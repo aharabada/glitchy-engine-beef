@@ -163,7 +163,7 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 
 			parameters.AppendF($"{csharpType}");
 		}
-
+		
 		String csharpFunctionPointer = scope $"    public delegate* unmanaged[Cdecl]<{parameters}{(parameters.IsEmpty ? "" : ", ")}{method.ReturnType}> {method.Name};\n";
 		outString.Append(csharpFunctionPointer);
 	}
@@ -796,9 +796,9 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall("ScriptGlue::Entity_FindEntityWithName")]
-	static void Entity_FindEntityWithName(MonoString* monoName, UUID* outUuid)
+	static void Entity_FindEntityWithName(MonoString* monoName, out UUID outUuid)
 	{
-		*outUuid = UUID(0);
+		outUuid = UUID(0);
 
 		char8* entityName = Mono.mono_string_to_utf8(monoName);
 
@@ -809,7 +809,7 @@ static class ScriptGlue
 		Mono.mono_free(entityName);
 
 		if (entityResult case .Ok(let entity))
-			*outUuid = entity.UUID;
+			outUuid = entity.UUID;
 	}
 
 	[RegisterCall("ScriptGlue::Entity_GetScriptInstance")]

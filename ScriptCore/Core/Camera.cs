@@ -5,6 +5,7 @@ namespace GlitchyEngine.Core;
 /// <summary>
 /// The type of projection used by a camera.
 /// </summary>
+[EngineClass("GlitchyEngine.World.SceneCamera.ProjectionType")]
 public enum ProjectionType : byte
 {
     /// <summary>

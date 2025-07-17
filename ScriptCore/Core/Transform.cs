@@ -99,6 +99,6 @@ public class Transform : Component
             ScriptGlue.Transform_GetScale(Entity.UUID, out float3 scale);
             return scale;
         }
-        set => ScriptGlue.Transform_SetScale(Entity.UUID, in value);
+        set => ScriptGlue.Transform_SetScale(Entity.UUID, value);
     }
 }

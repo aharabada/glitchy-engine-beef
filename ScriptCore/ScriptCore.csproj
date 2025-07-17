@@ -2,8 +2,7 @@
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <LangVersion>latest</LangVersion>
-    <BaseOutputPath>
-    </BaseOutputPath>
+    <BaseOutputPath></BaseOutputPath>
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <RootNamespace>GlitchyEngine</RootNamespace>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -14,8 +13,6 @@
 
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <EnableDynamicLoading>true</EnableDynamicLoading>
-    <!--<DebugType>embedded</DebugType>-->
-    <!--<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>-->
     <GeneratedSchemaPath>$(ProjectDir)../generated/ScriptGlue.json</GeneratedSchemaPath>
   </PropertyGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

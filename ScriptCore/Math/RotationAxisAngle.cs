@@ -1,4 +1,5 @@
 ﻿using System.Runtime.InteropServices;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Math;
 
@@ -6,6 +7,7 @@ namespace GlitchyEngine.Math;
 /// Represents a rotation around an axis by a specific angle.
 /// </summary>
 [StructLayout(LayoutKind.Sequential, Pack=1)]
+[EngineClass("GlitchyEngine.Scripting.ScriptGlue.AxisAngle")]
 public struct RotationAxisAngle
 {
     /// <summary>

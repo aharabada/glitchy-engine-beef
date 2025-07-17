@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine.Physics;
 
 /// <summary>
 /// Describes whether the rigid body is static, dynamic or kinematic.
 /// </summary>
+[EngineClass("GlitchyEngine.World.Rigidbody2DComponent.BodyType")]
 public enum BodyType : byte
 {
     /// <summary>

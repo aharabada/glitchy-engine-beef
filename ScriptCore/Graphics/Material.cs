@@ -9,6 +9,7 @@ namespace GlitchyEngine.Graphics;
 /// </summary>
 public class Material : Asset
 {
+    [EngineClass("GlitchyEngine.Renderer.ShaderVariableType")]
     internal enum ShaderVariableType : byte
     {
         Bool,

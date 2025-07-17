@@ -86,7 +86,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         context.RegisterSourceOutput(combinedProvider, GenerateCode);
     }
 
-    public class MappedType
+    private class MappedType
     {
         public string BeefTypeName;
         public string? UnderlyingEnumTypeName;
@@ -95,7 +95,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         private string _cSharpTypeName;
         private string _cSharpWrapperType;
 
-        public MappedType? CSharpUnderlyingEnumType;
+        public (MappedType, TypeModifier)? CSharpUnderlyingEnumType;
 
         public string? WrapperConvertInput;
         public string? WrapperCleanupInput;
@@ -115,11 +115,37 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         }
     }
 
-    private static MappedType DecodeType(string beefType, Dictionary<string, MappedType> beefTypeToMappedType)
+    private enum TypeModifier
     {
+        None,
+        Ref,
+        In,
+        Out
+    }
+
+    private static (MappedType Type, TypeModifier Modifier) DecodeType(string beefType, Dictionary<string, MappedType> beefTypeToMappedType)
+    {
+        TypeModifier modifier = TypeModifier.None;
+
+        if (beefType.StartsWith("ref "))
+        {
+            modifier = TypeModifier.Ref;
+            beefType = beefType.Substring(4);
+        }
+        else if (beefType.StartsWith("out "))
+        {
+            modifier = TypeModifier.Out;
+            beefType = beefType.Substring(4);
+        }
+        else if (beefType.StartsWith("in "))
+        {
+            modifier = TypeModifier.In;
+            beefType = beefType.Substring(3);
+        }
+
         if (beefTypeToMappedType.TryGetValue(beefType, out MappedType? mappedType))
         {
-            return mappedType;
+            return (mappedType, modifier);
         }
 
         int colonIndex = beefType.IndexOf(':');
@@ -141,7 +167,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                     mappedType.CSharpUnderlyingEnumType = DecodeType(underlyingEnumType, beefTypeToMappedType);
                 }
 
-                return mappedType;
+                return (mappedType, modifier);
             }
         }
 
@@ -155,7 +181,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         beefTypeToMappedType[beefType] = newMapping;
         beefTypeToMappedType[beefTypeName] = newMapping;
 
-        return newMapping;
+        return (newMapping, modifier);
     }
 
     private static void InitializeTypes(Dictionary<string, MappedType> beefTypeToMappedType)
@@ -164,6 +190,42 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         {
             BeefTypeName = "void",
             ReturnValueConversion = null
+        });
+
+        beefTypeToMappedType.Add("Mono.MonoString*", new MappedType
+        {
+            BeefTypeName = "object /*TODO: Mono.MonoString**/",
+            ReturnValueConversion = null
+        });
+
+        beefTypeToMappedType.Add("Mono.MonoException*", new MappedType
+        {
+            BeefTypeName = "object /*TODO: Mono.MonoException**/",
+            ReturnValueConversion = null
+        });
+
+        beefTypeToMappedType.Add("Mono.MonoArray*", new MappedType
+        {
+            BeefTypeName = "object /*TODO: Mono.MonoArray**/",
+            ReturnValueConversion = null
+        });
+
+        beefTypeToMappedType.Add("Mono.MonoObject*", new MappedType
+        {
+            BeefTypeName = "object /*TODO: Mono.MonoObject**/",
+            ReturnValueConversion = null
+        });
+
+        beefTypeToMappedType.Add("Mono.MonoReflectionType*", new MappedType
+        {
+            BeefTypeName = "object /*TODO: Mono.MonoReflectionType**/",
+            ReturnValueConversion = null
+        });
+
+        beefTypeToMappedType.Add("uint8*", new MappedType
+        {
+            BeefTypeName = "uint8*",
+            CSharpTypeName = "byte*"
         });
 
         beefTypeToMappedType.Add("char16*", new MappedType
@@ -175,19 +237,44 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             WrapperConvertInput = "fixed (char* {0} = {1}) {{",
             WrapperCleanupInput = "}}"
         });
+
+        beefTypeToMappedType.Add("int32", new MappedType
+        {
+            BeefTypeName = "int32",
+            CSharpTypeName = "int"
+        });
+
+        beefTypeToMappedType.Add("GlitchyEngine.Math.Quaternion", new MappedType
+        {
+            BeefTypeName = "System.Numerics.Quaternion",
+            ReturnValueConversion = null
+        });
     }
 
     private static void GenerateFunctionPointer(GlueMethod method, Dictionary<string, MappedType> beefTypeToMappedType, StringBuilder output)
     {
-        MappedType returnType = DecodeType(method.ReturnType, beefTypeToMappedType);
+        var (returnType, _) = DecodeType(method.ReturnType, beefTypeToMappedType);
 
         List<MappedType> parameters = new();
         StringBuilder parameterText = new();
 
         foreach (var param in method.Parameters)
         {
-            MappedType parameterType = DecodeType(param.Type, beefTypeToMappedType);
+            var (parameterType, parameterModifier) = DecodeType(param.Type, beefTypeToMappedType);
             parameters.Add(parameterType);
+
+            switch (parameterModifier)
+            {
+                case TypeModifier.In:
+                    parameterText.Append("in ");
+                    break;
+                case TypeModifier.Out:
+                    parameterText.Append("out ");
+                    break;
+                case TypeModifier.Ref:
+                    parameterText.Append("ref ");
+                    break;
+            }
 
             parameterText.Append(parameterType.CSharpTypeName);
             parameterText.Append(", ");
@@ -206,7 +293,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         StringBuilder cleanup = new();
         StringBuilder call = new();
 
-        MappedType returnType = DecodeType(method.ReturnType, beefTypeToMappedType);
+        var (returnType, _) = DecodeType(method.ReturnType, beefTypeToMappedType);
 
         if (returnType.ReturnValueConversion is not null)
         {
@@ -217,7 +304,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
         foreach (var param in method.Parameters)
         {
-            MappedType parameterType = DecodeType(param.Type, beefTypeToMappedType);
+            var (parameterType, parameterModifier) = DecodeType(param.Type, beefTypeToMappedType);
             parameters.Add(parameterType);
 
             if (parameterText.Length > 0)
@@ -226,7 +313,33 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                 call.Append(", ");
             }
 
+            switch (parameterModifier)
+            {
+                case TypeModifier.In:
+                    parameterText.Append("in ");
+                    break;
+                case TypeModifier.Out:
+                    parameterText.Append("out ");
+                    break;
+                case TypeModifier.Ref:
+                    parameterText.Append("ref ");
+                    break;
+            }
+
             parameterText.Append($"{parameterType.CSharpWrapperType} {param.Name}");
+
+            switch (parameterModifier)
+            {
+                case TypeModifier.In:
+                    call.Append("in ");
+                    break;
+                case TypeModifier.Out:
+                    call.Append("out ");
+                    break;
+                case TypeModifier.Ref:
+                    call.Append("ref ");
+                    break;
+            }
 
             if (parameterType.WrapperConvertInput is not null)
             {
@@ -289,7 +402,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                  if (beefTypeName is null)
                      continue;
 
-                 MappedType newMapping = DecodeType(beefTypeName, beefTypeToMappedType);
+                 (MappedType newMapping, _) = DecodeType(beefTypeName, beefTypeToMappedType);
                  newMapping.CSharpTypeName = csharpTypeName;
              }
          }
@@ -305,7 +418,6 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
                        unsafe internal partial struct EngineFunctions
                        {
-                       /*
                        """);
 
          wrappers.Append("""
@@ -314,7 +426,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
                     namespace GlitchyEngine;
 
-                    unsafe internal partial class ScriptGlue
+                    internal static unsafe partial class ScriptGlue
                     {
                     """);
 
@@ -338,20 +450,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
              }
          }
 
-         //
-         // foreach (var type in input.enumerations)
-         // {
-         //     if (type is null)
-         //         continue;
-         //
-         //     GenerateCode(type, output);
-         //     var typeNamespace = type.ContainingNamespace.IsGlobalNamespace
-         //         ? null
-         //         : $"{type.ContainingNamespace}.";
-         //
-         // }
-
-         engineFunctions.Append("\n*/}");
+         engineFunctions.Append("\n}");
          wrappers.Append("\n}");
 
          context.AddSource("EngineFunctions.g.cs", engineFunctions.ToString());
