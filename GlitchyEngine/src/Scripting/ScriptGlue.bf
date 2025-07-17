@@ -66,6 +66,17 @@ struct TypeTranslationTemplate
 	}
 }
 
+[AttributeUsage(.Parameter)]
+struct GlueParamAttribute : Attribute
+{
+	public String WrapperType;
+
+	public this(String wrapperType)
+	{
+		WrapperType = wrapperType;
+	}
+}
+
 [AttributeUsage(.Struct)]
 struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 {
@@ -74,7 +85,22 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 		("int32", "int"),
 		("char16*", "char*"),
 		("char8*", "byte*"),
-		("GlitchyEngine.Events.MouseButton", "GlitchyEngine.MouseButton")
+		("uint8*", "byte*"),
+		("GlitchyEngine.Events.MouseButton", "GlitchyEngine.MouseButton"),
+		("GlitchLog.LogLevel", "Log.LogLevel"),
+		("out GlitchyEngine.Content.AssetHandle", "UUID"),
+		("GlitchyEngine.Content.AssetHandle", "UUID"),
+		("out GlitchyEngine.Renderer.Text.FontRenderer.HorizontalTextAlignment", "HorizontalTextAlignment"),
+		("GlitchyEngine.Renderer.Text.FontRenderer.HorizontalTextAlignment", "HorizontalTextAlignment"),
+		("GlitchyEngine.Renderer.ShaderVariableType", "Material.ShaderVariableType"),
+		("in GlitchyEngine.Math.Quaternion", "in System.Numerics.Quaternion"),
+		("out GlitchyEngine.Math.Quaternion", "out System.Numerics.Quaternion"),
+		("out GlitchyEngine.Scripting.ScriptGlue.AxisAngle", "out RotationAxisAngle"),
+		("GlitchyEngine.Scripting.ScriptGlue.AxisAngle", "RotationAxisAngle"),
+		("out GlitchyEngine.World.Rigidbody2DComponent.BodyType", "out BodyType"),
+		("in GlitchyEngine.World.Rigidbody2DComponent.BodyType", "in BodyType"),
+		("out GlitchyEngine.World.SceneCamera.ProjectionType", "out ProjectionType"),
+		("in GlitchyEngine.World.SceneCamera.ProjectionType", "in ProjectionType"),
 	};
 
 	// {0}... Out name, 
@@ -158,6 +184,12 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 
 			TypeTranslationTemplate template = GetCSharpWrapperTemplate(beefParameterType);
 
+			// TODO: This is currently not implemented in beef.
+			/*if (method.GetParamCustomAttribute<GlueParamAttribute>(i) case .Ok(let attribute))
+			{
+				template.PrettyCSharpParamType = attribute.WrapperType;
+			}*/
+
 			StringView paramName = method.GetParamName(i);
 
 			// Generate the parameter for the wrapper head.
@@ -202,7 +234,7 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 		TypeTranslationTemplate template = GetCSharpReturnValueTemplate(csharpReturnType);
 
 		outString.AppendF($"""
-			internal static unsafe {template.PrettyCSharpParamType} NEW_{method.Name}({wrapperParameters})
+			internal static unsafe {template.PrettyCSharpParamType} {method.Name}({wrapperParameters})
 			{{
 				{translation}
 				{template.StartCode}_engineFunctions.{method.Name}({callArguments});
@@ -215,6 +247,48 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 			""");
 	}
 
+	private static String GetTypeInfo(Type type)
+	{
+		String value = new .();
+		type.ToString(value);
+
+		if (type.IsEnum)
+		{
+			value.AppendF($" : {type.UnderlyingType}");
+		}
+
+		return value;
+	}
+	
+	private static void GenerateJsonInfo(MethodInfo method, String outString)
+	{
+		String parameters = new String();
+
+		for (int i < method.ParamCount)
+		{
+			if (i != 0)
+				parameters.Append(", ");
+
+			parameters.AppendF($"""
+
+							{{
+								"name": "{method.GetParamName(i)}",
+								"type": "{GetTypeInfo(method.GetParamType(i))}"
+							}}
+				""");
+		}
+
+		outString.AppendF($"""
+
+				{{
+					"name": "{method.Name}",
+					"return_type": "{GetTypeInfo(method.ReturnType)}",
+					"parameters": [{parameters}
+					]
+				}},
+			""");
+	}
+
 	[Comptime]
 	public void ApplyToType(Type self)
     {
@@ -223,6 +297,10 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 			using System.Runtime.InteropServices;
 			using GlitchyEngine;
 			using GlitchyEngine.Core;
+			using GlitchyEngine.Math;
+			using GlitchyEngine.Physics;
+			using GlitchyEngine.Graphics;
+			using GlitchyEngine.Graphics.Text;
 
 			namespace GlitchyEngine;
 
@@ -238,6 +316,8 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 			{
 
 			""");
+
+		String jsonOutput = new String("[");
 
         for (MethodInfo methodInfo in typeof(ScriptGlue).GetMethods(.Static | .NonPublic))
 		{
@@ -260,6 +340,7 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 				GenerateCSharpFunctionPointer(methodInfo, csharpEngineFunctionsStruct);
 				
 				GenerateCSharpWrapperMethod(methodInfo, csharpScriptGlue);
+				GenerateJsonInfo(methodInfo, jsonOutput);
 			}
 		}
 
@@ -268,7 +349,21 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 
 		csharpEngineFunctionsStruct.Append(csharpScriptGlue);
 
-		if (File.WriteAllText("../ScriptCore/ScriptGlue.gen.cs", csharpEngineFunctionsStruct) case .Err)
+		/*if (File.WriteAllText("../ScriptCore/ScriptGlue.gen.cs", csharpEngineFunctionsStruct) case .Err)
+		{
+			Runtime.FatalError("Failed to write file");
+		}*/
+
+		if (jsonOutput.EndsWith(","))
+		{
+			jsonOutput.RemoveFromEnd(1);
+		}
+
+		jsonOutput.Append(']');
+
+		Directory.CreateDirectory("../generated");
+
+		if (File.WriteAllText("../generated/ScriptGlue.json", jsonOutput) case .Err)
 		{
 			Runtime.FatalError("Failed to write file");
 		}
@@ -537,7 +632,7 @@ static class ScriptGlue
 
 	[RegisterCall("ScriptGlue::Log_LogMessage")]
 	[CallingConvention(.Cdecl)]
-	static void Log_LogMessage(int32 logLevel, char16* messagePtr, char16* fileNamePtr, int lineNumber)
+	static void Log_LogMessage(LogLevel logLevel, char16* messagePtr, char16* fileNamePtr, int lineNumber)
 	{
 		String escapedMessage = new:ScopedAlloc! String(messagePtr);
 
@@ -1421,14 +1516,14 @@ static class ScriptGlue
 	}
 
 	[RegisterCall("ScriptGlue::TextRenderer_GetHorizontalAlignment")]
-	static void TextRenderer_GetHorizontalAlignment(UUID entityId, out HorizontalTextAlignment horizontalAlignment)
+	static void TextRenderer_GetHorizontalAlignment(UUID entityId, [GlueParam("out HorizontalTextAlignment")] out HorizontalTextAlignment horizontalAlignment)
 	{
 		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
 		horizontalAlignment = textComponent.HorizontalAlignment;
 	}
 
 	[RegisterCall("ScriptGlue::TextRenderer_SetHorizontalAlignment")]
-	static void TextRenderer_SetHorizontalAlignment(UUID entityId, HorizontalTextAlignment horizontalAlignment)
+	static void TextRenderer_SetHorizontalAlignment(UUID entityId, [GlueParam("HorizontalTextAlignment")] HorizontalTextAlignment horizontalAlignment)
 	{
 		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
 		textComponent.HorizontalAlignment = horizontalAlignment;

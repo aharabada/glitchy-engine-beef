@@ -1,6 +1,7 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using GlitchyEngine.Core;
 
 namespace GlitchyEngine;
 
@@ -12,7 +13,8 @@ public class Log
     /// <summary>
     /// The severity of the log message.
     /// </summary>
-    internal enum LogLevel
+    [EngineClass("GlitchLog.LogLevel")]
+    internal enum LogLevel : byte
     {
         Trace = 0,
         Debug,

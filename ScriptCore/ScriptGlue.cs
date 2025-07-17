@@ -25,7 +25,7 @@ namespace GlitchyEngine;
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe partial struct EngineFunctions
 {
-    public delegate* unmanaged[Cdecl]<Log.LogLevel, char*, char*, int, void> Log_LogMessage;
+    public delegate* unmanaged[Cdecl]<GlitchyEngine.Log.LogLevel, char*, char*, int, void> Log_LogMessage;
 }
 
 /// <summary>
@@ -471,22 +471,32 @@ internal static partial class ScriptGlue
 
 #region Log
 
-    internal static unsafe void Log_LogMessage(Log.LogLevel logLevel, string message, string filePath, int line)
-    {
-        // unsafe
-        // {
-        //     byte* mess = (byte*)Marshal.StringToCoTaskMemUTF8(message);
-        //
-        //     fixed (char* messagePtr = message)
-        //     fixed (char* filePathPtr = filePath)
-        //     {
-        //         _engineFunctions.Log_LogMessage(logLevel, messagePtr, filePathPtr, line);
-        //     }
-        //
-        //     Marshal.FreeCoTaskMem((IntPtr)mess);
-        // }
-    }
-    
+    // public unsafe static void Log_LogMessage(GlitchyEngine.Log.LogLevel logLevel, string messagePtr, string fileNamePtr, int lineNumber)
+    // {
+    //     fixed (char* messagePtrConverted = messagePtr) {
+    //         fixed (char* fileNamePtrConverted = fileNamePtr) {
+    //             _engineFunctions.Log_LogMessage(logLevel, messagePtrConverted, fileNamePtrConverted, lineNumber);
+    //         }
+    //     }
+    //
+    //
+    // }
+     //internal static unsafe void Log_LogMessage(Log.LogLevel logLevel, string message, string filePath, int line)
+     //{
+    //     // unsafe
+    //     // {
+    //     //     byte* mess = (byte*)Marshal.StringToCoTaskMemUTF8(message);
+    //     //
+    //     //     fixed (char* messagePtr = message)
+    //     //     fixed (char* filePathPtr = filePath)
+    //     //     {
+    //     //         _engineFunctions.Log_LogMessage(logLevel, messagePtr, filePathPtr, line);
+    //     //     }
+    //     //
+    //     //     Marshal.FreeCoTaskMem((IntPtr)mess);
+    //     // }
+     //}
+
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern void Log_LogException(Exception exception);
@@ -497,13 +507,13 @@ internal static partial class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_Create(object scriptInstance, string? entityName, Type[]? componentTypes, out UUID entityId);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_Destroy(UUID entityId);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_CreateInstance(UUID entityId, out UUID newEntityId);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_AddComponent(UUID entityId, Type componentType);
 
@@ -512,34 +522,34 @@ internal static partial class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern bool Entity_HasComponent(UUID entityId, Type componentType);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_RemoveComponent(UUID entityId, Type componentType);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_FindEntityWithName(string name, out UUID uuid);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_GetScriptInstance(UUID entityId, out object? instance);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern object Entity_SetScript(UUID entityId, Type scriptType);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Entity_RemoveScript(UUID entityId);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern string Entity_GetName(UUID entityId);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern string Entity_SetName(UUID entityId, string name);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern void Entity_GetEditorFlags(UUID uuid, out EditorFlags flags);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern void Entity_SetEditorFlags(UUID uuid, EditorFlags editorFlags);
-    
+
 #endregion Entity
 
 #region TransformComponent
@@ -555,31 +565,31 @@ internal static partial class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_SetTranslation(UUID entityId, in float3 translation);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_GetWorldTranslation(UUID entityId, out float3 translation);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_SetWorldTranslation(UUID entityId, in float3 translation);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_GetRotation(UUID entityId, out Quaternion rotation);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_SetRotation(UUID entityId, in Quaternion rotation);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_GetRotationEuler(UUID entityId, out float3 rotationEuler);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_SetRotationEuler(UUID entityId, in float3 rotationEuler);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_GetRotationAxisAngle(UUID entityId, out RotationAxisAngle translation);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_SetRotationAxisAngle(UUID entityId, RotationAxisAngle translation);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Transform_GetScale(UUID entityId, out float3 scale);
 
@@ -589,40 +599,40 @@ internal static partial class ScriptGlue
 #endregion TransformComponent
 
 #region RigidBody2D
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_ApplyForce(UUID entityId, in float2 force, float2 point, bool wakeUp);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetPosition(UUID entityId, in float2 position);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetPosition(UUID entityId, out float2 position);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetRotation(UUID entityId, in float rotation);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetRotation(UUID entityId, out float rotation);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetLinearVelocity(UUID entityId, in float2 velocity);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetLinearVelocity(UUID entityId, out float2 velocity);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetAngularVelocity(UUID entityId, in float velocity);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetAngularVelocity(UUID entityId, out float velocity);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetBodyType(UUID entityId, out BodyType bodyType);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetBodyType(UUID entityId, in BodyType bodyType);
 
@@ -631,23 +641,23 @@ internal static partial class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetFixedRotation(UUID entityId, in bool isFixedRotation);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_GetGravityScale(UUID entityId, out float gravityScale);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Rigidbody2D_SetGravityScale(UUID entityId, in float gravityScale);
-    
+
 #endregion RigidBody2D
 
 #region Camera
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Camera_GetProjectionType(UUID entityId, out ProjectionType projectionType);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Camera_SetProjectionType(UUID entityId, in ProjectionType projectionType);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Camera_GetPerspectiveFovY(UUID entityId, out float fovY);
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -692,7 +702,7 @@ internal static partial class ScriptGlue
 #endregion
 
 #region Physics2D
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Physics2D_GetGravity(out float2 gravity);
 
@@ -702,13 +712,13 @@ internal static partial class ScriptGlue
 #endregion Physics2D
 
 #region CircleRenderer
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void CircleRenderer_GetColor(UUID entityId, out ColorRGBA color);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void CircleRenderer_SetColor(UUID entityId, ColorRGBA color);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void CircleRenderer_GetUvTransform(UUID entityId, out float4 uvTransform);
 
@@ -776,7 +786,7 @@ internal static partial class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void TextRenderer_SetFontSize(UUID uuid, float fontSize);
-    
+
 #endregion
 
 #region MeshRenderer
@@ -793,21 +803,21 @@ internal static partial class ScriptGlue
 #endregion
 
 #region Math
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern float modf_float(float x, out float integerPart);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern float2 modf_float2(float2 x, out float2 integerPart);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern float3 modf_float3(float3 x, out float3 integerPart);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern float4 modf_float4(float4 x, out float4 integerPart);
 
 #endregion
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void UUID_CreateNew(out UUID uuid);
 
@@ -834,10 +844,10 @@ internal static partial class ScriptGlue
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern void Serialization_CreateObject(IntPtr currentContext, bool isStatic, string fullTypeName, out IntPtr context, out UUID id);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern unsafe void Serialization_DeserializeField(IntPtr internalContext, SerializationType expectedType, string fieldName, byte* value, out SerializationType actualType);
-    
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern void Serialization_GetObject(IntPtr internalContext, UUID id, out IntPtr objectContext);
 
@@ -858,16 +868,8 @@ internal static partial class ScriptGlue
 
 #region Material
 
-    public enum ShaderVariableType : byte
-    {
-        Bool,
-        Float,
-        Int,
-        UInt
-    }
-
     [MethodImpl(MethodImplOptions.InternalCall)]
-    internal static extern unsafe bool Material_SetVariable(UUID assetId, string variableName, ShaderVariableType elementType, int rows, int columns, int arrayLength, void* rawData, int dataLength);
+    internal static extern unsafe bool Material_SetVariable(UUID assetId, string variableName, Material.ShaderVariableType elementType, int rows, int columns, int arrayLength, void* rawData, int dataLength);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     internal static extern bool Material_ResetVariable(UUID assetId, string variableName);

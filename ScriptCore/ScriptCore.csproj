@@ -16,6 +16,7 @@
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <!--<DebugType>embedded</DebugType>-->
     <!--<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>-->
+    <GeneratedSchemaPath>$(ProjectDir)../generated/ScriptGlue.json</GeneratedSchemaPath>
   </PropertyGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="PowerShell ./postbuild.ps1 -sourceDir $(OutDir) -destinationDir &quot;..\GlitchyEditor\resources\scripts&quot;" />
@@ -26,5 +27,8 @@
   <ItemGroup>
     <ProjectReference Include="..\ScriptCoreGenerator\ScriptCoreGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <ProjectReference Include="..\vendor\ImGui.NET\src\ImGui.NET\ImGui.NET.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="$(GeneratedSchemaPath)" />
   </ItemGroup>
 </Project>

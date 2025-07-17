@@ -6,6 +6,8 @@ namespace GlitchyEngine.Core;
 /// Represents a universally unique identifier (UUID).
 /// </summary>
 [DebuggerDisplay("{ToString()}")]
+[EngineClass("GlitchyEngine.Core.UUID")]
+[EngineClass("GlitchyEngine.Core.AssetHandle")]
 public struct UUID
 {
     private ulong _uuid;
