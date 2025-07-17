@@ -40,14 +40,20 @@ internal static unsafe partial class ScriptGlue
     static ScriptGlue()
     {
         NativeLibrary.SetDllImportResolver(typeof(ScriptGlue).Assembly, ImportResolver);
+        // TODO: With this we can actually use the official ImGui.NET-Branch in the future!
+        NativeLibrary.SetDllImportResolver(typeof(ImGui).Assembly, ImportResolver);
     }
 
     private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
         if (libraryName == "__Internal")
         {
-            // Lade die aktuelle exe selbst
-            return NativeLibrary.Load(Process.GetCurrentProcess().MainModule.FileName);
+            string? mainModuleFileName = Process.GetCurrentProcess().MainModule?.FileName;
+
+            if (mainModuleFileName != null)
+                return NativeLibrary.Load(mainModuleFileName);
+            
+            throw new DllNotFoundException("Failed to resolve import to current executable: Could not find file name of main module.");
         }
 
         return IntPtr.Zero;
