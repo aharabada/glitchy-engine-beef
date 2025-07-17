@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Start Editor": {
+        "commandName": "Executable",
+        "executablePath": "..\\build\\Debug_Win64\\GlitchyEditor\\GlitchyEditor.exe",
+        "commandLineArgs": "\"D:\\Development\\Git\\SingleStateToOrbit\"",
+        "workingDirectory": "..\\GlitchyEditor",
+        "nativeDebugging": true
+    }
+  }
+}

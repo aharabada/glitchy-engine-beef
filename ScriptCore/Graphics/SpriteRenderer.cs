@@ -30,10 +30,20 @@ public class SpriteRenderer : Component
     {
         get
         {
-            ScriptGlue.SpriteRenderer_GetUvTransform(_uuid, out UVTransform uvTransform);
-            return uvTransform;
+            unsafe
+            {
+                // TODO: Is this a type we want to have in the engine?
+                ScriptGlue.SpriteRenderer_GetUvTransform(_uuid, out float4 uvTransform);
+                return *(UVTransform*)&uvTransform;
+            }
         }
-        set => ScriptGlue.SpriteRenderer_SetUvTransform(_uuid, value);
+        set
+        {
+            unsafe
+            {
+                ScriptGlue.SpriteRenderer_SetUvTransform(_uuid, *(float4*)&value);   
+            }
+        }
     }
 
     /// <summary>

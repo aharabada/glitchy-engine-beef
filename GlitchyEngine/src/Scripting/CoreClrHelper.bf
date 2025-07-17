@@ -36,6 +36,12 @@ static class CoreClrHelper
 	private function void CreateScriptInstanceFunc(UUID entityId, char8* scriptClassName);
 	static CreateScriptInstanceFunc _createScriptInstance;
 
+	private function void ThrowExceptionFunc(char8* message);
+	static ThrowExceptionFunc _throwException;
+
+	private function void RegisterComponentTypeFunc(StringView fullComponentTypeName, function void(UUID entityId) addComponent, function bool(UUID entityId) hasComponent, function void(UUID entityId) removeComponent);
+	static RegisterComponentTypeFunc _registerComponentType;
+
 	public static ScriptFunctionPointers _entityScriptFunctions;
 
 	public static void Init(StringView coreAssemblyPath)
@@ -105,6 +111,9 @@ static class CoreClrHelper
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "FreeScriptClassNames", out _freeScriptClassNames);
 
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "CreateScriptInstance", out _createScriptInstance);
+
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "ThrowException", out _throwException);
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "RegisterComponentType", out _registerComponentType);
 
 		InitEntityFunctions();
 	}
@@ -181,5 +190,15 @@ static class CoreClrHelper
 		outDelegate = (T)funPtr;
 
 		return rc;
+	}
+
+	public static void ThrowException(StringView message)
+	{
+		_throwException(message.Ptr);
+	}
+
+	public static void RegisterComponent(StringView fullComponentTypeName, function void(UUID entityId) addComponent, function bool(UUID entityId) hasComponent, function void(UUID entityId) removeComponent)
+	{
+		_registerComponentType(fullComponentTypeName, addComponent, hasComponent, removeComponent);
 	}
 }

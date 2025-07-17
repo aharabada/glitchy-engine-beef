@@ -110,12 +110,12 @@ public class EditorLogger : Logger
 
 		String message = scope String(4096);
 
-		MonoExceptionHelper exceptionHelper = null;
+		ScriptException exceptionHelper = null;
 		MessageOrigin messageOrigin = null;
 
 		if (args.Count > 0)
 		{
-			exceptionHelper = args[^1] as MonoExceptionHelper;
+			exceptionHelper = args[^1] as ScriptException;
 			messageOrigin = args[^1] as MessageOrigin;
 		}
 

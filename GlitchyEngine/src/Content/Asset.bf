@@ -21,7 +21,7 @@ abstract class Asset : RefCounter
 	/// 	This identifier can be used to request the Asset from the content manager.
 	public StringView Identifier
 	{
-		get => _identifier;
+		get => _identifier..EnsureNullTerminator();
 		set => _identifier.Set(value);
 	}
 

@@ -507,15 +507,18 @@ static class ScriptEngine
 		return scriptClass;
 	}
 
-	internal static void HandleMonoException(MonoException* exception, UUID entityId)
+	internal static void HandleException()
 	{
-		MonoExceptionHelper wrappedException = new MonoExceptionHelper(exception);
 
+	}
+
+	internal static void LogScriptException(ScriptException exception, UUID entityId)
+	{
 		String entityInfo = scope .();
 
 		if (entityId != .Zero)
 		{
-			wrappedException.Instance = entityId;
+			exception.EntityId = entityId;
 
 			Result<Entity> sourceEntity = Context.GetEntityByID(entityId);
 
@@ -525,14 +528,13 @@ static class ScriptEngine
 			}
 		}
 
-		Log.ClientLogger.Error($"Mono Exception \"{wrappedException.FullName}\": \"{wrappedException.Message}\"{entityInfo}\nStackTrace:\n{wrappedException.StackTrace}", wrappedException);
-
-		wrappedException.ReleaseRef();
+		Log.ClientLogger.Error($"Mono Exception \"{exception.FullName}\": \"{exception.Message}\"{entityInfo}\nStackTrace:\n{exception.StackTrace}", exception);
 	}
-
+	
+	// TODO: This can go soon?
 	internal static void HandleMonoException(MonoException* exception, ScriptInstance sourceInstance = null)
 	{
-		HandleMonoException(exception, sourceInstance?.EntityId ?? .Zero);
+		//LogScriptException(exception, sourceInstance?.EntityId ?? .Zero);
 	}
 
 	public static void ShowScriptEditor(Entity entity, ScriptComponent* scriptComponent)

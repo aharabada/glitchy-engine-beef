@@ -1,21 +1,21 @@
 using System;
 using GlitchyEngine.Core;
-using Mono;
 
 namespace GlitchyEngine.Scripting;
 
 
-public class MonoExceptionHelper : RefCounter
+public class ScriptException : RefCounter
 {
-	private String _fullName ~ delete _;
+	private String _fullName ~ delete:append _;
 
-	private String _message ~ delete _;
+	private String _message ~ delete:append _;
 
-	private String _stackTrace ~ delete _;
+	private String _stackTrace ~ delete:append _;
 	/// The clean stack trace only contains the Managed Stack (the full trace contains one line for the native-to-managed entry)
 	private StringView _cleanStackTrace;
 
-	private MonoExceptionHelper _innerException ~ _?.ReleaseRef();
+	//TODO
+	//private ScriptException _innerException ~ _?.ReleaseRef();
 
 	public StringView FullName => _fullName;
 	public StringView Message => _message;
@@ -23,59 +23,22 @@ public class MonoExceptionHelper : RefCounter
 	public StringView StackTrace => _stackTrace;
 	public StringView CleanStackTrace => _cleanStackTrace;
 
-	public MonoExceptionHelper InnerException => _innerException;
+	//public ScriptException InnerException => _innerException;
 
-	public UUID Instance { get; set; }
+	public UUID EntityId { get; set; }
 
-	public this(MonoException* exception)
+	[AllowAppend]
+	public this(UUID entityId, StringView fullExceptionClassName, StringView message, StringView stackTrace)
 	{
-		MonoObject* exObject = (MonoObject*)exception;
+		String allocFullExceptionClassName = append String(fullExceptionClassName);
+		String allocMessage = append String(fullExceptionClassName);
+		String allocStackTrace = append String(fullExceptionClassName);
 
-		MonoClass* monoClass = Mono.mono_object_get_class(exObject);
+		_fullName = allocFullExceptionClassName;
+		_message = allocMessage;
+		_stackTrace = allocStackTrace;
 
-		StringView classNamespace = .(Mono.mono_class_get_namespace(monoClass));
-		StringView className = .(Mono.mono_class_get_name(monoClass));
-		_fullName = new $"{classNamespace}.{className}";
-
-		GetMessage(exObject, monoClass);
-
-		GetStackTrace(exception);
-
-		GetInnerException(exObject, monoClass);
-	}
-
-	private void GetMessage(MonoObject* exceptionObject, MonoClass* monoClass)
-	{
-		var messageProperty = Mono.mono_class_get_property_from_name(monoClass, "Message");
-
-		MonoObject* message = Mono.mono_property_get_value(messageProperty, exceptionObject, null, null);
-		char8* exMessage = Mono.mono_string_to_utf8((.)message);
-
-		_message = new String(exMessage);
-
-		Mono.mono_free(exMessage);
-	}
-
-	private void GetStackTrace(MonoException* exception)
-	{
-		char8* stacktracePtr = Mono.mono_exception_get_managed_backtrace(exception);
-		_stackTrace = new String(stacktracePtr);
-
-		int entryIndex = _stackTrace.IndexOf("at (wrapper native-to-managed)");
-
-		if (entryIndex != -1)
-			_cleanStackTrace = _stackTrace.Substring(0, entryIndex);
-		else
-			_cleanStackTrace = _stackTrace;
-	}
-
-	private void GetInnerException(MonoObject* exceptionObject, MonoClass* monoClass)
-	{
-		MonoProperty* innerExceptionProperty = Mono.mono_class_get_property_from_name(monoClass, "InnerException");
-		
-		MonoObject* innerException = Mono.mono_property_get_value(innerExceptionProperty, exceptionObject, null, null);
-
-		if (innerException != null)
-			_innerException = new MonoExceptionHelper((MonoException*)innerException);
+		// TODO
+		_cleanStackTrace = _stackTrace;
 	}
 }

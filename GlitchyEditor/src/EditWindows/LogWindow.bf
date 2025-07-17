@@ -45,7 +45,7 @@ class MessageSource
 	/// If true, the message is only meant for engine developers... so only me :(
 	public bool IsEngineMessage = false;
 
-	public MonoExceptionHelper Exception = null ~ _?.ReleaseRef();
+	public ScriptException Exception = null ~ _?.ReleaseRef();
 
 	public String AdditionalData = null ~ delete _;
 }
@@ -370,7 +370,7 @@ class LogWindow : EditorWindow
 		_messages.Add(logMessage);
 	}
 
-	public void LogException(DateTime timestamp, MonoExceptionHelper exception)
+	public void LogException(DateTime timestamp, ScriptException exception)
 	{
 		StringView firstLine = exception.StackTrace;
 
@@ -383,7 +383,7 @@ class LogWindow : EditorWindow
 		message.AppendF($"Exception: \"{exception.FullName}\" | Message: \"{exception.Message}\" {firstLine}\0");
 
 		// TODO: are mono exceptions never engine only?
-		LogMessage logMessage = new LogMessage(timestamp, message, .Error, new MessageSource(){Entity = exception.Instance, Exception = exception..AddRef(), IsEngineMessage = false});
+		LogMessage logMessage = new LogMessage(timestamp, message, .Error, new MessageSource(){Entity = exception.EntityId, Exception = exception..AddRef(), IsEngineMessage = false});
 		_messages.Add(logMessage);
 	}
 }

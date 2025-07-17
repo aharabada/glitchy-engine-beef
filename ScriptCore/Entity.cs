@@ -70,11 +70,16 @@ public class Entity : EngineObject
 
     private void Create(string? name, Type[]? components)
     {
-        ScriptGlue.Entity_Create(this, name, components, out _uuid);
+        ScriptGlue.Entity_Create(name, out _uuid);
         
         if (_uuid == UUID.Zero)
         {
             throw new InvalidOperationException("Failed to create the Entity. Received UUID.Zero from the engine.");
+        }
+
+        if (components != null)
+        {
+            AddComponents(components);
         }
     }
 
@@ -98,7 +103,10 @@ public class Entity : EngineObject
     /// </summary>
     /// <param name="type">The type of the component.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool HasComponent(Type type) => ScriptGlue.Entity_HasComponent(_uuid, type);
+    public bool HasComponent(Type type)
+    {
+        return ScriptGlue.Entity_HasComponent(_uuid, type);
+    }
 
     /// <summary>
     /// Gets the component with the specified type.
@@ -208,8 +216,6 @@ public class Entity : EngineObject
             }
         }
         
-        ScriptGlue.Entity_AddComponents(_uuid, componentTypes);
-
         Component?[] components = new Component[componentTypes.Length];
         
         foreach ((Type componentType, int index) in componentTypes.WithIndex())
@@ -217,6 +223,8 @@ public class Entity : EngineObject
             // componentType is null, if it's type is invalid!
             if (componentType == null!)
                 continue;
+
+            ScriptGlue.Entity_AddComponent(_uuid, componentType);
 
             components[index] = ActivatorExtension.CreateComponent(componentType, _uuid);
         }
@@ -232,7 +240,8 @@ public class Entity : EngineObject
         where T1 : Component, new()
         where T2 : Component, new()
     {
-        ScriptGlue.Entity_AddComponents(_uuid, new []{typeof(T1), typeof(T2)});
+        ScriptGlue.Entity_AddComponent(_uuid, typeof(T1));
+        ScriptGlue.Entity_AddComponent(_uuid, typeof(T2));
 
         return (new T1 { _uuid = _uuid }, new T2 { _uuid = _uuid });
     }
@@ -246,7 +255,9 @@ public class Entity : EngineObject
         where T2 : Component, new()
         where T3 : Component, new()
     {
-        ScriptGlue.Entity_AddComponents(_uuid, new []{typeof(T1), typeof(T2), typeof(T3)});
+        ScriptGlue.Entity_AddComponent(_uuid, typeof(T1));
+        ScriptGlue.Entity_AddComponent(_uuid, typeof(T2));
+        ScriptGlue.Entity_AddComponent(_uuid, typeof(T3));
 
         return (new T1 { _uuid = _uuid }, new T2 { _uuid = _uuid }, new T3 { _uuid = _uuid });
     }
@@ -285,7 +296,14 @@ public class Entity : EngineObject
     /// <returns>A reference to the new script or <see langword="null"/>, if the operation failed.</returns>
     public T? SetScript<T>() where T : Entity
     {
-        return ScriptGlue.Entity_SetScript(_uuid, typeof(T)) as T;
+        Entity? scriptInstance = null;
+
+        if (ScriptGlue.Entity_SetScript(_uuid, typeof(T).FullName))
+        {
+            ScriptGlue.Entity_GetScriptInstance(_uuid, out scriptInstance);
+        }
+        
+        return scriptInstance as T;
     }
     
     /// <summary>
@@ -323,7 +341,7 @@ public class Entity : EngineObject
     /// <returns><see langword="true"/> if the <see cref="Entity"/> has a script component of the given type; or <see langword="false"/> if the <see cref="Entity"/> either has no script or the script is not of the specified type.</returns>
     public bool Is<T>() where T : Entity
     {
-        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out Entity? scriptInstance);
 
         return scriptInstance is T;
     }
@@ -341,7 +359,7 @@ public class Entity : EngineObject
             return false;
         }
 
-        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out Entity? scriptInstance);
 
         return type.IsInstanceOfType(scriptInstance);
     }
@@ -353,7 +371,7 @@ public class Entity : EngineObject
     /// <returns>The script instance of the given type; or <see langword="null"/> if the <see cref="Entity"/> has no script of the given type.</returns>
     public T? As<T>() where T : Entity
     {
-        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out Entity? scriptInstance);
 
         return scriptInstance as T;
     }
@@ -371,7 +389,7 @@ public class Entity : EngineObject
             return null;
         }
 
-        ScriptGlue.Entity_GetScriptInstance(_uuid, out object? scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(_uuid, out Entity? scriptInstance);
 
         return scriptInstance;
     }
@@ -386,7 +404,7 @@ public class Entity : EngineObject
     {
         Debug.Assert(typeof(Entity).IsAssignableFrom(type));
 
-        ScriptGlue.Entity_GetScriptInstance(id, out object? scriptInstance);
+        ScriptGlue.Entity_GetScriptInstance(id, out Entity? scriptInstance);
 
         return scriptInstance as Entity;
     }

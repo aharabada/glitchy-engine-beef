@@ -141,6 +141,6 @@ public class Log
     /// <param name="exception">The exception to log.</param>
     public static void Exception(Exception exception)
     {
-        ScriptGlue.Log_LogException(exception);
+        ScriptGlue.Log_LogException(UUID.Zero, exception.GetType().FullName, exception.Message, exception.StackTrace);
     }
 }

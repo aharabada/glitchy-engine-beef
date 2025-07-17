@@ -26,12 +26,10 @@ namespace GlitchyEngine;
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe partial struct EngineFunctions
 {
-    //public delegate* unmanaged[Cdecl]<GlitchyEngine.Log.LogLevel, char*, char*, int, void> Log_LogMessage;
 }
 
 /// <summary>
 /// All methods in here are glued to the ScriptGlue.bf in the engine.
-/// TODO: This could be auto-generated fairly easily
 /// </summary>
 internal static unsafe partial class ScriptGlue
 {
@@ -39,11 +37,20 @@ internal static unsafe partial class ScriptGlue
 
     static ScriptGlue()
     {
+        ConfigureDllImportResolver();
+    }
+
+    private static void ConfigureDllImportResolver()
+    {
         NativeLibrary.SetDllImportResolver(typeof(ScriptGlue).Assembly, ImportResolver);
         // TODO: With this we can actually use the official ImGui.NET-Branch in the future!
         NativeLibrary.SetDllImportResolver(typeof(ImGui).Assembly, ImportResolver);
     }
 
+    /// <summary>
+    /// Resolves an import request for the DLL <b>__Internal</b> (<c>[DllImport("__Internal")]</c>) to the current executable file.
+    /// This allows calling functions that are part of the native executable (e.g. native libraries we want to use from C# scripts).
+    /// </summary>
     private static IntPtr ImportResolver(string libraryName, Assembly assembly, DllImportSearchPath? searchPath)
     {
         if (libraryName == "__Internal")
@@ -59,24 +66,34 @@ internal static unsafe partial class ScriptGlue
         return IntPtr.Zero;
     }
 
-
-
     private static EngineFunctions _engineFunctions;
+    
+    private static AssemblyLoadContext? _scriptAssemblyContext;
 
+    private static Assembly? _appAssembly;
+    
+    /// <summary>
+    /// Entity script instances
+    /// </summary>
+    private static readonly Dictionary<UUID, (Entity Entity, Type Type)> EntityScriptInstances = new();
+
+    /// <summary>
+    /// Called by the engine to provide a struct containing all functions pointers that can be called from C##
+    /// </summary>
+    /// <param name="engineFunctions">The struct containing the function pointers to the engine functions.</param>
     [UnmanagedCallersOnly]
-    public static unsafe void SetEngineFunctions(EngineFunctions* engineFunctions)
+    public static void SetEngineFunctions(EngineFunctions* engineFunctions)
     {
         _engineFunctions = *engineFunctions;
 
         Log.Info("Yeah");
     }
 
-    private static AssemblyLoadContext? _scriptAssemblyContext;
-
-    private static Assembly? _appAssembly;
-
+    /// <summary>
+    /// Called by the engine to load the provided assembly (containing user scripts) and optionally debug symbols.
+    /// </summary>
     [UnmanagedCallersOnly]
-    public static unsafe void LoadScriptAssembly(byte* assemblyData, long assemblyLength, byte* pdbData, long pdbLength)
+    public static void LoadScriptAssembly(byte* assemblyData, long assemblyLength, byte* pdbData, long pdbLength)
     {
         using UnmanagedMemoryStream assemblyStream = new(assemblyData, assemblyLength);
 
@@ -100,7 +117,10 @@ internal static unsafe partial class ScriptGlue
             Console.WriteLine($"Fehler: {e}");
         }
     }
-
+    
+    /// <summary>
+    /// Called by the engine to unload the assembly (containing user scripts).
+    /// </summary>
     [UnmanagedCallersOnly]
     public static void UnloadAssemblies()
     {
@@ -108,15 +128,9 @@ internal static unsafe partial class ScriptGlue
         _scriptAssemblyContext = null;
     }
 
-    struct ScriptClassInfo
-    {
-        public byte[] Name;
-        public Guid Guid;
-    }
-
     private static NativeScriptClassInfo[]? _unsafeClasses;
 
-    struct NativeScriptClassInfo
+    public struct NativeScriptClassInfo
     {
         public IntPtr Name;
         public Guid Guid;
@@ -133,8 +147,16 @@ internal static unsafe partial class ScriptGlue
         OnDestroy = 0x4
     }
 
+    /// <summary>
+    /// Called by the engine to receive a list of all script classes.
+    /// </summary>
+    /// <param name="outBuffer">Pointer to the array of <see cref="NativeScriptClassInfo"/>s</param>
+    /// <param name="length">The number of elements in <see cref="outBuffer"/></param>
+    /// <remarks>
+    /// The array returned by <see cref="outBuffer"/> must be freed using <see cref="FreeScriptClassNames"/>.
+    /// </remarks>
     [UnmanagedCallersOnly]
-    public static unsafe void GetScriptClasses(void** outBuffer, long* length)
+    public static void GetScriptClasses(NativeScriptClassInfo** outBuffer, long* length)
     {
         using var contextualReflection = AssemblyLoadContext.EnterContextualReflection(_appAssembly);
 
@@ -189,17 +211,20 @@ internal static unsafe partial class ScriptGlue
             };
         }
 
-        *outBuffer = (void*)Marshal.UnsafeAddrOfPinnedArrayElement(_unsafeClasses, 0);
+        *outBuffer = (NativeScriptClassInfo*)Marshal.UnsafeAddrOfPinnedArrayElement(_unsafeClasses, 0);
         *length = _unsafeClasses.Length;
     }
 
+    /// <summary>
+    /// Called by the engine to free the data allocated by <see cref="GetScriptClasses"/>
+    /// </summary>
     [UnmanagedCallersOnly]
     public static void FreeScriptClassNames()
     {
         Internal_FreeScriptClassNames();
     }
 
-    internal static void Internal_FreeScriptClassNames()
+    private static void Internal_FreeScriptClassNames()
     {
         if (_unsafeClasses == null)
             return;
@@ -212,13 +237,19 @@ internal static unsafe partial class ScriptGlue
         _unsafeClasses = null;
     }
 
-    private static Dictionary<UUID, (Entity Entity, Type Type)> _entityScripts = new();
-
     [UnmanagedCallersOnly]
     public static void ShowEntityEditor(UUID entityId)
     {
-        (Entity entity, Type type) = _entityScripts[entityId];
-        EntityEditor.ShowEntityEditor(entity);
+        try
+        {
+            (Entity entity, Type type) = EntityScriptInstances[entityId];
+            EntityEditor.ShowEntityEditor(entity);
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+            // TODO: Log exceptions to console
+        }
     }
 
     [UnmanagedCallersOnly]
@@ -226,7 +257,7 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
-            (Entity entity, Type type) = _entityScripts[entityId];
+            (Entity entity, Type type) = EntityScriptInstances[entityId];
             entity.OnCreate();
         }
         catch (Exception e)
@@ -241,19 +272,19 @@ internal static unsafe partial class ScriptGlue
     {
         // using var _ = AssemblyLoadContext.EnterContextualReflection(_appAssembly); // TODO: Check if reflection works correctly in entities
 
-        (Entity entity, Type type) = _entityScripts[entityId];
+        (Entity entity, Type type) = EntityScriptInstances[entityId];
         entity.OnUpdate(deltaTime);
     }
 
     [UnmanagedCallersOnly]
     public static void InvokeEntityOnDestroy(UUID entityId, float deltaTime)
     {
-        (Entity entity, Type type) = _entityScripts[entityId];
+        (Entity entity, Type type) = EntityScriptInstances[entityId];
         entity.OnDestroy();
     }
 
     [UnmanagedCallersOnly]
-    public static unsafe void CreateScriptInstance(UUID entityId, byte* scriptClassName)
+    public static void CreateScriptInstance(UUID entityId, byte* scriptClassName)
     {
         using var _ = AssemblyLoadContext.EnterContextualReflection(_appAssembly);
 
@@ -269,212 +300,104 @@ internal static unsafe partial class ScriptGlue
 
         Entity? scriptInstance = ActivatorExtension.CreateEngineObject(scriptType, entityId) as Entity;
 
-        //
-        // // Get the constructor
-        // ConstructorInfo? constructor = scriptType.GetConstructor(
-        //     BindingFlags.Instance | BindingFlags.Public,
-        //     null,
-        //     [],
-        //     null);
-        //
-        // Debug.Assert(constructor != null, "Script class constructor not found.");
-        //
-        // // Call the constructor to create an instance
-        // Entity? scriptInstance = constructor?.Invoke(null) as Entity;
         Debug.Assert(scriptInstance != null, "Failed to create script instance.");
-        //
-        // if (scriptInstance != null)
-        //     scriptInstance._uuid = entityId;
 
-        //ScriptFunctions functions = new();
-
-        _entityScripts.Add(entityId, (scriptInstance!, scriptType));
-
-        //MethodInfo? onCreateMethod = scriptType.GetMethod("OnCreate", BindingFlags.Instance | BindingFlags.NonPublic);
-        //if (onCreateMethod != null)
-        //{
-        //    var v = MethodHelpers.GetFunctionPointerForNativeCode(onCreateMethod, null);
-        //}
-        //if (onCreateMethod != null)
-        //{
-        //    //Delegate del = CreateDelegateWithTarget(onCreateMethod, scriptInstance);
-
-        //    //var createDelegate = onCreateMethod.CreateDelegate<Action>(scriptInstance);
-        //    //var createDelegate = onCreateMethod.CreateDelegate(typeof(OnCreateMethodDelegate), scriptInstance);
-        //    //onCreateMethod.CreateDelegate(scriptInstance);
-
-        //    //functions.OnCreateMethod = Marshal.GetFunctionPointerForDelegate(createDelegate);
-        //}
-        //
-        // MethodInfo? onUpdateMethod = scriptType.GetMethod("OnUpdate",  BindingFlags.Instance | BindingFlags.NonPublic);
-        // if (onUpdateMethod != null)
-        // {
-        //     // Create the delegate from your method and instance
-        //     OnUpdateMethodDelegate onUpdateDelegate = (OnUpdateMethodDelegate)Delegate.CreateDelegate(typeof(OnUpdateMethodDelegate), scriptInstance, onUpdateMethod);
-        //
-        //     // Get the function pointer from your delegate
-        //     functions.OnUpdateMethod = Marshal.GetFunctionPointerForDelegate(onUpdateDelegate);
-        // }
-
-
-            //functions.OnUpdateMethod = Marshal.GetFunctionPointerForDelegate((float deltaTime) => onUpdateMethod.Invoke(scriptInstance, new object?[]{ deltaTime }));
-
-        //MethodInfo? onDestroyMethod = scriptType.GetMethod("OnUpdate",  BindingFlags.Instance | BindingFlags.NonPublic);
-        //if (onDestroyMethod != null)
-        //    functions.OnDestroyMethod = Marshal.GetFunctionPointerForDelegate(() => onDestroyMethod.Invoke(scriptInstance, null));
-
-        //return functions;
+        EntityScriptInstances.Add(entityId, (scriptInstance!, scriptType));
     }
 
-    static Delegate CreateDelegate(MethodInfo method)
+    struct ComponentFunctionPointers
     {
-        if (method == null)
-        {
-            throw new ArgumentNullException(nameof(method));
-        }
-
-        if (!method.IsStatic)
-        {
-            throw new ArgumentException("The provided method must be static.", nameof(method));
-        }
-
-        if (method.IsGenericMethod)
-        {
-            throw new ArgumentException("The provided method must not be generic.", nameof(method));
-        }
-
-        return method.CreateDelegate(Expression.GetDelegateType(
-            (from parameter in method.GetParameters() select parameter.ParameterType)
-            .Concat(new[] { method.ReturnType })
-            .ToArray()));
+        public delegate* unmanaged[Cdecl]<UUID, void> AddComponent;
+        public delegate* unmanaged[Cdecl]<UUID, bool> HasComponent;
+        public delegate* unmanaged[Cdecl]<UUID, void> RemoveComponent;
     }
 
-    /// <summary>
-    /// Create delegate by methodinfo in target
-    /// </summary>
-    /// <param name="method">method info</param>
-    /// <param name="target">A instance of the object which contains the method where will be execute</param>
-    /// <returns>delegate or null</returns>
-    public static Delegate? CreateDelegateWithTarget(MethodInfo? method, object? target)
+    private static readonly Dictionary<Type, ComponentFunctionPointers> ComponentTypeFunctions = new();
+
+    [UnmanagedCallersOnly]
+    public static void RegisterComponentType(byte* fullComponentTypeName,
+        delegate* unmanaged[Cdecl]<UUID, void> addComponent,
+        delegate* unmanaged[Cdecl]<UUID, bool> hasComponent,
+        delegate* unmanaged[Cdecl]<UUID, void> removeComponent)
     {
-        if (method is null ||
-            target is null)
-            return null;
+        string? beefComponentTypeName = Marshal.PtrToStringUTF8((IntPtr)fullComponentTypeName);
 
-        //if (method.IsStatic)
-        //    return null;
+        if (beefComponentTypeName == null)
+            return;
 
-        if (method.IsGenericMethod)
-            return null;
-
-        return method.CreateDelegate(Expression.GetDelegateType(
-            (from parameter in method.GetParameters() select parameter.ParameterType)
-            .Concat(new[] { method.ReturnType })
-            .ToArray()), target);
-    }
-
-    internal static class MethodHelpers
-    {
-        private const string DelegateTypesAssemblyName = "JitDelegateTypes";
-
-        private static ModuleBuilder _modBuilder;
-
-        private static ConcurrentDictionary<(string, object), Delegate> _delegatesCache;
-        private static ConcurrentDictionary<string, Type>               _delegateTypesCache;
-
-        static MethodHelpers()
+        foreach(Type componentType in TypeExtension.FindDerivedTypes(typeof(Component)))
         {
-            AssemblyBuilder asmBuilder = AssemblyBuilder.DefineDynamicAssembly(new AssemblyName(DelegateTypesAssemblyName), AssemblyBuilderAccess.Run);
-
-            _modBuilder = asmBuilder.DefineDynamicModule(DelegateTypesAssemblyName);
-
-            _delegatesCache     = new ConcurrentDictionary<(string, object), Delegate>();
-            _delegateTypesCache = new ConcurrentDictionary<string, Type>();
-        }
-
-        public static IntPtr GetFunctionPointerForNativeCode(MethodInfo meth, object instance = null)
-        {
-            string funcName = GetFullName(meth);
-
-            Delegate dlg = _delegatesCache.GetOrAdd((funcName, instance), (_) =>
+            if (!componentType.TryGetCustomAttribute(out EngineClassAttribute mapping) ||
+                mapping.EngineClassName != beefComponentTypeName) continue;
+            
+            ComponentTypeFunctions[componentType] = new ComponentFunctionPointers
             {
-                Type[] parameters = meth.GetParameters().Select(x => x.ParameterType).ToArray();
+                AddComponent = addComponent,
+                HasComponent = hasComponent,
+                RemoveComponent = removeComponent
+            };
 
-                Type delegateType = GetDelegateType(parameters, meth.ReturnType);
-
-                return Delegate.CreateDelegate(delegateType, instance, meth);
-            });
-
-            return Marshal.GetFunctionPointerForDelegate<Delegate>(dlg);
-        }
-
-        private static string GetFullName(MethodInfo meth)
-        {
-            return $"{meth.DeclaringType.FullName}.{meth.Name}";
-        }
-
-        private static Type GetDelegateType(Type[] parameters, Type returnType)
-        {
-            string key = GetFunctionSignatureKey(parameters, returnType);
-
-            return _delegateTypesCache.GetOrAdd(key, (_) => MakeDelegateType(parameters, returnType, key));
-        }
-
-        private const MethodAttributes CtorAttributes =
-            MethodAttributes.RTSpecialName |
-            MethodAttributes.HideBySig |
-            MethodAttributes.Public;
-
-        private const MethodImplAttributes ImplAttributes =
-            MethodImplAttributes.Runtime |
-            MethodImplAttributes.Managed;
-
-        private const MethodAttributes InvokeAttributes =
-            MethodAttributes.Public |
-            MethodAttributes.HideBySig |
-            MethodAttributes.NewSlot |
-            MethodAttributes.Virtual;
-
-        private const TypeAttributes DelegateTypeAttributes =
-            TypeAttributes.Class |
-            TypeAttributes.Public |
-            TypeAttributes.Sealed |
-            TypeAttributes.AnsiClass |
-            TypeAttributes.AutoClass;
-
-        private static readonly Type[] _delegateCtorSignature = { typeof(object), typeof(IntPtr) };
-
-        private static Type MakeDelegateType(Type[] parameters, Type returnType, string name)
-        {
-            TypeBuilder builder = _modBuilder.DefineType(name, DelegateTypeAttributes, typeof(MulticastDelegate));
-
-            builder.DefineConstructor(CtorAttributes, CallingConventions.Standard, _delegateCtorSignature).SetImplementationFlags(ImplAttributes);
-
-            builder.DefineMethod("Invoke", InvokeAttributes, returnType, parameters).SetImplementationFlags(ImplAttributes);
-
-            return builder.CreateTypeInfo();
-        }
-
-        private static string GetFunctionSignatureKey(Type[] parameters, Type returnType)
-        {
-            string sig = GetTypeName(returnType);
-
-            foreach (Type type in parameters)
-            {
-                sig += '_' + GetTypeName(type);
-            }
-
-            return sig;
-        }
-
-        private static string GetTypeName(Type type)
-        {
-            return type.FullName.Replace(".", string.Empty);
+            break;
         }
     }
 
 #endregion
+    
+    public static void Entity_AddComponent(UUID entityId, Type componentType)
+    {
+        ComponentTypeFunctions[componentType].AddComponent(entityId);
+    }
 
+    public static bool Entity_HasComponent(UUID entityId, Type componentType)
+    {
+        return ComponentTypeFunctions[componentType].HasComponent(entityId);
+    }
+    
+    public static void Entity_RemoveComponent(UUID entityId, Type componentType)
+    {
+        ComponentTypeFunctions[componentType].RemoveComponent(entityId);
+    }
+
+    public static void Entity_GetScriptInstance(UUID entityId, out Entity? instance)
+    {
+        // We currently can implement this method here, because we only have C# scripts.
+        // If we ever need to do something to interop with other script languages, then this would change.
+        if (EntityScriptInstances.TryGetValue(entityId, out var match))
+        {
+            instance = match.Entity;
+        }
+
+        instance = null;
+    }
+
+    public static void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string fieldName, object? valueObject, string fullTypeName)
+    {
+        byte* fieldNameConverted = (byte*)Marshal.StringToCoTaskMemUTF8(fieldName);
+        byte* fullTypeNameConverted = (byte*)Marshal.StringToCoTaskMemUTF8(fullTypeName);
+
+        void* valueObjectConverted = null;
+        bool deleteValueObject = false;
+
+        switch (type)
+        {
+            case SerializationType.String:
+                valueObjectConverted = (void*)Marshal.StringToCoTaskMemUTF8(fullTypeName);
+                deleteValueObject = true;
+                break;
+            default:
+                if (valueObject is not null)
+                    valueObjectConverted = Unsafe.AsPointer(ref Unsafe.Unbox<byte>(valueObject));
+                break;
+        }
+        
+        _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, valueObjectConverted, fullTypeNameConverted);
+
+        Marshal.FreeCoTaskMem((IntPtr)fieldNameConverted);
+        Marshal.FreeCoTaskMem((IntPtr)fullTypeNameConverted);
+
+        if (deleteValueObject)
+            Marshal.FreeCoTaskMem((IntPtr)valueObjectConverted);
+    }
 
 //#region Log
 

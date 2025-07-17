@@ -90,7 +90,7 @@ class SerializedObject
 		Fields.Add(nameCopy, (fieldType, data));
 	}
 
-	public void AddField(StringView name, SerializationType primitiveType, MonoObject* value, MonoString* fullTypeName)
+	public void AddField(StringView name, SerializationType primitiveType, void* value, StringView fullTypeName)
 	{
 		FieldData data = .();
 
@@ -102,14 +102,9 @@ class SerializedObject
 
 			if (value != null)
 			{
-				MonoString* string = (.)value;
-				char8* rawStringValue = Mono.mono_string_to_utf8(string);
-
-				String stringValue = new String(rawStringValue);
+				String stringValue = new String((char8*)value);
 
 				_ownedString.Add(stringValue);
-
-				Mono.mono_free(rawStringValue);
 
 				valueView = stringValue;
 			}
@@ -118,21 +113,14 @@ class SerializedObject
 		case .EngineObjectReference:
 			String typeName = null;
 
-			if (fullTypeName != null)
+			if (!fullTypeName.IsEmpty)
 			{
-				char8* rawTypeName = Mono.mono_string_to_utf8(fullTypeName);
-				typeName = new String(rawTypeName);
-
-				_ownedString.Add(typeName);
-
-				Mono.mono_free(rawTypeName);
+				_ownedString.Add(new String(fullTypeName));
 			}
 
-			data.EngineObject = (FullTypeName: typeName, ID: *(UUID*)Mono.mono_object_unbox(value));
+			data.EngineObject = (FullTypeName: typeName, ID: *(UUID*)value);
 		default:
-			void* rawValue = Mono.mono_object_unbox(value);
-
-			SetDataSimple(primitiveType, rawValue, ref data);
+			SetDataSimple(primitiveType, value, ref data);
 		}
 
 		AddField(name, primitiveType, data);

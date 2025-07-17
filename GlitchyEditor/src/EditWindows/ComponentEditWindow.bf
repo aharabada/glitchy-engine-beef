@@ -21,9 +21,11 @@ namespace GlitchyEditor.EditWindows
 
 		public static this()
 		{
-			ScriptGlue.OnRegisterNativeCalls.Add(new () => {
-			   ScriptGlue.RegisterCall<function bool(ref AssetHandle)>("ScriptGlue::ImGuiExtension_ShowAssetDropTarget", => ShowAssetDropTarget);
-			});
+			/*ScriptGlue.OnRegisterNativeCalls.Add(new () => {
+				// TODO: Implement
+				Runtime.NotImplemented();
+			   //ScriptGlue.RegisterCall<function bool(ref AssetHandle)>("ScriptGlue::ImGuiExtension_ShowAssetDropTarget", => ShowAssetDropTarget);
+			});*/
 		}
 
 		public static void ShowComponents(Entity entity, Type componentType = null)

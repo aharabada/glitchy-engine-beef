@@ -1,4 +1,5 @@
-﻿using System.Diagnostics.SymbolStore;
+﻿using System;
+using System.Diagnostics.SymbolStore;
 using GlitchyEngine.Core;
 using GlitchyEngine.Math;
 
@@ -22,7 +23,7 @@ public class Material : Asset
     {
         unsafe
         {
-            ScriptGlue.Material_SetVariable(_uuid, name, ShaderVariableType.Float, 1, 4, 1, &value, sizeof(float4));
+            ScriptGlue.Material_SetVariable(_uuid, name, ShaderVariableType.Float, 1, 4, 1, (IntPtr)(void*)&value, sizeof(float4));
         }
     }
 

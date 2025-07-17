@@ -152,16 +152,16 @@ public static partial class Math
     /// <summary>
     /// Splits the value x into fractional and integer parts, each of which has the same sign as x.
     /// </summary>
-    public static float modf(float x, out float integerPart) => ScriptGlue.modf_float(x, out integerPart);
+    public static float modf(float x, out float integerPart) => ScriptGlue.Math_ModfFloat(x, out integerPart);
 
     /// <inheritdoc cref="modf(float,out float)"/>
-    public static float2 modf(float2 x, out float2 integerPart) => ScriptGlue.modf_float2(x, out integerPart);
+    public static float2 modf(float2 x, out float2 integerPart) => ScriptGlue.Math_ModfFloat2(x, out integerPart);
 
     /// <inheritdoc cref="modf(float2,out float2)"/>
-    public static float3 modf(float3 x, out float3 integerPart) => ScriptGlue.modf_float3(x, out integerPart);
+    public static float3 modf(float3 x, out float3 integerPart) => ScriptGlue.Math_ModfFloat3(x, out integerPart);
 
     /// <inheritdoc cref="modf(float2,out float2)"/>
-    public static float4 modf(float4 x, out float4 integerPart) => ScriptGlue.modf_float4(x, out integerPart);
+    public static float4 modf(float4 x, out float4 integerPart) => ScriptGlue.Math_ModfFloat4(x, out integerPart);
 
     /// <summary>
     /// Returns the fractional (or decimal) part of x; which is greater than or equal to 0 and less than 1.

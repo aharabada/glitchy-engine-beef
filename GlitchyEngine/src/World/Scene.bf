@@ -686,7 +686,7 @@ namespace GlitchyEngine.World
 
 		private append List<Entity> _destroyQueue = .();
 
-		private append List<ScriptInstance> _destroyScriptQueue = .();
+		private append List<NewScriptInstance> _destroyScriptQueue = .();
 
 		float physicsDelta = 0;
 
@@ -926,7 +926,7 @@ namespace GlitchyEngine.World
 		 * @param scriptInstance The script instance to destroy.
 		 * @param removeComponent If set to true the ScriptComponent will be removed from the entity.
 		 */
-		public void DestroyScriptDeferred(ScriptInstance scriptInstance, bool removeComponent)
+		public void DestroyScriptDeferred(NewScriptInstance scriptInstance, bool removeComponent)
 		{
 			_destroyScriptQueue.Add(scriptInstance..AddRef());
 
