@@ -6,6 +6,7 @@ namespace GlitchyEngine.Physics;
 /// <summary>
 /// Rigid body component for 2D physics.
 /// </summary>
+[EngineClass("GlitchyEngine.World.Rigidbody2DComponent")]
 public class Rigidbody2D : Component
 {
     /// <summary>

@@ -192,22 +192,22 @@ class SerializedObject
 		}
 	}
 	
-	public void Serialize(ScriptInstance scriptInstance)
+	public void Serialize(NewScriptInstance scriptInstance)
 	{
 		ScriptEngine.Classes.EntitySerializer.Serialize(scriptInstance, this);
 	}
 
-	public void Deserialize(ScriptInstance scriptInstance)
+	public void Deserialize(NewScriptInstance scriptInstance)
 	{
 		ScriptEngine.Classes.EntitySerializer.Deserialize(scriptInstance, this);
 	}
 
-	public void SerializeStaticFields(ScriptClass scriptClass)
+	public void SerializeStaticFields(NewScriptClass scriptClass)
 	{
 		ScriptEngine.Classes.EntitySerializer.SerializeStatic(scriptClass, this);
 	}
 
-	public void DeserializeStaticFields(ScriptClass scriptClass)
+	public void DeserializeStaticFields(NewScriptClass scriptClass)
 	{
 		ScriptEngine.Classes.EntitySerializer.DeserializeStatic(scriptClass, this);
 	}

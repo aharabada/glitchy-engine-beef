@@ -6,6 +6,7 @@ namespace GlitchyEngine.Graphics;
 /// <summary>
 /// Component that renders a sprite.
 /// </summary>
+[EngineClass("GlitchyEngine.World.SpriteRendererComponent")]
 public class SpriteRenderer : Component
 {
     // TODO: Texture2D/Sprite

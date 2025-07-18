@@ -6,6 +6,7 @@ namespace GlitchyEngine.Graphics;
 /// <summary>
 /// Component that renders a circle.
 /// </summary>
+[EngineClass("GlitchyEngine.World.CircleRendererComponent")]
 public class CircleRenderer : Component
 {
 	// TODO: Texture2D Sprite

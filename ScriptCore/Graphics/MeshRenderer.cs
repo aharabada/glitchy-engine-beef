@@ -5,6 +5,7 @@ namespace GlitchyEngine.Graphics;
 /// <summary>
 /// Renders a Mesh. The Mesh can be specified by adding a <see cref="Mesh"/> component to the same <see cref="Entity"/>.
 /// </summary>
+[EngineClass("GlitchyEngine.World.MeshRendererComponent")]
 public class MeshRenderer : Component
 {
     /// <summary>

@@ -7,9 +7,9 @@ namespace GlitchyEngine.Scripting;
 
 public struct ScriptFunctionPointers
 {
-    public function void() OnCreate;
-    public function void(float) OnUpdate;
-    public function void() OnDestroy;
+    public function void(UUID entityId) OnCreate;
+    public function void(UUID entityId, float deltaTime) OnUpdate;
+    public function void(UUID entityId, bool callEntity) OnDestroy;
 }
 
 static class CoreClrHelper
@@ -39,7 +39,7 @@ static class CoreClrHelper
 	private function void ThrowExceptionFunc(char8* message);
 	static ThrowExceptionFunc _throwException;
 
-	private function void RegisterComponentTypeFunc(StringView fullComponentTypeName, function void(UUID entityId) addComponent, function bool(UUID entityId) hasComponent, function void(UUID entityId) removeComponent);
+	private function void RegisterComponentTypeFunc(char8* fullComponentTypeName, function void(UUID entityId) addComponent, function bool(UUID entityId) hasComponent, function void(UUID entityId) removeComponent);
 	static RegisterComponentTypeFunc _registerComponentType;
 
 	public static ScriptFunctionPointers _entityScriptFunctions;
@@ -180,7 +180,8 @@ static class CoreClrHelper
 		return rc;
 	}
 
-	public static int GetFunctionPointerUnmanagedCallersOnly<T>(StringView typeName, StringView methodName, out T outDelegate) where T: operator explicit void*
+
+	public static Result<void, int> GetFunctionPointerUnmanagedCallersOnly<T>(StringView typeName, StringView methodName, out T outDelegate) where T: operator explicit void*
 	{
 		void* funPtr = null;
 
@@ -189,7 +190,10 @@ static class CoreClrHelper
 
 		outDelegate = (T)funPtr;
 
-		return rc;
+		if (rc == 0)
+			return .Ok;
+
+		return .Err(rc);
 	}
 
 	public static void ThrowException(StringView message)
@@ -199,6 +203,6 @@ static class CoreClrHelper
 
 	public static void RegisterComponent(StringView fullComponentTypeName, function void(UUID entityId) addComponent, function bool(UUID entityId) hasComponent, function void(UUID entityId) removeComponent)
 	{
-		_registerComponentType(fullComponentTypeName, addComponent, hasComponent, removeComponent);
+		_registerComponentType(fullComponentTypeName.Ptr, addComponent, hasComponent, removeComponent);
 	}
 }

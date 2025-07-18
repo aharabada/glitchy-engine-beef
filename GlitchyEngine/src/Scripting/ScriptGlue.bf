@@ -372,10 +372,6 @@ struct EngineFunctions
 
 static class ScriptGlue
 {
-	/*private static Dictionary<MonoType*, function void(Entity entityId)> s_AddComponentMethods = new .() ~ delete _;
-	private static Dictionary<MonoType*, function bool(Entity entityId)> s_HasComponentMethods = new .() ~ delete _;
-	private static Dictionary<MonoType*, function void(Entity entityId)> s_RemoveComponentMethods = new .() ~ delete _;*/
-
 	/* Adding this attribute to a method will log method entry and returned Result<T> errors */
 	[AttributeUsage(.Method)]
 	struct RegisterMethodAttribute : Attribute, IOnMethodInit
@@ -408,9 +404,6 @@ static class ScriptGlue
 
 	public static Event<delegate void()> OnRegisterNativeCalls ~ _.Dispose();
 
-	/*private function void SetEngineFunctions(EngineFunctions* engineFunctions);
-	private static SetEngineFunctions _setEngineFunctions;*/
-
 	private function void SetEngineFunctions(EngineFunctions* engineFunctions);
 	private static SetEngineFunctions _setEngineFunctions;
 
@@ -423,16 +416,12 @@ static class ScriptGlue
 
 		RegisterCalls();
 
-		//RegisterMathFunctions();
+		RegisterManagedComponents();
 	}
 
 	public static void RegisterManagedComponents()
 	{
 		Debug.Profiler.ProfileFunction!();
-
-		/*s_AddComponentMethods.Clear();
-		s_HasComponentMethods.Clear();
-		s_RemoveComponentMethods.Clear();*/
 
 		RegisterComponent<TransformComponent>();
 		RegisterComponent<Rigidbody2DComponent>();
@@ -459,12 +448,10 @@ static class ScriptGlue
 
 	private static void RegisterComponent<T>() where T : struct, new
 	{
-		Log.EngineLogger.Error("ScriptGlue::RegisterComponent not updated yet.");
-
 		String fullComponentTypeName = scope String();
 		typeof(T).GetFullName(fullComponentTypeName);
 
-		CoreClrHelper.RegisterComponent(fullComponentTypeName,
+		CoreClrHelper.RegisterComponent(fullComponentTypeName..EnsureNullTerminator(),
 			addComponent: (entityId) => {
 					Entity entity = GetEntitySafe(entityId);
 					entity.AddComponent<T>();
@@ -1549,6 +1536,8 @@ static class ScriptGlue
 		SerializedObject context = Internal.UnsafeCastToObject(serializationContext) as SerializedObject;
 
 		Log.EngineLogger.AssertDebug(context != null);
+
+		Log.EngineLogger.Trace(StringView(fieldName));
 
 		context.AddField(StringView(fieldName), type, valueObject, StringView(fullTypeName));
 	}

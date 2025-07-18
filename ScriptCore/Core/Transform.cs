@@ -8,6 +8,7 @@ namespace GlitchyEngine.Core;
 /// <br/><br/>
 /// Every entity has a transform component.
 /// </summary>
+[EngineClass("GlitchyEngine.World.TransformComponent")]
 public class Transform : Component
 {
     public Entity? Parent

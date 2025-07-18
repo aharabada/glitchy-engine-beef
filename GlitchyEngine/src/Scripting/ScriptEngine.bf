@@ -1,4 +1,3 @@
-using Mono;
 using System;
 using System.IO;
 using System.Collections;
@@ -54,7 +53,7 @@ class EngineClasses
 
 		DeleteAndNullify!(s_EntityEditor);
 
-		ReleaseRefAndNullify!(s_EntitySerializer);
+		DeleteAndNullify!(s_EntitySerializer);
 		//ReleaseRefAndNullify!(s_SerializationContext);
 
 		DeleteAndNullify!(s_Collision2D);
@@ -73,7 +72,7 @@ class EngineClasses
 		// Editor classes
 		s_EntityEditor = new EntityEditorWrapper();
 
-		//s_EntitySerializer = new EntitySerializerWrapper("GlitchyEngine.Serialization", "EntitySerializer");
+		s_EntitySerializer = new EntitySerializerWrapper();
 
 		s_Collision2D = new NewScriptClass("GlitchyEngine.Physics.Collision2D", .Empty, .None);
 
@@ -84,15 +83,6 @@ class EngineClasses
 
 static class ScriptEngine
 {
-	private static MonoDomain* s_RootDomain;
-	private static MonoDomain* s_AppDomain;
-
-	private static MonoAssembly* s_CoreAssembly;
-	private static MonoImage* s_CoreAssemblyImage;
-
-	private static MonoAssembly* s_AppAssembly;
-	private static MonoImage* s_AppAssemblyImage;
-
 	private static Scene s_Context ~ _?.ReleaseRef();
 
 	private static EngineClasses _classes = new .() ~ delete _;
@@ -286,9 +276,12 @@ static class ScriptEngine
 	static void LoadScriptAssemblies()
 	{
 		Debug.Profiler.ProfileFunction!();
+		
+		// TODO: We should probably verify, that all required types actually exist.
+		Classes.LoadClasses();
 
 		ScriptGlue.Init();
-
+		
 		// TODO: Check if files exist
 		if (File.Exists(_appAssemblyPath))
 		{
@@ -415,9 +408,6 @@ static class ScriptEngine
 	{
 		Debug.Profiler.ProfileFunction!();
 
-		// TODO: We should probably verify, that all required types actually exist.
-		Classes.LoadClasses();
-
 		CoreClrHelper.GetScriptClasses(let data, let entryCount);
 		
 		Span<ScriptClassInfo> scriptClasses = .((.)data, entryCount);
@@ -459,8 +449,7 @@ static class ScriptEngine
 		{
 			Debug.Profiler.ProfileScope!("Initialize Instances");
 			
-			Log.EngineLogger.Error("Recreating and copying instances (ReloadAssemblies) not updated yet.");
-			/*// We need to create a new instance for every entity
+			// We need to create a new instance for every entity
 			for (let (id, scriptInstance) in _entityScriptInstances)
 			{
 				if (Context.GetEntityByID(id) case .Ok(let entity))
@@ -472,7 +461,7 @@ static class ScriptEngine
 				{
 					Log.EngineLogger.AssertDebug(false, "Entities script was just serialized but the entity doesn't exist anymore.");
 				}
-			}*/
+			}
 		}
 
 		contextSerializer.DeserializeScriptInstances();
@@ -491,8 +480,9 @@ static class ScriptEngine
 		s_RootDomain = null;*/
 	}
 
+	// TODO: Do we still need this? It was only called by ScriptGlue
 	/// Returns the script instance or null.
-	public static MonoObject* GetManagedInstance(UUID entityId)
+	public static void* GetManagedInstance(UUID entityId)
 	{
 		//if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
 		//	return scriptInstance.MonoInstance;
@@ -505,11 +495,6 @@ static class ScriptEngine
 		EntityClasses.TryGetValue(name, let scriptClass);
 
 		return scriptClass;
-	}
-
-	internal static void HandleException()
-	{
-
 	}
 
 	internal static void LogScriptException(ScriptException exception, UUID entityId)
@@ -530,13 +515,8 @@ static class ScriptEngine
 
 		Log.ClientLogger.Error($"Mono Exception \"{exception.FullName}\": \"{exception.Message}\"{entityInfo}\nStackTrace:\n{exception.StackTrace}", exception);
 	}
-	
-	// TODO: This can go soon?
-	internal static void HandleMonoException(MonoException* exception, ScriptInstance sourceInstance = null)
-	{
-		//LogScriptException(exception, sourceInstance?.EntityId ?? .Zero);
-	}
 
+	// TODO: Wrap like the other classes
 	public static void ShowScriptEditor(Entity entity, ScriptComponent* scriptComponent)
 	{
 		if (scriptComponent.Instance == null)

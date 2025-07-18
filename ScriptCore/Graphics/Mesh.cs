@@ -6,6 +6,7 @@ namespace GlitchyEngine.Graphics;
 /// Holds a reference to a Mesh.
 /// Can be used in combination with a <see cref="MeshRenderer"/> on the same <see cref="Entity"/> to render the mesh.
 /// </summary>
+[EngineClass("GlitchyEngine.Renderer.MeshComponent")]
 public class Mesh : Component
 {
     

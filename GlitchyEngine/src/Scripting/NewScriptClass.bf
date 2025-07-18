@@ -72,13 +72,13 @@ class NewScriptInstance : RefCounter
 	public void InvokeOnCreate()
 	{
 		if (_scriptClass.Methods.HasFlag(.OnCreate))
-			CoreClrHelper._entityScriptFunctions.OnCreate();
+			CoreClrHelper._entityScriptFunctions.OnCreate(_entityId);
 	}
 
 	public void InvokeOnUpdate(float deltaTime)
 	{
 		if (_scriptClass.Methods.HasFlag(.OnUpdate))
-			CoreClrHelper._entityScriptFunctions.OnUpdate(deltaTime);
+			CoreClrHelper._entityScriptFunctions.OnUpdate(_entityId, deltaTime);
 	}
 
 	public void Destroy()
@@ -86,10 +86,11 @@ class NewScriptInstance : RefCounter
 		if (!IsInitialized)
 			return;
 
-		if (_scriptClass.Methods.HasFlag(.OnDestroy) && (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode))
+		/*if (_scriptClass.Methods.HasFlag(.OnDestroy) && (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode))
 		{
 			CoreClrHelper._entityScriptFunctions.OnDestroy();
-		}
+		}*/
+		CoreClrHelper._entityScriptFunctions.OnDestroy(_entityId, (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode));
 
 		IsInitialized = false;
 		

@@ -562,9 +562,9 @@ public class DeserializationObject
             if (id == UUID.Zero)
                 return null;
             
-            string fullTypeName = Encoding.UTF8.GetString(data.FullTypeName, (int)data.FullTypeNameLength);
+            string? fullTypeName = data.FullTypeName != null ? Encoding.UTF8.GetString(data.FullTypeName, (int)data.FullTypeNameLength) : null;
 
-            Type? type = GetTypeFromName(fullTypeName);
+            Type? type = fullTypeName is not null ? GetTypeFromName(fullTypeName) : null;
 
             if (type == null)
                 return NoValueDeserialized;

@@ -14,7 +14,7 @@ class EntityEditorWrapper : NewScriptClass
 	private ShowEntityEditorFunc _showEntityEditorFunc;
 
 	[AllowAppend]
-	public this() : base(FullName, .Empty, .None, false)
+	public this() : base("GlitchyEngine.ScriptGlue.ShowEntityEditor", .Empty, .None, false)
 	{
 		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "ShowEntityEditor", out _showEntityEditorFunc);
 

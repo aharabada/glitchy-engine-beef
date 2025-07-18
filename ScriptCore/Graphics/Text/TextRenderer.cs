@@ -7,6 +7,7 @@ namespace GlitchyEngine.Graphics.Text;
 /// <summary>
 /// Renders text.
 /// </summary>
+[EngineClass("GlitchyEngine.World.Components.TextRendererComponent")]
 public class TextRenderer : Component
 {
     /// <summary>

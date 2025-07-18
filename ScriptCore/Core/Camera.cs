@@ -25,6 +25,7 @@ public enum ProjectionType : byte
 /// <summary>
 /// A component representing a camera that is attached to the entity.
 /// </summary>
+[EngineClass("GlitchyEngine.World.CameraComponent")]
 public class Camera : Component
 {
     /// <summary>

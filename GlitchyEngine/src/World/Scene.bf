@@ -956,7 +956,7 @@ namespace GlitchyEngine.World
 			Dictionary<EcsEntity, EcsEntity> sourceToTargetEntity = scope .();
 			Dictionary<UUID, UUID> sourceIdToTargetId = scope .();
 			Dictionary<UUID, Entity> targetIdToSourceEntity = scope .();
-			List<(UUID oldId, ScriptInstance scriptInstance)> newScripts = scope .();
+			List<(UUID oldId, NewScriptInstance scriptInstance)> newScripts = scope .();
 			
 			Entity CopyEntityAndChildren(Entity original, Entity? copyParent)
 			{
