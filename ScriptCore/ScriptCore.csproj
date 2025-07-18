@@ -28,4 +28,8 @@
   <ItemGroup>
     <AdditionalFiles Include="$(GeneratedSchemaPath)" />
   </ItemGroup>
+	<ItemGroup>
+		<None Include="../GlitchyEngine/src/**/*" Link="Beef\Engine\%(RecursiveDir)%(Filename)%(Extension)" />
+		<None Include="../GlitchyEditor/src/**/*" Link="Beef\Editor\%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
 </Project>
