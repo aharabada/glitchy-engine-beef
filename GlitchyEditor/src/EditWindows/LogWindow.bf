@@ -45,7 +45,7 @@ class MessageSource
 	/// If true, the message is only meant for engine developers... so only me :(
 	public bool IsEngineMessage = false;
 
-	public ScriptException Exception = null ~ _?.ReleaseRef();
+	public ScriptException Exception = null ~ delete _;
 
 	public String AdditionalData = null ~ delete _;
 }
@@ -383,7 +383,7 @@ class LogWindow : EditorWindow
 		message.AppendF($"Exception: \"{exception.FullName}\" | Message: \"{exception.Message}\" {firstLine}\0");
 
 		// TODO: are mono exceptions never engine only?
-		LogMessage logMessage = new LogMessage(timestamp, message, .Error, new MessageSource(){Entity = exception.EntityId, Exception = exception..AddRef(), IsEngineMessage = false});
+		LogMessage logMessage = new LogMessage(timestamp, message, .Error, new MessageSource(){Entity = exception.EntityId, Exception = exception, IsEngineMessage = false});
 		_messages.Add(logMessage);
 	}
 }

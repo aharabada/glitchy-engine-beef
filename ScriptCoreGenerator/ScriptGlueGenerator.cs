@@ -272,6 +272,21 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             WrapperConvertInput = "void* {0} = (void*){1};",
             WrapperOutConversion = "{1} = (IntPtr){0};"
         });
+        
+        beefTypeToMappedType.Add("GlitchyEngine.Scripting.ScriptGlue.EngineResult : int32 as void", new MappedType
+        {
+            BeefTypeName = "GlitchyEngine.Scripting.ScriptGlue.EngineResult",
+            CSharpTypeName = "GlitchyEngine.Core.EngineResult",
+            CSharpWrapperType = "void",
+            ReturnValueConversion = "EngineErrors.ThrowIfError(returnValue);"
+        });
+        beefTypeToMappedType.Add("GlitchyEngine.Scripting.ScriptGlue.EngineResult : int32 as bool", new MappedType
+        {
+            BeefTypeName = "GlitchyEngine.Scripting.ScriptGlue.EngineResult",
+            CSharpTypeName = "GlitchyEngine.Core.EngineResult",
+            CSharpWrapperType = "bool",
+            ReturnValueConversion = "EngineErrors.ThrowIfError(returnValue);\nreturn (returnValue == EngineResult.Ok);"
+        });
     }
 
     private static void GenerateFunctionPointer(GlueMethod method, Dictionary<string, MappedType> beefTypeToMappedType, StringBuilder output)
@@ -458,6 +473,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                     using System;
                     using System.Collections.Generic;
                     using System.Runtime.InteropServices;
+                    using GlitchyEngine.Core;
 
                     namespace GlitchyEngine;
 

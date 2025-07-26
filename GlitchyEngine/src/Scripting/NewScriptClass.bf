@@ -1,6 +1,8 @@
 using System;
 using GlitchyEngine.Core;
+
 using static GlitchyEngine.Scripting.ScriptEngine;
+
 namespace GlitchyEngine.Scripting;
 
 class NewScriptClass
@@ -72,7 +74,10 @@ class NewScriptInstance : RefCounter
 	public void InvokeOnCreate()
 	{
 		if (_scriptClass.Methods.HasFlag(.OnCreate))
+		{
 			CoreClrHelper._entityScriptFunctions.OnCreate(_entityId);
+			_isCreated = true;
+		}
 	}
 
 	public void InvokeOnUpdate(float deltaTime)
@@ -83,17 +88,14 @@ class NewScriptInstance : RefCounter
 
 	public void Destroy()
 	{
-		if (!IsInitialized)
-			return;
-
-		/*if (_scriptClass.Methods.HasFlag(.OnDestroy) && (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode))
+		if (IsInitialized)
 		{
-			CoreClrHelper._entityScriptFunctions.OnDestroy();
-		}*/
-		CoreClrHelper._entityScriptFunctions.OnDestroy(_entityId, (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode));
+			// We always need to do some cleanup on the script side, but we pass over whether the script wants/needs its OnDelete called
+			CoreClrHelper._entityScriptFunctions.OnDestroy(_entityId, (ScriptEngine.ApplicationInfo.IsInPlayMode || ScriptClass.RunInEditMode));
+	
+			IsInitialized = false;
+		}
 
-		IsInitialized = false;
-		
 		ScriptEngine.UnregisterScriptInstance(_entityId);
 	}
 }

@@ -463,6 +463,8 @@ namespace GlitchyEditor.EditWindows
 			ImGui.PopStyleVar(1);
 		}
 
+		private bool _showEntityIds = true;
+
 		/// Shows the given entity and it's children as a tree.
 		private void ImGuiPrintEntityTree(TreeNode<Entity> tree, bool flat = false)
 		{
@@ -484,13 +486,17 @@ namespace GlitchyEditor.EditWindows
 
 			var nameComponent = entity.GetComponent<NameComponent>();
 
-			if(nameComponent != null)
+			if (_showEntityIds)
+			{
+				name = scope:: $"{nameComponent?.Name ?? ("Entity")} ({(entity.UUID)})";
+			}
+			else if(nameComponent != null)
 			{
 				name = scope:: .(nameComponent.Name);
 			}
 			else
 			{
-				name = scope:: $"Entity {(entity.Handle.[Friend]Index)}";
+				name = scope:: $"Entity {(entity.UUID)}";
 			}
 
 			ImGui.TreeNodeFlags flags = .OpenOnArrow | .DefaultOpen | .SpanAllColumns | .OpenOnDoubleClick;

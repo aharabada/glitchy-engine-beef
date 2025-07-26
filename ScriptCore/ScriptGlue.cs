@@ -305,8 +305,6 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void CreateScriptInstance(UUID entityId, byte* scriptClassName)
     {
-        Log.Info("Exception");
-
         Type? scriptType = GetTypeFromNativeString(scriptClassName);
 
         Debug.Assert(scriptType != null, "Script class Type not found.");

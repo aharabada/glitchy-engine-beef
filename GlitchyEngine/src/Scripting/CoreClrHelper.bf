@@ -2,6 +2,7 @@ using NetHostBeef;
 using System;
 using System.Interop;
 using GlitchyEngine.Core;
+using static GlitchyEngine.Scripting.ScriptGlue;
 
 namespace GlitchyEngine.Scripting;
 
@@ -39,7 +40,7 @@ static class CoreClrHelper
 	private function void ThrowExceptionFunc(char8* message);
 	static ThrowExceptionFunc _throwException;
 
-	private function void RegisterComponentTypeFunc(char8* fullComponentTypeName, function void(UUID entityId) addComponent, function bool(UUID entityId) hasComponent, function void(UUID entityId) removeComponent);
+	private function void RegisterComponentTypeFunc(char8* fullComponentTypeName, function EngineResult(UUID entityId) addComponent, function EngineResult(UUID entityId) hasComponent, function EngineResult(UUID entityId) removeComponent);
 	static RegisterComponentTypeFunc _registerComponentType;
 
 	public static ScriptFunctionPointers _entityScriptFunctions;
@@ -200,8 +201,8 @@ static class CoreClrHelper
 	{
 		_throwException(message.Ptr);
 	}
-
-	public static void RegisterComponent(StringView fullComponentTypeName, function void(UUID entityId) addComponent, function bool(UUID entityId) hasComponent, function void(UUID entityId) removeComponent)
+	
+	public static void RegisterComponent(StringView fullComponentTypeName, function EngineResult(UUID entityId) addComponent, function EngineResult(UUID entityId) hasComponent, function EngineResult(UUID entityId) removeComponent)
 	{
 		_registerComponentType(fullComponentTypeName.Ptr, addComponent, hasComponent, removeComponent);
 	}

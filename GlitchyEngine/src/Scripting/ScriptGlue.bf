@@ -16,6 +16,7 @@ using GlitchyEngine.Renderer;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using static GlitchyEngine.Scripting.ScriptGlue;
 
 using static GlitchyEngine.Renderer.Text.FontRenderer;
 
@@ -45,6 +46,7 @@ class MessageOrigin
 
 struct RegisterCallAttribute : Attribute
 {
+	public bool EngineResultAsBool { get; set mut; }
 }
 
 struct TypeTranslationTemplate
@@ -242,7 +244,7 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 			""");
 	}
 
-	private static String GetTypeInfo(Type type)
+	private static String GetTypeInfo(Type type, RegisterCallAttribute? callAttribute = null)
 	{
 		String value = new .();
 		type.ToString(value);
@@ -252,10 +254,22 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 			value.AppendF($" : {type.UnderlyingType}");
 		}
 
+		if (type == typeof(EngineResult) && callAttribute.HasValue)
+		{
+			if (callAttribute.Value.EngineResultAsBool)
+			{
+				value.Append(" as bool");
+			}
+			else
+			{
+				value.Append(" as void");
+			}
+		}
+
 		return value;
 	}
 	
-	private static void GenerateJsonInfo(MethodInfo method, String outString)
+	private static void GenerateJsonInfo(MethodInfo method, RegisterCallAttribute registerCallAttribute, String outString)
 	{
 		String parameters = new String();
 
@@ -277,7 +291,7 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 
 				{{
 					"name": "{method.Name}",
-					"return_type": "{GetTypeInfo(method.ReturnType)}",
+					"return_type": "{GetTypeInfo(method.ReturnType, registerCallAttribute)}",
 					"parameters": [{parameters}
 					]
 				}},
@@ -335,7 +349,7 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 				GenerateCSharpFunctionPointer(methodInfo, csharpEngineFunctionsStruct);
 				
 				GenerateCSharpWrapperMethod(methodInfo, csharpScriptGlue);
-				GenerateJsonInfo(methodInfo, jsonOutput);
+				GenerateJsonInfo(methodInfo, attribute, jsonOutput);
 			}
 		}
 
@@ -383,7 +397,7 @@ static class ScriptGlue
 
 			int i = 0;
 
-	        for (var methodInfo in typeof(ScriptGlue).GetMethods(.Static))
+	        for (var methodInfo in typeof(ScriptGlue).GetMethods(.Static | .NonPublic | .FlattenHierarchy))
 			{
 				if (methodInfo.GetCustomAttribute<RegisterCallAttribute>() case .Ok(let attribute))
 				{
@@ -394,8 +408,6 @@ static class ScriptGlue
 			}
 
 			functionContent.Insert(0, scope $"EngineFunctions functions = .();\n");
-
-			functionContent.Append("_setEngineFunctions(&functions);");
 
 			Compiler.EmitMethodEntry(method, functionContent);
 	    }
@@ -436,14 +448,15 @@ static class ScriptGlue
 	private static void RegisterCalls()
 	{
 		FillEngineFunctions();
-
-		OnRegisterNativeCalls.Invoke();
 	}
 	
 	[RegisterMethod]
 	private static void FillEngineFunctions()
 	{
+		
+		OnRegisterNativeCalls.Invoke();
 
+		_setEngineFunctions(&functions);
 	}
 
 	private static void RegisterComponent<T>() where T : struct, new
@@ -452,37 +465,60 @@ static class ScriptGlue
 		typeof(T).GetFullName(fullComponentTypeName);
 
 		CoreClrHelper.RegisterComponent(fullComponentTypeName..EnsureNullTerminator(),
-			addComponent: (entityId) => {
-					Entity entity = GetEntitySafe(entityId);
+			addComponent: (entityId) =>
+			{
+				if (GetEntitySafe(entityId) case .Ok(Entity entity))
+				{
 					entity.AddComponent<T>();
-				},
-			hasComponent: (entityId) => {
-					Entity entity = GetEntitySafe(entityId);
-					return entity.HasComponent<T>();
-				},
-			removeComponent: (entityId) => {
-					Entity entity = GetEntitySafe(entityId);
+					return .Ok;
+				}
+				
+				return .EntityNotFound;
+			},
+			hasComponent: (entityId) =>
+			{
+				if (GetEntitySafe(entityId) case .Ok(Entity entity))
+				{
+					return entity.HasComponent<T>() ? .Ok : .False;
+				}
+				
+				return .EntityNotFound;
+			},
+			removeComponent: (entityId) =>
+			{
+				if (GetEntitySafe(entityId) case .Ok(Entity entity))
+				{
 					entity.RemoveComponent<T>();
-				});
+					return .Ok;
+				}
+				
+				return .EntityNotFound;
+			});
 	}
 
 	/// Gets the entity with the given id. Throws a mono exception, if the entity doesn't exist.
-	static Entity GetEntitySafe(UUID entityId)
+	static Result<Entity> GetEntitySafe(UUID entityId)
 	{
-		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
+		if (ScriptEngine.Context.GetEntityByID(entityId) case .Ok(let entity))
+		{
+			return entity;
+		}
 
-		if (foundEntity case .Ok(let entity))
+		return .Err;
+	}
+
+	static mixin GetEntityOrReturnError(UUID entityId)
+	{
+		if (GetEntitySafe(entityId) not case .Ok(let entity))
 		{
-			return foundEntity;
+			return EngineResult.EntityNotFound;
 		}
-		else
-		{
-			ThrowArgumentException(null, "The entity doesn't exist or was deleted.");
-		}
+
+		entity
 	}
 
 	/// Gets the component of the specified type that is attached to the given entity. Or null, if the entity doesn't exist or doesn't have the specified component.
-	static T* GetComponentSafe<T>(UUID entityId) where T: struct, new
+	static Result<T*, EngineResult> GetComponentSafe<T>(UUID entityId) where T: struct, new
 	{
 		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
 
@@ -494,13 +530,24 @@ static class ScriptGlue
 			}
 			else
 			{
-				ThrowArgumentException(null, scope $"The entity has no component of type {typeof(T)} or it was deleted.");
+				return .Err(.EntityDoesntHaveComponent);
 			}
 		}
 		else
 		{
-			ThrowArgumentException(null, "The entity doesn't exist or was deleted.");
+			return .Err(.EntityNotFound);
 		}
+	}
+
+	static mixin GetComponentOrReturn<T>(UUID entityId) where T: struct, new
+	{
+		Result<T*, EngineResult> result = GetComponentSafe<T>(entityId);
+		if (result case .Err(EngineResult error))
+		{
+			return error;
+		}
+
+		result.Value
 	}
 
 	/// Gets the component of the specified type that is attached to the given entity. Or null, if the entity doesn't exist or doesn't have the specified component.
@@ -544,53 +591,30 @@ static class ScriptGlue
 		return false;
 	}
 
-
-#region Exception Helpers
-
-	/// Throws an ArgumentException in the mono runtime.
-	[NoReturn]
-	static void ThrowArgumentException(char8* argument, char8* message)
+	public enum EngineResult : int32
 	{
+		Ok = 0, // Success, for boolean return value means True
+		False = 1, // Success, for boolean return value means False
+		Error = -1,
+		NotImplemented = -2,
+		ArgumentError = -3,
 
-		//MonoException* exception = Mono.mono_get_exception_argument(argument, message);
-		//Mono.mono_raise_exception(exception);
-	}
-	
-	/// Throws an InvalidOperationException in the mono runtime.
-	[NoReturn]
-	static void ThrowInvalidOperationException(char8* message)
-	{
-		//MonoException* exception = Mono.mono_get_exception_invalid_operation(message);
-		//Mono.mono_raise_exception(exception);
-	}
-	
-	/// Throws an NotImplementedException in the mono runtime.
-	[NoReturn]
-	static void ThrowNotImplementedException(StringView message)
-	{
-		//MonoException* exception = Mono.mono_get_exception_invalid_operation(message);
-		//Mono.mono_raise_exception(exception);
-		CoreClrHelper.ThrowException(message);
+		// Entity Errors:
+		EntityNotFound = -4, // The entity doesn't exist or was deleted.
+		EntityDoesntHaveComponent = -5, // The entity has no component of type {typeof(T)} or it was deleted.
+		AssetNotFound = -6, // No asset exists for AssetHandle \"{assetId}\".
 	}
 
-#endregion
-	
 #region Log
 
 	[RegisterCall]
-	//[CallingConvention(.Cdecl)]
 	static void Log_LogMessage(LogLevel logLevel, char8* messagePtr, char8* fileNamePtr, int lineNumber)
 	{
 		String escapedMessage = new:ScopedAlloc! String(messagePtr);
 
-		// Why exactly do we have to replace these? Can we get away without copying the string above?
+		// Escape the message, because the editor logger does a string-format
 		escapedMessage.Replace("{", "{{");
 		escapedMessage.Replace("}", "}}");
-
-		if (escapedMessage == "Exception")
-		{
-			ThrowNotImplementedException("Test exception");
-		}
 
 		if (fileNamePtr != null)
 		{
@@ -659,19 +683,22 @@ static class ScriptGlue
 	}
 
 	[RegisterCall]
-	static void Entity_Destroy(UUID entityId)
+	static EngineResult Entity_Destroy(UUID entityId)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		Entity entity = GetEntityOrReturnError!(entityId);
 		ScriptEngine.Context.DestroyEntityDeferred(entity);
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Entity_CreateInstance(UUID entityId, out UUID newEntityId)
+	static EngineResult Entity_CreateInstance(UUID entityId, out UUID newEntityId)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		newEntityId = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
 		Entity newEntity = ScriptEngine.Context.CreateInstance(entity);
 
 		newEntityId = newEntity.UUID;
+		return .Ok;
 	}
 	
 	[RegisterCall]
@@ -689,16 +716,17 @@ static class ScriptGlue
 
 	// TODO: Do we need this?
 	[RegisterCall]
-	static void Entity_GetScriptInstance(UUID entityId, out void* instance)
+	static EngineResult Entity_GetScriptInstance(UUID entityId, out void* instance)
 	{
-		ThrowNotImplementedException("Entity_AddComponents");
+		instance = ?;
+ 		return .NotImplemented;
 		//instance = ScriptEngine.GetManagedInstance(entityId);
 	}
 
-	[RegisterCall]
-	static bool Entity_SetScript(UUID entityId, char8* fullScriptTypeName)
+	[RegisterCall(EngineResultAsBool = true)]
+	static EngineResult Entity_SetScript(UUID entityId, char8* fullScriptTypeName)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		Entity entity = GetEntityOrReturnError!(entityId);
 
 		ScriptComponent* scriptComponent = null;
 
@@ -722,19 +750,21 @@ static class ScriptGlue
 		// TODO: this returns false, if no script with ScriptClassName exists, we have to handle this case correctly I think.
 		if (!ScriptEngine.InitializeInstance(entity, scriptComponent))
 		{
-			ThrowNotImplementedException("Werfe eine vernünftige Exception, bitte");
+			return .ArgumentError;
 		}
 
 		//return scriptComponent.Instance.MonoInstance;
-		return true;
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void Entity_RemoveScript(UUID entityId)
+	static EngineResult Entity_RemoveScript(UUID entityId)
 	{
-		ScriptComponent* scriptComponent = GetComponentSafe<ScriptComponent>(entityId);
+		ScriptComponent* scriptComponent = GetComponentOrReturn!<ScriptComponent>(entityId);
 
 		ScriptEngine.Context.DestroyScriptDeferred(scriptComponent.Instance, true);
+
+		return .Ok;
 	}
 	
 	[RegisterCall]
@@ -751,11 +781,10 @@ static class ScriptGlue
 	}
     
 	[RegisterCall]
-    static void Entity_SetName(UUID entityId, char8* name)
+    static EngineResult Entity_SetName(UUID entityId, char8* name)
 	{
-		Entity entity = ScriptEngine.Context.GetEntityByID(entityId);
-
-		entity.Name = StringView(name);
+		GetEntityOrReturnError!(entityId).Name = StringView(name);
+		return .Ok;
 	}
 	
 	[RegisterCall]
@@ -782,36 +811,46 @@ static class ScriptGlue
 #region TransformComponen
 
 	[RegisterCall]
-	static void Transform_GetParent(UUID entityId, out UUID parentId)
+	static EngineResult Transform_GetParent(UUID entityId, out UUID parentId)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		parentId = .Zero;
+		Entity entity = GetEntityOrReturnError!(entityId);
 
 		parentId = entity.Parent?.UUID ?? .Zero;
+
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_SetParent(UUID entityId, in UUID parentId)
+	static EngineResult Transform_SetParent(UUID entityId, in UUID newParentId)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		Entity entity = GetEntityOrReturnError!(entityId);
 
-		Entity? parent = GetEntitySafe(parentId);
+		Entity? newParent = null;
+		if (newParentId != .Zero)
+		{
+			GetEntityOrReturnError!(newParentId);
+		}
 
-		entity.Parent = parent;
+		entity.Parent = newParent;
+
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void Transform_GetTranslation(UUID entityId, out float3 translation)
+	static EngineResult Transform_GetTranslation(UUID entityId, out float3 translation)
 	{
-		Entity entity = GetEntitySafe(entityId);
-
+		translation = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
 		translation = entity.Transform.Position;
+
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_SetTranslation(UUID entityId, in float3 translation)
+	static EngineResult Transform_SetTranslation(UUID entityId, in float3 translation)
 	{
-		Entity entity = GetEntitySafe(entityId);
-
+		Entity entity = GetEntityOrReturnError!(entityId);
 		entity.Transform.Position = translation;
 
 		// if necessary reposition Rigidbody2D
@@ -820,22 +859,26 @@ static class ScriptGlue
 			rigidbody2D.SetPosition(translation.XY);
 		}
 		// TODO: we need to handle repositioning of colliders that are children of the entity with rigidbody...
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_GetWorldTranslation(UUID entityId, out float3 translationWorld)
+	static EngineResult Transform_GetWorldTranslation(UUID entityId, out float3 translationWorld)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		translationWorld = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
 
 		TransformComponent* transform = entity.Transform;
 
 		translationWorld = transform.WorldTransform.Translation; //(float4(entity.Transform.Position, 1.0f) * entity.Transform.WorldTransform).XYZ;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_SetWorldTranslation(UUID entityId, in float3 translation)
+	static EngineResult Transform_SetWorldTranslation(UUID entityId, in float3 translation)
 	{
 		Log.ClientLogger.Warning("Transform_SetWorldTranslation is not implemented!");
+		return .NotImplemented;
 
 		// Entity entity = GetEntitySafe(entityId);
 
@@ -850,27 +893,31 @@ static class ScriptGlue
 	}
 
 	[RegisterCall]
-	static void Transform_TransformPointToWorld(UUID entityId, float3 point, out float3 pointWorld)
+	static EngineResult Transform_TransformPointToWorld(UUID entityId, float3 point, out float3 pointWorld)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		pointWorld = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
 
 		float3 localPoint = entity.Transform.Position;
 
 		pointWorld = (float4(localPoint, 1.0f) * entity.Transform.WorldTransform).XYZ;
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void Transform_GetRotation(UUID entityId, out Quaternion rotation)
+	static EngineResult Transform_GetRotation(UUID entityId, out Quaternion rotation)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		rotation = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
 
 		rotation = entity.Transform.Rotation;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_SetRotation(UUID entityId, in Quaternion rotation)
+	static EngineResult Transform_SetRotation(UUID entityId, in Quaternion rotation)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		Entity entity = GetEntityOrReturnError!(entityId);
 		
 		entity.Transform.Rotation = rotation;
 
@@ -879,20 +926,23 @@ static class ScriptGlue
 			rigidbody2D.SetAngle(entity.Transform.RotationEuler.Z);
 		}
 		// TODO: When rotating around the X- or Y-axis we need to deform and reposition the colliders accordingly...
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void Transform_GetRotationEuler(UUID entityId, out float3 rotationEuler)
+	static EngineResult Transform_GetRotationEuler(UUID entityId, out float3 rotationEuler)
 	{
-		Entity entity = GetEntitySafe(entityId);
-
+		rotationEuler = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
+		
 		rotationEuler = entity.Transform.RotationEuler;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_SetRotationEuler(UUID entityId, in float3 rotationEuler)
+	static EngineResult Transform_SetRotationEuler(UUID entityId, in float3 rotationEuler)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		Entity entity = GetEntityOrReturnError!(entityId);
 		
 		entity.Transform.RotationEuler = rotationEuler;
 
@@ -900,6 +950,7 @@ static class ScriptGlue
 		{
 			rigidbody2D.SetAngle(rotationEuler.Z);
 		}
+		return .Ok;
 	}
 
 	[Packed]
@@ -916,17 +967,19 @@ static class ScriptGlue
 	}
 
 	[RegisterCall]
-	static void Transform_GetRotationAxisAngle(UUID entityId, out AxisAngle rotationAxisAngle)
+	static EngineResult Transform_GetRotationAxisAngle(UUID entityId, out AxisAngle rotationAxisAngle)
 	{
-		Entity entity = GetEntitySafe(entityId);
-
+		rotationAxisAngle = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
+		
 		rotationAxisAngle = AxisAngle(entity.Transform.RotationAxisAngle);
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_SetRotationAxisAngle(UUID entityId, AxisAngle rotationAxisAngle)
+	static EngineResult Transform_SetRotationAxisAngle(UUID entityId, AxisAngle rotationAxisAngle)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		Entity entity = GetEntityOrReturnError!(entityId);
 		
 		entity.Transform.RotationAxisAngle = (rotationAxisAngle.Axis, rotationAxisAngle.Angle);
 
@@ -934,20 +987,23 @@ static class ScriptGlue
 		{
 			rigidbody2D.SetAngle(entity.Transform.RotationEuler.Z);
 		}
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_GetScale(UUID entityId, out float3 scale)
+	static EngineResult Transform_GetScale(UUID entityId, out float3 scale)
 	{
-		Entity entity = GetEntitySafe(entityId);
-
+		scale = ?;
+		Entity entity = GetEntityOrReturnError!(entityId);
+		
 		scale = entity.Transform.Scale;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Transform_SetScale(UUID entityId, float3 scale)
+	static EngineResult Transform_SetScale(UUID entityId, float3 scale)
 	{
-		Entity entity = GetEntitySafe(entityId);
+		Entity entity = GetEntityOrReturnError!(entityId);
 		
 		entity.Transform.Scale = scale;
 
@@ -955,6 +1011,7 @@ static class ScriptGlue
 		{
 			// TODO: we need to scale and reposition the colliders, this is a mess...
 		}
+		return .Ok;
 	}
 
 #endregion TransformComponent
@@ -1227,6 +1284,7 @@ static class ScriptGlue
 
 #endregion Physics2D
 
+	// TODO: Do we even need the circle renderer?
 #region CircleRenderer
 	
 	[RegisterCall]
@@ -1276,39 +1334,46 @@ static class ScriptGlue
 #region SpriteRenderer
 
 	[RegisterCall]
-	static void SpriteRenderer_GetColor(UUID entityId, out ColorRGBA color)
+	static EngineResult SpriteRenderer_GetColor(UUID entityId, out ColorRGBA color)
 	{
-		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		color = ?;
+		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
 		color = spriteRenderer.Color;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void SpriteRenderer_SetColor(UUID entityId, ColorRGBA color)
+	static EngineResult SpriteRenderer_SetColor(UUID entityId, ColorRGBA color)
 	{
-		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
 		spriteRenderer.Color = color;
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void SpriteRenderer_GetUvTransform(UUID entityId, out float4 uvTransform)
+	static EngineResult SpriteRenderer_GetUvTransform(UUID entityId, out float4 uvTransform)
 	{
-		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		uvTransform = ?;
+		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
 		uvTransform = spriteRenderer.UvTransform;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void SpriteRenderer_SetUvTransform(UUID entityId, float4 uvTransform)
+	static EngineResult SpriteRenderer_SetUvTransform(UUID entityId, float4 uvTransform)
 	{
-		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
 		spriteRenderer.UvTransform = uvTransform;
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void SpriteRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
+	static EngineResult SpriteRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
 	{
-		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		assetId = ?;
+		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
 
-		Material material = GetAssetOrThrow!<Material>((AssetHandle)spriteRenderer.Material);
+		Material material = GetAssetOrReturn!<Material>((AssetHandle)spriteRenderer.Material);
 
 		if (!material.IsRuntimeInstance)
 		{
@@ -1321,13 +1386,15 @@ static class ScriptGlue
 		}
 
 		assetId = spriteRenderer.Material;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void SpriteRenderer_SetMaterial(UUID entityId, AssetHandle assetId)
+	static EngineResult SpriteRenderer_SetMaterial(UUID entityId, AssetHandle assetId)
 	{
-		SpriteRendererComponent* spriteRenderer = GetComponentSafe<SpriteRendererComponent>(entityId);
+		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
 		spriteRenderer.Material = assetId;
+		return .Ok;
 	}
 
 
@@ -1335,82 +1402,99 @@ static class ScriptGlue
 
 #region TextRenderer
 
-	[RegisterCall]
-	static bool TextRenderer_GetIsRichText(UUID entityId)
+	[RegisterCall(EngineResultAsBool = true)]
+	static EngineResult TextRenderer_GetIsRichText(UUID entityId)
 	{
-		return GetComponentSafe<TextRendererComponent>(entityId).IsRichText;
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
+		return textComponent.IsRichText ? .Ok : .False;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_SetIsRichText(UUID entityId, bool isRichText)
+	static EngineResult TextRenderer_SetIsRichText(UUID entityId, bool isRichText)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 
 		textComponent.IsRichText = isRichText;
 		textComponent.NeedsRebuild = true;
+
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_GetText(UUID entityId, out char8* text)
+	static EngineResult TextRenderer_GetText(UUID entityId, out char8* text)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		text = ?;
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 
 		text = textComponent.Text.Ptr;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_SetText(UUID entityId, char8* text)
+	static EngineResult TextRenderer_SetText(UUID entityId, char8* text)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 
 		textComponent.Text = StringView(text);
 
 		textComponent.NeedsRebuild = true;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_GetColor(UUID entityId, out ColorRGBA color)
+	static EngineResult TextRenderer_GetColor(UUID entityId, out ColorRGBA color)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		color = ?;
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
+
 		color = textComponent.Color;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_SetColor(UUID entityId, ColorRGBA color)
+	static EngineResult TextRenderer_SetColor(UUID entityId, ColorRGBA color)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
+
 		textComponent.Color = color;
 		textComponent.NeedsRebuild = true;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_GetHorizontalAlignment(UUID entityId, [GlueParam("out HorizontalTextAlignment")] out HorizontalTextAlignment horizontalAlignment)
+	static EngineResult TextRenderer_GetHorizontalAlignment(UUID entityId, [GlueParam("out HorizontalTextAlignment")] out HorizontalTextAlignment horizontalAlignment)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		horizontalAlignment = ?;
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 		horizontalAlignment = textComponent.HorizontalAlignment;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_SetHorizontalAlignment(UUID entityId, [GlueParam("HorizontalTextAlignment")] HorizontalTextAlignment horizontalAlignment)
+	static EngineResult TextRenderer_SetHorizontalAlignment(UUID entityId, [GlueParam("HorizontalTextAlignment")] HorizontalTextAlignment horizontalAlignment)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 		textComponent.HorizontalAlignment = horizontalAlignment;
 		textComponent.NeedsRebuild = true;
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void TextRenderer_GetFontSize(UUID entityId, out float fontSize)
+	static EngineResult TextRenderer_GetFontSize(UUID entityId, out float fontSize)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		fontSize = ?;
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 		fontSize = textComponent.FontSize;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void TextRenderer_SetFontSize(UUID entityId, float fontSize)
+	static EngineResult TextRenderer_SetFontSize(UUID entityId, float fontSize)
 	{
-		TextRendererComponent* textComponent = GetComponentSafe<TextRendererComponent>(entityId);
+		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 		textComponent.FontSize = fontSize;
 		textComponent.NeedsRebuild = true;
+		return .Ok;
 	}
 
 #endregion
@@ -1421,11 +1505,12 @@ static class ScriptGlue
 #region MeshRenderer
 
 	[RegisterCall]
-	static void MeshRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
+	static EngineResult MeshRenderer_GetMaterial(UUID entityId, out AssetHandle assetId)
 	{
-		MeshRendererComponent* meshRenderer = GetComponentSafe<MeshRendererComponent>(entityId);
+		assetId = ?;
+		MeshRendererComponent* meshRenderer = GetComponentOrReturn!<MeshRendererComponent>(entityId);
 
-		Material material = GetAssetOrThrow!<Material>((AssetHandle)meshRenderer.Material);
+		Material material = GetAssetOrReturn!<Material>((AssetHandle)meshRenderer.Material);
 		
 		if (!material.IsRuntimeInstance)
 		{
@@ -1438,14 +1523,16 @@ static class ScriptGlue
 		}
 
 		assetId = meshRenderer.Material;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void MeshRenderer_GetSharedMaterial(UUID entityId, out AssetHandle assetId)
+	static EngineResult MeshRenderer_GetSharedMaterial(UUID entityId, out AssetHandle assetId)
 	{
-		MeshRendererComponent* meshRenderer = GetComponentSafe<MeshRendererComponent>(entityId);
-		
-		Material material = GetAssetOrThrow!<Material>((AssetHandle)meshRenderer.Material);
+		assetId = ?;
+		MeshRendererComponent* meshRenderer = GetComponentOrReturn!<MeshRendererComponent>(entityId);
+
+		Material material = GetAssetOrReturn!<Material>((AssetHandle)meshRenderer.Material);
 
 		if (material.IsRuntimeInstance)
 		{
@@ -1455,13 +1542,15 @@ static class ScriptGlue
 		{
 			assetId = meshRenderer.Material;
 		}
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void MeshRenderer_SetMaterial(UUID entityId, AssetHandle assetId)
+	static EngineResult MeshRenderer_SetMaterial(UUID entityId, AssetHandle assetId)
 	{
-		MeshRendererComponent* meshRenderer = GetComponentSafe<MeshRendererComponent>(entityId);
+		MeshRendererComponent* meshRenderer = GetComponentOrReturn!<MeshRendererComponent>(entityId);
 		meshRenderer.Material = assetId;
+		return .Ok;
 	}
 
 #endregion
@@ -1609,46 +1698,50 @@ static class ScriptGlue
 		asset
 	}*/
 
-	static mixin GetAssetOrThrow<T>(UUID assetId) where T : Asset
+	static mixin GetAssetOrReturn<T>(UUID assetId) where T : Asset
 	{
 		AssetHandle handle = .(assetId);
 		T asset = Content.GetAsset<T>(handle, blocking: true);
 
 		if (asset == null)
 		{
-			ThrowInvalidOperationException(scope $"No asset exists for AssetHandle \"{assetId}\".");
+			return EngineResult.AssetNotFound;
 		}
 
 		asset
 	}
 
-	static mixin GetAssetOrThrow<T>(AssetHandle assetHandle) where T : Asset
+	static mixin GetAssetOrReturn<T>(AssetHandle assetHandle) where T : Asset
 	{
 		T asset = Content.GetAsset<T>(assetHandle, blocking: true);
 
 		if (asset == null)
 		{
-			ThrowInvalidOperationException(scope $"No asset exists for AssetHandle \"{assetHandle}\".");
+			return EngineResult.AssetNotFound;
 		}
 
 		asset
 	}
 
 	[RegisterCall]
-	static void Asset_GetIdentifier(UUID assetId, out char8* identifier)
+	static EngineResult Asset_GetIdentifier(UUID assetId, out char8* identifier)
 	{
-		Asset asset = GetAssetOrThrow!<Asset>(assetId);
+		identifier = ?;
+		Asset asset = GetAssetOrReturn!<Asset>(assetId);
 
 		identifier = asset.Identifier.Ptr;
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Asset_SetIdentifier(UUID assetId, char8* identifier)
+	static EngineResult Asset_SetIdentifier(UUID assetId, char8* identifier)
 	{
-		AssetHandle handle = .(assetId);
-		Asset asset = Content.GetAsset(handle, blocking: true);
+		return .NotImplemented;
 
-		ThrowNotImplementedException("Asset.GetIdentifier is not implemented.");
+		//AssetHandle handle = .(assetId);
+		//Asset asset = Content.GetAsset(handle, blocking: true);
+
+		//ThrowNotImplementedException("Asset.GetIdentifier is not implemented.");
 
 		/*
 		// TODO: I think it's not THAT easy.
@@ -1661,50 +1754,61 @@ static class ScriptGlue
 #region Material
 	
 	[RegisterCall]
-	static void Material_SetVariable(AssetHandle assetHandle, char8* variableName, ShaderVariableType elementType, int32 rows, int32 columns, int32 arrayLength, void* rawData, int32 dataLength)
+	static EngineResult Material_SetVariable(AssetHandle assetHandle, char8* variableName, ShaderVariableType elementType, int32 rows, int32 columns, int32 arrayLength, void* rawData, int32 dataLength)
 	{
-		Material material = GetAssetOrThrow!<Material>(assetHandle);
+		Material material = GetAssetOrReturn!<Material>(assetHandle);
 
 		material.[Friend]SetVariableRaw(StringView(variableName), elementType, rows, columns , arrayLength, Span<uint8>((uint8*)rawData, dataLength));
+		
+		return .Ok;
 	}
 	
 	[RegisterCall]
-	static void Material_ResetVariable(AssetHandle assetHandle, char8* variableName)
+	static EngineResult Material_ResetVariable(AssetHandle assetHandle, char8* variableName)
 	{
-		Material material = GetAssetOrThrow!<Material>(assetHandle);
+		Material material = GetAssetOrReturn!<Material>(assetHandle);
 
 		material.ResetVariable(StringView(variableName));
+		
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Material_SetTexture(AssetHandle materialHandle, char8* variableName, AssetHandle textureHandle)
+	static EngineResult Material_SetTexture(AssetHandle materialHandle, char8* variableName, AssetHandle textureHandle)
 	{
-		Material material = GetAssetOrThrow!<Material>(materialHandle);
+		Material material = GetAssetOrReturn!<Material>(materialHandle);
 
 		material.SetTexture(StringView(variableName), textureHandle);
+		
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Material_GetTexture(AssetHandle materialHandle, char8* variableName, out AssetHandle textureHandle)
+	static EngineResult Material_GetTexture(AssetHandle materialHandle, char8* variableName, out AssetHandle textureHandle)
 	{
-		Material material = GetAssetOrThrow!<Material>(materialHandle);
+		textureHandle = ?;
+		Material material = GetAssetOrReturn!<Material>(materialHandle);
 
 		var v = material.GetTexture(StringView(variableName), ?);
 
 		if (v case .Err(let err))
 		{
-			ThrowInvalidOperationException(scope $"Error while getting texture from material {err}");
+			return .Error;
 		}
 
 		textureHandle = v.Value;
+		
+		return .Ok;
 	}
 
 	[RegisterCall]
-	static void Material_ResetTexture(AssetHandle materialHandle, char8* variableName)
+	static EngineResult Material_ResetTexture(AssetHandle materialHandle, char8* variableName)
 	{
-		Material material = GetAssetOrThrow!<Material>(materialHandle);
+		Material material = GetAssetOrReturn!<Material>(materialHandle);
 
 		material.ResetTexture(StringView(variableName));
+
+		return .Ok;
 	}
 
 #endregion

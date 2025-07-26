@@ -4,7 +4,7 @@ using GlitchyEngine.Core;
 namespace GlitchyEngine.Scripting;
 
 
-public class ScriptException : RefCounter
+public class ScriptException
 {
 	private String _fullName ~ delete:append _;
 
