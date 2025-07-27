@@ -77,9 +77,7 @@ public static class ImGuiExtension
 
     public static bool ShowAssetDropTarget(ref UUID uuid)
     {
-        // TODO: !!!
-       // return ScriptGlue.ImGuiExtension_ShowAssetDropTarget(ref uuid);
-       return false;
+       return ScriptGlue.ImGuiExtension_ShowAssetDropTarget(ref uuid);
     }
 
     public static bool Checkbox2(string label, ref bool2 value) => CheckboxN(2, label, ref value.X);

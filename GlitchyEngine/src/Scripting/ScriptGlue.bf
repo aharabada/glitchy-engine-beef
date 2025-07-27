@@ -47,6 +47,7 @@ class MessageOrigin
 struct RegisterCallAttribute : Attribute
 {
 	public bool EngineResultAsBool { get; set mut; }
+	public bool IsExtension { get; set mut; }
 }
 
 struct TypeTranslationTemplate
@@ -177,38 +178,47 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 [EngineFunctionsGenerator]
 struct EngineFunctions
 {
+	static Self _functions;
+	
+	[RegisterMethod]
+	public static void FillEngineFunctions()
+	{
+		
+		OnRegisterNativeCalls.Invoke();
+
+		ScriptGlue.[Friend]_setEngineFunctions(&_functions);
+	}
+}
+
+/* Adding this attribute to a method will log method entry and returned Result<T> errors */
+[AttributeUsage(.Method)]
+public struct RegisterMethodAttribute : Attribute, IOnMethodInit
+{
+    [Comptime]
+    public void OnMethodInit(MethodInfo method, Self* prev)
+    {
+		String functionContent = new .();
+
+		int i = 0;
+
+        for (var methodInfo in typeof(ScriptGlue).GetMethods(.Static | .NonPublic | .FlattenHierarchy))
+		{
+			if (methodInfo.GetCustomAttribute<RegisterCallAttribute>() case .Ok(let attribute) && !attribute.IsExtension)
+			{
+				functionContent.AppendF($"_functions.{methodInfo.Name} = => ScriptGlue.[Friend]{methodInfo.Name};\n");
+				//functionContent.AppendF($"functions[{i}] = (void*)( => {methodInfo.Name});\n");
+				i++;
+			}
+		}
+
+		//functionContent.Insert(0, scope $"EngineFunctions functions = .();\n");
+
+		Compiler.EmitMethodEntry(method, functionContent);
+    }
 }
 
 static class ScriptGlue
 {
-	/* Adding this attribute to a method will log method entry and returned Result<T> errors */
-	[AttributeUsage(.Method)]
-	struct RegisterMethodAttribute : Attribute, IOnMethodInit
-	{
-	    [Comptime]
-	    public void OnMethodInit(MethodInfo method, Self* prev)
-	    {
-			String functionContent = new .();
-
-			int i = 0;
-
-	        for (var methodInfo in typeof(ScriptGlue).GetMethods(.Static | .NonPublic | .FlattenHierarchy))
-			{
-				if (methodInfo.GetCustomAttribute<RegisterCallAttribute>() case .Ok(let attribute))
-				{
-					functionContent.AppendF($"functions.{methodInfo.Name} = => {methodInfo.Name};\n");
-					//functionContent.AppendF($"functions[{i}] = (void*)( => {methodInfo.Name});\n");
-					i++;
-				}
-			}
-
-			functionContent.Insert(0, scope $"EngineFunctions functions = .();\n");
-
-			Compiler.EmitMethodEntry(method, functionContent);
-	    }
-	}
-
-
 	public static Event<delegate void()> OnRegisterNativeCalls ~ _.Dispose();
 
 	private function void SetEngineFunctions(EngineFunctions* engineFunctions);
@@ -242,18 +252,9 @@ static class ScriptGlue
 
 	private static void RegisterCalls()
 	{
-		FillEngineFunctions();
+		EngineFunctions.FillEngineFunctions();
 	}
 	
-	[RegisterMethod]
-	private static void FillEngineFunctions()
-	{
-		
-		OnRegisterNativeCalls.Invoke();
-
-		_setEngineFunctions(&functions);
-	}
-
 	private static void RegisterComponent<T>() where T : struct, new
 	{
 		String fullComponentTypeName = scope String();
@@ -1420,8 +1421,6 @@ static class ScriptGlue
 		SerializedObject context = Internal.UnsafeCastToObject(serializationContext) as SerializedObject;
 
 		Log.EngineLogger.AssertDebug(context != null);
-
-		Log.EngineLogger.Trace(StringView(fieldName));
 
 		context.AddField(StringView(fieldName), type, valueObject, StringView(fullTypeName));
 	}

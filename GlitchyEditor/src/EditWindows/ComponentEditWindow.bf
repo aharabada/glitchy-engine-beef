@@ -19,15 +19,6 @@ namespace GlitchyEditor.EditWindows
 	{
 		private static uint32 TableId;
 
-		public static this()
-		{
-			/*ScriptGlue.OnRegisterNativeCalls.Add(new () => {
-				// TODO: Implement
-				Runtime.NotImplemented();
-			   //ScriptGlue.RegisterCall<function bool(ref AssetHandle)>("ScriptGlue::ImGuiExtension_ShowAssetDropTarget", => ShowAssetDropTarget);
-			});*/
-		}
-
 		public static void ShowComponents(Entity entity, Type componentType = null)
 		{
 			float cellPaddingY = ImGui.GetTextLineHeight() / 3.0f;
