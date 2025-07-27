@@ -77,173 +77,6 @@ struct GlueParamAttribute : Attribute
 [AttributeUsage(.Struct)]
 struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 {
-	private static readonly Dictionary<String, String> BeefToCsharpTypeMap = new .()
-	{
-		("int32", "int"),
-		("char16*", "char*"),
-		("char8*", "byte*"),
-		("uint8*", "byte*"),
-		("GlitchyEngine.Events.MouseButton", "GlitchyEngine.MouseButton"),
-		("GlitchLog.LogLevel", "Log.LogLevel"),
-		("out GlitchyEngine.Content.AssetHandle", "UUID"),
-		("GlitchyEngine.Content.AssetHandle", "UUID"),
-		("out GlitchyEngine.Renderer.Text.FontRenderer.HorizontalTextAlignment", "HorizontalTextAlignment"),
-		("GlitchyEngine.Renderer.Text.FontRenderer.HorizontalTextAlignment", "HorizontalTextAlignment"),
-		("GlitchyEngine.Renderer.ShaderVariableType", "Material.ShaderVariableType"),
-		("in GlitchyEngine.Math.Quaternion", "in System.Numerics.Quaternion"),
-		("out GlitchyEngine.Math.Quaternion", "out System.Numerics.Quaternion"),
-		("out GlitchyEngine.Scripting.ScriptGlue.AxisAngle", "out RotationAxisAngle"),
-		("GlitchyEngine.Scripting.ScriptGlue.AxisAngle", "RotationAxisAngle"),
-		("out GlitchyEngine.World.Rigidbody2DComponent.BodyType", "out BodyType"),
-		("in GlitchyEngine.World.Rigidbody2DComponent.BodyType", "in BodyType"),
-		("out GlitchyEngine.World.SceneCamera.ProjectionType", "out ProjectionType"),
-		("in GlitchyEngine.World.SceneCamera.ProjectionType", "in ProjectionType"),
-	};
-
-	// {0}... Out name, 
-	// {1}... In name
-	private static readonly Dictionary<String, TypeTranslationTemplate> BeefTypeToCSharpWrapperTemplate = new .()
-	{
-		("char8*", .("byte* {0} = (byte*)Marshal.StringToCoTaskMemUTF8({1});", "Marshal.FreeCoTaskMem((IntPtr){0});", "string")),
-		("char16*", .("fixed (char* {0} = {1})\n{{", "}}", "string")),
-	};
-	
-	private static readonly Dictionary<String, TypeTranslationTemplate> CSharpTypeToReturnValueTemplate = new .()
-	{
-		("void", .("", "", "void")),
-	};
-
-	private static String GetCSharpInterfaceType(String beefType)
-	{
-		if (BeefToCsharpTypeMap.TryGetValueAlt(beefType, let csharpType))
-		{
-			return csharpType;
-		}
-
-		return beefType;
-	}
-
-	private static TypeTranslationTemplate GetCSharpWrapperTemplate(String beefType)
-	{
-		if (BeefTypeToCSharpWrapperTemplate.TryGetValueAlt(beefType, let template))
-		{
-			return template;
-		}
-		
-		return .("", "", GetCSharpInterfaceType(beefType));
-	}
-
-	private static TypeTranslationTemplate GetCSharpReturnValueTemplate(String beefType)
-	{
-		if (CSharpTypeToReturnValueTemplate.TryGetValueAlt(beefType, let template))
-		{
-			return template;
-		}
-
-		return .("var returnValue = ", "return returnValue;", GetCSharpInterfaceType(beefType));
-	}
-
-	private static void GenerateCSharpFunctionPointer(MethodInfo method, String outString)
-	{
-		String parameters = new String();
-
-		for (int i < method.ParamCount)
-		{
-			if (i != 0)
-				parameters.Append(", ");
-
-			String typeHolder = scope String();
-
-			method.GetParamType(i).ToString(typeHolder);
-
-			StringView csharpType = GetCSharpInterfaceType(typeHolder);
-
-			parameters.AppendF($"{csharpType}");
-		}
-		
-		String csharpFunctionPointer = scope $"    public delegate* unmanaged[Cdecl]<{parameters}{(parameters.IsEmpty ? "" : ", ")}{method.ReturnType}> {method.Name};\n";
-		outString.Append(csharpFunctionPointer);
-	}
-	
-	private static void GenerateCSharpWrapperMethod(MethodInfo method, String outString)
-	{
-		String wrapperParameters = new .();
-
-		String callArguments = new .();
-
-		String translation = new .();
-		String cleanup = new .();
-
-		for (int i < method.ParamCount)
-		{
-			String beefParameterType = scope String();
-			method.GetParamType(i).ToString(beefParameterType);
-
-			TypeTranslationTemplate template = GetCSharpWrapperTemplate(beefParameterType);
-
-			// TODO: This is currently not implemented in beef.
-			/*if (method.GetParamCustomAttribute<GlueParamAttribute>(i) case .Ok(let attribute))
-			{
-				template.PrettyCSharpParamType = attribute.WrapperType;
-			}*/
-
-			StringView paramName = method.GetParamName(i);
-
-			// Generate the parameter for the wrapper head.
-			{
-				if (i != 0)
-					wrapperParameters.Append(", ");
-
-				wrapperParameters.AppendF($"{template.PrettyCSharpParamType} {paramName}");
-			}
-
-			{
-				if (i != 0)
-					callArguments.Append(", ");
-
-				String translatedParamName = new String(paramName);
-
-				if (!template.StartCode.IsEmpty)
-				{
-					translatedParamName.Append("Converted");
-
-					callArguments.AppendF($"{translatedParamName}");
-					
-					translation.AppendF(template.StartCode, translatedParamName, paramName);
-					translation.Append('\n');
-				}
-				else
-				{
-					callArguments.AppendF($"{paramName}");
-				}
-
-				if (!template.EndCode.IsEmpty)
-				{
-					cleanup.AppendF(template.EndCode, translatedParamName, paramName);
-					cleanup.Append('\n');
-				}
-			}
-		}
-
-		String returnTypeName = new .();
-		method.ReturnType.ToString(returnTypeName);
-		String csharpReturnType = GetCSharpInterfaceType(returnTypeName);
-		TypeTranslationTemplate template = GetCSharpReturnValueTemplate(csharpReturnType);
-
-		outString.AppendF($"""
-			internal static unsafe {template.PrettyCSharpParamType} {method.Name}({wrapperParameters})
-			{{
-				{translation}
-				{template.StartCode}_engineFunctions.{method.Name}({callArguments});
-
-				{cleanup}
-				{template.EndCode}
-			}}
-
-
-			""");
-	}
-
 	private static String GetTypeInfo(Type type, RegisterCallAttribute? callAttribute = null)
 	{
 		String value = new .();
@@ -301,31 +134,6 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 	[Comptime]
 	public void ApplyToType(Type self)
     {
-		String csharpEngineFunctionsStruct = new String("""
-			using System;
-			using System.Runtime.InteropServices;
-			using GlitchyEngine;
-			using GlitchyEngine.Core;
-			using GlitchyEngine.Math;
-			using GlitchyEngine.Physics;
-			using GlitchyEngine.Graphics;
-			using GlitchyEngine.Graphics.Text;
-
-			namespace GlitchyEngine;
-
-			internal unsafe partial struct EngineFunctions
-			{
-
-			""");
-
-		String csharpScriptGlue = new String("""
-
-
-			internal static partial class ScriptGlue
-			{
-
-			""");
-
 		String jsonOutput = new String("[");
 
         for (MethodInfo methodInfo in typeof(ScriptGlue).GetMethods(.Static | .NonPublic))
@@ -346,22 +154,9 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 
 				Compiler.EmitTypeBody(self, line);
 
-				GenerateCSharpFunctionPointer(methodInfo, csharpEngineFunctionsStruct);
-				
-				GenerateCSharpWrapperMethod(methodInfo, csharpScriptGlue);
 				GenerateJsonInfo(methodInfo, attribute, jsonOutput);
 			}
 		}
-
-		csharpEngineFunctionsStruct.Append('}');
-		csharpScriptGlue.Append('}');
-
-		csharpEngineFunctionsStruct.Append(csharpScriptGlue);
-
-		/*if (File.WriteAllText("../ScriptCore/ScriptGlue.gen.cs", csharpEngineFunctionsStruct) case .Err)
-		{
-			Runtime.FatalError("Failed to write file");
-		}*/
 
 		if (jsonOutput.EndsWith(","))
 		{
