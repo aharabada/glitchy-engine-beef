@@ -285,10 +285,10 @@ static class ScriptEngine
 		// TODO: Check if files exist
 		if (File.Exists(_appAssemblyPath))
 		{
-			List<uint8> data = new:ScopedAlloc! List<uint8>(1024);
+			List<uint8> data = scope List<uint8>();
 			File.ReadAll(_appAssemblyPath, data);
 
-			List<uint8> pdbData = new:ScopedAlloc! List<uint8>(1024);
+			List<uint8> pdbData = scope List<uint8>();
 
 			String pdbPath = scope .();
 			Path.ChangeExtension(_appAssemblyPath, ".pdb", pdbPath);
