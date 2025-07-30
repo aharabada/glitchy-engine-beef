@@ -259,7 +259,8 @@ class LogWindow : EditorWindow
 
 				ImGui.TableNextColumn();
 
-				if (ImGui.BeginChild("Message", .Zero, .None, .None))
+				ImGui.BeginGroup();
+
 				{
 					// Timestamp
 					ImGui.TextWrapped($"[{message.Timestamp:HH:mm:ss.fff}]");
@@ -310,7 +311,7 @@ class LogWindow : EditorWindow
 					}
 				}
 
-				ImGui.EndChild();
+				ImGui.EndGroup();
 
 				if (ImGui.IsItemHovered() && ImGui.IsMouseDoubleClicked(.Left))
 				{

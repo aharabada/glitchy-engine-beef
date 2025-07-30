@@ -224,6 +224,8 @@ static class ScriptGlue
 	private function void SetEngineFunctions(EngineFunctions* engineFunctions);
 	private static SetEngineFunctions _setEngineFunctions;
 
+	private static String _lastExceptionMessage = new .() ~ delete _;
+
 	public static void Init()
 	{
 		if (_setEngineFunctions == null)
@@ -389,16 +391,29 @@ static class ScriptGlue
 
 	public enum EngineResult : int32
 	{
-		Ok = 0, // Success, for boolean return value means True
-		False = 1, // Success, for boolean return value means False
-		Error = -1,
-		NotImplemented = -2,
-		ArgumentError = -3,
+		case Ok = 0; // Success, for boolean return value means True
+		case False = 1; // Success, for boolean return value means False
+		case Error = -1;
+		case NotImplemented = -2;
+		case ArgumentError = -3;
 
 		// Entity Errors:
-		EntityNotFound = -4, // The entity doesn't exist or was deleted.
-		EntityDoesntHaveComponent = -5, // The entity has no component of type {typeof(T)} or it was deleted.
-		AssetNotFound = -6, // No asset exists for AssetHandle \"{assetId}\".
+		case EntityNotFound = -4; // The entity doesn't exist or was deleted.
+		case EntityDoesntHaveComponent = -5; // The entity has no component of type {typeof(T)} or it was deleted.
+		case AssetNotFound = -6; // No asset exists for AssetHandle \"{assetId}\".
+
+		case CustomError = 1 << 31;
+
+		public static EngineResult CustomError(int32 payload)
+		{
+			return CustomError | payload;
+		}
+	}
+	
+	[RegisterCall]
+	static char8* GetLastExceptionMessage()
+	{
+		return _lastExceptionMessage.Length == 0 ? null : _lastExceptionMessage.CStr();
 	}
 
 #region Log
@@ -1492,6 +1507,11 @@ static class ScriptGlue
 		asset
 	}*/
 
+	static void SetExceptionMessage(StringView message)
+	{
+		_lastExceptionMessage.Set(message);
+	}
+
 	static mixin GetAssetOrReturn<T>(UUID assetId) where T : Asset
 	{
 		AssetHandle handle = .(assetId);
@@ -1499,6 +1519,7 @@ static class ScriptGlue
 
 		if (asset == null)
 		{
+			SetExceptionMessage(scope $"Asset (Id: {assetId}) not found.");
 			return EngineResult.AssetNotFound;
 		}
 
@@ -1511,6 +1532,7 @@ static class ScriptGlue
 
 		if (asset == null)
 		{
+			SetExceptionMessage(scope $"Asset (Handle: {assetHandle}) not found.");
 			return EngineResult.AssetNotFound;
 		}
 
@@ -1552,7 +1574,26 @@ static class ScriptGlue
 	{
 		Material material = GetAssetOrReturn!<Material>(assetHandle);
 
-		material.[Friend]SetVariableRaw(StringView(variableName), elementType, rows, columns , arrayLength, Span<uint8>((uint8*)rawData, dataLength));
+		StringView variableNameView = StringView(variableName);
+
+		if (material.[Friend]SetVariableRaw(variableNameView, elementType, rows, columns , arrayLength, Span<uint8>((uint8*)rawData, dataLength)) case .Err(let error))
+		{
+			switch (error)
+			{
+			case .VariableNotFound:
+				SetExceptionMessage(scope $"Material \"{material.Identifier}\" has no variable \"{variableNameView}\".");
+				return .ArgumentError;
+			case .ElementTypeMismatch:
+				SetExceptionMessage(scope $"Variable \"{variableNameView}\" has incompatible element type.");
+				return .ArgumentError;
+			case .MatrixDimensionMismatch:
+				SetExceptionMessage(scope $"Variable \"{variableNameView}\" has incompatible matrix dimension type.");
+				return .ArgumentError;
+			case .ProvidedBufferTooShort:
+				SetExceptionMessage(scope $"The provided data buffer for variable \"{variableNameView}\" is not large enough.");
+			}
+			return .Error;
+		}
 		
 		return .Ok;
 	}

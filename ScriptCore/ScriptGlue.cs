@@ -319,7 +319,7 @@ internal static unsafe partial class ScriptGlue
     struct ComponentFunctionPointers
     {
         public delegate* unmanaged[Cdecl]<UUID, void> AddComponent;
-        public delegate* unmanaged[Cdecl]<UUID, bool> HasComponent;
+        public delegate* unmanaged[Cdecl]<UUID, EngineResult> HasComponent;
         public delegate* unmanaged[Cdecl]<UUID, void> RemoveComponent;
     }
 
@@ -328,7 +328,7 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void RegisterComponentType(byte* fullComponentTypeName,
         delegate* unmanaged[Cdecl]<UUID, void> addComponent,
-        delegate* unmanaged[Cdecl]<UUID, bool> hasComponent,
+        delegate* unmanaged[Cdecl]<UUID, EngineResult> hasComponent,
         delegate* unmanaged[Cdecl]<UUID, void> removeComponent)
     {
         string? beefComponentTypeName = Marshal.PtrToStringUTF8((IntPtr)fullComponentTypeName);
@@ -421,7 +421,9 @@ internal static unsafe partial class ScriptGlue
 
     public static bool Entity_HasComponent(UUID entityId, Type componentType)
     {
-        return ComponentTypeFunctions[componentType].HasComponent(entityId);
+        EngineResult returnValue = ComponentTypeFunctions[componentType].HasComponent(entityId);
+        EngineErrors.ThrowIfError(returnValue);
+        return returnValue == EngineResult.Ok;
     }
     
     public static void Entity_RemoveComponent(UUID entityId, Type componentType)

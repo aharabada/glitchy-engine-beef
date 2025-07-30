@@ -17,24 +17,16 @@ internal enum EngineResult
     EntityNotFound = -4, // The entity doesn't exist or was deleted.
     EntityDoesntHaveComponent = -5, // The entity has no component of type {typeof(T)} or it was deleted.
     AssetNotFound = -6, // No asset exists for AssetHandle \"{assetId}\".
+    CustomError = 1 << 31
 }
 
 public class EngineException(string message) : Exception(message);
 
-public class EntityNotFoundException : Exception
-{
-    
-}
+public class EntityNotFoundException(string? message = null) : Exception(message);
 
-public class ComponentNotFoundException : Exception
-{
-    
-}
+public class ComponentNotFoundException(string? message = null) : Exception(message);
 
-public class AssetNotFoundException : Exception
-{
-
-}
+public class AssetNotFoundException(string? message = null) : Exception(message);
 
 internal static class EngineErrors
 {
@@ -43,22 +35,24 @@ internal static class EngineErrors
         if (result >= 0)
             return;
 
+        string engineMessage = ScriptGlue.GetLastExceptionMessage();
+
         switch (result)
         {
             case EngineResult.Error:
-                throw new EngineException($"Unspecified engine excepiton in {callerName}");
+                throw new EngineException(engineMessage ?? $"Unspecified engine excepiton in {callerName}");
             case EngineResult.NotImplemented:
-                throw new NotImplementedException($"Function {callerName} is not implemented in the engine.");
+                throw new NotImplementedException(engineMessage ?? $"Function {callerName} is not implemented in the engine.");
             case EngineResult.ArgumentError:
-                throw new ArgumentException($"An argument passed to {callerName} is invalid.");
+                throw new ArgumentException(engineMessage ?? $"An argument passed to {callerName} is invalid.");
             case EngineResult.EntityNotFound:
-                throw new EntityNotFoundException();
+                throw new EntityNotFoundException(engineMessage);
             case EngineResult.EntityDoesntHaveComponent:
-                throw new ComponentNotFoundException();
+                throw new ComponentNotFoundException(engineMessage);
             case EngineResult.AssetNotFound:
-                throw new AssetNotFoundException();
+                throw new AssetNotFoundException(engineMessage);
             default:
-                throw new EngineException($"Unknown engine excepiton in {callerName}");
+                throw new EngineException(engineMessage ?? $"Unknown engine excepiton in {callerName}");
         }
     }
 }

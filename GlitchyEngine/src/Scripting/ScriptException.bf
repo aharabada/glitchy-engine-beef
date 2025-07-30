@@ -31,8 +31,8 @@ public class ScriptException
 	public this(UUID entityId, StringView fullExceptionClassName, StringView message, StringView stackTrace)
 	{
 		String allocFullExceptionClassName = append String(fullExceptionClassName);
-		String allocMessage = append String(fullExceptionClassName);
-		String allocStackTrace = append String(fullExceptionClassName);
+		String allocMessage = append String(message);
+		String allocStackTrace = append String(stackTrace);
 
 		_fullName = allocFullExceptionClassName;
 		_message = allocMessage;

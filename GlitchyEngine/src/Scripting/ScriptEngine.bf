@@ -513,7 +513,7 @@ static class ScriptEngine
 			}
 		}
 
-		Log.ClientLogger.Error($"Mono Exception \"{exception.FullName}\": \"{exception.Message}\"{entityInfo}\nStackTrace:\n{exception.StackTrace}", exception);
+		Log.ClientLogger.Error($"Exception \"{exception.FullName}\": \"{exception.Message}\"{entityInfo}\nStackTrace:\n{exception.StackTrace}", exception);
 	}
 
 	// TODO: Wrap like the other classes
