@@ -17,5 +17,17 @@ namespace GlitchyEngine.Core
 		{
 			ReleaseRef();
 		}
+
+		public int ReleaseRefGetCount()
+		{
+			int count = ReleaseRefNoDelete();
+
+			if (count == 0)
+			{
+				delete this;
+			}
+
+			return count;
+		}
 	}
 }

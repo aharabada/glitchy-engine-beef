@@ -837,6 +837,8 @@ namespace GlitchyEditor
 		/// Starts the play mode for the current scene
 		private void OnScenePlay()
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			Log.EngineLogger.AssertDebug(_scriptSerializer.SerializedObjectCount == 0, "Somehow some entities are serialized.");
 			
 			if (Application.Instance.Settings.EditorSettings.ClearLogOnPlay)

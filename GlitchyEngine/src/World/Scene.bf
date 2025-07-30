@@ -58,7 +58,7 @@ namespace GlitchyEngine.World
 			cameraEntity
 		};
 		
-		Font _font ~ _.ReleaseRef();
+		static Font _font;
 
 		/// Gets or sets the name of the scene.
 		public StringView Name
@@ -122,12 +122,20 @@ namespace GlitchyEngine.World
 				}
 			});
 
-			_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
+			if (_font == null)
+				_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
+			else
+				_font..AddRef();
+
 			//_font = new Font(@"C:\Windows\Fonts\Cascadia Code.ttf", 24);
 		}
 
 		public ~this()
 		{
+			if (_font.ReleaseRefGetCount() == 0)
+			{
+				_font = null;
+			}
 		}
 
 		/// Copies all entities with their components to the given target-scene.
@@ -138,6 +146,8 @@ namespace GlitchyEngine.World
 		///			TODO: Honestly, I'm not quite sure what simulation mode is actually good for. Maybe we better just remove it?
 		public void CopyTo(Scene target, bool copyScripts)
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			// Copy entities
 			for (let sourceHandle in _ecsWorld.Enumerate())
 			{
@@ -198,6 +208,8 @@ namespace GlitchyEngine.World
 		/// Copies the all components of type TComponent from source scene to the corresponding entities in target scene.
 		private static void CopyComponents<TComponent>(Scene source, Scene target) where TComponent : struct, new
 		{
+			Debug.Profiler.ProfileFunction!();
+
 			for (let (sourceHandle, sourceComponent) in source._ecsWorld.Enumerate<TComponent>())
 			{
 				Entity sourceEntity = .(sourceHandle, source);
