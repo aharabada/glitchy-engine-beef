@@ -88,6 +88,42 @@ namespace ScriptCoreGenerator {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to Methods marked with UnmanagedCallersOnlyAttribute must wrap their logic in a try-catch statement, to ensure that no exception is leaks out of the C# runtime..
+        /// </summary>
+        internal static string CatchUnmanagedCallers_Description {
+            get {
+                return ResourceManager.GetString("CatchUnmanagedCallers_Description", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Wrap in try-catch-Statement.
+        /// </summary>
+        internal static string CatchUnmanagedCallers_FixTitle {
+            get {
+                return ResourceManager.GetString("CatchUnmanagedCallers_FixTitle", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Method &apos;{0}&apos; must wrap it&apos;s logic in a try-catch-Statement.
+        /// </summary>
+        internal static string CatchUnmanagedCallers_MessageFormat {
+            get {
+                return ResourceManager.GetString("CatchUnmanagedCallers_MessageFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to UnmanagedCallersOnly-Methods  must catch all exceptions..
+        /// </summary>
+        internal static string CatchUnmanagedCallers_Title {
+            get {
+                return ResourceManager.GetString("CatchUnmanagedCallers_Title", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Make constant.
         /// </summary>
         internal static string CodeFixTitle {

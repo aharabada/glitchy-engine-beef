@@ -126,6 +126,18 @@
   <data name="AnalyzerTitle" xml:space="preserve">
     <value>Variable can be made const</value>
   </data>
+  <data name="CatchUnmanagedCallers_Description" xml:space="preserve">
+    <value>Methods marked with UnmanagedCallersOnlyAttribute must wrap their logic in a try-catch statement, to ensure that no exception is leaks out of the C# runtime.</value>
+  </data>
+  <data name="CatchUnmanagedCallers_FixTitle" xml:space="preserve">
+    <value>Wrap in try-catch-Statement</value>
+  </data>
+  <data name="CatchUnmanagedCallers_MessageFormat" xml:space="preserve">
+    <value>Method '{0}' must wrap it's logic in a try-catch-Statement</value>
+  </data>
+  <data name="CatchUnmanagedCallers_Title" xml:space="preserve">
+    <value>UnmanagedCallersOnly-Methods  must catch all exceptions.</value>
+  </data>
   <data name="CodeFixTitle" xml:space="preserve">
     <value>Make constant</value>
   </data>

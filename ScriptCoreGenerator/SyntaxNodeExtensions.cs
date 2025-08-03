@@ -8,6 +8,16 @@ namespace ScriptCoreGenerator;
 
 public static class SyntaxNodeExtensions
 {
+    public static string? ExtractName(NameSyntax? name)
+    {
+        return name switch
+        {
+            SimpleNameSyntax ins => ins.Identifier.Text,
+            QualifiedNameSyntax qns => qns.Right.Identifier.Text,
+            _ => null
+        };
+    }
+
     public static T GetParent<T>(this SyntaxNode node)
     {
         var parent = node.Parent;
@@ -24,6 +34,25 @@ public static class SyntaxNodeExtensions
             }
 
             parent = parent.Parent;
+        }
+    }
+
+    public static T? GetParentOrNull<T>(this SyntaxNode node) where T : SyntaxNode
+    {
+        SyntaxNode? parent = node.Parent;
+
+        while (true)
+        {
+            switch (parent)
+            {
+                case null:
+                    return null;
+                case T t:
+                    return t;
+                default:
+                    parent = parent.Parent;
+                    break;
+            }
         }
     }
 
