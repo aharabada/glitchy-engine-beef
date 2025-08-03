@@ -14,11 +14,16 @@
     <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
     <EnableDynamicLoading>true</EnableDynamicLoading>
     <GeneratedSchemaPath>$(ProjectDir)../generated/ScriptGlue.json</GeneratedSchemaPath>
+
+	  <IsRoslynComponent>true</IsRoslynComponent>
+	  <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
   </PropertyGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="PowerShell ./postbuild.ps1 -sourceDir $(OutDir) -destinationDir &quot;..\GlitchyEditor\resources\scripts&quot;" />
   </Target>
   <ItemGroup>
+	  <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.6.0" PrivateAssets="all" />
+	  <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all" />
     <PackageReference Include="System.Memory" Version="4.6.3" />
   </ItemGroup>
   <ItemGroup>
@@ -31,5 +36,10 @@
 	<ItemGroup>
 		<None Include="../GlitchyEngine/src/**/*" Link="Beef\Engine\%(RecursiveDir)%(Filename)%(Extension)" />
 		<None Include="../GlitchyEditor/src/**/*" Link="Beef\Editor\%(RecursiveDir)%(Filename)%(Extension)" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Compile Update="StyleChecker\Strings.Designer.cs" DesignTime="True" AutoGen="True" DependentUpon="StyleChecker\Strings.resx" />
+		<EmbeddedResource Update="StyleChecker\Strings.resx" Generator="ResXFileCodeGenerator" LastGenOutput="StyleChecker\Strings.Designer.cs" />
 	</ItemGroup>
 </Project>
