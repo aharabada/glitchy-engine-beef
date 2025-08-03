@@ -74,9 +74,14 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void SetEngineFunctions(EngineFunctions* engineFunctions)
     {
-        _engineFunctions = *engineFunctions;
-
-        Log.Info("Yeah");
+        try
+        {
+            _engineFunctions = *engineFunctions;
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     /// <summary>
@@ -85,27 +90,27 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void LoadScriptAssembly(byte* assemblyData, long assemblyLength, byte* pdbData, long pdbLength)
     {
-        using UnmanagedMemoryStream assemblyStream = new(assemblyData, assemblyLength);
+        try
+        {
+            using UnmanagedMemoryStream assemblyStream = new(assemblyData, assemblyLength);
 
-        using UnmanagedMemoryStream? pdbStream = (pdbData != null) ? new UnmanagedMemoryStream(pdbData, pdbLength) : null;
+            using UnmanagedMemoryStream? pdbStream = (pdbData != null) ? new UnmanagedMemoryStream(pdbData, pdbLength) : null;
 
-        LoadAssembly(assemblyStream, pdbStream);
+            LoadAssembly(assemblyStream, pdbStream);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     private static void LoadAssembly(Stream assemblyStream, Stream? pdbStream)
     {
-        try
-        {
-            _scriptAssemblyContext ??= new AssemblyLoadContext("ScriptContext", true);
+        _scriptAssemblyContext ??= new AssemblyLoadContext("ScriptContext", true);
 
-            _appAssembly = _scriptAssemblyContext.LoadFromStream(assemblyStream, pdbStream);
+        _appAssembly = _scriptAssemblyContext.LoadFromStream(assemblyStream, pdbStream);
 
-            Debug.Assert(_appAssembly != null);
-        }
-        catch (Exception e)
-        {
-            Console.WriteLine($"Fehler: {e}");
-        }
+        Debug.Assert(_appAssembly != null);
     }
     
     /// <summary>
@@ -114,8 +119,15 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void UnloadAssemblies()
     {
-        _scriptAssemblyContext?.Unload();
-        _scriptAssemblyContext = null;
+        try
+        {
+            _scriptAssemblyContext?.Unload();
+            _scriptAssemblyContext = null;
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     private static NativeScriptClassInfo[]? _unsafeClasses;
@@ -148,61 +160,68 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void GetScriptClasses(NativeScriptClassInfo** outBuffer, long* length)
     {
-        using var contextualReflection = AssemblyLoadContext.EnterContextualReflection(_appAssembly);
-
-        Debug.Assert(_appAssembly != null);
-
-        Internal_FreeScriptClassNames();
-
-        var types = _appAssembly.GetTypes();
-
-        List<(string Name, Guid Guid, ScriptMethods AvailableMethods, bool runInEditMode)> scriptClasses = new();
-
-        foreach (var type in types)
+        try
         {
-            if (type.IsSubclassOf(typeof(Entity)))
+            using var contextualReflection = AssemblyLoadContext.EnterContextualReflection(_appAssembly);
+
+            Debug.Assert(_appAssembly != null);
+
+            Internal_FreeScriptClassNames();
+
+            var types = _appAssembly.GetTypes();
+
+            List<(string Name, Guid Guid, ScriptMethods AvailableMethods, bool runInEditMode)> scriptClasses = new();
+
+            foreach (var type in types)
             {
-                string? name = type.FullName;
-
-                if (name == null)
-                    continue;
-
-                Guid guid = type.GUID;
-
-                ScriptMethods methods = ScriptMethods.None;
-
-                static ScriptMethods HasMethod(Type type, string methodName, ScriptMethods methodFlag)
+                if (type.IsSubclassOf(typeof(Entity)))
                 {
-                    MethodInfo? methodInfo = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                    string? name = type.FullName;
 
-                    return methodInfo != null ? methodFlag : ScriptMethods.None;
+                    if (name == null)
+                        continue;
+
+                    Guid guid = type.GUID;
+
+                    ScriptMethods methods = ScriptMethods.None;
+
+                    static ScriptMethods HasMethod(Type type, string methodName, ScriptMethods methodFlag)
+                    {
+                        MethodInfo? methodInfo = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+                        return methodInfo != null ? methodFlag : ScriptMethods.None;
+                    }
+
+                    methods |= HasMethod(type, nameof(Entity.OnCreate), ScriptMethods.OnCreate);
+                    methods |= HasMethod(type, nameof(Entity.OnUpdate), ScriptMethods.OnUpdate);
+                    methods |= HasMethod(type, nameof(Entity.OnDestroy), ScriptMethods.OnDestroy);
+
+                    bool runInEditMode = type.HasCustomAttribute<RunInEditModeAttribute>();
+
+                    scriptClasses.Add((name, guid, methods, runInEditMode));
                 }
-
-                methods |= HasMethod(type, nameof(Entity.OnCreate), ScriptMethods.OnCreate);
-                methods |= HasMethod(type, nameof(Entity.OnUpdate), ScriptMethods.OnUpdate);
-                methods |= HasMethod(type, nameof(Entity.OnDestroy), ScriptMethods.OnDestroy);
-
-                bool runInEditMode = type.HasCustomAttribute<RunInEditModeAttribute>();
-
-                scriptClasses.Add((name, guid, methods, runInEditMode));
             }
-        }
 
-        _unsafeClasses = new NativeScriptClassInfo[scriptClasses.Count];
+            _unsafeClasses = new NativeScriptClassInfo[scriptClasses.Count];
 
-        for (int i = 0; i < _unsafeClasses.Length; i++)
-        {
-            _unsafeClasses[i] = new NativeScriptClassInfo()
+            for (int i = 0; i < _unsafeClasses.Length; i++)
             {
-                Guid = scriptClasses[i].Guid,
-                Name = Marshal.StringToCoTaskMemUTF8(scriptClasses[i].Name),
-                Methods = scriptClasses[i].AvailableMethods,
-                RunInEditMode = scriptClasses[i].runInEditMode
-            };
-        }
+                _unsafeClasses[i] = new NativeScriptClassInfo()
+                {
+                    Guid = scriptClasses[i].Guid,
+                    Name = Marshal.StringToCoTaskMemUTF8(scriptClasses[i].Name),
+                    Methods = scriptClasses[i].AvailableMethods,
+                    RunInEditMode = scriptClasses[i].runInEditMode
+                };
+            }
 
-        *outBuffer = (NativeScriptClassInfo*)Marshal.UnsafeAddrOfPinnedArrayElement(_unsafeClasses, 0);
-        *length = _unsafeClasses.Length;
+            *outBuffer = (NativeScriptClassInfo*)Marshal.UnsafeAddrOfPinnedArrayElement(_unsafeClasses, 0);
+            *length = _unsafeClasses.Length;
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     /// <summary>
@@ -211,7 +230,14 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void FreeScriptClassNames()
     {
-        Internal_FreeScriptClassNames();
+        try
+        {
+            Internal_FreeScriptClassNames();
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     private static void Internal_FreeScriptClassNames()
@@ -237,8 +263,7 @@ internal static unsafe partial class ScriptGlue
         }
         catch (Exception e)
         {
-            Console.WriteLine(e);
-            // TODO: Log exceptions to console
+            Log.Exception(e);
         }
     }
 
@@ -305,15 +330,22 @@ internal static unsafe partial class ScriptGlue
     [UnmanagedCallersOnly]
     public static void CreateScriptInstance(UUID entityId, byte* scriptClassName)
     {
-        Type? scriptType = GetTypeFromNativeString(scriptClassName);
+        try
+        {
+            Type? scriptType = GetTypeFromNativeString(scriptClassName);
 
-        Debug.Assert(scriptType != null, "Script class Type not found.");
+            Debug.Assert(scriptType != null, "Script class Type not found.");
 
-        Entity? scriptInstance = ActivatorExtension.CreateEngineObject(scriptType, entityId) as Entity;
+            Entity? scriptInstance = ActivatorExtension.CreateEngineObject(scriptType, entityId) as Entity;
 
-        Debug.Assert(scriptInstance != null, "Failed to create script instance.");
+            Debug.Assert(scriptInstance != null, "Failed to create script instance.");
 
-        EntityScriptInstances.Add(entityId, (scriptInstance!, scriptType));
+            EntityScriptInstances.Add(entityId, (scriptInstance!, scriptType));
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     struct ComponentFunctionPointers
@@ -331,83 +363,126 @@ internal static unsafe partial class ScriptGlue
         delegate* unmanaged[Cdecl]<UUID, EngineResult> hasComponent,
         delegate* unmanaged[Cdecl]<UUID, void> removeComponent)
     {
-        string? beefComponentTypeName = Marshal.PtrToStringUTF8((IntPtr)fullComponentTypeName);
-
-        if (beefComponentTypeName == null)
-            return;
-
-        foreach(Type componentType in TypeExtension.FindDerivedTypes(typeof(Component)))
+        try
         {
-            if (!componentType.TryGetCustomAttribute(out EngineClassAttribute mapping) ||
-                mapping.EngineClassName != beefComponentTypeName) continue;
-            
-            ComponentTypeFunctions[componentType] = new ComponentFunctionPointers
+            string? beefComponentTypeName = Marshal.PtrToStringUTF8((IntPtr)fullComponentTypeName);
+
+            if (beefComponentTypeName == null)
+                return;
+
+            foreach(Type componentType in TypeExtension.FindDerivedTypes(typeof(Component)))
             {
-                AddComponent = addComponent,
-                HasComponent = hasComponent,
-                RemoveComponent = removeComponent
-            };
+                if (!componentType.TryGetCustomAttribute(out EngineClassAttribute mapping) ||
+                    mapping.EngineClassName != beefComponentTypeName) continue;
+            
+                ComponentTypeFunctions[componentType] = new ComponentFunctionPointers
+                {
+                    AddComponent = addComponent,
+                    HasComponent = hasComponent,
+                    RemoveComponent = removeComponent
+                };
 
-            return;
+                return;
+            }
+
+            Log.Error($"Failed to register component type \"{beefComponentTypeName}\": No matching component class found.");
         }
-
-        Log.Error($"Failed to register component type \"{beefComponentTypeName}\": No matching component class found.");
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
     
-    [UnmanagedCallersOnly]
-    internal static void ThrowException(IntPtr message)
-    {
-        throw new Exception(Marshal.PtrToStringUTF8(message));
-    }
-
     #region EntitySerializer
 
     [UnmanagedCallersOnly]
     public static void CreateSerializationContext(IntPtr engineSerializer)
     {
-        EntitySerializer.CreateSerializationContext(engineSerializer);
+        try
+        {
+            EntitySerializer.CreateSerializationContext(engineSerializer);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     [UnmanagedCallersOnly]
     public static void DestroySerializationContext(IntPtr engineSerializer)
     {
-        EntitySerializer.DestroySerializationContext(engineSerializer);
+        try
+        {
+            EntitySerializer.DestroySerializationContext(engineSerializer);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
     
     [UnmanagedCallersOnly]
     public static void EntitySerializer_Serialize(UUID entityId, IntPtr engineObject, IntPtr engineSerializer)
     {
-        if (!EntityScriptInstances.TryGetValue(entityId, out var match))
-            return;
+        try
+        {
+            if (!EntityScriptInstances.TryGetValue(entityId, out var match))
+                return;
 
-        EntitySerializer.Serialize(match.Entity, engineObject, engineSerializer);
+            EntitySerializer.Serialize(match.Entity, engineObject, engineSerializer);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
     
     [UnmanagedCallersOnly]
     public static void EntitySerializer_Deserialize(UUID entityId, IntPtr engineObject, IntPtr engineSerializer)
     {
-        if (!EntityScriptInstances.TryGetValue(entityId, out var match))
-            return;
+        try
+        {
+            if (!EntityScriptInstances.TryGetValue(entityId, out var match))
+                return;
 
-        EntitySerializer.Deserialize(match.Entity, engineObject, engineSerializer);
+            EntitySerializer.Deserialize(match.Entity, engineObject, engineSerializer);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
     
     [UnmanagedCallersOnly]
     public static void EntitySerializer_SerializeStaticFields(byte* fullTypeName, IntPtr engineObject, IntPtr engineSerializer)
     {
-        Type? type = GetTypeFromNativeString(fullTypeName);
-        Debug.Assert(type != null);
+        try
+        {
+            Type? type = GetTypeFromNativeString(fullTypeName);
+            Debug.Assert(type != null);
 
-        EntitySerializer.SerializeStaticFields(type, engineObject, engineSerializer);
+            EntitySerializer.SerializeStaticFields(type, engineObject, engineSerializer);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
     
     [UnmanagedCallersOnly]
     public static void EntitySerializer_DeserializeStaticFields(byte* fullTypeName, IntPtr engineObject, IntPtr engineSerializer)
     {
-        Type? type = GetTypeFromNativeString(fullTypeName);
-        Debug.Assert(type != null);
+        try
+        {
+            Type? type = GetTypeFromNativeString(fullTypeName);
+            Debug.Assert(type != null);
 
-        EntitySerializer.DeserializeStaticFields(type, engineObject, engineSerializer);
+            EntitySerializer.DeserializeStaticFields(type, engineObject, engineSerializer);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
     }
 
     #endregion EntitySerializer
@@ -454,8 +529,12 @@ internal static unsafe partial class ScriptGlue
         switch (type)
         {
             case SerializationType.String:
-                valueObjectConverted = (void*)Marshal.StringToCoTaskMemUTF8(fullTypeName);
-                deleteValueObject = true;
+            case SerializationType.Enum:
+                if (valueObject is String stringValue)
+                {
+                    valueObjectConverted = (void*)Marshal.StringToCoTaskMemUTF8(stringValue);
+                    deleteValueObject = true;
+                }
                 break;
             default:
                 if (valueObject is not null)

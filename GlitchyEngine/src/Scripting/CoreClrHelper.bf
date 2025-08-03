@@ -113,7 +113,6 @@ static class CoreClrHelper
 
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "CreateScriptInstance", out _createScriptInstance);
 
-		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "ThrowException", out _throwException);
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "RegisterComponentType", out _registerComponentType);
 
 		InitEntityFunctions();
