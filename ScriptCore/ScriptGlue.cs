@@ -138,6 +138,7 @@ internal static unsafe partial class ScriptGlue
 
     private static NativeScriptClassInfo[]? _unsafeClasses;
 
+    [StructLayout(LayoutKind.Sequential, Pack = 0)]
     public struct NativeScriptClassInfo
     {
         public IntPtr Name;

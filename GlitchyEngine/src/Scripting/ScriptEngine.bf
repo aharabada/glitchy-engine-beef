@@ -395,6 +395,7 @@ static class ScriptEngine
 		OnCollisionEnter2D = 0x8,
 	}
 
+	[Ordered]
 	struct ScriptClassInfo
 	{
 		public char8* Name;
