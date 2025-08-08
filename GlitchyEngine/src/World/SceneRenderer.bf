@@ -126,13 +126,13 @@ class SceneRenderer
 			Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 		}
 
-		for (var (entity, transform, circle, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent, EditorFlagsComponent>())
+		/*for (var (entity, transform, circle, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent, EditorFlagsComponent>())
 		{
 			if (editorFlags.Flags.HasFlag(.HideInScene))
 				continue;
 			
 			Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
-		}
+		}*/
 		
 		for (var (entity, transform, text, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, TextRendererComponent, EditorFlagsComponent>())
 		{
@@ -217,13 +217,13 @@ class SceneRenderer
 			Renderer2D.DrawSprite(transform.WorldTransform, sprite, entity.Index);
 		}
 
-		for (var (entity, transform, circle, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent, EditorFlagsComponent>())
+		/*for (var (entity, transform, circle, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, CircleRendererComponent, EditorFlagsComponent>())
 		{
 			if (editorFlags.Flags.HasFlag(.HideInScene))
 				continue;
 
 			Renderer2D.DrawCircle(transform.WorldTransform, circle, entity.Index);
-		}
+		}*/
 		
 		for (var (entity, transform, text, editorFlags) in Scene._ecsWorld.Enumerate<TransformComponent, TextRendererComponent, EditorFlagsComponent>())
 		{
