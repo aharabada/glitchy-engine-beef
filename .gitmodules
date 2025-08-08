@@ -37,3 +37,6 @@
 [submodule "vendor/NetHostBeef"]
 	path = vendor/NetHostBeef
 	url = https://github.com/aharabada/NetHostBeef.git
+[submodule "GlitchyEngine/vendor/Xml-Beef"]
+	path = GlitchyEngine/vendor/Xml-Beef
+	url = https://github.com/aharabada/Xml-Beef.git

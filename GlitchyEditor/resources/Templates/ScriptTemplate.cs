@@ -11,14 +11,14 @@ public class [EntityName] : Entity
     /// <summary>
 	/// OnCreate is called once before the first call to OnUpdate.
 	/// </summary>
-	void OnCreate()
+	protected override void OnCreate()
     {
     }
 
     /// <summary>
     /// OnUpdate is called once every frame.
     /// </summary>
-    void OnUpdate(float deltaTime)
+    protected override void OnUpdate(float deltaTime)
     {
     }
 }

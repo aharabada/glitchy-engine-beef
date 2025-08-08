@@ -54,7 +54,7 @@ class VisualStudioIdeAdapter : IIdeAdapter
 	public static void OpenScriptProject()
 	{
 		String solutionPath = scope .();
-		Editor.Instance.CurrentProject.PathInProject(solutionPath, scope $"{Editor.Instance.CurrentProject.Name}.sln");
+		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
 
 		ProcessStartInfo psi = scope .();
 		psi.SetFileName("devenv");

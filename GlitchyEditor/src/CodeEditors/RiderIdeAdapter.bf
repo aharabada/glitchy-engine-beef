@@ -19,7 +19,7 @@ class RiderIdeAdapter : IIdeAdapter
 	public static void OpenScript(StringView fileName, int lineNumber)
 	{
 		String solutionPath = scope .();
-		Editor.Instance.CurrentProject.PathInProject(solutionPath, scope $"{Editor.Instance.CurrentProject.Name}.sln");
+		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
 
 		ProcessStartInfo startInfo = scope .();
 		startInfo.SetFileName(Application.Instance.Settings.ScriptSettings.RiderPath);
@@ -31,7 +31,7 @@ class RiderIdeAdapter : IIdeAdapter
 	public static void OpenScriptProject()
 	{
 		String solutionPath = scope .();
-		Editor.Instance.CurrentProject.PathInProject(solutionPath, scope $"{Editor.Instance.CurrentProject.Name}.sln");
+		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
 
 		if (!File.Exists(solutionPath))
 		{

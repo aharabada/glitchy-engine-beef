@@ -17,6 +17,7 @@
 
 	  <IsRoslynComponent>true</IsRoslynComponent>
 	  <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+	  <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
   </PropertyGroup>
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="PowerShell ./postbuild.ps1 -sourceDir $(OutDir) -destinationDir &quot;..\GlitchyEditor\resources\scripts&quot;" />

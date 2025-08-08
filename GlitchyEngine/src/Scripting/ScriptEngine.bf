@@ -83,6 +83,8 @@ class EngineClasses
 
 static class ScriptEngine
 {
+	public const String ScriptCorePath = "Resources/Scripts/ScriptCore.dll";
+
 	private static Scene s_Context ~ _?.ReleaseRef();
 
 	private static EngineClasses _classes = new .() ~ delete _;
@@ -200,7 +202,7 @@ static class ScriptEngine
 		// this means that we cannot easily reload changes to ScriptCore.
 		// Since this basic infrastructure shouldn't really ever change we could make a tiny
 		// library with only that enabling us to reload script core.
-		CoreClrHelper.Init("resources/scripts/ScriptCore.dll");
+		CoreClrHelper.Init(ScriptCorePath);
 	}	
 
 	/*static void InitMono()

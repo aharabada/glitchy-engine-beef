@@ -34,5 +34,16 @@ namespace System
 		{
 			SetF((IFormatProvider)null, format, params args);
 		}
+
+		public int PreviousIndexOf(StringView subStr, int endIdx, bool ignoreCase = false)
+		{
+			for (int ofs = endIdx - subStr.Length; ofs > 0; ofs--)
+			{
+				if (Compare(Ptr+ofs, subStr.Length, subStr.Ptr, subStr.Length, ignoreCase) == 0)
+					return ofs;
+			}
+
+			return -1;
+		}
 	}
 }
