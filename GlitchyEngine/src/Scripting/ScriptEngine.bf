@@ -392,6 +392,7 @@ static class ScriptEngine
 	    OnCreate = 0x1,
 	    OnUpdate = 0x2,
 	    OnDestroy = 0x4,
+		OnCollisionEnter2D = 0x8,
 	}
 
 	struct ScriptClassInfo

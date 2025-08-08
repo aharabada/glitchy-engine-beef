@@ -152,7 +152,8 @@ internal static unsafe partial class ScriptGlue
         None = 0,
         OnCreate = 0x1,
         OnUpdate = 0x2,
-        OnDestroy = 0x4
+        OnDestroy = 0x4,
+        OnCollisionEnter2D = 0x8
     }
 
     /// <summary>
@@ -210,6 +211,7 @@ internal static unsafe partial class ScriptGlue
                     methods |= HasMethod(type, nameof(Entity.OnCreate), ScriptMethods.OnCreate);
                     methods |= HasMethod(type, nameof(Entity.OnUpdate), ScriptMethods.OnUpdate);
                     methods |= HasMethod(type, nameof(Entity.OnDestroy), ScriptMethods.OnDestroy);
+                    methods |= HasMethod(type, nameof(Entity.OnCollisionEnter2D), ScriptMethods.OnCollisionEnter2D);
 
                     bool runInEditMode = type.HasCustomAttribute<RunInEditModeAttribute>();
 
@@ -303,6 +305,20 @@ internal static unsafe partial class ScriptGlue
         {
             (Entity entity, Type type) = EntityScriptInstances[entityId];
             entity.OnUpdate(deltaTime);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
+    }
+    
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    public static void InvokeEntityOnCollisionEnter2D(UUID entityId, Collision2D collision)
+    {
+        try
+        {
+            (Entity entity, Type type) = EntityScriptInstances[entityId];
+            entity.OnCollisionEnter2D(collision);
         }
         catch (Exception e)
         {

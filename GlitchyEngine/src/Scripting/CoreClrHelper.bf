@@ -2,6 +2,8 @@ using NetHostBeef;
 using System;
 using System.Interop;
 using GlitchyEngine.Core;
+using GlitchyEngine.Scripting.Classes;
+
 using static GlitchyEngine.Scripting.ScriptGlue;
 
 namespace GlitchyEngine.Scripting;
@@ -11,6 +13,7 @@ public struct ScriptFunctionPointers
     public function void(UUID entityId) OnCreate;
     public function void(UUID entityId, float deltaTime) OnUpdate;
     public function void(UUID entityId, bool callEntity) OnDestroy;
+    public function void(UUID entityId, Collision2D collision) OnCollisionEnter2D;
 }
 
 static class CoreClrHelper
@@ -124,6 +127,7 @@ static class CoreClrHelper
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "InvokeEntityOnCreate", out _entityScriptFunctions.OnCreate);
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "InvokeEntityOnUpdate", out _entityScriptFunctions.OnUpdate);
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "InvokeEntityOnDestroy", out _entityScriptFunctions.OnDestroy);
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "InvokeEntityOnCollisionEnter2D", out _entityScriptFunctions.OnCollisionEnter2D);
 	}
 
 	public static void LoadAppAssembly(Span<uint8> appAssemblyData, Span<uint8> pdbData)

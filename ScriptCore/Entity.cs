@@ -14,7 +14,7 @@ namespace GlitchyEngine;
 /// <summary>
 /// The base class for all entities and scripts in the current world.
 /// </summary>
-public class Entity : EngineObject
+public partial class Entity : EngineObject
 {
     /// <summary>
     /// Gets or sets the name of the <see cref="Entity"/>.
@@ -451,4 +451,10 @@ public class Entity : EngineObject
     /// Will be called once when the entity is being destroyed.
     /// </summary>
     protected internal virtual void OnDestroy() { }
+
+    /// <summary>
+    /// Will be called
+    /// </summary>
+    /// <param name="collision"></param>
+    protected internal virtual void OnCollisionEnter2D(Collision2D collision) { }
 }

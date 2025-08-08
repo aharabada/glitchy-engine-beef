@@ -100,4 +100,10 @@ class NewScriptInstance : RefCounter
 
 		ScriptEngine.UnregisterScriptInstance(_entityId);
 	}
+
+	public void InvokeOnCollisionEnter2D(Collision2D collision)
+	{
+		if (_scriptClass.Methods.HasFlag(.OnCollisionEnter2D))
+			CoreClrHelper._entityScriptFunctions.OnCollisionEnter2D(_entityId, collision);
+	}
 }
