@@ -10,7 +10,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace GlitchyEngine.StyleChecker;
 
-[DiagnosticAnalyzer(LanguageNames.CSharp)]
+//[DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class StyleChecker : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "MakeConst2";

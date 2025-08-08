@@ -66,14 +66,7 @@ public class CatchUnmanagedCallersOnlyAnalyzer : DiagnosticAnalyzer
         if (method.Body is not null)
         {
             // Check if the outer most statement is a try-catch block.
-            var tryStatement = method.Body.Statements.FirstOrDefault(s => s is TryStatementSyntax) as TryStatementSyntax;
-            if (tryStatement is null)
-            {
-                // If there is no try-catch block, report a diagnostic.
-                ReportDiagnostic();
-                return;
-            }
-            else
+            if (method.Body.Statements.FirstOrDefault() is TryStatementSyntax tryStatement)
             {
                 // Check if the try block has a catch clause.
                 if (tryStatement.Catches.Count == 0)
@@ -81,7 +74,7 @@ public class CatchUnmanagedCallersOnlyAnalyzer : DiagnosticAnalyzer
                     ReportDiagnostic();
                     return;
                 }
-                
+
                 // Report a diagnostic if there is no catch block that catches System.Exception.
                 if (tryStatement.Catches.All(c =>
                     {
@@ -97,6 +90,12 @@ public class CatchUnmanagedCallersOnlyAnalyzer : DiagnosticAnalyzer
                     ReportDiagnostic();
                     return;
                 }
+            }
+            else
+            {
+                // If there is no try-catch block, report a diagnostic.
+                ReportDiagnostic();
+                return;
             }
         }
         else if (method.ExpressionBody is not null)
