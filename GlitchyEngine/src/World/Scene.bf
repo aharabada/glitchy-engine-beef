@@ -407,9 +407,8 @@ namespace GlitchyEngine.World
 						collision.Rigidbody = rigidbodyEntityA.UUID;
 						collision.OtherRigidbody = rigidbodyEntityB.UUID;
 
-						// TODO:
-						//scriptOfColliderA?.Instance?.InvokeOnCollisionEnter2D(collision);
-						//scriptOfRigidbodyA?.Instance?.InvokeOnCollisionEnter2D(collision);
+						scriptOfColliderA?.Instance?.InvokeOnCollisionEnter2D(collision);
+						scriptOfRigidbodyA?.Instance?.InvokeOnCollisionEnter2D(collision);
 					}
 
 					bool fireEventB = colliderEntityB.TryGetComponent<ScriptComponent>(let scriptOfColliderB);
@@ -423,8 +422,8 @@ namespace GlitchyEngine.World
 						collision.Rigidbody = rigidbodyEntityB.UUID;
 						collision.OtherRigidbody = rigidbodyEntityA.UUID;
 						
-						//scriptOfColliderB?.Instance?.InvokeOnCollisionEnter2D(collision);
-						//scriptOfRigidbodyB?.Instance?.InvokeOnCollisionEnter2D(collision);
+						scriptOfColliderB?.Instance?.InvokeOnCollisionEnter2D(collision);
+						scriptOfRigidbodyB?.Instance?.InvokeOnCollisionEnter2D(collision);
 					}
 				};
 			_contactListener.endContactCallback = (contact, userData) => {

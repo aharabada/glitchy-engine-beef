@@ -11,6 +11,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using GlitchyEngine.Editor;
+using GlitchyEngine.Native;
 
 namespace GlitchyEngine.Serialization;
 
@@ -105,13 +106,13 @@ public class DeserializationObject
         return type;
     }
 
-    public DeserializationObject? GetDeserializedObject(UUID id)
+    public unsafe DeserializationObject? GetDeserializedObject(UUID id)
     {
         DeserializationObject context;
         
         if (DeserializedClasses.TryGetValue(id, out context))
             return context;
-        
+
         ScriptGlue.Serialization_GetObject(_internalContext, id, out IntPtr contextPtr);
 
         if (contextPtr == IntPtr.Zero)
@@ -148,15 +149,8 @@ public class DeserializationObject
     }
 
     [StructLayout(LayoutKind.Explicit)]
-    public struct DataHelper
+    internal struct DataHelper
     {
-        [StructLayout(LayoutKind.Sequential)]
-        public unsafe struct StringView
-        {
-            public byte* Utf8Ptr;
-            public long Length;
-        }
-
         [FieldOffset(0)]
         public EngineObjectReferenceHelper EngineObjectReference;
 
@@ -187,27 +181,11 @@ public class DeserializationObject
 
         ScriptGlue.Serialization_DeserializeField(_internalContext, expectedType, completeFieldName, rawData, out SerializationType actualType);
 
-        string? GetString()
-        {
-            if (dataHelper.String.Utf8Ptr == null)
-                return null;
-
-            if (dataHelper.String.Length == 0)
-                return string.Empty;
-
-            if (dataHelper.String.Length is < 0 or > int.MaxValue)
-            {
-                throw new InvalidOperationException($"String length is invalid: {dataHelper.String.Length}");
-            }
-
-            return Encoding.UTF8.GetString(dataHelper.String.Utf8Ptr, (int)dataHelper.String.Utf8Ptr);
-        }
-
         object? value = actualType switch
         {
             SerializationType.Bool => *(bool*)rawData,
             SerializationType.Char => *(char*)rawData,
-            SerializationType.String => GetString(),
+            SerializationType.String => dataHelper.String.ToString(),
             SerializationType.Int8 => *(sbyte*)rawData,
             SerializationType.Int16 => *(short*)rawData,
             SerializationType.Int32 => *(int*)rawData,
@@ -219,7 +197,7 @@ public class DeserializationObject
             SerializationType.Float => *(float*)rawData,
             SerializationType.Double => *(double*)rawData,
             SerializationType.Decimal => *(decimal*)rawData,
-            SerializationType.Enum => GetString(),
+            SerializationType.Enum => dataHelper.String.ToString(),
             SerializationType.EngineObjectReference => dataHelper.EngineObjectReference,
             SerializationType.ObjectReference => dataHelper.UUID,
             _ => NoValueDeserialized
@@ -522,7 +500,7 @@ public class DeserializationObject
         }
         catch
         {
-            Log.Error($"Failed to parse \"{valueName}\" as enum-type \"{enumType}\"");
+            Log.Error($"Failed to deserialize field \"{fieldName}\": Could not parse \"{valueName}\" as enum-type \"{enumType}\"");
         }
 
         return NoValueDeserialized;

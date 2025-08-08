@@ -427,13 +427,18 @@ public class Entity : EngineObject
     /// <returns>The new <see cref="Entity"/>.</returns>
     public static Entity CreateInstance(Entity entity)
     {
+        if (entity == null)
+        {
+            throw new ArgumentException("The provided instance must not be null!", nameof(entity));
+        }
+
         ScriptGlue.Entity_CreateInstance(entity.UUID, out UUID newEntityId);
 
         return new Entity(newEntityId);
     }
 
     /// <summary>
-    /// Will be executed once after the entity has be created.
+    /// Will be called once after the entity has be created.
     /// </summary>
     protected internal virtual void OnCreate() { }
 
@@ -443,7 +448,7 @@ public class Entity : EngineObject
     protected internal virtual void OnUpdate(float deltaTime) { }
 
     /// <summary>
-    /// Will be executed once when the entity is being destroyed.
+    /// Will be called once when the entity is being destroyed.
     /// </summary>
     protected internal virtual void OnDestroy() { }
 }

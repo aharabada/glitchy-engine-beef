@@ -8,18 +8,24 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
+using GlitchyEngine.Native;
+using GlitchyEngine.Physics;
 
 namespace GlitchyEngine;
 
+/// <summary>
+/// Contains functions pointer to engine functions that can be called form scripts.
+/// </summary>
 [StructLayout(LayoutKind.Sequential)]
 internal unsafe partial struct EngineFunctions
 {
 }
 
 /// <summary>
-/// All methods in here are glued to the ScriptGlue.bf in the engine.
+/// Provides the interface between engine and scripts.
 /// </summary>
 internal static unsafe partial class ScriptGlue
 {
@@ -187,7 +193,16 @@ internal static unsafe partial class ScriptGlue
 
                     static ScriptMethods HasMethod(Type type, string methodName, ScriptMethods methodFlag)
                     {
-                        MethodInfo? methodInfo = type.GetMethod(methodName, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                        MethodInfo? methodInfo = null;
+                        Type? currentType = type;
+
+                        while (methodInfo == null && currentType != typeof(Entity) && currentType != null)
+                        {
+                            methodInfo = currentType.GetMethod(methodName,
+                                BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+
+                            currentType = currentType.BaseType;
+                        }
 
                         return methodInfo != null ? methodFlag : ScriptMethods.None;
                     }
@@ -280,8 +295,8 @@ internal static unsafe partial class ScriptGlue
             Log.Exception(e);
         }
     }
-
-    [UnmanagedCallersOnly]
+    
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
     public static void InvokeEntityOnUpdate(UUID entityId, float deltaTime)
     {
         try
@@ -340,7 +355,7 @@ internal static unsafe partial class ScriptGlue
 
             Debug.Assert(scriptInstance != null, "Failed to create script instance.");
 
-            EntityScriptInstances.Add(entityId, (scriptInstance!, scriptType));
+            EntityScriptInstances.Add(entityId, (scriptInstance, scriptType));
         }
         catch (Exception e)
         {
@@ -489,6 +504,8 @@ internal static unsafe partial class ScriptGlue
 
     #endregion
 
+    #region Custom engine call implementations
+
     public static void Entity_AddComponent(UUID entityId, Type componentType)
     {
         ComponentTypeFunctions[componentType].AddComponent(entityId);
@@ -520,8 +537,8 @@ internal static unsafe partial class ScriptGlue
 
     public static void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string fieldName, object? valueObject, string fullTypeName)
     {
-        byte* fieldNameConverted = (byte*)Marshal.StringToCoTaskMemUTF8(fieldName);
-        byte* fullTypeNameConverted = (byte*)Marshal.StringToCoTaskMemUTF8(fullTypeName);
+        StringView fieldNameConverted = StringView.FromManagedString(fieldName);
+        StringView fullTypeNameConverted = StringView.FromManagedString(fullTypeName);
 
         void* valueObjectConverted = null;
         bool deleteValueObject = false;
@@ -530,29 +547,32 @@ internal static unsafe partial class ScriptGlue
         {
             case SerializationType.String:
             case SerializationType.Enum:
-                if (valueObject is String stringValue)
+                if (valueObject is string stringValue)
                 {
-                    valueObjectConverted = (void*)Marshal.StringToCoTaskMemUTF8(stringValue);
+                    StringView nativeString = StringView.FromManagedString(stringValue);
+                    valueObjectConverted = nativeString.Utf8Ptr;
                     deleteValueObject = true;
                 }
                 break;
             default:
                 if (valueObject is not null)
                 {
-                    void* p = &valueObject;
+#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
+                    object?* objectRef = &valueObject;
                     // Skip Object Header (IntPtr) + Method Table (IntPtr) 
-                    valueObjectConverted = (byte*)*(IntPtr*)p + sizeof(IntPtr);
-                    float i = *(float*)valueObjectConverted;
+                    valueObjectConverted = (byte*)*(IntPtr*)objectRef + sizeof(IntPtr);
                 }
                 break;
         }
         
         _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, valueObjectConverted, fullTypeNameConverted);
-
-        Marshal.FreeCoTaskMem((IntPtr)fieldNameConverted);
-        Marshal.FreeCoTaskMem((IntPtr)fullTypeNameConverted);
+        
+        NativeMemory.Free(fieldNameConverted.Utf8Ptr);
+        NativeMemory.Free(fullTypeNameConverted.Utf8Ptr);
 
         if (deleteValueObject)
-            Marshal.FreeCoTaskMem((IntPtr)valueObjectConverted);
+            NativeMemory.Free(valueObjectConverted);
     }
+
+    #endregion Custom engine call implementations
 }

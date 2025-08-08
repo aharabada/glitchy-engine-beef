@@ -1,5 +1,6 @@
 using System;
 using GlitchyEngine.Core;
+using GlitchyEngine.Scripting.Classes;
 
 using static GlitchyEngine.Scripting.ScriptEngine;
 
@@ -16,7 +17,8 @@ class NewScriptClass
 
 	public this(StringView fullName, Guid guid, ScriptMethods methods, bool runInEditMode = false)
 	{
-		FullName = new String(fullName);
+		// TODO: Remove the need for null termination
+		FullName = new String(fullName)..EnsureNullTerminator();
 		Guid = guid;
 
 		int lastDotIndex = FullName.LastIndexOf('.');

@@ -17,6 +17,6 @@ public static class Physics2D
             ScriptGlue.Physics2D_GetGravity(out float2 gravity);
             return gravity;
         }
-        set => ScriptGlue.Physics2D_SetGravity(in value);
+        set => ScriptGlue.Physics2D_SetGravity(value);
     }
 }

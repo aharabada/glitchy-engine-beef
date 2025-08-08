@@ -194,36 +194,6 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             ReturnValueConversion = null
         });
 
-        beefTypeToMappedType.Add("Mono.MonoString*", new MappedType
-        {
-            BeefTypeName = "object /*TODO: Mono.MonoString**/",
-            ReturnValueConversion = null
-        });
-
-        beefTypeToMappedType.Add("Mono.MonoException*", new MappedType
-        {
-            BeefTypeName = "object /*TODO: Mono.MonoException**/",
-            ReturnValueConversion = null
-        });
-
-        beefTypeToMappedType.Add("Mono.MonoArray*", new MappedType
-        {
-            BeefTypeName = "object /*TODO: Mono.MonoArray**/",
-            ReturnValueConversion = null
-        });
-
-        beefTypeToMappedType.Add("Mono.MonoObject*", new MappedType
-        {
-            BeefTypeName = "object /*TODO: Mono.MonoObject**/",
-            ReturnValueConversion = null
-        });
-
-        beefTypeToMappedType.Add("Mono.MonoReflectionType*", new MappedType
-        {
-            BeefTypeName = "object /*TODO: Mono.MonoReflectionType**/",
-            ReturnValueConversion = null
-        });
-
         beefTypeToMappedType.Add("uint8*", new MappedType
         {
             BeefTypeName = "uint8*",
@@ -286,6 +256,17 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             CSharpTypeName = "GlitchyEngine.Core.EngineResult",
             CSharpWrapperType = "bool",
             ReturnValueConversion = "EngineErrors.ThrowIfError(returnValue);\nreturn (returnValue == EngineResult.Ok);"
+        });
+
+        beefTypeToMappedType.Add("System.StringView", new MappedType()
+        {
+            BeefTypeName = "System.StringView",
+            CSharpTypeName = "GlitchyEngine.Native.StringView",
+            CSharpWrapperType = "string",
+            ReturnValueConversion = "return returnValue.ToString();",
+            WrapperConvertInput = "var {0} = GlitchyEngine.Native.StringView.FromManagedString({1});",
+            WrapperCleanupInput = "GlitchyEngine.Native.StringView.FreeNativeMemory({0});",
+            WrapperOutConversion = "{1} = {0}.ToString();"
         });
     }
 

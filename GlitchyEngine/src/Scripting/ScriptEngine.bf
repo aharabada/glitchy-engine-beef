@@ -302,7 +302,7 @@ static class ScriptEngine
 			//ScriptGlue.RegisterManagedComponents();
 		}
 
-		//InitAssemblyWatcher();
+		InitAssemblyWatcher();
 	}
 
 	/// Starts the script runtime and sets the context scene.
@@ -343,8 +343,6 @@ static class ScriptEngine
 	/// Disposes of and replaces the old instance, if one exists.
 	public static bool InitializeInstance(Entity entity, ScriptComponent* script)
 	{
-		Log.EngineLogger.Error($"{Compiler.CallerMemberName} not updated yet.");
-
 		NewScriptClass scriptClass = GetScriptClass(script.ScriptClassName);
 
 		if (scriptClass == null)
@@ -480,16 +478,6 @@ static class ScriptEngine
 		s_RootDomain = null;*/
 	}
 
-	// TODO: Do we still need this? It was only called by ScriptGlue
-	/// Returns the script instance or null.
-	public static void* GetManagedInstance(UUID entityId)
-	{
-		//if (_entityScriptInstances.TryGetValue(entityId, let scriptInstance))
-		//	return scriptInstance.MonoInstance;
-
-		return null;
-	}
-
 	public static NewScriptClass GetScriptClass(StringView name)
 	{
 		EntityClasses.TryGetValue(name, let scriptClass);
@@ -501,7 +489,7 @@ static class ScriptEngine
 	{
 		String entityInfo = scope .();
 
-		if (entityId != .Zero)
+		if (entityId != .Zero && Context != null)
 		{
 			exception.EntityId = entityId;
 
