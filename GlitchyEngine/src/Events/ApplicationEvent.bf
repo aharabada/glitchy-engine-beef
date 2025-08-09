@@ -129,4 +129,24 @@ namespace GlitchyEngine.Events
 			strBuffer.AppendF("WindowDeactivatedEvent");
 		}
 	}
+
+	public class SettingsAppliedEvent : Event, IEvent
+	{
+		public override EventType EventType => .SettingsApplied;
+
+		public override StringView Name => "SettingsApplied";
+
+		public override EventCategory Category => .Application;
+
+		public static EventType StaticType => .SettingsApplied;
+
+		public this()
+		{
+		}
+
+		public override void ToString(String strBuffer)
+		{
+			strBuffer.AppendF("SettingsAppliedEvent");
+		}
+	}
 }

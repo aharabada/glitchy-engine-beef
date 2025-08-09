@@ -71,6 +71,13 @@ class Project
 	{
 		PathInProject(outTarget, scope $"{Name}.csproj");
 	}
+	
+	private static void GetScriptCoreProjectFilePath(String outTarget)
+	{
+		Directory.GetCurrentDirectory(outTarget);
+		Path.Combine(outTarget, "../ScriptCore/ScriptCore.csproj");
+		Path.ToActualPath(outTarget);
+	}
 
 	/// Loads or creates the user specific settings for this project.
 	private void InitUserSettings()
@@ -266,21 +273,8 @@ class Project
 		return project;
 	}
 	
-
-#if DEBUG
-	static bool referenceScriptCoreProject = true;
-#else
-	static bool referenceScriptCoreProject = false;
-#endif
-
-	private static void GetScriptCoreProjectFilePath(String outTarget)
-	{
-		Directory.GetCurrentDirectory(outTarget);
-		Path.Combine(outTarget, "../ScriptCore/ScriptCore.csproj");
-	}
-
 	/// If necessary adds or removes the reference to ScriptCore.csproj from the solution (.slnx) file.
-	private Result<void> FixupScriptSolutionFile()
+	private Result<void> FixupScriptSolutionFile(bool referenceScriptCoreProject)
 	{
 		String solutionPath = scope .();
 		GetPathToScriptSolutionFile(solutionPath);
@@ -345,7 +339,7 @@ class Project
 	}
 	
 	/// If necessary adds or removes the reference to ScriptCore.dll from the project (.csproj) file.
-	private Result<void> FixupScriptProjectFile()
+	private Result<void> FixupScriptProjectFile(bool referenceScriptCoreProject)
 	{
 		String csprojPath = scope .();
 		GetPathToScriptProjectFile(csprojPath);
@@ -401,6 +395,7 @@ class Project
 				String scriptCoreProjectPath = scope .();
 				Directory.GetCurrentDirectory(scriptCoreProjectPath);
 				Path.Combine(scriptCoreProjectPath, "../ScriptCore/ScriptCore.csproj");
+				Path.ToActualPath(scriptCoreProjectPath);
 
 				scriptCoreProjectReference.SetAttribute("Include", scriptCoreProjectPath);
 				scriptCoreProjectReference.SetAttribute("OutputItemType", "Analyzer");
@@ -437,6 +432,7 @@ class Project
 			String pathToScriptCoreDll = scope .();
 			Directory.GetCurrentDirectory(pathToScriptCoreDll);
 			Path.Combine(pathToScriptCoreDll, ScriptEngine.ScriptCorePath);
+			Path.ToActualPath(pathToScriptCoreDll);
 
 			if (!File.Exists(pathToScriptCoreDll))
 			{
@@ -459,11 +455,18 @@ class Project
 		return .Ok;
 	}	
 
-	private Result<void> FixupScriptCorePath()
+	/// Fixes the references to ScriptCore in the script-project and solution file.
+	public Result<void> FixupScriptCorePath()
 	{
-		Try!(FixupScriptSolutionFile());
+		bool referenceScriptCoreProject = false;
 
-		Try!(FixupScriptProjectFile());
+#if DEBUG
+		Settings settings = Application.Instance.Settings;
+		referenceScriptCoreProject = settings.DevSettings.UseScriptCoreDll;
+#endif
+
+		Try!(FixupScriptSolutionFile(referenceScriptCoreProject));
+		Try!(FixupScriptProjectFile(referenceScriptCoreProject));
 
 		return .Ok;
 	}

@@ -63,8 +63,6 @@ namespace GlitchyEditor
 		RenderTargetGroup _editorViewportTarget ~ _.ReleaseRef();
 		RenderTargetGroup _gameViewportTarget ~ _.ReleaseRef();
 
-		ProjectUserSettings _projectUserSettings;
-
 		EditorCamera _camera ~ _.Dispose();
 
 		EditorIcons _editorIcons ~ _.ReleaseRef();
@@ -1549,6 +1547,7 @@ namespace GlitchyEditor
 			dispatcher.Dispatch<KeyPressedEvent>(scope (e) => OnKeyPressed(e));
 			dispatcher.Dispatch<MouseScrolledEvent>(scope (e) => OnMouseScrolled(e));
 			dispatcher.Dispatch<DragDropEvent>(scope (e) => OnDragDrop(e));
+			dispatcher.Dispatch<SettingsAppliedEvent>(scope (e) => OnSettingsApplied(e));
 		}
 
 		private bool OnWindowResize(WindowResizeEvent e)
@@ -1726,5 +1725,15 @@ namespace GlitchyEditor
 		}
 
 #endregion
+
+		bool OnSettingsApplied(SettingsAppliedEvent settingsAppliedEvent)
+		{
+#if DEBUG
+			// In DEBUG we can change whether we use ScriptCore as .dll or .csproj
+			_currentProject?.FixupScriptCorePath();
+#endif
+
+			return false;
+		}
 	}
 }

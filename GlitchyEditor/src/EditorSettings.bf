@@ -10,6 +10,11 @@ namespace GlitchyEngine
 {
 	extension Settings
 	{
+#if DEBUG
+		[SettingContainer, BonInclude]
+		public readonly DevSettings DevSettings = new .() ~ delete _;
+#endif
+		
 		[SettingContainer, BonInclude]
 		public readonly EditorSettings EditorSettings = new .() ~ delete _;
 		
@@ -18,6 +23,9 @@ namespace GlitchyEngine
 		
 		protected override void RegisterEventListeners()
 		{
+#if DEBUG
+			OnApplySettings.Add(new (s, e) => DevSettings.Apply());
+#endif
 			OnApplySettings.Add(new (s, e) => EditorSettings.Apply());
 			OnApplySettings.Add(new (s, e) => ScriptSettings.Apply());
 		}
@@ -25,6 +33,20 @@ namespace GlitchyEngine
 }
 
 namespace GlitchyEditor;
+
+#if DEBUG
+[Reflect]
+class DevSettings
+{
+	[Setting("Dev", "Use ScriptCore csproj", "If enabled the Editor will include the csproj of the ScriptCore instead of the compiled dll."), BonInclude]
+	public bool UseScriptCoreDll = true;
+
+	public void Apply()
+	{
+
+	}
+}
+#endif
 
 [Reflect]
 enum ScriptIde

@@ -35,6 +35,13 @@ extension Path
 			path.Remove(0, 1);
 	}
 
+	public static void ToActualPath(String path)
+	{
+		String tmp = scope .(path);
+		path.Clear();
+		Path.GetActualPathName(tmp, path);
+	}
+
 	// Compared to the original Combine, this one makes sure we don't add multiple seperators. Also makes sure, the path contains only the main Separator char.
 	new public static void Combine(String target, params StringView[] components)
 	{

@@ -83,6 +83,8 @@ class EngineClasses
 
 static class ScriptEngine
 {
+	// TODO: Maybe make it possible to set the path to ScriptCore just like for the script project?
+	// This would probably require a separate small project that just handles the script-engine interface.
 	public const String ScriptCorePath = "Resources/Scripts/ScriptCore.dll";
 
 	private static Scene s_Context ~ _?.ReleaseRef();

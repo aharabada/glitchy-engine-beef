@@ -84,6 +84,9 @@ namespace GlitchyEngine
 #endif
 
 			GlitchyEngine.Settings.Load();
+			Settings.OnApplySettings.Add(new (s, e) => {
+			   OnEvent(scope SettingsAppliedEvent());
+			});
 			Settings.Apply();
 		}
 

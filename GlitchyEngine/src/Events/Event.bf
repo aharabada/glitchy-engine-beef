@@ -5,7 +5,7 @@ namespace GlitchyEngine.Events
 	{
 		None = 0,
 		WindowClose, WindowResize, WindowFocus, WindowLostFocus, WindowMoved, WindowActivated, WindowDeactivated,
-		AppTick, AppUpdate, AppRender,
+		AppTick, AppUpdate, AppRender, SettingsApplied,
 		KeyPressed, KeyReleased, KeyTyped,
 		MouseButtonPressed, MouseButtonReleased, MouseMoved, MouseScrolled
 	}
