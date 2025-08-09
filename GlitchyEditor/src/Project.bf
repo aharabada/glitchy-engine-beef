@@ -147,6 +147,8 @@ class Project
 		
 		Try!(RenameAndFixupFiles(project.WorkspacePath, project));
 
+		Try!(project.FixupScriptCorePath());
+
 		return .Ok;
 	}
 
@@ -263,17 +265,90 @@ class Project
 		
 		return project;
 	}
+	
 
-	private Result<void> FixupScriptCorePath()
+#if DEBUG
+	static bool referenceScriptCoreProject = true;
+#else
+	static bool referenceScriptCoreProject = false;
+#endif
+
+	private static void GetScriptCoreProjectFilePath(String outTarget)
+	{
+		Directory.GetCurrentDirectory(outTarget);
+		Path.Combine(outTarget, "../ScriptCore/ScriptCore.csproj");
+	}
+
+	/// If necessary adds or removes the reference to ScriptCore.csproj from the solution (.slnx) file.
+	private Result<void> FixupScriptSolutionFile()
+	{
+		String solutionPath = scope .();
+		GetPathToScriptSolutionFile(solutionPath);
+
+		String solutionFileContent = scope String();
+		if (File.ReadAllText(solutionPath, solutionFileContent, true) case .Err)
+		{
+			Log.EngineLogger.Error($"FixupFile: Failed to read solution file {solutionPath}.");
+			return .Err;
+		}
+
+		Xml solution = new Xml();
+		solution.PreserveWhitespace = true;
+		defer delete solution;
+
+		solution.LoadFromString(solutionFileContent);
+
+		XmlNode scriptCoreProjectReference = null;
+		for (XmlNode projectNode in solution.DocumentElement.EnumerateNodes("Project", recursive: true))
+		{
+			if (projectNode.TryGetAttribute("Path", let includeAttribute))
+			{
+				if (includeAttribute.Value.Contains("ScriptCore.csproj", true))
+				{
+					scriptCoreProjectReference = projectNode;
+					break;
+				}
+			}
+		}
+
+		if (referenceScriptCoreProject)
+		{
+			Log.EngineLogger.Info("Debug mode enabled. Referencing ScriptCore.csproj in Script-Solution.");
+
+			if (scriptCoreProjectReference == null)
+			{
+				Log.EngineLogger.Warning("No reference to ScriptCore.csproj found. Adding...");
+				scriptCoreProjectReference = solution.DocumentElement.AddChild("Project");
+			}
+
+			String projectFilePath = scope .();
+			GetScriptCoreProjectFilePath(projectFilePath);
+			scriptCoreProjectReference["Path"] = projectFilePath;
+		}
+		else if (scriptCoreProjectReference != null)
+		{
+			Log.EngineLogger.Warning("Reference to ScriptCore.csproj found. Removing...");
+			scriptCoreProjectReference.RemoveFromParent(true);
+		}
+		
+		String modifiedSolution = new String(solutionFileContent.Length * 2);
+		defer delete modifiedSolution;
+		solution.SaveToString(modifiedSolution);
+
+		if (File.WriteAllText(solutionPath, modifiedSolution) case .Err)
+		{
+			Log.EngineLogger.Error($"Failed to modify {solutionPath}");
+			return .Err;
+		}
+
+		return .Ok;
+	}
+	
+	/// If necessary adds or removes the reference to ScriptCore.dll from the project (.csproj) file.
+	private Result<void> FixupScriptProjectFile()
 	{
 		String csprojPath = scope .();
 		GetPathToScriptProjectFile(csprojPath);
-
-		if (!File.Exists(csprojPath))
-		{
-			Log.EngineLogger.Error(scope $"Could not find project file \"{csprojPath}\".");
-			return .Err;
-		}
 
 		String projectFileContent = scope String();
 		if (File.ReadAllText(csprojPath, projectFileContent, true) case .Err)
@@ -282,21 +357,14 @@ class Project
 			return .Err;
 		}
 
-		bool referenceScriptCoreProject = false;
-
-#if DEBUG
-		referenceScriptCoreProject = true;
-#endif
-
 		Xml project = new Xml();
 		project.PreserveWhitespace = true;
 		defer delete project;
 
 		project.LoadFromString(projectFileContent);
-
-		XmlNode scriptCoreProjectReference = null;
 		
 		// Try to find a reference to the csproj
+		XmlNode scriptCoreProjectReference = null;
 		for (XmlNode projectReferenceNode in project.DocumentElement.EnumerateNodes("ProjectReference", recursive: true))
 		{
 			if (projectReferenceNode.TryGetAttribute("Include", let includeAttribute))
@@ -308,7 +376,7 @@ class Project
 				}
 			}
 		}
-		
+
 		// Try to find a reference to the dll
 		XmlNode dllReferenceNode = project.DocumentElement.Find("Reference", "Include", "ScriptCore", recursive: true);
 
@@ -365,7 +433,7 @@ class Project
 			{
 				hintPathNode = dllReferenceNode.AddChild("HintPath");
 			}
-			
+
 			String pathToScriptCoreDll = scope .();
 			Directory.GetCurrentDirectory(pathToScriptCoreDll);
 			Path.Combine(pathToScriptCoreDll, ScriptEngine.ScriptCorePath);
@@ -379,13 +447,23 @@ class Project
 			hintPathNode.SetText(pathToScriptCoreDll);
 		}
 
-		String modfiedProject = new String(projectFileContent.Length);
+		String modfiedProject = new String(projectFileContent.Length * 2);
+		defer delete modfiedProject;
 		project.SaveToString(modfiedProject);
 
 		if (File.WriteAllText(csprojPath, modfiedProject) case .Err)
 		{
 			Log.EngineLogger.Error($"Failed to modify {csprojPath}");
 		}
+
+		return .Ok;
+	}	
+
+	private Result<void> FixupScriptCorePath()
+	{
+		Try!(FixupScriptSolutionFile());
+
+		Try!(FixupScriptProjectFile());
 
 		return .Ok;
 	}

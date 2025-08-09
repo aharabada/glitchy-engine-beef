@@ -787,7 +787,7 @@ namespace GlitchyEditor
 			_contentManager.SetAssetCacheDirectory(_currentProject.GetScopedPath!(".cache"));
 			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
 
-			_currentProject.PathInProject(appAssemblyPath, scope $"bin/{_currentProject.Name}.dll");
+			_currentProject.PathInProject(appAssemblyPath, scope $".cache/bin/{_currentProject.Name}.dll");
 
 			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
 
