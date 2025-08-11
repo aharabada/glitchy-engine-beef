@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- General configuration -->
+    <AssemblyTitle>TestProject</AssemblyTitle>
+    <TargetFramework>net9.0</TargetFramework>
+    <OutputType>Library</OutputType>
+    <Nullable>enable</Nullable>
+    <!-- Define the output path -->
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>./.cache/bin/</OutputPath>
+    <!-- Generates a runtimeconfig-file and copies nuget references to the output -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="D:\Development\Projects\Beef\GlitchyEngine\ScriptCore\ScriptCore.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="true"/>
+  </ItemGroup>
+</Project>
