@@ -237,34 +237,6 @@ namespace GlitchyEditor
 						Log.EngineLogger.Error($"Failed to save script file to \"{path}\".");
 						return;
 					}
-
-					// Add to .csproj
-					String assetRelativePath = scope .();
-					Path.GetRelativePath(path, _currentProject.WorkspacePath, assetRelativePath);
-
-					String projectPath = scope .();
-					Editor.Instance.CurrentProject.PathInProject(projectPath, scope $"{Editor.Instance.CurrentProject.Name}.csproj");
-
-					String projectFile = scope .();
-					let loadProjectResult = File.ReadAllText(projectPath, projectFile, true);
-
-					if (loadProjectResult case .Err(let err))
-					{
-						Log.EngineLogger.Error($"Failed to open project file ({err}). Please add the file to the project manually.");
-					}
-
-					const String scriptFilesMarker = "<!-- Script Files -->";
-
-					int index = projectFile.IndexOf(scriptFilesMarker);
-					int lineEndIndex = projectFile.IndexOf('\n', index);
-					projectFile.Insert(lineEndIndex + 1, scope $"    <Compile Include=\"{assetRelativePath}\" />\n");
-					
-					let saveProjectResult = File.WriteAllText(projectPath, projectFile);
-
-					if (saveProjectResult case .Err(let err))
-					{
-						Log.EngineLogger.Error($"Failed to edit project file ({err}). Please add the file to the project manually.");
-					}
 				}, _editorIcons.File_CSharpScript));
 		}
 
