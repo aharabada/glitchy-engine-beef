@@ -12,8 +12,8 @@ class ScriptEngineTestBase
 {
 	public static void Setup()
 	{
-		Debug.WriteLine("Starting up ScriptEngine...");
-		Debug.WriteLine(Directory.GetCurrentDirectory(.. scope .()));
+		Console.WriteLine("Starting up ScriptEngine...");
+		Console.WriteLine(Directory.GetCurrentDirectory(.. scope .()));
 		ScriptEngine.Init();
 		
 		ScriptEngine.SetAppAssemblyPath(@"..\GlitchyEngine.Test\content\TestProject\.cache\bin\TestProject.dll");
@@ -21,7 +21,7 @@ class ScriptEngineTestBase
 
 	protected static void Shutdown()
 	{
-		Debug.WriteLine("Shutting down ScriptEngine...");
+		Console.WriteLine("Shutting down ScriptEngine...");
 		ScriptEngine.Shutdown();
 	}
 	
@@ -77,12 +77,14 @@ class ScriptEngineTestBase
 		
 		time.Stop();
 
-		Debug.WriteLine($"Serialized in {time.ElapsedMicroseconds}μs ({time.ElapsedMilliseconds}ms)");
+		Console.WriteLine($"Serialized in {time.ElapsedMicroseconds}μs ({time.ElapsedMilliseconds}ms)");
 
 		scene.Stop();
 		
 		Shutdown();
 	}
+
+	static String output = new .() ~ delete _;
 
 	class Benchmark
 	{
@@ -103,25 +105,25 @@ class ScriptEngineTestBase
 			watch.Start();
 			for (int i < warmupRuns)
 			{
-				Debug.WriteLine($"Warmup run {i + 1}/{warmupRuns}...");
+				Console.WriteLine($"Warmup run {i + 1}/{warmupRuns}...");
 				TimeSpan duration = DoRun();
-				Debug.WriteLine($"Warmup run {i + 1} finished after {duration.TotalMilliseconds}ms.");
+				Console.WriteLine($"Warmup run {i + 1} finished after {duration.TotalMilliseconds}ms.");
 			}
 			watch.Stop();
-			Debug.WriteLine($"Warmup finished after {watch.Elapsed.TotalMilliseconds}ms");
+			Console.WriteLine($"Warmup finished after {watch.Elapsed.TotalMilliseconds}ms");
 
 			_runDurations = new TimeSpan[runs];
 			defer delete _runDurations;
 
 			for (int i < runs)
 			{
-				Debug.WriteLine($"Starting run {i + 1}/{runs}...");
+				Console.WriteLine($"Starting run {i + 1}/{runs}...");
 
 				watch.Restart();
 				_runDurations[i] = DoRun();
 				watch.Stop();
 
-				Debug.WriteLine($"Run {i + 1}: {_runDurations[i]} (total: {watch.Elapsed.TotalMilliseconds}ms).");
+				Console.WriteLine($"Run {i + 1}: {_runDurations[i]} (total: {watch.Elapsed.TotalMilliseconds}ms).");
 			}
 
 			TimeSpan totalRunTime = _runDurations.Sum();
@@ -130,10 +132,12 @@ class ScriptEngineTestBase
 			double varianceMs = _runDurations.Select(scope (d) => Math.Pow((d - meanRunTime).TotalMilliseconds, 2)).Sum() / runs;
 			TimeSpan stdDeviation = TimeSpan.FromMilliseconds(Math.Sqrt(varianceMs));
 
-			Debug.WriteLine($"Results:");
-			Debug.WriteLine($"Total Time ({runs} runs): {totalRunTime.TotalMilliseconds}ms");
-			Debug.WriteLine($"Average run Time: {meanRunTime.TotalMilliseconds}ms");
-			Debug.WriteLine($"Std deviation: {stdDeviation.TotalMilliseconds}ms");
+			Console.WriteLine($"Results:");
+			Console.WriteLine($"Total Time ({runs} runs): {totalRunTime.TotalMilliseconds}ms");
+			Console.WriteLine($"Average run Time: {meanRunTime.TotalMilliseconds}ms");
+			Console.WriteLine($"Std deviation: {stdDeviation.TotalMilliseconds}ms");
+
+			output.AppendF($"Total: {totalRunTime.TotalMilliseconds}ms | Mean: {meanRunTime.TotalMilliseconds}ms Std: {stdDeviation.TotalMilliseconds}ms\n");
 
 			AfterAll?.Invoke();
 		}
@@ -162,7 +166,6 @@ class ScriptEngineTestBase
 		Scene scene = new Scene();
 		defer scene.ReleaseRef();
 
-
 		ScriptInstanceSerializer serializer = null;
 
 		let benchmark = scope Benchmark();
@@ -182,7 +185,8 @@ class ScriptEngineTestBase
 			scene.Stop();
 		};
 		
-		Debug.WriteLine("Benchmark empty scene:");
+		Console.WriteLine("Benchmark empty scene:");
+		output.AppendF("Benchmark empty scene:");
 		{
 			benchmark.Run();
 		}
@@ -192,7 +196,8 @@ class ScriptEngineTestBase
 
 		void BenchmarkTrivialEntity(int entityCount)
 		{
-			Debug.WriteLine($"Benchmark {entityCount} Trivial Entity:");
+			Console.WriteLine($"Benchmark {entityCount} Trivial Entity:");
+			output.AppendF($"Benchmark {entityCount} Trivial Entity:");
 
 			for (int i < entityCount)
 			{
@@ -220,7 +225,8 @@ class ScriptEngineTestBase
 
 		void BenchmarkLargeEntity(int entityCount)
 		{
-			Debug.WriteLine($"Benchmark {entityCount} Large Entity:");
+			Console.WriteLine($"Benchmark {entityCount} Large Entity:");
+			output.AppendF($"Benchmark {entityCount} Large Entity:");
 
 			for (int i < entityCount)
 			{
@@ -248,5 +254,7 @@ class ScriptEngineTestBase
 
 		// After Bench
 		Shutdown();
+
+		File.WriteAllText("test.log", output);
 	}
 }

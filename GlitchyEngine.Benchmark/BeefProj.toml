@@ -1,0 +1,9 @@
+FileVersion = 1
+Dependencies = {corlib = "*", "Beef.Linq" = "*", GlitchyEngine = "*"}
+
+[Project]
+Name = "GlitchyEngine.Benchmark"
+StartupObject = "GlitchyEngine.Benchmark.BenchmarkApp"
+
+[Configs.Debug.Win64]
+DebugWorkingDirectory = "D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor"

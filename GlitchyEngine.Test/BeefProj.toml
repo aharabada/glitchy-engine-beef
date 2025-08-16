@@ -3,11 +3,10 @@ Dependencies = {corlib = "*", GlitchyEngine = "*", corlib = "*"}
 
 [Project]
 Name = "GlitchyEngine.Test"
-TargetType = "BeefTest"
-StartupObject = "GlitchyEngine.Test.Program"
+StartupObject = "GlitchyEngine.Test.TestApp"
 
 [Configs.Debug.Win64]
-DebugWorkingDirectory = ""
+DebugWorkingDirectory = "D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor"
 
 [Configs.Test.Win64]
 DebugWorkingDirectory = "$(WorkspaceDir)\\GlitchyEditor"

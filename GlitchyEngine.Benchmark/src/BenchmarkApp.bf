@@ -1,12 +1,12 @@
 using System;
-using GlitchyEngine.Test.Base;
-namespace GlitchyEngine.Test;
 
-class TestApp
+namespace GlitchyEngine.Benchmark;
+
+class BenchmarkApp
 {
 	public static void Main(String[] args)
 	{
-		ScriptEngineTestBase.BenchmarkSerializer();
+		BasicBenchmark.BenchmarkSerializer();
 	}
 
 	/// Provide a stub implementation for CreateApplication, so that the linker is happy.
