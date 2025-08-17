@@ -3,8 +3,65 @@ using System.Diagnostics;
 using System.Linq;
 using System.Collections;
 using System.Collections;
+using GlitchyEngine.Collections;
+
+using static GlitchyEngine.Benchmark.BenchmarkResult;
 
 namespace GlitchyEngine.Benchmark;
+
+public interface IResultColumn
+{
+	String Name => ColumnName;
+	static String ColumnName { get; }
+
+	Span<StringView> DependsOn => null;
+	TimeSpan Calculate(BenchmarkRun runToCalculate, BenchmarkResult allResults);
+}
+
+class TotalTimeResultColumn : IResultColumn
+{
+	public static String ColumnName => "Total";
+	public String Name => ColumnName;
+
+	public TimeSpan Calculate(BenchmarkResult.BenchmarkRun runToCalculate, BenchmarkResult allRuns)
+	{
+		return runToCalculate.RunDurations.Sum();
+	}
+}
+
+class MeanTimeResultColumn : IResultColumn
+{
+	public static String ColumnName => "Mean";
+	public String Name => ColumnName;
+
+	private static List<StringView> _dependsOn = new List<StringView>(){TotalTimeResultColumn.ColumnName} ~ delete _;
+	public Span<StringView> DependsOn => _dependsOn;
+
+	public TimeSpan Calculate(BenchmarkResult.BenchmarkRun runToCalculate, BenchmarkResult allRuns)
+	{
+		return TimeSpan(runToCalculate.ResultColumnValue[TotalTimeResultColumn.ColumnName].Ticks / runToCalculate.RunCount);
+	}
+}
+
+class StdDevResultColumn : IResultColumn
+{
+	public static String ColumnName => "Std";
+	public String Name => ColumnName;
+	
+	private static List<StringView> _dependsOn = new List<StringView>(){MeanTimeResultColumn.ColumnName} ~ delete _;
+	public Span<StringView> DependsOn => _dependsOn;
+
+	public TimeSpan Calculate(BenchmarkResult.BenchmarkRun runToCalculate, BenchmarkResult allRuns)
+	{
+		TimeSpan meanTime = runToCalculate.ResultColumnValue[MeanTimeResultColumn.ColumnName];
+
+		int64 variance = runToCalculate.RunDurations.Select(scope (d) => {
+				TimeSpan delta = d - meanTime;
+				return (delta * delta).Ticks / runToCalculate.RunCount;
+			}).Sum();
+		return TimeSpan((int64)Math.Sqrt((double)variance));
+	}
+}
 
 class BenchmarkResult
 {
@@ -15,30 +72,22 @@ class BenchmarkResult
 		
 		public int RunCount => RunDurations.Count;
 
-		public TimeSpan TotalRunTime { get; private set; }
-		public TimeSpan MeanRunTime { get; private set; }
-		public TimeSpan RuntimeStdDev { get; private set; }
+		public append Dictionary<StringView, TimeSpan> ResultColumnValue = .();
+		public append Dictionary<StringView, Variant> RunInfo = .() ~ {
+			for (var v in _.Values)
+			{
+				v.Dispose();
+			}
+		};
 
 		[AllowAppend]
 		public this(StringView name, int runCount)
 		{
 			String appendedName = append String(name);
 			TimeSpan[] appendedRunDurations = append TimeSpan[runCount];
-
+			
 			Name = appendedName;
 			RunDurations = appendedRunDurations;
-		}
-
-		public void CalculateStats()
-		{
-			TotalRunTime = RunDurations.Sum();
-			MeanRunTime = TimeSpan(TotalRunTime.Ticks / RunCount);
-
-			int64 variance = RunDurations.Select(scope (d) => {
-					TimeSpan delta = d - MeanRunTime;
-					return (delta * delta).Ticks / RunCount;
-				}).Sum();
-			RuntimeStdDev = TimeSpan((int64)Math.Sqrt((double)variance));
 		}
 	}
 
@@ -67,7 +116,7 @@ class BenchmarkResult
 
 	private TimeUnit FigureOutUnits<T>(T timeData) where T : concrete, IEnumerable<TimeSpan>
 	{
-		TimeSpan shortestMeanTime = _runData.Select(scope (s) => s.MeanRunTime).Min();
+		/*TimeSpan shortestMeanTime = _runData.Select(scope (s) => s.MeanRunTime).Min();
 
 		if (shortestMeanTime.TotalDays > 2)
 		{
@@ -85,7 +134,7 @@ class BenchmarkResult
 		{
 			return .Seconds;
 		}
-		else
+		else*/
 		{
 			return .Milliseconds;
 		}
@@ -107,53 +156,140 @@ class BenchmarkResult
 			outBuffer.AppendF($"{timeToPrint.TotalDays:f3} d");
 		}
 	}
+	
+	typealias DagColumnNode = TreeNode<IResultColumn>;
+	typealias ColDepth = (IResultColumn Column, int Depth);
 
-	public void PrintStats(String outString, bool printHeader = true, TimeUnit? forcedTimeUnit = null)
+	private void BuildDag(Span<IResultColumn> customColumns, List<IResultColumn> outColumnCalculationPlan)
 	{
-		for (BenchmarkRun run in _runData)
+		Dictionary<StringView, ColDepth> nameToColumns = scope .();
+
+		for (IResultColumn column in customColumns)
 		{
-			run.CalculateStats();
+			nameToColumns.TryAdd(column.Name, (column, -1));
 		}
 
-		TimeUnit printedUnit = forcedTimeUnit ?? FigureOutUnits(_runData.Select(scope (s) => s.MeanRunTime));
+		for (ref ColDepth entry in ref nameToColumns.Values)
+		{
+			int CalculateDepth(ColDepth columnWithDepth)
+			{
+				if (columnWithDepth.Depth != -1)
+					return columnWithDepth.Depth;
 
-		var widths = (NameColumn: 8, TotalTimeColumn: 7, MeanTimeColumn: 7, StdDevColumn: 7);
+				if (columnWithDepth.Column.DependsOn.IsEmpty)
+				{
+					return 0;
+				}
 
+				int maxParentDepth = -1;
+
+				for (StringView parentName in columnWithDepth.Column.DependsOn)
+				{
+					if (nameToColumns.TryGetRef(parentName, let _, let parentEntry))
+					{
+						int currentParentsDepth = CalculateDepth(*parentEntry);
+						parentEntry.Depth = currentParentsDepth;
+
+						maxParentDepth = Math.Max(maxParentDepth, currentParentsDepth);
+					}
+				}
+
+				return maxParentDepth + 1;
+			}
+
+			entry.Depth = CalculateDepth(entry);
+		}
+
+		List<ColDepth> columnsToSort = new List<ColDepth>(nameToColumns.Values);
+		defer delete columnsToSort;
+		columnsToSort.Sort(scope (a, b) => a.Depth <=> b.Depth);
+
+		outColumnCalculationPlan.AddRange(columnsToSort.Select(scope (a) => a.Column));
+	}
+
+	private void CalculateStats(Span<IResultColumn> customColumns)
+	{
+		List<IResultColumn> orderedColumns = scope List<IResultColumn>();
+
+		BuildDag(customColumns, orderedColumns);
+
+		for (IResultColumn columnToCalculate in orderedColumns)
+		{
+			for (BenchmarkRun runToCalculate in _runData)
+			{
+				runToCalculate.ResultColumnValue[columnToCalculate.Name] = columnToCalculate.Calculate(runToCalculate, this);
+			}
+		}
+	}
+
+	public static List<IResultColumn> DefaultColumns = new List<IResultColumn>(){
+		new TotalTimeResultColumn(), new MeanTimeResultColumn(), new StdDevResultColumn()} ~ DeleteContainerAndItems!(_);
+
+	public void PrintStats(String outString, bool printHeader = true, TimeUnit forcedTimeUnit = .Milliseconds, Span<IResultColumn> customColumns = null)
+	{
+		var customColumns;
+		if (customColumns.IsEmpty)
+			customColumns = DefaultColumns;
+
+		CalculateStats(customColumns);
+
+		//TODO: TimeUnit printedUnit = forcedTimeUnit ?? FigureOutUnits(_runData.Select(scope (s) => s.MeanRunTime));
+		TimeUnit printedUnit = forcedTimeUnit;
+
+		int nameColumnWidth = 0;
+		int[] columnWidths = scope int[customColumns.Length];
+
+		// Prints all numbers into a buffer, calculates column widths
 		SimpleStringList preparedStrings = scope .();
 		for (BenchmarkRun run in _runData)
 		{
-			// Print Name
-			widths.NameColumn = Math.Max(widths.NameColumn, run.Name.Length);
+			nameColumnWidth = Math.Max(nameColumnWidth, run.Name.Length);
 
-			// Print Total Time
-			StringView totalRunTimeView = preparedStrings.Add(scope (s) => PrintTimeSpan(run.TotalRunTime, printedUnit, s));
-			widths.TotalTimeColumn = Math.Max(widths.TotalTimeColumn, totalRunTimeView.Length);
-
-			// Print Total Time
-			StringView meanRunTimeView = preparedStrings.Add(scope (s) => PrintTimeSpan(run.MeanRunTime, printedUnit, s));
-			widths.MeanTimeColumn = Math.Max(widths.MeanTimeColumn, meanRunTimeView.Length);
-
-			// Print Standard Deviation
-			StringView stdDevView = preparedStrings.Add(scope (s) => PrintTimeSpan(run.RuntimeStdDev, printedUnit, s));
-			widths.StdDevColumn = Math.Max(widths.StdDevColumn, stdDevView.Length);
+			for (IResultColumn column in customColumns)
+			{
+				StringView printedValue = preparedStrings.Add(scope (s) => PrintTimeSpan(run.ResultColumnValue[column.Name], printedUnit, s));
+				columnWidths[@column.Index] = Math.Max(columnWidths[@column.Index], printedValue.Length);
+			}
 		}
-
-		String lineFormat = scope $"| {{, -{widths.NameColumn}}} | {{, {widths.TotalTimeColumn}}} | {{, {widths.MeanTimeColumn}}} | {{, {widths.StdDevColumn}}} |\n";
 
 		if (printHeader)
 		{
+			nameColumnWidth = Math.Max(nameColumnWidth, "Benchmark".Length);
+
 			int lengthBefore = outString.Length;
-			outString.AppendF(lineFormat, Formatter.Center("Benchmark", widths.NameColumn), Formatter.Center("Total", widths.TotalTimeColumn),
-				Formatter.Center("Mean", widths.MeanTimeColumn), Formatter.Center("Std", widths.StdDevColumn));
+
+			outString.Append("|");
+			outString.AppendF($" {Formatter.Center("Benchmark", nameColumnWidth)} |");
+
+			for (IResultColumn column in customColumns)
+			{
+				columnWidths[@column.Index] = Math.Max(columnWidths[@column.Index], column.Name.Length);
+				
+				outString.AppendF($" {Formatter.Center(column.Name, columnWidths[@column.Index])} |");
+			}
+
+			outString.Append('\n');
+
+			// Print dashed line to separate header
 			int lineLength = outString.Length - lengthBefore;
 			outString.Append('-', lineLength - 1);
 			outString.Append('\n');
 		}
-		
+
 		int preparedStringIndex = 0;
+
+
 		for (BenchmarkRun run in _runData)
 		{
-			outString.AppendF(lineFormat, run.Name, preparedStrings[preparedStringIndex++], preparedStrings[preparedStringIndex++], preparedStrings[preparedStringIndex++]);
+			outString.Append("|");
+			outString.AppendF($" {Formatter.LeftAlign(run.Name, nameColumnWidth)} |");
+
+			for (int i < customColumns.Length)
+			{
+				outString.AppendF($" {Formatter.RightAlign(preparedStrings[preparedStringIndex++], columnWidths[i])} |");
+			}
+
+			outString.Append('\n');
 		}
 	}
 }
@@ -161,6 +297,8 @@ class BenchmarkResult
 class Benchmark
 {
 	private append String _name = .();
+	
+	public append Dictionary<StringView, Variant> RunInfo = .();
 
 	public StringView Name
 	{
@@ -177,6 +315,8 @@ class Benchmark
 	public void Run(BenchmarkResult resultsCollector, int warmupRuns = 10, int runs = 100)
 	{
 		let resultData = resultsCollector.NewRun(Name, runs);
+		for (var kv in RunInfo)
+			resultData.RunInfo[kv.key] = kv.value;
 
 		BeforeAll?.Invoke();
 
@@ -187,8 +327,6 @@ class Benchmark
 		{
 			Console.Write($"Warmup run {i + 1}/{warmupRuns}...");
 			Console.CursorLeft = 0;
-			//TimeSpan duration = DoRun();
-			//Console.WriteLine($"Warmup run {i + 1} finished after {duration.TotalMilliseconds}ms.");
 		}
 		watch.Stop();
 		Console.WriteLine($"Warmup finished after {watch.Elapsed.TotalMilliseconds}ms");
@@ -201,13 +339,7 @@ class Benchmark
 			watch.Restart();
 			resultData.RunDurations[i] = DoRun();
 			watch.Stop();
-
-			//Console.WriteLine($"Run {i + 1}: {_runDurations[i]} (total: {watch.Elapsed.TotalMilliseconds}ms).");
 		}
-
-		resultData.CalculateStats();
-
-		Console.WriteLine(scope $"Finished: Total ({runs} runs) {resultData.TotalRunTime.TotalMilliseconds}ms | Mean: {resultData.MeanRunTime.TotalMilliseconds}ms | Std Dev: {resultData.RuntimeStdDev.TotalMilliseconds}ms");
 
 		AfterAll?.Invoke();
 	}

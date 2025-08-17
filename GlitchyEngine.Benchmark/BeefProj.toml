@@ -6,4 +6,7 @@ Name = "GlitchyEngine.Benchmark"
 StartupObject = "GlitchyEngine.Benchmark.BenchmarkApp"
 
 [Configs.Debug.Win64]
-DebugWorkingDirectory = "D:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor"
+DebugWorkingDirectory = "d:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor"
+
+[Configs.Release.Win64]
+DebugWorkingDirectory = "d:\\Development\\Projects\\Beef\\GlitchyEngine\\GlitchyEditor"

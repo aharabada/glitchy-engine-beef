@@ -99,6 +99,7 @@ class BasicBenchmark
 			}
 			
 			benchmark.Name = scope $"Trivial Entity {entityCount}";
+			benchmark.RunInfo["EntityCount"] = Variant.Create(entityCount);
 			benchmark.Run(resultCollector);
 
 			for (Entity e in references)
@@ -128,6 +129,7 @@ class BasicBenchmark
 			}
 			
 			benchmark.Name = scope $"Large Entity {entityCount}";
+			benchmark.RunInfo["EntityCount"] = Variant.Create(entityCount);
 			benchmark.Run(resultCollector);
 
 			for (Entity e in references)
@@ -147,7 +149,33 @@ class BasicBenchmark
 		Shutdown();
 		
 		String output = scope .();
-		resultCollector.PrintStats(output);
+
+		List<IResultColumn> columns = scope List<IResultColumn>(BenchmarkResult.DefaultColumns);
+
+		columns.Add(scope IResultColumn() {
+			public static String ColumnName => "Per Entity";
+			public String Name => ColumnName;
+
+			private static List<StringView> _dependsOn = new List<StringView>(){MeanTimeResultColumn.ColumnName} ~ delete _;
+			public Span<StringView> DependsOn => _dependsOn;
+
+			public TimeSpan Calculate(BenchmarkResult.BenchmarkRun runToCalculate, BenchmarkResult allResults)
+			{
+				if (runToCalculate.RunInfo.TryGetValue("EntityCount", let entityCount))
+				{
+					TimeSpan meanTime = runToCalculate.ResultColumnValue[MeanTimeResultColumn.ColumnName];
+
+					if (entityCount.TryGet<int>(let count))
+					{
+						return TimeSpan(meanTime.Ticks / (int)count);
+					}
+				}
+
+				return default;
+			}
+		});
+
+		resultCollector.PrintStats(output, customColumns: columns);
 		File.WriteAllText("test.log", output);
 
 		Console.WriteLine(output);
