@@ -97,6 +97,13 @@ public class SerializedObject
 
         ScriptGlue.Serialization_SerializeField(_internalContext, serializationType, completeFieldName, value, fullTypeName);
     }
+    
+    public void AddValueTypeField<T>(string fieldName, SerializationType serializationType, in T value, string? fullTypeName = null) where T : unmanaged
+    {
+        string completeFieldName = $"{_structScopeName}{fieldName}";
+
+        ScriptGlue.Serialization_SerializeValueType(_internalContext, serializationType, completeFieldName, value, fullTypeName);
+    }
 
     public void Serialize(Entity entity)
     {
@@ -236,7 +243,7 @@ public class SerializedObject
     {
         if (listObject == null)
         {
-            AddField(fieldName, SerializationType.ObjectReference, UUID.Zero);
+            AddValueTypeField(fieldName, SerializationType.ObjectReference, UUID.Zero);
         }
         else
         {
@@ -248,7 +255,7 @@ public class SerializedObject
             {
                 IList list = (IList)listObject;
 
-                context.AddField("Count", SerializationType.Int32, list.Count);
+                context.AddValueTypeField("Count", SerializationType.Int32, list.Count);
 
                 for (int i = 0; i < list.Count; i++)
                 {
@@ -257,47 +264,43 @@ public class SerializedObject
                     context.SerializeField($"{i}", element, element?.GetType() ?? elementType);
                 }
             }
-
-            AddField(fieldName, SerializationType.ObjectReference, context._id);   
+ 
+            AddValueTypeField(fieldName, SerializationType.ObjectReference, context._id);
         }
     }
 
     public void SerializePrimitive(string fieldName, object fieldValue, Type fieldType)
     {
-        SerializationType type = SerializationType.None;
-        
         if (fieldType == typeof(bool))
-            type = SerializationType.Bool;
+            AddValueTypeField(fieldName, SerializationType.Bool, (bool)fieldValue);
         else if (fieldType == typeof(char))
-            type = SerializationType.Char;
+            AddValueTypeField(fieldName, SerializationType.Char, (char)fieldValue);
         else if (fieldType == typeof(byte))
-            type = SerializationType.UInt8;
+            AddValueTypeField(fieldName, SerializationType.UInt8, (byte)fieldValue);
         else if (fieldType == typeof(sbyte))
-            type = SerializationType.Int8;
+            AddValueTypeField(fieldName, SerializationType.Int8, (sbyte)fieldValue);
         else if (fieldType == typeof(ushort))
-            type = SerializationType.UInt16;
+            AddValueTypeField(fieldName, SerializationType.UInt16, (ushort)fieldValue);
         else if (fieldType == typeof(short))
-            type = SerializationType.Int16;
+            AddValueTypeField(fieldName, SerializationType.Int16, (short)fieldValue);
         else if (fieldType == typeof(uint))
-            type = SerializationType.UInt32;
+            AddValueTypeField(fieldName, SerializationType.UInt32, (uint)fieldValue);
         else if (fieldType == typeof(int))
-            type = SerializationType.Int32;
+            AddValueTypeField(fieldName, SerializationType.Int32, (int)fieldValue);
         else if (fieldType == typeof(ulong))
-            type = SerializationType.UInt64;
+            AddValueTypeField(fieldName, SerializationType.UInt64, (ulong)fieldValue);
         else if (fieldType == typeof(long))
-            type = SerializationType.Int64;
+            AddValueTypeField(fieldName, SerializationType.Int64, (long)fieldValue);
         else if (fieldType == typeof(float))
-            type = SerializationType.Float;
+            AddValueTypeField(fieldName, SerializationType.Float, (float)fieldValue);
         else if (fieldType == typeof(double))
-            type = SerializationType.Double;
+            AddValueTypeField(fieldName, SerializationType.Double, (double)fieldValue);
         else if (fieldType == typeof(decimal))
-            type = SerializationType.Decimal;
+            AddValueTypeField(fieldName, SerializationType.Decimal, (decimal)fieldValue);
         else
         {
             Log.Error($"The primitive {fieldType} is not implemented.");
         }
-
-        AddField(fieldName, type, fieldValue);
     }
 
     public void SerializeEnum(string fieldName, object? fieldValue, Type fieldType)
@@ -318,13 +321,13 @@ public class SerializedObject
     {
         if (fieldType.IsSubclassOf(typeof(EngineObject)))
         {
-            AddField(fieldName, SerializationType.EngineObjectReference, ((EngineObject?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
+            AddValueTypeField(fieldName, SerializationType.ObjectReference, ((EngineObject?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
         }
         else
         {
             if (fieldValue == null)
             {
-                AddField(fieldName, SerializationType.ObjectReference, UUID.Zero);
+                AddValueTypeField(fieldName, SerializationType.ObjectReference, UUID.Zero);
             }
             else
             {
@@ -335,7 +338,7 @@ public class SerializedObject
                     context.SerializeInstanceFields(fieldValue);
                 }
 
-                AddField(fieldName, SerializationType.ObjectReference, context._id);   
+                AddValueTypeField(fieldName, SerializationType.ObjectReference, context._id);
             }
         }
     }

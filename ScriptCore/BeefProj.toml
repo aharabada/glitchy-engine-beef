@@ -6,3 +6,6 @@ TargetType = "CustomBuild"
 
 [Configs.Debug.Win64]
 PostBuildCmds = ["dotnet build \"$(WorkspaceDir)/ScriptCore/ScriptCore.csproj\" -c Debug"]
+
+[Configs.Release.Win64]
+PostBuildCmds = ["dotnet build \"$(WorkspaceDir)/ScriptCore/ScriptCore.csproj\" -c Release"]

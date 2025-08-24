@@ -1,6 +1,8 @@
 using GlitchyEngine.Core;
 using GlitchyEngine.Editor;
 using GlitchyEngine.Extensions;
+using GlitchyEngine.Native;
+using GlitchyEngine.Physics;
 using GlitchyEngine.Serialization;
 using ImGuiNET;
 using System;
@@ -11,8 +13,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
-using GlitchyEngine.Native;
-using GlitchyEngine.Physics;
+using System.Text;
 
 namespace GlitchyEngine;
 
@@ -552,43 +553,111 @@ internal static unsafe partial class ScriptGlue
         instance = null;
     }
 
-    public static void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string fieldName, object? valueObject, string fullTypeName)
+    public static void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string fieldName, object? valueObject, string? fullTypeName)
     {
-        StringView fieldNameConverted = StringView.FromManagedString(fieldName);
-        StringView fullTypeNameConverted = StringView.FromManagedString(fullTypeName);
+        StringView fieldNameConverted;
+        {
+            int maxByteCount = Encoding.UTF8.GetMaxByteCount(fieldName.Length);
+            byte* pointer = stackalloc byte[checked(maxByteCount + 1)];
+            int bytes = Encoding.UTF8.GetBytes((ReadOnlySpan<char>)fieldName, new Span<byte>(pointer, maxByteCount));
+            pointer[bytes] = 0;
+            fieldNameConverted = new StringView(pointer, bytes);
+        }
 
-        void* valueObjectConverted = null;
-        bool deleteValueObject = false;
+        StringView fullTypeNameConverted = new StringView();
+        if (fullTypeName != null)
+        {
+            int maxByteCount = Encoding.UTF8.GetMaxByteCount(fullTypeName.Length);
+            byte* pointer = stackalloc byte[checked(maxByteCount + 1)];
+            int bytes = Encoding.UTF8.GetBytes((ReadOnlySpan<char>)fullTypeName, new Span<byte>(pointer, maxByteCount));
+            pointer[bytes] = 0;
+            fullTypeNameConverted = new StringView(pointer, bytes);
+        }
 
         switch (type)
         {
             case SerializationType.String:
             case SerializationType.Enum:
+                bool onHeap = false;
+                StringView nativeString = new StringView();
+
                 if (valueObject is string stringValue)
                 {
-                    StringView nativeString = StringView.FromManagedString(stringValue);
-                    valueObjectConverted = nativeString.Utf8Ptr;
-                    deleteValueObject = true;
+                    int maxByteCount = Encoding.UTF8.GetMaxByteCount(stringValue.Length);
+                    int actualByteCount = checked(maxByteCount + 1);
+
+                    onHeap = actualByteCount > 256;
+
+                    byte* pointer;
+                    if (!onHeap)
+                    {
+                        byte* pointer2 = stackalloc byte[actualByteCount];
+                        pointer = pointer2;
+                    }
+                    else
+                    {
+                        pointer = (byte*)NativeMemory.Alloc((nuint)actualByteCount);
+                    }
+
+                    int bytes = Encoding.UTF8.GetBytes((ReadOnlySpan<char>)stringValue, new Span<byte>(pointer, maxByteCount));
+                    pointer[bytes] = 0;
+                    nativeString = new StringView(pointer, bytes);
                 }
+                
+                _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, &nativeString, fullTypeNameConverted);
+                
+                if (onHeap)
+                    StringView.FreeNativeMemory(nativeString);
                 break;
             default:
                 if (valueObject is not null)
                 {
+                    // This is probably the dirtiest piece of C# Code, that I have ever seen.
+                    // We first take a pointer the Object (which itself is a reference type -> object* is a double pointer!)
+                    // We then dereference this double pointer, which gives us a pointer to the objects internals.
+                    // These are Header (64bit), Method Table (64bit), and the objects content (at least another 64bit)
+                    // I believe, that the actual reference points to the method table however and not the header (compare gcenv.object.h)
+                    // Below we calculate a pointer to the objects contents by adding the size of a pointer.
+
 #pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
                     object?* objectRef = &valueObject;
                     // Skip Object Header (IntPtr) + Method Table (IntPtr) 
-                    valueObjectConverted = (byte*)*(IntPtr*)objectRef + sizeof(IntPtr);
+                    byte* valueRef = (byte*)*(IntPtr*)objectRef + sizeof(IntPtr);
+                    float* fRef = (float*)(void*)valueRef;
+                    _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, valueRef, fullTypeNameConverted);
                 }
                 break;
         }
-        
-        _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, valueObjectConverted, fullTypeNameConverted);
-        
-        NativeMemory.Free(fieldNameConverted.Utf8Ptr);
-        NativeMemory.Free(fullTypeNameConverted.Utf8Ptr);
 
-        if (deleteValueObject)
-            NativeMemory.Free(valueObjectConverted);
+        //StringView.FreeNativeMemory(fieldNameConverted);
+        //StringView.FreeNativeMemory(fullTypeNameConverted);
+    }
+
+    public static void Serialization_SerializeValueType<T>(IntPtr serializationContext, SerializationType type, string fieldName, in T value, string? fullTypeName) where T : unmanaged
+    {
+        StringView fieldNameConverted;
+        {
+            int maxByteCount = Encoding.UTF8.GetMaxByteCount(fieldName.Length);
+            byte* pointer = stackalloc byte[checked(maxByteCount + 1)];
+            int bytes = Encoding.UTF8.GetBytes((ReadOnlySpan<char>)fieldName, new Span<byte>(pointer, maxByteCount));
+            pointer[bytes] = 0;
+            fieldNameConverted = new StringView(pointer, bytes);
+        }
+
+        StringView fullTypeNameConverted = new StringView();
+        if (fullTypeName != null)
+        {
+            int maxByteCount = Encoding.UTF8.GetMaxByteCount(fullTypeName.Length);
+            byte* pointer = stackalloc byte[checked(maxByteCount + 1)];
+            int bytes = Encoding.UTF8.GetBytes((ReadOnlySpan<char>)fullTypeName, new Span<byte>(pointer, maxByteCount));
+            pointer[bytes] = 0;
+            fullTypeNameConverted = new StringView(pointer, bytes);
+        }
+
+        fixed (T* valuePtr = &value)
+        {
+            _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, valuePtr, fullTypeNameConverted);
+        }
     }
 
     #endregion Custom engine call implementations

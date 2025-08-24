@@ -21,7 +21,7 @@ PreprocessorMacros = ["IMGUI", "RELEASE", "GE_PROFILE"]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 
 [Configs.Test.Win64]
-PreprocessorMacros = ["TEST", "GE_WINDOWS"]
+PreprocessorMacros = ["TEST", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI", "GE_RESOURCE_DEBUG_NAMES"]
 
 [Configs.Debug.Win64]
 PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI", "GE_RESOURCE_DEBUG_NAMES"]

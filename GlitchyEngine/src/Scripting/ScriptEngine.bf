@@ -484,7 +484,8 @@ static class ScriptEngine
 		s_RootDomain = null;*/
 	}
 
-	public static NewScriptClass GetScriptClass(StringView name)
+	/// Returns the script class with the given name, or null, if no such class exists.
+	private static NewScriptClass GetScriptClass(StringView name)
 	{
 		EntityClasses.TryGetValue(name, let scriptClass);
 

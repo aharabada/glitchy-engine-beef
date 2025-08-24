@@ -1442,6 +1442,8 @@ static class ScriptGlue
 	[RegisterCall, CallingConvention(.Cdecl)]
 	static void Serialization_SerializeField(void* serializationContext, SerializationType type, StringView fieldName, void* valueObject, StringView fullTypeName)
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		SerializedObject context = Internal.UnsafeCastToObject(serializationContext) as SerializedObject;
 
 		Log.EngineLogger.AssertDebug(context != null);
@@ -1452,6 +1454,8 @@ static class ScriptGlue
 	[RegisterCall, CallingConvention(.Cdecl)]
 	static void Serialization_CreateObject(void* currentContext, bool isStatic, StringView typeName, out void* newContext, out UUID newId)
 	{
+		Debug.Profiler.ProfileFunction!();
+
 		SerializedObject context = Internal.UnsafeCastToObject(currentContext) as SerializedObject;
 
 		Log.EngineLogger.AssertDebug(context != null);

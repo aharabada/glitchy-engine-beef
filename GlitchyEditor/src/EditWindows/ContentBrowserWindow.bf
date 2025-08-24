@@ -1376,7 +1376,7 @@ namespace GlitchyEditor.EditWindows
 		private void CopySelectedFiles(bool cutFiles)
 		{
 			_filesToCopy.ClearAndDeleteItems();
-			_selectedFiles.Select((file) => new String(file)).ToList(_filesToCopy);
+			_selectedFiles.Select(scope (file) => new String(file)).ToList(_filesToCopy);
 			_cutFiles = cutFiles;
 		}
 

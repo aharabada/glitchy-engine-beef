@@ -6,6 +6,8 @@ using System.Collections;
 using Bon.Integrated;
 using Bon;
 using System.Reflection;
+using GlitchyEngine.Debug;
+using GlitchyEngine.Collections;
 
 namespace GlitchyEngine.Serialization;
 
@@ -19,12 +21,14 @@ class SerializedObject
 	{
 		public uint8[16] RawData;
 		public StringView StringView;
-		public (String FullTypeName, UUID ID) EngineObject;
+		public ListStringView ListStringView;
+		public (StringView FullTypeName, UUID ID) EngineObject;
+		public (ListStringView FullTypeName, UUID ID) ListEngineObject;
 		
 		static this()
 		{
-			// This is important, because we expect 16 Bytes on the C# side
-			Compiler.Assert(sizeof(Self) == 16);
+			// This is important, because we expect 24 Bytes on the C# side
+			Compiler.Assert(sizeof(Self) == 24);
 		}
 	}
 
@@ -39,13 +43,17 @@ class SerializedObject
 
 	public ScriptInstanceSerializer Serializer;
 
-	private List<String> _ownedString = new List<String>() ~ DeleteContainerAndItems!(_);
+	private append LessSimpleStringList _betterOwnedStrings = .();
+	
+	//private List<String> _ownedString = new List<String>() ~ DeleteContainerAndItems!(_);
 
-	public append Dictionary<StringView, (SerializationType PrimitiveType, FieldData Data)> Fields = .();
+	public append Dictionary<ListStringView, (SerializationType PrimitiveType, FieldData Data)> Fields = .();
 
 	[AllowAppend]
 	public this(ScriptInstanceSerializer serializer, bool isStatic, StringView? typeName, UUID? id = null)
 	{
+		//Profiler.ProfileFunction!();
+
 		String typeNameCopy = append String(typeName.Value);
 
 		Serializer = serializer;
@@ -84,41 +92,47 @@ class SerializedObject
 
 	private void AddField(StringView fieldName, SerializationType fieldType, FieldData data)
 	{
-		String nameCopy = new String(fieldName);
-		_ownedString.Add(nameCopy);
+		ListStringView view = _betterOwnedStrings.Add(fieldName);
+		//String nameCopy = new String(fieldName);
+		//_ownedString.Add(nameCopy);
 		
-		Fields.Add(nameCopy, (fieldType, data));
+		Fields.Add(view, (fieldType, data));
 	}
 
 	public void AddField(StringView name, SerializationType primitiveType, void* value, StringView fullTypeName)
 	{
+		Profiler.ProfileFunction!();
+
 		FieldData data = .();
 
 		switch (primitiveType)
 		{
 		case .String, .Enum:
+			Profiler.ProfileScope!("String/Enum");
 			// If the string is null, we store a nullptr and 0-length
-			StringView valueView = StringView(null, 0);
+			ListStringView valueView = .();
 
 			if (value != null)
 			{
-				String stringValue = new String((char8*)value);
+				StringView stringToCopy = *(StringView*)value;
+				//String stringValue = new String(stringToCopy);
 
-				_ownedString.Add(stringValue);
-
-				valueView = stringValue;
+				//_ownedString.Add(stringValue);
+				valueView = _betterOwnedStrings.Add(stringToCopy);
 			}
 
-			data.StringView = valueView;
+			data.ListStringView = valueView;
 		case .EngineObjectReference:
-			String typeName = null;
+			Profiler.ProfileScope!("EngineObject");
+			ListStringView typeNameView = .();
 
 			if (!fullTypeName.IsEmpty)
 			{
-				_ownedString.Add(new String(fullTypeName));
+				typeNameView = _betterOwnedStrings.Add(fullTypeName);
+				//_ownedString.Add(new String(fullTypeName));
 			}
 
-			data.EngineObject = (FullTypeName: typeName, ID: *(UUID*)value);
+			data.ListEngineObject = (FullTypeName: typeNameView, ID: *(UUID*)value);
 		default:
 			SetDataSimple(primitiveType, value, ref data);
 		}
@@ -158,9 +172,11 @@ class SerializedObject
 
 	public void GetField(StringView fieldName, SerializationType expectedType, uint8* target, out SerializationType actualType)
 	{
+		// Profiler.ProfileFunction!();
+
 		actualType = .None;
 
-		if (!Fields.TryGetValue(fieldName, let field))
+		if (!Fields.TryGetValueAlt(fieldName, let field))
 			return;
 
 		actualType = field.PrimitiveType;
@@ -178,13 +194,20 @@ class SerializedObject
 		switch (field.PrimitiveType)
 		{
 		case .String, .Enum:
-			*(StringView*)target = field.Data.StringView;
+			*(StringView*)target = (StringView)field.Data.ListStringView;
 		case .EngineObjectReference:
-			let engineObjectData = field.Data.EngineObject;
-			
-			*(char8**)target = engineObjectData.FullTypeName?.CStr();
+			let engineObjectData = field.Data.ListEngineObject;
+
+			(*(FieldData*)(void*)target).EngineObject.FullTypeName = (StringView)engineObjectData.FullTypeName;
+			(*(FieldData*)(void*)target).EngineObject.ID = engineObjectData.ID;
+
+			/**(char8**)target = engineObjectData.FullTypeName?.CStr();
 			*(int*)(target + sizeof(char8*)) = engineObjectData.FullTypeName?.Length ?? 0;
-			*(UUID*)(target + sizeof(char8*) + sizeof(int)) = engineObjectData.ID;
+			*(UUID*)(target + sizeof(char8*) + sizeof(int)) = engineObjectData.ID;*/
+
+			/**(char8**)target = engineObjectData.FullTypeName?.CStr();
+			*(int*)(target + sizeof(char8*)) = engineObjectData.FullTypeName?.Length ?? 0;
+			*(UUID*)(target + sizeof(char8*) + sizeof(int)) = engineObjectData.ID;*/
 		default:
 			// Most values can simply be copied, the conversion will be done in C#
 #unwarn
@@ -194,21 +217,25 @@ class SerializedObject
 	
 	public void Serialize(NewScriptInstance scriptInstance)
 	{
+		Profiler.ProfileFunction!();
 		ScriptEngine.Classes.EntitySerializer.Serialize(scriptInstance, this);
 	}
 
 	public void Deserialize(NewScriptInstance scriptInstance)
 	{
+		// Profiler.ProfileFunction!();
 		ScriptEngine.Classes.EntitySerializer.Deserialize(scriptInstance, this);
 	}
 
 	public void SerializeStaticFields(NewScriptClass scriptClass)
 	{
+		Profiler.ProfileFunction!();
 		ScriptEngine.Classes.EntitySerializer.SerializeStatic(scriptClass, this);
 	}
 
 	public void DeserializeStaticFields(NewScriptClass scriptClass)
 	{
+		// Profiler.ProfileFunction!();
 		ScriptEngine.Classes.EntitySerializer.DeserializeStatic(scriptClass, this);
 	}
 	
@@ -225,6 +252,7 @@ class SerializedObject
 
 	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
 	{
+		// Profiler.ProfileFunction!();
 		Log.EngineLogger.Assert(value.type == typeof(Self));
 
 		SerializedObject object = value.Get<Self>();
@@ -237,7 +265,7 @@ class SerializedObject
 
 			for (let (fieldName, field) in object.Fields)
 			{
-				writer.Identifier(fieldName);
+				writer.Identifier((StringView)fieldName);
 				switch (field.PrimitiveType)
 				{
 				case .Bool:
@@ -250,7 +278,8 @@ class SerializedObject
 						writer.Type("string");
 					}
 					#unwarn
-					Serialize.Value(writer, ValueView(typeof(StringView), &field.Data.StringView), environment);
+					StringView dataView = (StringView)field.Data.ListStringView;
+					Serialize.Value(writer, ValueView(typeof(StringView), &dataView), environment);
 
 				case .Int8:
 					writer.Type("int8");
@@ -290,11 +319,12 @@ class SerializedObject
 				case .Enum:
 					writer.Type("Enum");
 					#unwarn
-					Serialize.Value(writer, ValueView(typeof(StringView), &field.Data.StringView), environment);
+					StringView dataView = (StringView)field.Data.ListStringView;
+					Serialize.Value(writer, ValueView(typeof(StringView), &dataView), environment);
 				case .EngineObjectReference:
 					writer.Type("EngineObject");
 					if (field.Data.EngineObject.FullTypeName != null)
-						writer.Type(field.Data.EngineObject.FullTypeName);
+						writer.Type((StringView)field.Data.ListEngineObject.FullTypeName);
 					Serialize.Value(writer, field.Data.EngineObject.ID, environment);
 				case .ObjectReference:
 					writer.outStr.Append('&');
@@ -476,26 +506,45 @@ class SerializedObject
 					}
 					else if (fieldTypeName == "Enum")
 					{
-						String enumValue = new .();
-						Deserialize.String!(reader, ref enumValue, environment);
+						Result<void> result = .Ok;
+
+						Result<void> GetEnum(String outBuffer)
+						{
+							var outBuffer;
+							Deserialize.String!(reader, ref outBuffer, environment);
+							return .Ok;
+						}
+
+						fieldData.ListStringView = object._betterOwnedStrings.Add(scope [&](s) =>
+							{
+								result = GetEnum(s);
+							});
+
+						/*String enumValue = new .();
+						Deserialize.String!(reader, ref enumValue, environment);*/
 	
-						object._ownedString.Add(enumValue);
-						fieldData.StringView = enumValue;
+						//object._ownedString.Add(enumValue);
+						//fieldData.ListStringView = object._betterOwnedStrings.Add(enumValue);
+						//fieldData.StringView = enumValue;
 						fieldType = .Enum;
-						
+
+						Try!(result);
+
 						break HandleField;
 					}
 	                else if (fieldTypeName == "EngineObject")
 					{
-						String entityTypeName = null;
+						ListStringView entityTypeName = .();
 	
 						if (reader.IsTyped())
 						{
 							StringView entityTypeNameView = Try!(reader.Type());
 		
-							entityTypeName = new String(entityTypeNameView);
+							//entityTypeName = new String(entityTypeNameView);
 		
-							object._ownedString.Add(entityTypeName);
+							//object._ownedString.Add(entityTypeName);
+
+							entityTypeName = object._betterOwnedStrings.Add(entityTypeNameView);
 						}
 	
 						// Object Reference
@@ -505,7 +554,7 @@ class SerializedObject
 	
 						UUID reference = UUID(id);
 						fieldType = .EngineObjectReference;
-						fieldData.EngineObject = (FullTypeName: entityTypeName, ID: reference);
+						fieldData.ListEngineObject = (FullTypeName: entityTypeName, ID: reference);
 						
 						break HandleField;
 					}
@@ -534,12 +583,30 @@ class SerializedObject
 					}
 					else
 					{
-						String target = new .();
+						Result<void> result = .Ok;
+
+						Result<void> GetStringValue(String outBuffer)
+						{
+							var outBuffer;
+							Deserialize.String!(reader, ref outBuffer, environment);
+							return .Ok;
+						}
+
+						fieldData.ListStringView = object._betterOwnedStrings.Add(scope [&](s) =>
+							{
+								result = GetStringValue(s);
+							});
+
+						fieldType = .String;
+
+						Try!(result);
+
+						/*String target = new .();
 						Deserialize.String!(reader, ref target, environment);
 		
 						object._ownedString.Add(target);
 						fieldData.StringView = target;
-						fieldType = .String;
+						fieldType = .String;*/
 					}
 				}
 				// else if (Deserialize.IsNumber(reader, let numberType))

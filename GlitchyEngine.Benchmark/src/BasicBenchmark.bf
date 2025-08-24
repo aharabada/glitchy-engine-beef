@@ -4,6 +4,9 @@ using System;
 using System.Collections;
 using System.IO;
 using System.Diagnostics;
+using Bon.Integrated;
+using Bon;
+
 namespace GlitchyEngine.Benchmark;
 
 class BasicBenchmark
@@ -47,6 +50,8 @@ class BasicBenchmark
 		Shutdown();
 	}*/
 
+#define DEBUGGING
+
 	public static void BenchmarkSerializer()
 	{
 		// Before benchmark
@@ -66,8 +71,15 @@ class BasicBenchmark
 		benchmark.BeforeRun = scope [&]() => {
 			serializer = new .();
 		};
+
 		benchmark.Run = scope [&]() => {
 			serializer.SerializeScriptInstances();
+			
+#if DEBUGGING	
+			gBonEnv.serializeFlags |= .Verbose; // Output is formatted for editing & readability
+			let serialized = Bon.Bon.Serialize(serializer.[Friend]SerializedObjects, .. scope String());
+			File.WriteAllText("ser.bon", serialized);
+#endif
 		};
 		benchmark.AfterRun = scope [&]() => {
 			delete serializer;
@@ -76,11 +88,13 @@ class BasicBenchmark
 			scene.Stop();
 		};
 		
+#if !DEBUGGING	
 		Console.WriteLine("Benchmark empty scene:");
 		{
 			benchmark.Name = "Empty Scene";
 			benchmark.Run(resultCollector);
 		}
+#endif
 
 		List<Entity> references = new List<Entity>(1000);
 		defer delete references;
@@ -109,12 +123,12 @@ class BasicBenchmark
 
 			references.Clear();
 		}
-
+#if !DEBUGGING		
 		BenchmarkTrivialEntity(1);
 		BenchmarkTrivialEntity(10);
 		BenchmarkTrivialEntity(100);
 		BenchmarkTrivialEntity(1000);
-
+#endif
 		void BenchmarkLargeEntity(int entityCount)
 		{
 			Console.WriteLine($"Benchmark {entityCount} Large Entity:");
@@ -130,7 +144,12 @@ class BasicBenchmark
 			
 			benchmark.Name = scope $"Large Entity {entityCount}";
 			benchmark.RunInfo["EntityCount"] = Variant.Create(entityCount);
+			
+#if !DEBUGGING	
 			benchmark.Run(resultCollector);
+#else			
+			benchmark.Run(resultCollector, 0, 1);	
+#endif
 
 			for (Entity e in references)
 			{
@@ -139,11 +158,15 @@ class BasicBenchmark
 
 			references.Clear();
 		}
-
+		
+#if !DEBUGGING	
 		BenchmarkLargeEntity(1);
 		BenchmarkLargeEntity(10);
 		BenchmarkLargeEntity(100);
 		BenchmarkLargeEntity(1000);
+#else
+		BenchmarkLargeEntity(1000);		
+#endif
 
 		// After Bench
 		Shutdown();

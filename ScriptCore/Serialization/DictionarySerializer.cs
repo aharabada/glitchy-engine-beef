@@ -27,7 +27,7 @@ public static class DictionarySerializer
         if (fieldValue == null)
         {
             // Write a null pointer early out
-            container.AddField(fieldName, SerializationType.ObjectReference, UUID.Zero);
+            container.AddValueTypeField(fieldName, SerializationType.ObjectReference, UUID.Zero);
             return;
         }
         
@@ -43,7 +43,7 @@ public static class DictionarySerializer
             IDictionary dictionary = (IDictionary)fieldValue;
             ICollection collection = (ICollection)fieldValue;
             
-            context.AddField("Count", SerializationType.Int32, collection.Count);
+            context.AddValueTypeField("Count", SerializationType.Int32, collection.Count);
 
             int index = 0;
 
@@ -61,7 +61,7 @@ public static class DictionarySerializer
         }
         
         // Write the reference to our dictionary into the field of the parent.
-        container.AddField(fieldName, SerializationType.ObjectReference, context.Id);
+        container.AddValueTypeField(fieldName, SerializationType.ObjectReference, context.Id);
     }
 
     /// <summary>
