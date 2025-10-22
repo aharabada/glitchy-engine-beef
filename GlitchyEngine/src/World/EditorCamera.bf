@@ -147,6 +147,7 @@ namespace GlitchyEngine.World
 
 		public this(float3 position, Quaternion rotation, float fovY, float nearPlane, float aspectRatio)
 		{
+			this = default;
 			_position = position;
 			_rotation = rotation;
 			_fovY = fovY;
