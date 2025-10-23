@@ -9,11 +9,9 @@ StartupObject = "GlitchyEngineHelper.Program"
 [Configs.Debug.Win64]
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
-LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "$(ProjectDir)/vendor/mono/lib/Windows/Debug/libmono-static-sgen.lib", "$(ProjectDir)/vendor/mono/lib/Windows/Debug/libmonoutils.lib", "$(ProjectDir)/vendor/mono/lib/Windows/Debug/libmonoruntime-sgen.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
-PreBuildCmds = ["$(ProjectDir)/../bin/vscmake.bat x64 $(ProjectDir) x64-debug", "powershell $(ProjectDir)/Build_Mono.ps1"]
+LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
 
 [Configs.Release.Win64]
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
-LibPaths = ["$(ProjectDir)/out/build/x64-release/GlitchyEngineHelper.lib"]
-PreBuildCmds = ["$(ProjectDir)/../bin/vscmake.bat x64 $(ProjectDir) x64-release", "powershell $(ProjectDir)/Build_Mono.ps1"]
+LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]

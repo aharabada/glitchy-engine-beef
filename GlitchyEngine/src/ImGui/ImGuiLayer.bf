@@ -1,3 +1,5 @@
+#if IMGUI
+
 using System;
 using ImGui;
 using GlitchyEngine.Events;
@@ -256,3 +258,5 @@ namespace GlitchyEngine.ImGui
 		}
 	}
 }
+
+#endif
