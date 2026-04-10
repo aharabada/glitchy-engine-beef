@@ -5,17 +5,14 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PublishAot>true</PublishAot>
-    <PackAsTool>true</PackAsTool>
-    <UserSecretsId>build-7f7a4354050726fe6f1b5cfd0a8592d0ee71bab853fc1c5c128d53981653347c</UserSecretsId>
     <StartupObject>BuildTool.Program</StartupObject>
-    <PublishSingleFile>true</PublishSingleFile>
-    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>link</TrimMode>
+    <UserSecretsId>build-7f7a4354050726fe6f1b5cfd0a8592d0ee71bab853fc1c5c128d53981653347c</UserSecretsId>
 
-      <DeploymentPath>$(SolutionDir)..</DeploymentPath>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+
+    <DeploymentPath>$(SolutionDir)..</DeploymentPath>
   </PropertyGroup>
 
   <ItemGroup>

@@ -65,7 +65,7 @@ class ScriptCoreModule : Module
 
     public override string Name => ModuleName;
 
-    public override List<Type> DependencyTypes => [typeof(SetupNethostModule)];
+    public override List<Type> DependencyTypes => [typeof(SetupNethostModule), typeof(BeefWorkspaceModule)];
 
     public override async Task<bool> Run(BuildInfo buildInfo)
     {
@@ -120,7 +120,7 @@ class BeefWorkspaceModule : Module
 
     public override string Name => ModuleName;
 
-    public override List<Type> DependencyTypes => [typeof(ScriptCoreModule), typeof(GlitchyEngineHelperModule)];
+    public override List<Type> DependencyTypes => [typeof(GlitchyEngineHelperModule)];
 
     public override async Task<bool> Run(BuildInfo buildInfo)
     {
@@ -135,6 +135,18 @@ class BeefWorkspaceModule : Module
         }
 
         return true;
+    }
+}
+
+class AllModule : Module
+{
+    public static readonly string ModuleName = "All";
+    public override string Name => ModuleName;
+    public override List<Type> DependencyTypes => [typeof(BeefWorkspaceModule), typeof(ScriptCoreModule)];
+
+    public override Task<bool> Run(BuildInfo buildInfo)
+    {
+        return Task.FromResult(true);
     }
 }
 
@@ -218,7 +230,7 @@ class Program
 
     static async Task<int> Main(string[] args)
     {
-        List<Module> modules = [new BeefWorkspaceModule(), new GlitchyEngineHelperModule(), new ScriptCoreModule(), new SetupNethostModule()];
+        List<Module> modules = [new BeefWorkspaceModule(), new GlitchyEngineHelperModule(), new ScriptCoreModule(), new SetupNethostModule(), new AllModule()];
 
         // Find dependencies
         foreach (Module module in modules)
