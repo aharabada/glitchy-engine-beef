@@ -1,7 +1,7 @@
 ﻿using System.CommandLine;
 using System.Diagnostics;
-using System.Runtime.InteropServices.ComTypes;
 using SimpleExec;
+using Spectre.Console;
 using static SimpleExec.Command;
 using Command = System.CommandLine.Command;
 
@@ -95,19 +95,18 @@ class GlitchyEngineHelperModule : Module
 
     public override async Task<bool> Run(BuildInfo buildInfo)
     {
-        // $(ProjectDir)/../bin/vscmake.bat x64 $(ProjectDir) x64-debug
-        // $(ProjectDir)/../bin/vscmake.bat x64 $(ProjectDir) x64-release
-
         buildInfo.WorkingDirectory.NavigateFromWorkspaceRoot("GlitchyEngineHelper");
 
         if (buildInfo.BuildDebug)
         {
             await RunAsync("cmake", "--preset x64-debug");
+            await RunAsync("cmake", "--build --preset x64-debug");
         }
 
         if (buildInfo.BuildRelease)
         {
             await RunAsync("cmake", "--preset x64-release");
+            await RunAsync("cmake", "--build --preset x64-release");
         }
 
         return true;
@@ -294,7 +293,7 @@ class Program
         Argument<string[]> modulesArgument = new("modules")
         {
             Description = "The modules to build.",
-            DefaultValueFactory = _ => [BeefWorkspaceModule.ModuleName]
+            // DefaultValueFactory = _ => [AllModule.ModuleName]
         };
 
         modulesArgument.Validators.Add(result =>
@@ -399,7 +398,7 @@ class Program
         }
 
         List<Module> acutalModuleOrder = allModulesOrdered.Intersect(modulesToBuild).ToList();
-
+        
         Console.WriteLine($"Building modules: {string.Join(", ", acutalModuleOrder.Select(m => m.Name))}");
         await Task.Delay(1000);
 
@@ -408,19 +407,27 @@ class Program
 
         foreach (Module module in acutalModuleOrder)
         {
-            Console.WriteLine($"Building module: {module.Name}");
+            string message = $"Building module: [bold italic blue]{module.Name}[/]";
+            
+            Console.WriteLine();
+            Console.WriteLine(new string('-', message.Length));
+            AnsiConsole.MarkupLine(message);
+            Console.WriteLine(new string('-', message.Length));
+            Console.WriteLine();
 
             buildInfo.WorkingDirectory.NavigateToIndex(0);
 
             try
             {
                 await module.Run(buildInfo);
+                
+                AnsiConsole.MarkupLine($"\n[green]Module [bold italic]{module.Name}[/] completed successfully.[/]\n");
             }
             catch (ExitCodeException e)
             {
-                Console.WriteLine("Building module failed with exit code: " + e.ExitCode);
+                AnsiConsole.MarkupLine($"\n[bold red]Error:[/] Module [bold italic]{module.Name}[/] failed with exit code: [red]{e.ExitCode}[/]\n");
 
-                // TODO: allow abort once a step failed.
+                break;
             }
         }
     }

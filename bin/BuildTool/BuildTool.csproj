@@ -16,13 +16,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="SimpleExec" Version="12.0.0" />
-    <PackageReference Include="System.CommandLine" Version="2.0.0-rc.2.25502.107" />
+    <PackageReference Include="SimpleExec" Version="13.0.0" />
+    <PackageReference Include="Spectre.Console" Version="0.55.0" />
+    <PackageReference Include="System.CommandLine" Version="2.0.5" />
   </ItemGroup>
 
     <Target Name="CopyExe" AfterTargets="Publish">
-        <Copy SourceFiles="$(PublishDir)$(TargetName).exe"
-              DestinationFolder="$(DeploymentPath)"
-              SkipUnchangedFiles="true" />
+        <Copy SourceFiles="$(PublishDir)$(TargetName).exe" DestinationFolder="$(DeploymentPath)" SkipUnchangedFiles="true" />
     </Target>
 </Project>
