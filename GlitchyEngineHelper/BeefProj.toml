@@ -1,17 +1,23 @@
 FileVersion = 1
-Dependencies = {corlib = "*", corlib = "*", DirectX = "*"}
 
 [Project]
 Name = "GlitchyEngineHelper"
 TargetType = "BeefLib"
 StartupObject = "GlitchyEngineHelper.Program"
 
+[Dependencies]
+corlib = "*"
+corlib = "*"
+DirectX = "*"
+
 [Configs.Debug.Win64]
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
-LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
+LibPaths = ["$(ProjectDir)/out/build/x64-debug/Debug/GlitchyEngineHelper.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
+PreBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build GlitchyEngineHelper -n --workspace $(WorkspaceDir) --debug"]
 
 [Configs.Release.Win64]
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
 LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
+PreBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build GlitchyEngineHelper -n --workspace $(WorkspaceDir) --release"]

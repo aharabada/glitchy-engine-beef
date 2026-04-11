@@ -5,7 +5,7 @@ Name = "ScriptCore"
 TargetType = "CustomBuild"
 
 [Configs.Debug.Win64]
-PostBuildCmds = ["dotnet build \"$(WorkspaceDir)/ScriptCore/ScriptCore.csproj\" -c Debug"]
+PostBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build ScriptCore -n --workspace $(WorkspaceDir) --debug"]
 
 [Configs.Release.Win64]
-PostBuildCmds = ["dotnet build \"$(WorkspaceDir)/ScriptCore/ScriptCore.csproj\" -c Release"]
+PostBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build ScriptCore -n --workspace $(WorkspaceDir) --Release"]
