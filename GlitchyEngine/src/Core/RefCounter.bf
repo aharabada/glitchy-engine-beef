@@ -9,10 +9,6 @@ namespace GlitchyEngine.Core
 	 */
 	public class RefCounter : RefCounted, IDisposable
 	{
-		protected ~this()
-		{
-		}
-
 		public void Dispose()
 		{
 			ReleaseRef();

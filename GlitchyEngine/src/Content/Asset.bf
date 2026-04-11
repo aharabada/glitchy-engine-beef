@@ -45,12 +45,12 @@ abstract class Asset : RefCounter
 		Content.ManageAsset(this);
 	}
 
-	protected ~this()
-	{
+	//protected ~this()
+	//{
 		// TODO: crash when _contentManager is deleted first...
 		// TODO: unregister from content manager
 		//_contentManager?.UnmanageAsset(this);
-	}
+	//}
 
 	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
 	{

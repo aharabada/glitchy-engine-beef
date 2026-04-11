@@ -122,10 +122,10 @@ namespace GlitchyEngine.World
 				}
 			});
 
-			/*if (_font == null)
+			if (_font == null)
 				_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
 			else
-				_font..AddRef();*/
+				_font..AddRef();
 
 			//_font = new Font(@"C:\Windows\Fonts\Cascadia Code.ttf", 24);
 		}
