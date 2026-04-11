@@ -10,15 +10,21 @@ extension ScriptGlue
 	{
 		OnRegisterNativeCalls.Add(new => RegisterExtensionCalls);
 	}
-
+	
+	[RegisterMethod(IsExtension = true)]
 	private static void RegisterExtensionCalls()
 	{
-		EngineFunctions.[Friend]_functions.ImGuiExtension_ShowAssetDropTarget = => ImGuiExtension_ShowAssetDropTarget;
 	}
 
 	[RegisterCall(EngineResultAsBool = true, IsExtension = true)]
-	public static EngineResult ImGuiExtension_ShowAssetDropTarget(ref AssetHandle assetHandle)
+	static EngineResult ImGuiExtension_ShowAssetDropTarget(ref AssetHandle assetHandle)
 	{
 		return ComponentEditWindow.ShowAssetDropTarget(ref assetHandle) ? .Ok : .False;
+	}
+	
+	[RegisterCall(IsExtension = true), CallingConvention(.Cdecl)]
+	static void ImGuiExtension_ListElementGrabber()
+	{
+		ImGui.ImGui.ListElementGrabber();
 	}
 }

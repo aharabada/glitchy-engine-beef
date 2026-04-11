@@ -203,9 +203,11 @@ struct EngineFunctions
 }
 
 /* Adding this attribute to a method will log method entry and returned Result<T> errors */
-[AttributeUsage(.Method)]
+[AttributeUsage(.Method | .Constructor)]
 public struct RegisterMethodAttribute : Attribute, IOnMethodInit
 {
+	public bool IsExtension = false;
+
     [Comptime]
     public void OnMethodInit(MethodInfo method, Self* prev)
     {
@@ -213,12 +215,26 @@ public struct RegisterMethodAttribute : Attribute, IOnMethodInit
 
 		int i = 0;
 
-        for (var methodInfo in typeof(ScriptGlue).GetMethods(.Static | .NonPublic | .FlattenHierarchy))
+		BindingFlags flags = .Static;
+
+		if (IsExtension)
 		{
-			if (methodInfo.GetCustomAttribute<RegisterCallAttribute>() case .Ok(let attribute) && !attribute.IsExtension)
+			flags |= .DeclaredOnly;
+		}
+
+        for (var methodInfo in typeof(ScriptGlue).GetMethods(flags))
+		{
+			if (methodInfo.GetCustomAttribute<RegisterCallAttribute>() not case .Ok(let attribute))
+				continue;
+
+			if (IsExtension && attribute.IsExtension)
+			{
+				functionContent.AppendF($"EngineFunctions.[Friend]_functions.{methodInfo.Name} = => ScriptGlue.{methodInfo.Name};\n");
+				i++;
+			}
+			else if (!IsExtension && !attribute.IsExtension)
 			{
 				functionContent.AppendF($"_functions.{methodInfo.Name} = => ScriptGlue.[Friend]{methodInfo.Name};\n");
-				//functionContent.AppendF($"functions[{i}] = (void*)( => {methodInfo.Name});\n");
 				i++;
 			}
 		}
@@ -1467,7 +1483,7 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall, CallingConvention(.Cdecl)]
-	public static void Serialization_DeserializeField(void* internalContext, SerializationType expectedType, StringView fieldName, uint8* target, out SerializationType actualType)
+	static void Serialization_DeserializeField(void* internalContext, SerializationType expectedType, StringView fieldName, uint8* target, out SerializationType actualType)
 	{
 		SerializedObject context = Internal.UnsafeCastToObject(internalContext) as SerializedObject;
 
@@ -1477,7 +1493,7 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall, CallingConvention(.Cdecl)]
-	public static void Serialization_GetObject(void* internalContext, UUID id, out void* objectContext)
+	static void Serialization_GetObject(void* internalContext, UUID id, out void* objectContext)
 	{
 		SerializedObject context = Internal.UnsafeCastToObject(internalContext) as SerializedObject;
 
@@ -1494,7 +1510,7 @@ static class ScriptGlue
 	}
 	
 	[RegisterCall, CallingConvention(.Cdecl)]
-	public static void Serialization_GetObjectTypeName(void* internalContext, out StringView fullTypeName)
+	static void Serialization_GetObjectTypeName(void* internalContext, out StringView fullTypeName)
 	{
 		SerializedObject context = Internal.UnsafeCastToObject(internalContext) as SerializedObject;
 
@@ -1655,16 +1671,6 @@ static class ScriptGlue
 		material.ResetTexture(variableName);
 
 		return .Ok;
-	}
-
-#endregion
-
-#region ImGui Extension
-	
-	[RegisterCall, CallingConvention(.Cdecl)]
-	static void ImGuiExtension_ListElementGrabber()
-	{
-		ImGui.ImGui.ListElementGrabber();
 	}
 
 #endregion
