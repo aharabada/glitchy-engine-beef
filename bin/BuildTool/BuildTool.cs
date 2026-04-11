@@ -2,162 +2,11 @@
 using System.Diagnostics;
 using SimpleExec;
 using Spectre.Console;
-using static SimpleExec.Command;
+using BuildTool.Modules;
+
 using Command = System.CommandLine.Command;
 
 namespace BuildTool;
-
-class BuildInfo
-{
-    public WorkingDirectoryHistory WorkingDirectory;
-    public bool ForceRebuild;
-    public bool BuildDebug;
-    public bool BuildRelease;
-
-    public BuildInfo(WorkingDirectoryHistory workingDirectory, bool forceRebuild, bool buildDebug, bool buildRelease)
-    {
-        WorkingDirectory = workingDirectory;
-        ForceRebuild = forceRebuild;
-        BuildDebug = buildDebug;
-        BuildRelease = buildRelease;
-    }
-}
-
-class SetupNethostModule : Module
-{
-    public static readonly string ModuleName = "SetupNethost";
-
-    public override string Name => ModuleName;
-
-    public override List<Type> DependencyTypes => [];
-
-    public override async Task<bool> Run(BuildInfo buildInfo)
-    {
-        buildInfo.WorkingDirectory.NavigateFromWorkspaceRoot("GlitchyEngine/vendor/NetHostBeef");
-
-        string targetPath = buildInfo.WorkingDirectory.GetRelativePath("./NetHostBeef/nethost/");
-
-        if (buildInfo.ForceRebuild || !Directory.Exists(targetPath))
-        {
-            if (Directory.Exists(targetPath))
-            {
-                Console.WriteLine("Removing existing nethost directory...");
-                Directory.Delete(targetPath, true);
-                Console.WriteLine("Done.");
-            }
-
-            Console.WriteLine("Donwloading nethost...");
-            await RunAsync("powershell", "./downloadNethost.ps1");
-            Console.WriteLine("Done.");
-        }
-        else
-        {
-            Console.WriteLine("Nethost already exists. Use --force-rebuild to force download.");
-        }
-
-        return true;
-    }
-}
-
-class ScriptCoreModule : Module
-{
-    public static readonly string ModuleName = "ScriptCore";
-
-    public override string Name => ModuleName;
-
-    public override List<Type> DependencyTypes => [typeof(SetupNethostModule), typeof(BeefWorkspaceModule)];
-
-    public override async Task<bool> Run(BuildInfo buildInfo)
-    {
-        string projectFile = Path.Join(buildInfo.WorkingDirectory.WorkspaceRoot, "ScriptCore/ScriptCore.csproj");
-
-        if (buildInfo.BuildDebug)
-        {
-            await RunAsync("dotnet", $"build \"{projectFile}\" -c Debug");
-        }
-
-        if (buildInfo.BuildRelease)
-        {
-            await RunAsync("dotnet", $"build \"{projectFile}\" -c Release");
-        }
-
-        return true;
-    }
-}
-
-class GlitchyEngineHelperModule : Module
-{
-    public static readonly string ModuleName = "GlitchyEngineHelper";
-
-    public override string Name => ModuleName;
-
-    public override List<Type> DependencyTypes => [];
-
-    public override async Task<bool> Run(BuildInfo buildInfo)
-    {
-        buildInfo.WorkingDirectory.NavigateFromWorkspaceRoot("GlitchyEngineHelper");
-
-        if (buildInfo.BuildDebug)
-        {
-            await RunAsync("cmake", "--preset x64-debug");
-            await RunAsync("cmake", "--build --preset x64-debug");
-        }
-
-        if (buildInfo.BuildRelease)
-        {
-            await RunAsync("cmake", "--preset x64-release");
-            await RunAsync("cmake", "--build --preset x64-release");
-        }
-
-        return true;
-    }
-}
-
-class BeefWorkspaceModule : Module
-{
-    public static readonly string ModuleName = "BeefWorkspace";
-
-    public override string Name => ModuleName;
-
-    public override List<Type> DependencyTypes => [typeof(GlitchyEngineHelperModule)];
-
-    public override async Task<bool> Run(BuildInfo buildInfo)
-    {
-        if (buildInfo.BuildDebug)
-        {
-            await RunAsync("beefbuild", $"-workspace={buildInfo.WorkingDirectory.WorkspaceRoot} -config=debug");
-        }
-
-        if (buildInfo.BuildRelease)
-        {
-            await RunAsync("beefbuild", $"-workspace={buildInfo.WorkingDirectory.WorkspaceRoot} -config=release");
-        }
-
-        return true;
-    }
-}
-
-class AllModule : Module
-{
-    public static readonly string ModuleName = "All";
-    public override string Name => ModuleName;
-    public override List<Type> DependencyTypes => [typeof(BeefWorkspaceModule), typeof(ScriptCoreModule)];
-
-    public override Task<bool> Run(BuildInfo buildInfo)
-    {
-        return Task.FromResult(true);
-    }
-}
-
-abstract class Module
-{
-    public abstract string Name { get; }
-
-    public List<Module> Dependencies { get; } = new();
-    public abstract List<Type> DependencyTypes { get; }
-
-    public abstract Task<bool> Run(BuildInfo buildInfo);
-}
 
 class Program
 {
@@ -229,7 +78,7 @@ class Program
 
     static async Task<int> Main(string[] args)
     {
-        List<Module> modules = [new BeefWorkspaceModule(), new GlitchyEngineHelperModule(), new ScriptCoreModule(), new SetupNethostModule(), new AllModule()];
+        List<Module> modules = [new BeefWorkspaceModule(), new GlitchyEngineHelperModule(), new ScriptCoreModule(), new SetupNethostModule(), new Box2DModule(), new AllModule()];
 
         // Find dependencies
         foreach (Module module in modules)
