@@ -4,7 +4,6 @@ using System;
 using System.IO;
 using DirectX.D3D11;
 using DirectX.Common;
-using DirectXTK;
 using GlitchyEngine.Math;
 using GlitchyEngine.Platform.DX11;
 using System.Collections;

@@ -21,7 +21,6 @@ add_library(GlitchyEngineHelper STATIC
 	"GlitchyEngineHelper.h"
 	"vendor/xxHash/xxhash.c"
 	"vendor/xxHash/xxhash.h"
-	"vendor/DirectXTK/Src/DDSTextureLoader.cpp"
 )
 
 include_directories("vendor/DirectXTK/Inc")
