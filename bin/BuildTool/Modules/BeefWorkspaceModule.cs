@@ -8,7 +8,7 @@ class BeefWorkspaceModule : Module
 
     public override string Name => ModuleName;
 
-    public override List<Type> DependencyTypes => [typeof(GlitchyEngineHelperModule), typeof(Box2DModule)];
+    public override List<Type> DependencyTypes => [typeof(GlitchyEngineHelperModule), typeof(Box2DModule), typeof(FreetypeStackModule)];
 
     public override async Task<bool> Run(BuildInfo buildInfo)
     {

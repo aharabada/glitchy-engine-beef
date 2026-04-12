@@ -78,7 +78,7 @@ class Program
 
     static async Task<int> Main(string[] args)
     {
-        List<Module> modules = [new BeefWorkspaceModule(), new GlitchyEngineHelperModule(), new ScriptCoreModule(), new SetupNethostModule(), new Box2DModule(), new AllModule()];
+        List<Module> modules = [new BeefWorkspaceModule(), new GlitchyEngineHelperModule(), new ScriptCoreModule(), new SetupNethostModule(), new Box2DModule(), new FreetypeStackModule(), new AllModule()];
 
         // Find dependencies
         foreach (Module module in modules)
