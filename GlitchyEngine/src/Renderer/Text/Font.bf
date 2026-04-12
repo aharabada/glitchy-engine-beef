@@ -686,7 +686,7 @@ namespace GlitchyEngine.Renderer.Text
 			int bufferX = desc.Width;
 			int bufferY = desc.Height;
 
-			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY))
+			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY, .Y_DOWNWARD))
 			{
 				Debug.Profiler.ProfileResourceScope!("GenerateMSDF");
 				
@@ -703,7 +703,7 @@ namespace GlitchyEngine.Renderer.Text
 				{
 					ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
 	
-					int index = ((desc.Height - y - 1) * desc.Width + x) * 4;
+					int index = (y * desc.Width + x) * 4;
 	
 					pixels[index + 0] = ToInt8(pixel.R);
 					pixels[index + 1] = ToInt8(pixel.G);
