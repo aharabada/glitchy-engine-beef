@@ -1,6 +1,6 @@
 ﻿namespace BuildTool;
 
-class BuildInfo
+struct BuildInfo
 {
     public WorkingDirectoryHistory WorkingDirectory;
     public bool ForceRebuild;

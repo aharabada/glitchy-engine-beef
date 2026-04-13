@@ -12,7 +12,7 @@ class ScriptCoreModule : Module
 
     public override async Task<bool> Run(BuildInfo buildInfo)
     {
-        string projectFile = Path.Join(buildInfo.WorkingDirectory.WorkspaceRoot, "ScriptCore/ScriptCore.csproj");
+        string projectFile = Path.Join(buildInfo.WorkingDirectory.WorkspaceRoot, "ScriptCore", "ScriptCore.csproj");
 
         if (buildInfo.BuildDebug)
         {
@@ -25,5 +25,26 @@ class ScriptCoreModule : Module
         }
 
         return true;
+    }
+
+    protected override List<WatchedSource> GetWatchedSources(BuildInfo buildInfo)
+    {
+        List<WatchedSource> sources = new();
+
+        // Watch ScriptGlue-Definitions file by content
+        sources.Add(new WatchedSource("generated/ScriptGlue.json", WatchMode.Content));
+
+        // Watch source files by metadata
+        sources.Add(new WatchedSource("ScriptCore/", WatchMode.Metadata)
+        {
+            Recursive = true,
+            ExcludedDirectories =
+            [
+                "bin",
+                "obj"
+            ]
+        });
+
+        return sources;
     }
 }

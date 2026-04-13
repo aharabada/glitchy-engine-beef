@@ -1,5 +1,6 @@
 ﻿using System.CommandLine;
 using System.Diagnostics;
+using System.Net;
 using SimpleExec;
 using Spectre.Console;
 using BuildTool.Modules;
@@ -247,7 +248,11 @@ class Program
         }
 
         List<Module> acutalModuleOrder = allModulesOrdered.Intersect(modulesToBuild).ToList();
-        
+
+        string cacheFilePath = Path.Combine(workspaceRoot.FullName, "build", ".build_tool.json");
+
+        ModuleCache moduleCache = ModuleCache.Load(cacheFilePath);
+
         Console.WriteLine($"Building modules: {string.Join(", ", acutalModuleOrder.Select(m => m.Name))}");
         await Task.Delay(1000);
 
@@ -263,20 +268,32 @@ class Program
             AnsiConsole.MarkupLine(message);
             Console.WriteLine(new string('-', message.Length));
             Console.WriteLine();
-
+            
             buildInfo.WorkingDirectory.NavigateToIndex(0);
+
+            // create a copy of the build info updated with the module's watched sources and cache info (last build time etc.)
+            BuildInfo moduleBuildInfo = module.GetBuildInfo(buildInfo, moduleCache);
 
             try
             {
-                await module.Run(buildInfo);
-                
+                await module.Run(moduleBuildInfo);
+
                 AnsiConsole.MarkupLine($"\n[green]Module [bold italic]{module.Name}[/] completed successfully.[/]\n");
+
+                module.UpdateCacheInfo(moduleBuildInfo, moduleCache, true);
             }
             catch (ExitCodeException e)
             {
-                AnsiConsole.MarkupLine($"\n[bold red]Error:[/] Module [bold italic]{module.Name}[/] failed with exit code: [red]{e.ExitCode}[/]\n");
+                AnsiConsole.MarkupLine(
+                    $"\n[bold red]Error:[/] Module [bold italic]{module.Name}[/] failed with exit code: [red]{e.ExitCode}[/]\n");
+
+                module.UpdateCacheInfo(moduleBuildInfo, moduleCache, false);
 
                 break;
+            }
+            finally
+            {
+                moduleCache.Save(cacheFilePath);
             }
         }
     }

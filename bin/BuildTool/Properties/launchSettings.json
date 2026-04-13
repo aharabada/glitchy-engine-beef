@@ -3,6 +3,10 @@
     "BuildTool": {
       "commandName": "Project",
       "commandLineArgs": "build All --debug --workspace \"$(ProjectDir)/../../\""
+    },
+    "Build ScriptCore": {
+      "commandName": "Project",
+      "commandLineArgs": "build ScriptCore --debug -n --workspace \"$(ProjectDir)/../../\""
     }
   }
 }
