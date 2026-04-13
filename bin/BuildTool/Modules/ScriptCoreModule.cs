@@ -38,7 +38,7 @@ class ScriptCoreModule : Module
         sources.Add(new WatchedSource("ScriptCore/", WatchMode.Metadata)
         {
             Recursive = true,
-            ExcludedDirectories =
+            ExcludedSubpaths =
             [
                 "bin",
                 "obj"

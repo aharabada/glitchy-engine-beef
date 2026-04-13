@@ -27,7 +27,7 @@ internal record WatchedSource(string Path, WatchMode Mode)
     /// <summary>
     /// Only if Path points to a directory, a list of subdirectories to exclude from change checking.
     /// </summary>
-    public List<string> ExcludedDirectories { get; init; } = new();
+    public List<string> ExcludedSubpaths { get; init; } = new();
     /// <summary>
     /// Only if Path points to a directory, whether to check for changes in subdirectories as well.
     /// </summary>

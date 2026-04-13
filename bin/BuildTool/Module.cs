@@ -79,22 +79,7 @@ abstract class Module
                 // Since we don't save anything directory specific in the has, we can skip this check if we already know that we are going to rebuild.
                 if (!needsRebuild)
                 {
-                    foreach (FileSystemInfo dirEntry in dirInfo.EnumerateFileSystemInfos("**",
-                                 enumerationOptions: new EnumerationOptions()
-                                     { MatchType = MatchType.Win32, RecurseSubdirectories = source.Recursive }))
-                    {
-                        //string relativePath = Path.GetRelativePath(dirInfo.FullName, dirEntry.FullName);
-                        //if (source.ExcludedDirectories.Contains(relativePath, StringComparer.OrdinalIgnoreCase))
-                        //    continue;
-
-                        Console.WriteLine("Checking entry: " + dirEntry.FullName);
-                        if (dirEntry.LastWriteTimeUtc > cacheInfo.LastSuccessfulBuild)
-                        {
-                            Console.WriteLine("Needs rebuild");
-                            needsRebuild = true;
-                            break;
-                        }
-                    }
+                    needsRebuild = DirectoryNeedsRebuild(cacheInfo, dirInfo, source, needsRebuild);
                 }
 
                 // We really just need any timestamp, to know that the directory existed at some point.
@@ -147,6 +132,40 @@ abstract class Module
             }
                     
             cacheInfo.SetNewHash(source.Path, newHash);
+        }
+
+        return needsRebuild;
+    }
+
+    private static bool DirectoryNeedsRebuild(ModuleInfo cacheInfo, DirectoryInfo dirInfo, WatchedSource source,
+        bool needsRebuild)
+    {
+        Stack<DirectoryInfo> directoriesToCheck = new ();
+        directoriesToCheck.Push(dirInfo);
+
+        while (directoriesToCheck.Count > 0)
+        {
+            DirectoryInfo directory = directoriesToCheck.Pop();
+            
+            foreach (FileSystemInfo dirEntry in directory.EnumerateFileSystemInfos())
+            {
+                string relativePath = Path.GetRelativePath(dirInfo.FullName, dirEntry.FullName);
+                if (source.ExcludedSubpaths.Contains(relativePath, StringComparer.OrdinalIgnoreCase))
+                    continue;
+
+                if (dirEntry.Attributes.HasFlag(FileAttributes.Directory))
+                {
+                    directoriesToCheck.Push(new DirectoryInfo(dirEntry.FullName));
+                }
+
+                Console.WriteLine("Checking entry: " + dirEntry.FullName);
+                if (dirEntry.LastWriteTimeUtc > cacheInfo.LastSuccessfulBuild)
+                {
+                    Console.WriteLine("Needs rebuild");
+                    needsRebuild = true;
+                    break;
+                }
+            }
         }
 
         return needsRebuild;
