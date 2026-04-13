@@ -72,7 +72,7 @@ public enum BuildConfig
 
 public class ModuleInfo
 {
-    public string Name { get; set; }
+    public required string Name { get; set; }
     public BuildConfig Configuration { get; set; }
 
     public DateTime LastSuccessfulBuild { get; set; }

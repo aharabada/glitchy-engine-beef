@@ -14,12 +14,12 @@ class BeefWorkspaceModule : Module
     {
         if (buildInfo.BuildDebug)
         {
-            await RunAsync("beefbuild", $"-workspace={buildInfo.WorkingDirectory.WorkspaceRoot} -config=debug");
+            await RunAsync("beefbuild", "-config=Debug");
         }
 
         if (buildInfo.BuildRelease)
         {
-            await RunAsync("beefbuild", $"-workspace={buildInfo.WorkingDirectory.WorkspaceRoot} -config=release");
+            await RunAsync("beefbuild", "-config=Release");
         }
 
         return true;

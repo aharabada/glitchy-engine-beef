@@ -138,8 +138,6 @@ abstract class Module
 
     private static bool DirectoryNeedsRebuild(ModuleInfo cacheInfo, DirectoryInfo dirInfo, WatchedSource source)
     {
-        bool needsRebuild = false;
-
         Stack<DirectoryInfo> directoriesToCheck = new ();
         directoriesToCheck.Push(dirInfo);
 
