@@ -1,6 +1,5 @@
 ﻿using System.Diagnostics;
 using System.Security.Cryptography;
-using System.Text;
 
 namespace BuildTool;
 
@@ -60,34 +59,35 @@ abstract class Module
 
         foreach (WatchedSource source in watchedSources)
         {
-            bool cacheEntryFound = cacheInfo.TryGetCachedHash(source.Path, out SourceHash cachedHash);
+            string fullSourcePath = Path.Combine(buildInfo.WorkingDirectory.WorkspaceRoot, source.Path);
+
+            bool cacheEntryFound = cacheInfo.TryGetCachedHash(fullSourcePath, out SourceHash cachedHash);
 
             SourceHash newHash;
-
-            if (Directory.Exists(source.Path))
+            
+            if (Directory.Exists(fullSourcePath))
             {
                 Debug.Assert(source.Mode == WatchMode.Metadata, "Directory watching is only supported in Metadata mode.");
                 
-                DirectoryInfo dirInfo = new (source.Path);
+                DirectoryInfo dirInfo = new (fullSourcePath);
 
                 if (dirInfo.LastWriteTimeUtc > cacheInfo.LastSuccessfulBuild)
                 {
-                    Console.WriteLine("Needs rebuild");
                     needsRebuild = true;
                 }
 
                 // Since we don't save anything directory specific in the has, we can skip this check if we already know that we are going to rebuild.
                 if (!needsRebuild)
                 {
-                    needsRebuild = DirectoryNeedsRebuild(cacheInfo, dirInfo, source, needsRebuild);
+                    needsRebuild = DirectoryNeedsRebuild(cacheInfo, dirInfo, source);
                 }
 
                 // We really just need any timestamp, to know that the directory existed at some point.
                 newHash = SourceHash.CreateTimeStamp(DateTime.UtcNow, 1);
             }
-            else if (File.Exists(source.Path))
+            else if (File.Exists(fullSourcePath))
             {
-                FileInfo fileInfo = new (source.Path);
+                FileInfo fileInfo = new (fullSourcePath);
                 
                 if (source.Mode == WatchMode.Metadata)
                 {
@@ -103,7 +103,6 @@ abstract class Module
 
                     if (newHash != cachedHash)
                     {
-                        Console.WriteLine("Needs rebuild");
                         needsRebuild = true;
                     }
                 }
@@ -131,15 +130,16 @@ abstract class Module
                 }
             }
                     
-            cacheInfo.SetNewHash(source.Path, newHash);
+            cacheInfo.SetNewHash(fullSourcePath, newHash);
         }
 
         return needsRebuild;
     }
 
-    private static bool DirectoryNeedsRebuild(ModuleInfo cacheInfo, DirectoryInfo dirInfo, WatchedSource source,
-        bool needsRebuild)
+    private static bool DirectoryNeedsRebuild(ModuleInfo cacheInfo, DirectoryInfo dirInfo, WatchedSource source)
     {
+        bool needsRebuild = false;
+
         Stack<DirectoryInfo> directoriesToCheck = new ();
         directoriesToCheck.Push(dirInfo);
 
@@ -153,22 +153,19 @@ abstract class Module
                 if (source.ExcludedSubpaths.Contains(relativePath, StringComparer.OrdinalIgnoreCase))
                     continue;
 
-                if (dirEntry.Attributes.HasFlag(FileAttributes.Directory))
+                if (source.Recursive && dirEntry.Attributes.HasFlag(FileAttributes.Directory))
                 {
                     directoriesToCheck.Push(new DirectoryInfo(dirEntry.FullName));
                 }
 
-                Console.WriteLine("Checking entry: " + dirEntry.FullName);
                 if (dirEntry.LastWriteTimeUtc > cacheInfo.LastSuccessfulBuild)
                 {
-                    Console.WriteLine("Needs rebuild");
-                    needsRebuild = true;
-                    break;
+                    return true;
                 }
             }
         }
 
-        return needsRebuild;
+        return false;
     }
 
     private static string ComputeFileHash(string filePath)

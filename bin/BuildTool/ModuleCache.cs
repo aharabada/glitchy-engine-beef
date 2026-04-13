@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Numerics;
-using System.Text;
+﻿using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -74,7 +70,7 @@ public enum BuildConfig
     Release
 }
 
-public record ModuleInfo
+public class ModuleInfo
 {
     public string Name { get; set; }
     public BuildConfig Configuration { get; set; }
@@ -142,7 +138,8 @@ public struct SourceHash : IEquatable<SourceHash>
         return new SourceHash()
         {
             Type = HashType.Date,
-            Hash = timeStamp.ToString("o") // ISO 8601 format
+            Hash = timeStamp.ToString("o"), // ISO 8601 format
+            Length = length
         };
     }
 
@@ -151,7 +148,7 @@ public struct SourceHash : IEquatable<SourceHash>
 
     public override bool Equals([NotNullWhen(true)] object? obj)
     {
-        return base.Equals(obj);
+        return obj is SourceHash other && Equals(other);
     }
 
     public bool Equals(SourceHash other)

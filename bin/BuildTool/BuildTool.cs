@@ -1,6 +1,5 @@
 ﻿using System.CommandLine;
 using System.Diagnostics;
-using System.Net;
 using SimpleExec;
 using Spectre.Console;
 using BuildTool.Modules;
@@ -273,6 +272,12 @@ class Program
 
             // create a copy of the build info updated with the module's watched sources and cache info (last build time etc.)
             BuildInfo moduleBuildInfo = module.GetBuildInfo(buildInfo, moduleCache);
+            
+            if (!moduleBuildInfo.BuildDebug && !moduleBuildInfo.BuildRelease)
+            {
+                AnsiConsole.MarkupLine($"\n[green]Module [bold italic]{module.Name}[/] is up to date, skipping.[/]\n");
+                continue;
+            }
 
             try
             {
