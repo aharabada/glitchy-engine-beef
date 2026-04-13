@@ -7,7 +7,6 @@ StartupObject = "GlitchyEngineHelper.Program"
 
 [Dependencies]
 corlib = "*"
-corlib = "*"
 DirectX = "*"
 
 [Configs.Debug.Win64]

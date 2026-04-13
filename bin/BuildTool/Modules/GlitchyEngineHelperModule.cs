@@ -28,4 +28,24 @@ class GlitchyEngineHelperModule : Module
 
         return true;
     }
+
+    protected override List<WatchedSource> GetWatchedSources(BuildInfo buildInfo)
+    {
+        List<WatchedSource> sources = new();
+
+        // Watch ScriptGlue-Definitions file by content
+        sources.Add(new WatchedSource("GlitchyEngineHelper", WatchMode.Metadata)
+        {
+            Recursive = true,
+            ExcludedSubpaths =
+            [
+                ".vs",
+                "out",
+                "src",
+                "BeefProj.toml"
+            ]
+        });
+
+        return sources;
+    }
 }
