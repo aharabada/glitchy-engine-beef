@@ -17,13 +17,13 @@ class GlitchyEngineHelperModule : Module
         if (buildInfo.BuildDebug)
         {
             await RunAsync("cmake", "--preset x64-debug");
-            await RunAsync("cmake", "--build --preset x64-debug");
+            await RunAsync("cmake", "--build --preset x64-debug --config Debug");
         }
 
         if (buildInfo.BuildRelease)
         {
             await RunAsync("cmake", "--preset x64-release");
-            await RunAsync("cmake", "--build --preset x64-release");
+            await RunAsync("cmake", "--build --preset x64-release --config Release");
         }
 
         return true;
