@@ -3,13 +3,14 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
 using System;
 using GlitchyEngine.Events;
+using System.Diagnostics;
 
 namespace GlitchyEngine.World
 {
 	struct EditorCamera : Camera, IDisposable
 	{
-		private float3 _position;
-		private Quaternion _rotation;
+		private float3 _position = .Zero;
+		private Quaternion _rotation = .Identity;
 
 		private float3 _focalPosition = .Zero;
 		private float _focalDistance = 5.0f;
@@ -19,16 +20,16 @@ namespace GlitchyEngine.World
 		private float _cameraRotationSpeedY = 0.001f;
 		private float _cameraFastFactor = 10f;
 
-		private Matrix _view;
+		private Matrix _view = ?;
 
-		private float _fovY;
-		private float _nearPlane;
-		private float _aspectRatio;
+		private float _fovY = ?;
+		private float _nearPlane = ?;
+		private float _aspectRatio = ?;
 
 		private RenderTargetGroup _renderTarget = null;
 		
-		internal bool BindMouse;
-		internal uint8 MouseCooldown;
+		internal bool BindMouse = false;
+		internal uint8 MouseCooldown = 0;
 
 		private bool _isAltMode = false;
 
@@ -38,7 +39,7 @@ namespace GlitchyEngine.World
 		public bool InUse => BindMouse;
 
 		/// If true, the camera can be rotated/moved
-		public bool AllowMove;
+		public bool AllowMove = true;
 
 		public RenderTargetGroup RenderTarget
 		{
@@ -147,7 +148,6 @@ namespace GlitchyEngine.World
 
 		public this(float3 position, Quaternion rotation, float fovY, float nearPlane, float aspectRatio)
 		{
-			this = default;
 			_position = position;
 			_rotation = rotation;
 			_fovY = fovY;
