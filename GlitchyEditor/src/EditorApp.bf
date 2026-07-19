@@ -26,10 +26,10 @@ namespace GlitchyEditor
 		
 		public this(String[] args)
 		{
-			while(!Debug.IsDebuggerPresent)
+			/*while(!Debug.IsDebuggerPresent)
 			{
 				Thread.Sleep(10);
-			}
+			}*/
 
 			Log.ClientLogger = new EditorLogger();
 			Log.EngineLogger = new EditorLogger() { IsEngineLogger = true };
