@@ -348,6 +348,9 @@ namespace GlitchyEngine.Math
 
 			//return .(q.Pitch(), q.Yaw(), q.Roll());
 		}
+
+		public override void ToString(String strBuffer) => strBuffer.AppendF($"(X:{X}, Y:{Y}, Z:{Z}, W:{W})");
+
 		/*
 		public float Pitch()
 		{
