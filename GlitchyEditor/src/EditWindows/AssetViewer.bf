@@ -258,7 +258,7 @@ class TextureViewer
 
 			if (_backgroundMode == .CustomColor)
 			{
-				ImGui.ColorPicker3("Color", ref _backgroundColor);
+				ImGui.ColorEdit3("Color", ref _backgroundColor);
 				_backgroundColor.A = 1.0f;
 			}
 		}
@@ -269,16 +269,18 @@ class TextureViewer
 
 			ImGui.Combo("Sampler", (.)&_sampleMode, items.Ptr, (.)items.Count);
 
-			ImGui.SliderInt("Mip Level", &_mipLevel, 0, (int32)maxMips);
-			ImGui.SliderInt("Array Slice", &_arraySlice, 0, (int32)arraySize);
+			ImGui.SliderInt("Mip Level", &_mipLevel, 0, (int32)maxMips - 1);
 
-			ImGui.BeginDisabled(rtGroup == null);
-
-			ImGui.SliderInt("Group Target", &_groupIndex, (rtGroup?.HasDepth == true) ? -1 : 0, (int32)(rtGroup?.ColorTargetCount ?? 1) - 1);
-
-			ImGui.TextUnformatted(scope $"Target name: {(rtGroup?.GetTargetDescription(_groupIndex).DebugName ?? "???")}");
-
+			ImGui.BeginDisabled(arraySize <= 1);
+			ImGui.SliderInt("Array Slice", &_arraySlice, 0, (int32)arraySize - 1);
 			ImGui.EndDisabled();
+
+			if (rtGroup != null)
+			{
+				ImGui.SliderInt("Group Target", &_groupIndex, (rtGroup?.HasDepth == true) ? -1 : 0, (int32)(rtGroup?.ColorTargetCount ?? 1) - 1);
+
+				ImGui.TextUnformatted(scope $"Target name: {(rtGroup?.GetTargetDescription(_groupIndex).DebugName ?? "???")}");
+			}
 		}
 
 		if (ImGui.CollapsingHeader("Color and Transparency"))
@@ -370,6 +372,18 @@ class TextureViewer
 				ImGui.EndTable();
 			}
 		}
+
+		if (ImGui.CollapsingHeader("Info"))
+		{
+			ImGui.Text($"Resolution: {width} x {height}");
+			ImGui.Text($"Array Size: {arraySize}");
+			ImGui.Text($"Mip Levels: {maxMips}");
+
+			if (rtGroup != null)
+			{
+				ImGui.Text($"Group Size: {rtGroup.TargetCount}");
+			}
+		}
 	}
 
 	private void SwizzleCombo(StringView text, ref ColorChannelSwizzle swizzle)
@@ -414,9 +428,9 @@ class TextureViewer
 		}
 	}
 	
-	public void ViewTexture(RenderTargetGroup texture)
+	public void ViewTexture(RenderTargetGroup textureGroup)
 	{
-		ShowSettings(texture.Width, texture.Height, texture.MipLevels - 1, texture.ArraySize - 1, texture);
+		ShowSettings(textureGroup.Width, textureGroup.Height, textureGroup.MipLevels, textureGroup.ArraySize, textureGroup);
 		
 		if (ImGui.BeginChild("imageChild"))
 		{
@@ -434,7 +448,7 @@ class TextureViewer
 
 			RenderBackground();
 
-			RenderTexture(texture);
+			RenderTexture(textureGroup);
 
 			ImGui.Image(_targets.GetViewBinding(0), viewportSize);
 
@@ -446,7 +460,7 @@ class TextureViewer
 
 	public void ViewTexture(Texture texture)
 	{
-		ShowSettings(texture.Width, texture.Height, texture.MipLevels - 1, texture.ArraySize - 1, null);
+		ShowSettings(texture.Width, texture.Height, texture.MipLevels, texture.ArraySize, null);
 		
 		if (ImGui.BeginChild("imageChild"))
 		{
@@ -477,13 +491,10 @@ class TextureViewer
 	float lastWheel;
 
 	float2 _lastPreviewTopLeft;
-	float2 _isTheCursorRight;
 
 	private void UpdateInput()
 	{
-		var windowPos = ImGui.GetWindowPos();
 		var mousePos = ImGui.GetIO().MousePos;
-		float2 mouseInWindow = .(mousePos.x - windowPos.x, mousePos.y - windowPos.y);
 
 		bool windowHovered = ImGui.IsWindowHovered();
 
@@ -503,7 +514,6 @@ class TextureViewer
 			float delta = mouseWheel - lastWheel;
 			
 			float2 mousePosInObject = .(mousePos.x, mousePos.y) - _lastPreviewTopLeft;
-			_isTheCursorRight = mousePosInObject;
 
 			float2 mouseOffsetFromCenter = mousePosInObject - float2(_targets.Width, _targets.Height) / 2.0f;
 
@@ -582,8 +592,6 @@ class TextureViewer
 			}
 			break;
 		}
-		
-		Renderer2D.DrawQuad(float3(_isTheCursorRight * .(1, -1), 2), 4, 0, .Red);
 
 		Renderer2D.EndScene();
 	}
