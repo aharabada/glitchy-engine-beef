@@ -122,7 +122,10 @@ class AssetFile
 			CreateDefaultAssetLoader();
 		}
 
-		_lastConfigEditTime = File.GetLastWriteTimeUtc(_assetConfigPath);
+		if (File.GetLastWriteTimeUtc(_assetConfigPath) not case .Ok(out _lastConfigEditTime))
+		{
+			_lastConfigEditTime = .MinValue;
+		}
 	}
 
 	private void GenerateAssetHandle()
