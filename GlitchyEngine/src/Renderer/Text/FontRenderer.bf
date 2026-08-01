@@ -16,6 +16,8 @@ namespace GlitchyEngine.Renderer.Text
 {
 	public static class FontRenderer
 	{
+		public const int HarfBuzzFontScale = 64;
+
 		internal static FT_Library s_Library;
 
 		public static AssetHandle<Effect> _msdfEffect;
@@ -201,6 +203,12 @@ namespace GlitchyEngine.Renderer.Text
 			}
 		}	
 
+		/// How large one inch is in meters
+		private static double InchToMeter = 0.0254;
+		/// How large one typographic point is in meters (one point = 1 / 72 inches).
+		private static double FontPointToMeter = (1.0 / 72.0) * InchToMeter;
+
+		// TODO: for performance reasons we separated text positioning and rendering. Consider calculating with double instead of float?
 		public static void PrepareText(TextRendererComponent* textRenderer, Font font)
 		{
 			Debug.Profiler.ProfileRendererFunction!();
@@ -238,6 +246,7 @@ namespace GlitchyEngine.Renderer.Text
 			
 			StyleStack<bool> richTextStack = scope .(true);
 
+			// TODO: color stack not used?!
 			StyleStack<ColorRGBA> fontColorStack = scope .(textRenderer.Color);
 
 			StyleStack<float> fontSizeStack = scope .(textRenderer.FontSize);
@@ -248,12 +257,14 @@ namespace GlitchyEngine.Renderer.Text
 
 			float scale()
 			{
-				return fontSizeStack.CurrentValue() / fontStack.CurrentValue()._fontSize;
+				return fontSizeStack.CurrentValue() * (float)FontPointToMeter;
 			}
 
 			float linespace()
 			{
-				return (float)fontStack.CurrentValue()._linespace * lineSpaceStack.CurrentValue() * scale();
+				let currentFont = fontStack.CurrentValue();
+
+				return (float)(currentFont._linespaceEmHorizontal * lineSpaceStack.CurrentValue() * scale());
 			}
 
 			List<int> lineStartIndices = scope .();
@@ -315,12 +326,12 @@ namespace GlitchyEngine.Renderer.Text
 					hb_position_t y_advance = glyph_pos[i].y_advance;
 
 					// TODO Store color in glyph
-					PreparedGlyph glyph = .(currentFont, glyphid, .(penPosition, baseline), fontScale);//, x_advance / 64, y_advance / 64);
+					PreparedGlyph glyph = .(currentFont, glyphid, .(penPosition, baseline), fontScale);//, x_advance / HarfBuzzFontScale, y_advance / HarfBuzzFontScale);
 
 					preparedText.Glyphs.Add(glyph);
 
-					penPosition += (x_advance / 64) * fontScale;
-					baseline += (y_advance / 64) * fontScale;
+					penPosition += (float)(x_advance / fontStack.CurrentValue()._unitsPerEm) * fontScale;
+					baseline += (float)(y_advance / fontStack.CurrentValue()._unitsPerEm) * fontScale;
 				}
 
 				preparedText.AdvanceX = Math.Max(preparedText.AdvanceX, penPosition);
@@ -573,7 +584,7 @@ namespace GlitchyEngine.Renderer.Text
 			//Renderer2D.Flush();
 
 			// TODO: this doesn't really work with fallback fonts unless we use the same settings for all fonts
-			float2 unitRange = ((float)text.Font._range) / float2(text.Font._atlas.Width, text.Font._atlas.Height);
+			float2 unitRange = ((float)text.Font._atlasPxRange) / float2(text.Font._atlas.Width, text.Font._atlas.Height);
 			_msdfMaterial.SetVariable("UnitRange", unitRange);
 
 			List<Texture2D> atlasses = scope .();
@@ -606,13 +617,6 @@ namespace GlitchyEngine.Renderer.Text
 				float adjustToBaseline = glyphDesc.AdjustToBaseLine;
 				adjustToBaseline *= glyph.Scale;
 
-				// Rectangle on the screen
-				float4 viewportRect = .(
-					// TODO: merge adjustToPenX and adjustToBaseline into Position
-					glyph.Position.X + adjustToPenX,
-					glyph.Position.Y + adjustToBaseline,
-					glyphDesc.Width * glyph.Scale,
-					glyphDesc.Height * glyph.Scale);
 
 				// Rectangle on the font atlas
 				float4 texRect = .(glyphDesc.MapCoord.X, glyphDesc.MapCoord.Y, glyphDesc.Width, glyphDesc.Height);
@@ -620,19 +624,27 @@ namespace GlitchyEngine.Renderer.Text
 				ColorRGBA glyphColor = fontColor;//Color.White;// TODO: glyphDesc.IsBitmap ? bitmapColor : fontColor;
 
 				texRect /= float4(atlasSize, atlasSize);
+				
+				// Rectangle on the screen
+				float4 viewportRect = .(
+					// TODO: merge adjustToPenX and adjustToBaseline into Position
+					glyph.Position.X + adjustToPenX,
+					glyph.Position.Y + adjustToBaseline,
+					(float)glyphDesc.QuadSizeEm.X * glyph.Scale,
+					(float)glyphDesc.QuadSizeEm.Y * glyph.Scale);
 
 				float3 position = .(viewportRect.X + viewportRect.Z / 2, viewportRect.Y + viewportRect.W / 2, 0);
 
 				Matrix glyphTransform = transform * Matrix.Translation(position) * Matrix.Scaling(viewportRect.Z, viewportRect.W, 1.0f);
-				
+
 				Renderer2D.DrawQuad(glyphTransform, atlas, material: _msdfMaterial, color: glyphColor, uvTransform: texRect, entityId: entityId);
 			}
 
 			// TODO: Get rid of the flush.
-			// We need to flush, because currently Renderer2D doesn't increase the counter of passed textures.
+			// We need to flush, because currently Renderer2D doesn't increase the reference counter of passed textures (which is a smell!).
 			// Once it does that, we can
 			// 1. Stop manually holding the references in this method
-			// 2. Stop forcing a flush (which could make having multiple text instances way more efficient)
+			// 2. Stop forcing a flush, which would allow Renderer2D to render multiple DrawText-calls using single batch
 			Renderer2D.Flush();
 
 			// release all atlas textures

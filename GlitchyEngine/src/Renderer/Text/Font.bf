@@ -24,29 +24,44 @@ namespace GlitchyEngine.Renderer.Text
 			public int32 Width, Height;
 
 			public double TranslationX, TranslationY;
-			//public double Scale;
 
-			/// How many pixels we have to move the pen after drawing this glyph.
+			/**
+			 * The size of the quad that has to be drawn for this glyph. (In em)
+			 * Multiply with the desired font size (in world units) to get the actual size of the quad.
+			 * @remarks The quad is larger than the visible ink of the glyph, because the box also contains the MSDF-distance range and the padding.
+			 */
+			public double2 QuadSizeEm;
+
+			public Shape* Shape;
+
+			/// How far we have to move the pen after drawing this glyph. (In em)
 			public float Advance;
 
-			// Aligns the image of the glyph with the baseline
+			/// Aligns the image of the glyph with the baseline: offset from the baseline to the bottom edge of the quad. (In em, Y points up)
 			public float AdjustToBaseLine;
-			// Aligns the image of the glyph with the pen
+			/// Aligns the image of the glyph with the pen: offset from the pen position to the left edge of the quad. (In em)
 			public float AdjustToPen;
 			
 			public bool IsBitmap;
 
 			public bool IsCalculated = false;
 			public bool IsRendered = false;
+
+			public msdfgen.Range boxRange;
+			public double boxScale;
+			public msdfgen.Rectangle boxRect;
+			public double2 boxTranslate;
+			public Padding boxOuterPadding;
 		}
 
 		// TODO: I don't understand why freeing the face and hb_font sometimes results in an access violation...
-		internal FT_Face _face;//TODO!: ~ FreeType.Done_Face(_face);
-		internal hb_font_t* _harfBuzzFont;//TODO:!! ~ hb_font_destroy(_);
+		internal FT_Face _face;// ~ FreeType.Done_Face(_face);//TODO!: ~ FreeType.Done_Face(_face);
+		internal hb_font_t* _harfBuzzFont;// ~ hb_font_destroy(_);//TODO:!! ~ hb_font_destroy(_);
+		internal hb_face_t* _harfBuzzFace;// ~ hb_face_destroy(_);//TODO:!! ~ hb_font_destroy(_);
 
 		private Font _fallback ~ _?.ReleaseRef();
 
-		internal uint32 _fontSize;
+		//internal uint32 _fontSize;
 		private int32 _faceIndex;
 		private bool _hasColor;
 		
@@ -62,12 +77,27 @@ namespace GlitchyEngine.Renderer.Text
 		private SamplerState _sampler ~ _.ReleaseRef();
 		
 		/// How much we have to scale the geometry to fit it into our desired pixels
-		private double _geometryScaler;
+		private double _geometryScale;
 
-		internal double _range = 4.0;
+		/// The scale at which the glyphs are rasterized into the atlas. (In pixels per em)
+		internal double _atlasPixelsPerEm;
 
-		/// The space between two lines.
-		internal double _linespace;
+		/// The width of the MSDF-distance range that is baked into the atlas. (In atlas pixels)
+		/// The MSDF-shader needs this value in order to determine how many pixels on screen the distance range covers.
+		internal double _atlasPxRange;
+
+		///
+		//	Font Units
+	  	///
+
+		/// The number of units per em. This is the precision that the font has been designed with internally.
+		internal double _unitsPerEm;
+
+		/// The space between two lines when rendering horizontal text. (In Font Units (em))
+		internal double _linespaceEmHorizontal;
+
+		/// The space between two lines when rendering vertical text. (In Font Units (em))
+		internal double _linespaceEmVertical;
 
 		/**
 		 * Gets or sets the fallback Font for this Font.
@@ -114,14 +144,14 @@ namespace GlitchyEngine.Renderer.Text
 			return (double(value) / 64.0);
 		}
 
-		public this(String fontPath, uint32 fontSize, bool hasColor = true, char32 firstChar = '\0', uint32 charCount = 128, int32 faceIndex = 0)
+		public this(String fontPath, bool hasColor = true, char32 firstChar = '\0', uint32 charCount = 128, int32 faceIndex = 0)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
 			// Set default sampler
 			Sampler = null;
 
-			_fontSize = fontSize;
+			//_fontSize = fontSize;
 			_faceIndex = faceIndex;
 			_hasColor = hasColor;
 
@@ -135,7 +165,9 @@ namespace GlitchyEngine.Renderer.Text
 			{
 				Debug.Profiler.ProfileResourceScope!("Freetype.Set_Pixel_Sizes");
 
-				FT_Error res = FreeType.Set_Pixel_Sizes(_face, 0, _fontSize);
+				// We must set a size for Harfbuzz to work. But we actually don't care about pixels (because we use MSDFGen)
+				// So we just use units per EM
+				FT_Error res = FreeType.Set_Char_Size(_face, 0, _face.units_per_EM, 0, 0);
 				Log.EngineLogger.Assert(res.Success, scope $"Set_Pixel_Sizes failed({(int)res}): {res}");
 			}
 
@@ -143,16 +175,30 @@ namespace GlitchyEngine.Renderer.Text
 			{
 				Debug.Profiler.ProfileResourceScope!("hb_ft_font_create_referenced");
 
-				_harfBuzzFont = hb_ft_font_create_referenced(_face);
-				hb_font_set_scale(_harfBuzzFont, (.)fontSize * 64, (.)fontSize * 64);
+				_harfBuzzFont =  hb_ft_font_create_referenced(_face);
+				_harfBuzzFace = hb_font_get_face(_harfBuzzFont);
+
+				_unitsPerEm = hb_face_get_upem(_harfBuzzFace);
+				hb_font_set_scale(_harfBuzzFont, (.)_unitsPerEm, (.)_unitsPerEm);
+				
+				/*hb_font_extents_t horizontalExtends = .();
+				hb_font_get_h_extents(_harfBuzzFont, &horizontalExtends);
+				hb_font_extents_t verticalExtends = .();
+				hb_font_get_v_extents(_harfBuzzFont, &verticalExtends);
+
+				_linespaceEmHorizontal = horizontalExtends.ascender - horizontalExtends.descender + horizontalExtends.line_gap;
+				_linespaceEmVertical = verticalExtends.ascender - verticalExtends.descender + verticalExtends.line_gap;*/
 			}
 
-			double unitsPerEm = F26Dot6ToDouble(_face.units_per_EM);
-			_geometryScaler = _fontSize / unitsPerEm;
+			// TODO: FontScale != font size
+			const double fontScale = 1.0;
 
-			_range = 4.0 / _geometryScaler;
-
-			_linespace = ((_face.size.metrics.ascender - _face.size.metrics.descender) / 64);
+			// geometryScale is an MSDFgen specific value
+			// MSDFgen works directly with the freetype face thus we use the value form the freetype face there,
+			// even though it should always be as hb_face_get_upem.
+			_geometryScale = fontScale / _face.units_per_EM;
+			
+			_linespaceEmHorizontal = _face.height * _geometryScale;
 
 			GlyphDescriptor nullDesc = new GlyphDescriptor(){Font = this};
 			nullDesc.GlyphIndex = FreeType.Get_Char_Index(_face, '\0');
@@ -161,7 +207,13 @@ namespace GlitchyEngine.Renderer.Text
 
 			LoadGlyphs(firstChar, charCount);
 
-			//TestMSDF();
+			// MSDF-Stuff:
+			// metrics.emSize = font->face->units_per_EM * _geometryScaler;
+			// metrics.ascenderY = font->face->ascender * _geometryScaler;
+			// metrics.descenderY = font->face->descender * _geometryScaler;
+			// metrics.lineHeight = font->face->height * _geometryScaler;
+			// metrics.underlineY = font->face->underline_position * _geometryScaler;
+			// metrics.underlineThickness = font->face->underline_thickness * _geometryScaler;
 		}
 
 		public void LoadGlyphs(char32 firstChar, uint32 charCount)
@@ -333,7 +385,7 @@ namespace GlitchyEngine.Renderer.Text
 			UpdateAtlas();
 		}
 
-		int3 PrepareAtlas()
+		int3 PrepareAtlas(GlyphAttributes attribs)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -354,7 +406,7 @@ namespace GlitchyEngine.Renderer.Text
 					continue;
 				}
 
-				if(!Calculate(ref desc))
+				if(!CalculateGlyphBox(ref desc, attribs))
 					continue;
 
 				const int32 border = 1;
@@ -419,9 +471,47 @@ namespace GlitchyEngine.Renderer.Text
 		void DrawAtlas()
 		{
 			Debug.Profiler.ProfileResourceFunction!();
+			
+			// TODO: Default values from MSDF-Atlas-Gen
+			// TODO:
+			// Via tryPack argument:
+			double scale = 32.0;
+
+			// Via Atlas Packer constructor:
+			msdfgen.Range unitRange = .(0.0, 0.0);
+			msdfgen.Range pxRange = .(-1.0, 1.0);
+    		Padding innerUnitPadding = .(0);
+			Padding outerUnitPadding = .(0);
+    		Padding innerPxPadding = .(0);
+			Padding outerPxPadding = .(0);
+			double miterLimit = 1.0;
+			bool2 pxAlignOrigin = .(false, true);
+			
+
+			GlyphAttributes attribs = .();
+			attribs.Scale = scale;
+			attribs.Range = unitRange + pxRange / scale;
+			attribs.InnerPadding = innerUnitPadding + innerPxPadding / scale;
+			attribs.OuterPadding = outerUnitPadding + outerPxPadding / scale;
+			attribs.MiterLimit = miterLimit;
+			attribs.PxAlignOrigin = pxAlignOrigin;
+
+			// Derive the atlas metrics that the renderer and the MSDF-shader need from the attributes we just rasterize with,
+			// so that they stay in sync if scale or range are ever changed.
+			_atlasPixelsPerEm = attribs.Scale;
+			_atlasPxRange = (attribs.Range.Upper - attribs.Range.Lower) * attribs.Scale;
+
+			// TODO: Ohne die hier geht nichts!
+			/*attribs.scale = scale;
+			attribs.range = unitRange+pxRange/scale;
+			attribs.innerPadding = innerUnitPadding+innerPxPadding/scale;
+			attribs.outerPadding = outerUnitPadding+outerPxPadding/scale;
+			attribs.miterLimit = miterLimit;
+			attribs.pxAlignOriginX = pxAlignOriginX;
+			attribs.pxAlignOriginY = pxAlignOriginY;*/
 
 			int3 oldAtlasSize = _atlasSize;
-			_atlasSize = PrepareAtlas();
+			_atlasSize = PrepareAtlas(attribs);
 
 			if(any(_atlasSize != oldAtlasSize))
 			{
@@ -439,6 +529,8 @@ namespace GlitchyEngine.Renderer.Text
 				desc.Usage = .Default;
 
 				_atlas = new Texture2D(desc);
+
+				_atlas.Identifier = scope $"Font Atlas - {StringView(_face.family_name)} {StringView(_face.style_name)}";
 				_atlas.SamplerState = _sampler;
 
 				if(oldAtlas != null)
@@ -466,7 +558,19 @@ namespace GlitchyEngine.Renderer.Text
 			}
 		}
 
-		bool Calculate(ref GlyphDescriptor desc)
+		struct GlyphAttributes
+		{
+			public double Scale;
+			public msdfgen.Range Range;
+			public msdfgen.Padding InnerPadding, OuterPadding;
+			public double MiterLimit;
+			public bool2 PxAlignOrigin;
+		}
+		
+		/**
+		 * Calculates the bounding box in pixels around the 
+		 */
+		bool CalculateGlyphBox(ref GlyphDescriptor desc, GlyphAttributes glyphAttributes)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
@@ -474,30 +578,190 @@ namespace GlitchyEngine.Renderer.Text
 
 			double advance = 0;
 
-			Shape shape;
+			//Shape* shape;
+
+			//defer { msdfgen.DestroyShape(shape); }
 
 			{
 				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
 
-				if(!msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance) || !shape.Validate())
+				// TODO: load in LoadGlyphs-Method, not here!
+				if (desc.Shape == null && !msdfgen.LoadGlyph(out desc.Shape, ref _face, desc.GlyphIndex, .FONT_SCALING_NONE, out advance))
+				{
+					return false;
+				}
+
+				if(!Shape.Validate(desc.Shape))
 				{
 					return false;
 				}
 			}
 
-			desc.Advance = (float)(advance * _geometryScaler);
+			desc.Advance = (float)(advance * _geometryScale);
 
-			//shape.OrientContours();
+			// No Skia, no ResolveShapeGeometry :/
+			//if (preprocessGeometry)
+			//{
+			//	Debug.Profiler.ProfileResourceScope!("msdfgen.ResolveShapeGeometry");
+
+			//	msdfgen.ResolveShapeGeometry(shape);
+			//}
+
+			Shape.Normalize(desc.Shape);
+
+			var bounds = Shape.GetBounds(desc.Shape);
+			// TODO: Save shapes and bounds in desc?
+
+			//if (!preprocessGeometry)
 			{
-				Debug.Profiler.ProfileResourceScope!("msdfgen.ResolveShapeGeometry");
-
-				msdfgen.ResolveShapeGeometry(shape);
+				// TODO!
+			    // Determine if shape is winded incorrectly and reverse it in that case
+				//double2 outerPoint = .(bounds.Left - (bounds.Right - bounds.Left) - 1.0, bounds.Bottom - (bounds.Top - bounds.Bottom) - 1.0);
+			    //if (msdfgen::SimpleTrueShapeDistanceFinder::oneShotDistance(shape, outerPoint) > 0) {
+			    //    for (msdfgen::Contour &contour : shape.contours)
+			    //        contour.reverse();
+			    //}
 			}
 
-			shape.Normalize();
+			// TODO: Ohne korrekten _geometryScaler läuft hier garnüscht.
+			double scale = glyphAttributes.Scale * _geometryScale;
+			msdfgen.Range range = glyphAttributes.Range / _geometryScale;
+			Padding fullPadding = (glyphAttributes.InnerPadding + glyphAttributes.OuterPadding) / _geometryScale;
 
-			var bounds = shape.GetBounds();
+			desc.boxRange = range;
+			desc.boxScale = scale;
+			/*msdfgen.Range boxRange = range;
+			double boxScale = scale;
+			msdfgen.Rectangle boxRect;
+			double2 boxTranslate;
+			Padding boxOuterPadding;*/
+
+			if (bounds.Left < bounds.Right && bounds.Bottom < bounds.Top)
+			{
+			    double l = bounds.Left, b = bounds.Bottom, r = bounds.Right, t = bounds.Top;
+			    l += range.Lower;
+				b += range.Lower;
+			    r -= range.Lower;
+				t -= range.Lower;
+
+			    if (glyphAttributes.MiterLimit > 0)
+				{
+					// TODO: Does this have to be a static function?
+			        Shape.BoundMiters(desc.Shape, ref l, ref b, ref r, ref t, -range.Lower, glyphAttributes.MiterLimit, 1);
+				}
+
+			    l -= fullPadding.Left;
+				b -= fullPadding.Bottom;
+			    r += fullPadding.Right;
+				t += fullPadding.Top;
+
+			    if (glyphAttributes.PxAlignOrigin.X)
+				{
+			        int sl = (int) Math.Floor(scale * l - 0.5);
+			        int sr = (int) Math.Ceiling(scale * r + 0.5);
+			        desc.boxRect.Width = sr - sl;
+			        desc.boxTranslate.X = -sl/scale;
+			    }
+				else
+				{
+			        double w = scale*(r-l);
+			        desc.boxRect.Width = (int) Math.Ceiling(w) + 1;
+			        desc.boxTranslate.X = -l + 0.5 * (desc.boxRect.Width - w) / scale;
+			    }
+
+			    if (glyphAttributes.PxAlignOrigin.Y)
+				{
+			        int sb = (int) Math.Floor(scale * b - 0.5);
+			        int st = (int) Math.Ceiling(scale * t + 0.5);
+			        desc.boxRect.Height = st-sb;
+			        desc.boxTranslate.Y = -sb/scale;
+			    }
+				else
+				{
+			        double h = scale * (t - b);
+			        desc.boxRect.Height = (int) Math.Ceiling(h) + 1;
+			        desc.boxTranslate.Y = -b + 0.5 * (desc.boxRect.Height - h) / scale;
+			    }
+
+			    desc.boxOuterPadding = glyphAttributes.Scale * glyphAttributes.OuterPadding;
+			}
+			else
+			{
+			    desc.boxRect.Width = 0;
+				desc.boxRect.Height = 0;
+			    desc.boxTranslate = 0;
+			}
+
+			desc.Width = (int32)desc.boxRect.Width;
+			desc.Height = (int32)desc.boxRect.Height;
+
+			// The glyph is rasterized with glyphAttributes.Scale pixels per em, so dividing the pixel size of the box
+			// by that factor gives us the size of the quad in em. (Empty shapes have a zero-sized box and thus a zero-sized quad.)
+			desc.QuadSizeEm = .((double)desc.boxRect.Width  / glyphAttributes.Scale,
+								(double)desc.boxRect.Height / glyphAttributes.Scale);
+
+			// The projection maps a coordinate c to (c + boxTranslate) * scale, so pixel 0 of the box corresponds to
+			// c = -boxTranslate. That is the left/bottom edge of the box in font units, _geometryScale turns it into em.
+			desc.AdjustToBaseLine = (float)(-desc.boxTranslate.Y * _geometryScale);
+			desc.AdjustToPen = (float)(-desc.boxTranslate.X * _geometryScale);
+
+			return true;
+		}
+
+		/**
+		 * Calculates the bounding box in pixels around the 
+		 */
+		bool CalculateGlyphBoxOld(ref GlyphDescriptor desc, GlyphAttributes attribs)
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
+			// prepare shape
+
+			double advance = 0;
+
+			Shape* shape;
+
+			defer { msdfgen.DestroyShape(shape); }
 			
+			{
+				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
+
+				if(!msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, .FONT_SCALING_NONE, out advance) || !Shape.Validate(shape))
+				{
+					return false;
+				}
+			}
+				
+			desc.Advance = (float)(advance * _geometryScale);
+
+			// No Skia, no ResolveShapeGeometry :/
+			//if (preprocessGeometry)
+			//{
+			//	Debug.Profiler.ProfileResourceScope!("msdfgen.ResolveShapeGeometry");
+
+			//	msdfgen.ResolveShapeGeometry(shape);
+			//}
+
+			Shape.Normalize(shape);
+			
+			var bounds = Shape.GetBounds(shape);
+			// TODO: Save shapes and bounds in desc?
+
+			//if (!preprocessGeometry)
+			{
+				// TODO!
+			    // Determine if shape is winded incorrectly and reverse it in that case
+				//double2 outerPoint = .(bounds.Left - (bounds.Right - bounds.Left) - 1.0, bounds.Bottom - (bounds.Top - bounds.Bottom) - 1.0);
+			    //if (msdfgen::SimpleTrueShapeDistanceFinder::oneShotDistance(shape, outerPoint) > 0) {
+			    //    for (msdfgen::Contour &contour : shape.contours)
+			    //        contour.reverse();
+			    //}
+			}
+
+
+
+
+			/*
 			// prepare projection
 
 			double width;
@@ -506,7 +770,82 @@ namespace GlitchyEngine.Renderer.Text
 			double translationX;
 			double translationY;
 
+			/*
+			#define DEFAULT_SIZE 32.0
+			#define DEFAULT_ANGLE_THRESHOLD 3.0
+			#define DEFAULT_MITER_LIMIT 1.0
+			#define DEFAULT_PIXEL_RANGE 2.0
+			#define SDF_ERROR_ESTIMATE_PRECISION 19
+			*/
+
+			//double scale = glyphAttributes.scale*geometryScale;
+			double scale = _geometryScaler;
+
+			msdfgen.Range range = Range(_range);
+
+			//Padding fullPadding = (glyphAttributes.innerPadding+glyphAttributes.outerPadding)/geometryScale;
+			//box.range = range;
+			//box.scale = scale;
 			if(bounds.Left < bounds.Right && bounds.Bottom < bounds.Top)
+			{
+				double l = bounds.Left;
+				double r = bounds.Right;
+				double b = bounds.Bottom;
+				double t = bounds.Top;
+				
+				l -= range.Upper;
+				b -= range.Upper;
+				r += range.Upper;
+				t += range.Upper;
+
+				// TODO: Miter
+			    //if (glyphAttributes.miterLimit > 0)
+			    //    shape.boundMiters(l, b, r, t, -range.lower, glyphAttributes.miterLimit, 1);
+
+				// TODO: Padding
+			    //l -= fullPadding.l, b -= fullPadding.b;
+			    //r += fullPadding.r, t += fullPadding.t;
+
+			    /*if (glyphAttributes.pxAlignOriginX) {
+			        int sl = (int) floor(scale*l-.5);
+			        int sr = (int) ceil(scale*r+.5);
+			        box.rect.w = sr-sl;
+			        box.translate.x = -sl/scale;
+			    } else {
+			        double w = scale*(r-l);
+			        box.rect.w = (int) ceil(w)+1;
+			        box.translate.x = -l+.5*(box.rect.w-w)/scale;
+			    }
+			    if (glyphAttributes.pxAlignOriginY) {
+			        int sb = (int) floor(scale*b-.5);
+			        int st = (int) ceil(scale*t+.5);
+			        box.rect.h = st-sb;
+			        box.translate.y = -sb/scale;
+			    } else {
+			        double h = scale*(t-b);
+			        box.rect.h = (int) ceil(h)+1;
+			        box.translate.y = -b+.5*(box.rect.h-h)/scale;
+			    }*/
+				
+				double w = scale * (r - l);
+				width = (int) Math.Ceiling(w) + 1;
+				translationX = -l + 0.5 * (width - w) / scale;
+				
+				double h = scale * (t - b);
+				height = (int) Math.Ceiling(h) + 1;
+				translationY = -b + 0.5 * (height - h) / scale;
+
+				// TODO: Outer padding?
+			    //box.outerPadding = glyphAttributes.scale*glyphAttributes.outerPadding;
+			} else {
+				width = 0;
+				height = 0;
+				translationX = 0;
+				translationY = 0;
+			}
+
+
+			/*if(bounds.Left < bounds.Right && bounds.Bottom < bounds.Top)
 			{
 				double l = bounds.Left;
 				double r = bounds.Right;
@@ -522,14 +861,14 @@ namespace GlitchyEngine.Renderer.Text
 				//if (miterLimit > 0)
 				//    shape.boundMiters(l, b, r, t, .5*range, miterLimit, 1);
 
-				double w = _geometryScaler * (r - l);
-				double h = _geometryScaler * (t - b);
+				//double w = _geometryScaler * (r - l);
+				//double h = _geometryScaler * (t - b);
 
-				width = Math.Ceiling(w) + 1;
-				height = Math.Ceiling(h) + 1;
+				width = 32 ;//* (bounds.Right - bounds.Left);//_fontSize; //Math.Ceiling(w) + 1;
+				height = 32;// * (bounds.Top - bounds.Bottom);//_fontSize; //Math.Ceiling(h) + 1;
 
-				translationX = -l + 0.5 * (width - w) / _geometryScaler;
-				translationY = -b + 0.5 * (height - h) / _geometryScaler;
+				translationX = 0;//-l + 0.5 * (width - width) / _geometryScaler;
+				translationY = 0;//-b + 0.5 * (height - height) / _geometryScaler;
 			}
 			else
 			{
@@ -537,7 +876,7 @@ namespace GlitchyEngine.Renderer.Text
 				height = 0;
 				translationX = 0;
 				translationY = 0;
-			}
+			}*/
 
 			desc.Width = (.)width;
 			desc.Height = (.)height;
@@ -549,7 +888,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			desc.AdjustToBaseLine = (float)(-translationY * _geometryScaler);
 
-			desc.AdjustToPen = (float)(-translationX);
+			desc.AdjustToPen = (float)(-translationX);*/
 
 			return true;
 		}
@@ -653,35 +992,76 @@ namespace GlitchyEngine.Renderer.Text
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
+			msdfgen.ResolveShapeGeometry(desc.Shape);
+
+			Shape.Normalize(desc.Shape);
+
+			msdfgen.EdgeColoringSimple(desc.Shape, 3.0);
+
+			// prepare projection
+			//SDFTransformation t = SDFTransformation(Projection(32.0, 32.0, 0.125, 0.125), DistanceMapping(msdfgen.Range(0.125)));
+			SDFTransformation t = SDFTransformation(Projection(desc.boxScale, desc.boxScale, desc.boxTranslate.X, desc.boxTranslate.Y), DistanceMapping(desc.boxRange));
+
+			int bufferX = desc.Width;
+			int bufferY = desc.Height;
+
+			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY, .Y_DOWNWARD))
+			{
+				Debug.Profiler.ProfileResourceScope!("GenerateMSDF");
+
+				// Default config seems to be fine
+				MSDFGeneratorConfig config = .();
+				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, desc.Shape, t, config);
+				
+				int8[] pixels = new:ScopedAlloc! int8[desc.Width * desc.Height * 4];
+				
+				int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
+
+				for(int y = 0; y < desc.Height; y++)
+				for(int x = 0; x < desc.Width; x++)
+				{
+					ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
+
+					int index = (y * desc.Width + x) * 4;
+
+					pixels[index + 0] = ToInt8(pixel.R);
+					pixels[index + 1] = ToInt8(pixel.G);
+					pixels[index + 2] = ToInt8(pixel.B);
+
+					pixels[index + 3] = Int8.MaxValue;
+				}
+
+				_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
+					(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
+			}
+		}
+
+		void GenerateMSDFOld(GlyphDescriptor desc)
+		{
+			Debug.Profiler.ProfileResourceFunction!();
+
 			// prepare shape
 			
 			double advance = 0;
 
-			Shape shape;
+			Shape* shape;
+
+			defer { msdfgen.DestroyShape(shape); }
 			
 			{
 				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
 				
-				msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, out advance);
+				msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, .FONT_SCALING_EM_NORMALIZED, out advance);
 			}
 			
 			msdfgen.ResolveShapeGeometry(shape);
 
-			shape.Normalize();
-
-			//var bounds = shape.GetBounds();
-			
-			//shape.ReverseIfNeeded(bounds);
+			Shape.Normalize(shape);
 
 			msdfgen.EdgeColoringSimple(shape, 3.0);
 
 			// prepare projection
-			msdfgen.Projection projection = .();
-			projection.ScaleX = _geometryScaler;
-			projection.ScaleY = _geometryScaler;
-
-			projection.TranslationX = desc.TranslationX;
-			projection.TranslationY = desc.TranslationY;
+			SDFTransformation t = SDFTransformation(Projection(32.0, 32.0, 0.125, 0.125), DistanceMapping(msdfgen.Range(0.125)));
 
 			int bufferX = desc.Width;
 			int bufferY = desc.Height;
@@ -692,7 +1072,7 @@ namespace GlitchyEngine.Renderer.Text
 				
 				MSDFGeneratorConfig config = .();
 	
-				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, _range, config);
+				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, t, config);
 				
 				int8[] pixels = new:ScopedAlloc! int8[desc.Width * desc.Height * 4];
 				

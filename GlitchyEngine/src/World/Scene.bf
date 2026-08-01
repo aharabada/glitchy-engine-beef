@@ -123,7 +123,7 @@ namespace GlitchyEngine.World
 			});
 
 			if (_font == null)
-				_font = new Font(@"C:\Windows\Fonts\arial.ttf", 24);
+				_font = new Font(@"C:\Windows\Fonts\arial.ttf");
 			else
 				_font..AddRef();
 
