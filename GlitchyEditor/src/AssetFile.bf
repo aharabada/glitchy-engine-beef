@@ -134,7 +134,7 @@ class AssetFile
 	{
 		String fileExtension = Path.GetExtension(_assetFile.Path, .. scope .());
 
-		Log.EngineLogger.Info($"Created config for {_assetFile.Path}");
+		Log.EngineLogger.Info($"Creating asset config for {_assetFile.Path}");
 
 		_assetConfig = new AssetConfig();
 		
@@ -150,22 +150,21 @@ class AssetFile
 
 		var assetLoader = _contentManager.GetDefaultAssetLoader(fileExtension);
 		
-		// We don't have a loader -> we don't need a config
-		if (assetLoader == null && assetImporter == null)
-			return;
-
-		if (assetLoader != null)
+		if (assetLoader != null || assetImporter != null)
 		{
 			_assetConfig.AssetLoader = new String();
 			assetLoader.GetType().GetName(_assetConfig.AssetLoader);
-	
+
 			_assetConfig.Config = assetLoader?.GetDefaultConfig();
 			_assetConfig.Config?.[Friend]_changed = true;
-		}
 
-		_assetConfig.Importer = new String();
-		assetImporter?.GetType()?.GetName(_assetConfig.Importer);
+			_assetConfig.Importer = new String();
+			assetImporter?.GetType()?.GetName(_assetConfig.Importer);
+		}
 		
+		// We might not have a loader, but we want to retain the AssetHandle:
+		// e. g. a .txt File can't be reasonably imported, but might still need to be packed into the final
+		// application bundle and be read in a script via AssetHandle.
 		SaveAssetConfig();
 	}
 
