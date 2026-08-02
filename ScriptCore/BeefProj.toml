@@ -8,4 +8,4 @@ TargetType = "CustomBuild"
 PostBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build ScriptCore -n --workspace $(WorkspaceDir) --debug"]
 
 [Configs.Release.Win64]
-PostBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build ScriptCore -n --workspace $(WorkspaceDir) --Release"]
+PostBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build ScriptCore -n --workspace $(WorkspaceDir) --release"]

@@ -18,5 +18,5 @@ PreBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build GlitchyEngineHelper -n 
 [Configs.Release.Win64]
 BuildCommandsOnCompile = "IfFilesChanged"
 BuildCommandsOnRun = "IfFilesChanged"
-LibPaths = ["$(ProjectDir)/out/build/x64-debug/GlitchyEngineHelper.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
+LibPaths = ["$(ProjectDir)/out/build/x64-release/Release/GlitchyEngineHelper.lib", "ws2_32.lib", "Winmm.lib", "OleAut32.lib", "Bcrypt.lib"]
 PreBuildCmds = ["$(WorkspaceDir)/bin/BuildTool.exe build GlitchyEngineHelper -n --workspace $(WorkspaceDir) --release"]
