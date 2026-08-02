@@ -203,11 +203,6 @@ namespace GlitchyEngine.Renderer.Text
 			}
 		}	
 
-		/// How large one inch is in meters
-		private static double InchToMeter = 0.0254;
-		/// How large one typographic point is in meters (one point = 1 / 72 inches).
-		private static double FontPointToMeter = (1.0 / 72.0) * InchToMeter;
-
 		// TODO: for performance reasons we separated text positioning and rendering. Consider calculating with double instead of float?
 		public static void PrepareText(TextRendererComponent* textRenderer, Font font)
 		{
@@ -257,7 +252,7 @@ namespace GlitchyEngine.Renderer.Text
 
 			float scale()
 			{
-				return fontSizeStack.CurrentValue() * (float)FontPointToMeter;
+				return fontSizeStack.CurrentValue();
 			}
 
 			float linespace()
