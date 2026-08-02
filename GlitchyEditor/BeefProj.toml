@@ -19,10 +19,6 @@ IconFile = "$(ProjectDir)/Resources/Textures/GlitchyEngineIcon.ico"
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
 DebugCommandArguments = "\"D:\\Development\\Git\\SingleStateToOrbit\""
 
-[[Configs.Debug.Win64.DistinctOptions]]
-Filter = "System.Collections.List<>"
-ReflectAlwaysInclude = "IncludeAll"
-
 [Configs.Release.Win64]
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
 
