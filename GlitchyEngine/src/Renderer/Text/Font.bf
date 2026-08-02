@@ -51,10 +51,8 @@ namespace GlitchyEngine.Renderer.Text
 			public Padding boxOuterPadding;
 		}
 
-		// TODO: I don't understand why freeing the face and hb_font sometimes results in an access violation...
-		internal FT_Face _face;// ~ FreeType.Done_Face(_face);//TODO!: ~ FreeType.Done_Face(_face);
-		internal hb_font_t* _harfBuzzFont;// ~ hb_font_destroy(_);//TODO:!! ~ hb_font_destroy(_);
-		internal hb_face_t* _harfBuzzFace;// ~ hb_face_destroy(_);//TODO:!! ~ hb_font_destroy(_);
+		internal FT_Face _face ~ FreeType.Done_Face(_face);
+		internal hb_font_t* _harfBuzzFont ~ hb_font_destroy(_);
 
 		private Font _fallback ~ _?.ReleaseRef();
 
@@ -172,9 +170,8 @@ namespace GlitchyEngine.Renderer.Text
 				Debug.Profiler.ProfileResourceScope!("hb_ft_font_create_referenced");
 
 				_harfBuzzFont =  hb_ft_font_create_referenced(_face);
-				_harfBuzzFace = hb_font_get_face(_harfBuzzFont);
 
-				_unitsPerEm = hb_face_get_upem(_harfBuzzFace);
+				_unitsPerEm = hb_face_get_upem(hb_font_get_face(_harfBuzzFont));
 				hb_font_set_scale(_harfBuzzFont, (.)_unitsPerEm, (.)_unitsPerEm);
 			}
 
