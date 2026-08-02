@@ -32,10 +32,7 @@ namespace GlitchyEngine.Renderer.Text
 			 */
 			public double2 QuadSizeEm;
 
-			public Shape* Shape;
-
-			/// How far we have to move the pen after drawing this glyph. (In em)
-			public float Advance;
+			public Shape* Shape ~ msdfgen.DestroyShape(_);
 
 			/// Aligns the image of the glyph with the baseline: offset from the baseline to the bottom edge of the quad. (In em, Y points up)
 			public float AdjustToBaseLine;
@@ -151,7 +148,6 @@ namespace GlitchyEngine.Renderer.Text
 			// Set default sampler
 			Sampler = null;
 
-			//_fontSize = fontSize;
 			_faceIndex = faceIndex;
 			_hasColor = hasColor;
 
@@ -180,14 +176,6 @@ namespace GlitchyEngine.Renderer.Text
 
 				_unitsPerEm = hb_face_get_upem(_harfBuzzFace);
 				hb_font_set_scale(_harfBuzzFont, (.)_unitsPerEm, (.)_unitsPerEm);
-				
-				/*hb_font_extents_t horizontalExtends = .();
-				hb_font_get_h_extents(_harfBuzzFont, &horizontalExtends);
-				hb_font_extents_t verticalExtends = .();
-				hb_font_get_v_extents(_harfBuzzFont, &verticalExtends);
-
-				_linespaceEmHorizontal = horizontalExtends.ascender - horizontalExtends.descender + horizontalExtends.line_gap;
-				_linespaceEmVertical = verticalExtends.ascender - verticalExtends.descender + verticalExtends.line_gap;*/
 			}
 
 			// TODO: FontScale != font size
@@ -206,14 +194,6 @@ namespace GlitchyEngine.Renderer.Text
 			_glyphsById.Add(nullDesc.GlyphIndex, nullDesc);
 
 			LoadGlyphs(firstChar, charCount);
-
-			// MSDF-Stuff:
-			// metrics.emSize = font->face->units_per_EM * _geometryScaler;
-			// metrics.ascenderY = font->face->ascender * _geometryScaler;
-			// metrics.descenderY = font->face->descender * _geometryScaler;
-			// metrics.lineHeight = font->face->height * _geometryScaler;
-			// metrics.underlineY = font->face->underline_position * _geometryScaler;
-			// metrics.underlineThickness = font->face->underline_thickness * _geometryScaler;
 		}
 
 		public void LoadGlyphs(char32 firstChar, uint32 charCount)
@@ -499,15 +479,6 @@ namespace GlitchyEngine.Renderer.Text
 			_atlasPixelsPerEm = attribs.Scale;
 			_atlasPxRange = (attribs.Range.Upper - attribs.Range.Lower) * attribs.Scale;
 
-			// TODO: Ohne die hier geht nichts!
-			/*attribs.scale = scale;
-			attribs.range = unitRange+pxRange/scale;
-			attribs.innerPadding = innerUnitPadding+innerPxPadding/scale;
-			attribs.outerPadding = outerUnitPadding+outerPxPadding/scale;
-			attribs.miterLimit = miterLimit;
-			attribs.pxAlignOriginX = pxAlignOriginX;
-			attribs.pxAlignOriginY = pxAlignOriginY;*/
-
 			int3 oldAtlasSize = _atlasSize;
 			_atlasSize = PrepareAtlas(attribs);
 
@@ -572,19 +543,10 @@ namespace GlitchyEngine.Renderer.Text
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			// prepare shape
-
-			double advance = 0;
-
-			//Shape* shape;
-
-			//defer { msdfgen.DestroyShape(shape); }
-
 			{
 				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
 
-				// TODO: load in LoadGlyphs-Method, not here!
-				if (desc.Shape == null && !msdfgen.LoadGlyph(out desc.Shape, ref _face, desc.GlyphIndex, .FONT_SCALING_NONE, out advance))
+				if (desc.Shape == null && !msdfgen.LoadGlyph(out desc.Shape, ref _face, desc.GlyphIndex, .FONT_SCALING_NONE, let _))
 				{
 					return false;
 				}
@@ -595,30 +557,21 @@ namespace GlitchyEngine.Renderer.Text
 				}
 			}
 
-			desc.Advance = (float)(advance * _geometryScale);
-
 			Shape.Normalize(desc.Shape);
 
 			var bounds = Shape.GetBounds(desc.Shape);
-			// TODO: Save shapes and bounds in desc?
 
 			// msdfgen's geometry preprocessing needs Skia, which this build doesn't have, so we do what msdf-atlas-gen
 			// does in that case: determine if the shape is winded incorrectly and reverse it in that case.
 			// Reversing the contours doesn't change the bounding box, so bounds stays valid.
 			Shape.ReverseIfNeeded(desc.Shape, bounds);
 
-			// TODO: Ohne korrekten _geometryScaler läuft hier garnüscht.
 			double scale = glyphAttributes.Scale * _geometryScale;
 			msdfgen.Range range = glyphAttributes.Range / _geometryScale;
 			Padding fullPadding = (glyphAttributes.InnerPadding + glyphAttributes.OuterPadding) / _geometryScale;
 
 			desc.boxRange = range;
 			desc.boxScale = scale;
-			/*msdfgen.Range boxRange = range;
-			double boxScale = scale;
-			msdfgen.Rectangle boxRect;
-			double2 boxTranslate;
-			Padding boxOuterPadding;*/
 
 			if (bounds.Left < bounds.Right && bounds.Bottom < bounds.Top)
 			{
@@ -692,286 +645,6 @@ namespace GlitchyEngine.Renderer.Text
 			return true;
 		}
 
-		/**
-		 * Calculates the bounding box in pixels around the 
-		 */
-		bool CalculateGlyphBoxOld(ref GlyphDescriptor desc, GlyphAttributes attribs)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			// prepare shape
-
-			double advance = 0;
-
-			Shape* shape;
-
-			defer { msdfgen.DestroyShape(shape); }
-			
-			{
-				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
-
-				if(!msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, .FONT_SCALING_NONE, out advance) || !Shape.Validate(shape))
-				{
-					return false;
-				}
-			}
-				
-			desc.Advance = (float)(advance * _geometryScale);
-
-			// No Skia, no ResolveShapeGeometry :/
-			//if (preprocessGeometry)
-			//{
-			//	Debug.Profiler.ProfileResourceScope!("msdfgen.ResolveShapeGeometry");
-
-			//	msdfgen.ResolveShapeGeometry(shape);
-			//}
-
-			Shape.Normalize(shape);
-			
-			var bounds = Shape.GetBounds(shape);
-			// TODO: Save shapes and bounds in desc?
-
-			//if (!preprocessGeometry)
-			{
-				// TODO!
-			    // Determine if shape is winded incorrectly and reverse it in that case
-				//double2 outerPoint = .(bounds.Left - (bounds.Right - bounds.Left) - 1.0, bounds.Bottom - (bounds.Top - bounds.Bottom) - 1.0);
-			    //if (msdfgen::SimpleTrueShapeDistanceFinder::oneShotDistance(shape, outerPoint) > 0) {
-			    //    for (msdfgen::Contour &contour : shape.contours)
-			    //        contour.reverse();
-			    //}
-			}
-
-
-
-
-			/*
-			// prepare projection
-
-			double width;
-			double height;
-
-			double translationX;
-			double translationY;
-
-			/*
-			#define DEFAULT_SIZE 32.0
-			#define DEFAULT_ANGLE_THRESHOLD 3.0
-			#define DEFAULT_MITER_LIMIT 1.0
-			#define DEFAULT_PIXEL_RANGE 2.0
-			#define SDF_ERROR_ESTIMATE_PRECISION 19
-			*/
-
-			//double scale = glyphAttributes.scale*geometryScale;
-			double scale = _geometryScaler;
-
-			msdfgen.Range range = Range(_range);
-
-			//Padding fullPadding = (glyphAttributes.innerPadding+glyphAttributes.outerPadding)/geometryScale;
-			//box.range = range;
-			//box.scale = scale;
-			if(bounds.Left < bounds.Right && bounds.Bottom < bounds.Top)
-			{
-				double l = bounds.Left;
-				double r = bounds.Right;
-				double b = bounds.Bottom;
-				double t = bounds.Top;
-				
-				l -= range.Upper;
-				b -= range.Upper;
-				r += range.Upper;
-				t += range.Upper;
-
-				// TODO: Miter
-			    //if (glyphAttributes.miterLimit > 0)
-			    //    shape.boundMiters(l, b, r, t, -range.lower, glyphAttributes.miterLimit, 1);
-
-				// TODO: Padding
-			    //l -= fullPadding.l, b -= fullPadding.b;
-			    //r += fullPadding.r, t += fullPadding.t;
-
-			    /*if (glyphAttributes.pxAlignOriginX) {
-			        int sl = (int) floor(scale*l-.5);
-			        int sr = (int) ceil(scale*r+.5);
-			        box.rect.w = sr-sl;
-			        box.translate.x = -sl/scale;
-			    } else {
-			        double w = scale*(r-l);
-			        box.rect.w = (int) ceil(w)+1;
-			        box.translate.x = -l+.5*(box.rect.w-w)/scale;
-			    }
-			    if (glyphAttributes.pxAlignOriginY) {
-			        int sb = (int) floor(scale*b-.5);
-			        int st = (int) ceil(scale*t+.5);
-			        box.rect.h = st-sb;
-			        box.translate.y = -sb/scale;
-			    } else {
-			        double h = scale*(t-b);
-			        box.rect.h = (int) ceil(h)+1;
-			        box.translate.y = -b+.5*(box.rect.h-h)/scale;
-			    }*/
-				
-				double w = scale * (r - l);
-				width = (int) Math.Ceiling(w) + 1;
-				translationX = -l + 0.5 * (width - w) / scale;
-				
-				double h = scale * (t - b);
-				height = (int) Math.Ceiling(h) + 1;
-				translationY = -b + 0.5 * (height - h) / scale;
-
-				// TODO: Outer padding?
-			    //box.outerPadding = glyphAttributes.scale*glyphAttributes.outerPadding;
-			} else {
-				width = 0;
-				height = 0;
-				translationX = 0;
-				translationY = 0;
-			}
-
-
-			/*if(bounds.Left < bounds.Right && bounds.Bottom < bounds.Top)
-			{
-				double l = bounds.Left;
-				double r = bounds.Right;
-				double b = bounds.Bottom;
-				double t = bounds.Top;
-
-				l -= 0.5 * _range;
-				b -= 0.5 * _range;
-				r += 0.5 * _range;
-				t += 0.5 * _range;
-				
-				// TODO: miter?
-				//if (miterLimit > 0)
-				//    shape.boundMiters(l, b, r, t, .5*range, miterLimit, 1);
-
-				//double w = _geometryScaler * (r - l);
-				//double h = _geometryScaler * (t - b);
-
-				width = 32 ;//* (bounds.Right - bounds.Left);//_fontSize; //Math.Ceiling(w) + 1;
-				height = 32;// * (bounds.Top - bounds.Bottom);//_fontSize; //Math.Ceiling(h) + 1;
-
-				translationX = 0;//-l + 0.5 * (width - width) / _geometryScaler;
-				translationY = 0;//-b + 0.5 * (height - height) / _geometryScaler;
-			}
-			else
-			{
-				width = 0;
-				height = 0;
-				translationX = 0;
-				translationY = 0;
-			}*/
-
-			desc.Width = (.)width;
-			desc.Height = (.)height;
-
-			desc.TranslationX = translationX;
-			desc.TranslationY = translationY;
-
-			//desc.Scale = scale;
-
-			desc.AdjustToBaseLine = (float)(-translationY * _geometryScaler);
-
-			desc.AdjustToPen = (float)(-translationX);*/
-
-			return true;
-		}
-
-		/*
-		void TestMSDF()
-		{
-			GlyphDescriptor desc = scope .();
-			desc.GlyphIndex = FreeType.Get_Char_Index(_face, 'A');
-
-			var v = _range;
-
-			_range = 4.0f;
-			_geometryScaler = 1.0f;
-
-			Calculate(ref desc);
-
-			// prepare shape
-
-			double advance = 0;
-
-			Shape shape;
-			msdfgen.LoadGlyph(out shape, ref _face, 36, out advance);
-			
-			bool b = msdfgen.ResolveShapeGeometry(shape);
-
-			if(!b)
-			{
-
-			}
-
-			shape.Normalize();
-
-			var bounds = shape.GetBounds();
-
-			//shape.ReverseIfNeeded(bounds);
-
-			msdfgen.EdgeColoringSimple(shape, 3.0);
-
-			// prepare projection
-			msdfgen.Projection projection = .();
-			projection.ScaleX = _geometryScaler;
-			projection.ScaleY = _geometryScaler;
-
-			projection.TranslationX = desc.TranslationX;
-			projection.TranslationY = desc.TranslationY;
-
-			int bufferX = desc.Width;
-			int bufferY = desc.Height;
-
-			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY))
-			{
-				MSDFGeneratorConfig config = .();
-
-				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, projection, _range, config);
-
-				// Check if we have to invert
-				/*
-				Line 1039
-				// Get sign of signed distance outside bounds
-				Point2 p(bounds.l-(bounds.r-bounds.l)-1, bounds.b-(bounds.t-bounds.b)-1);
-				double distance = SimpleTrueShapeDistanceFinder::oneShotDistance(shape, p);
-				orientation = distance <= 0 ? KEEP : REVERSE;
-
-				if (invert)
-				{
-					invertColor<3>(bitmap);
-				}
-				*/
-
-				uint8[] pixels = new:ScopedAlloc! uint8[desc.Width * desc.Height * 4];
-				
-				//int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
-				uint8 ToInt8(float f) => (.)Math.Clamp(255 * f, uint8.MinValue, uint8.MaxValue);
-
-				for(int y = 0; y < desc.Height; y++)
-				for(int x = 0; x < desc.Width; x++)
-				{
-					ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
-
-					int index = ((desc.Height - y - 1) * desc.Width + x) * 4;
-
-					pixels[index + 0] = ToInt8(pixel.Red);
-					pixels[index + 1] = ToInt8(pixel.Green);
-					pixels[index + 2] = ToInt8(pixel.Blue);
-
-					pixels[index + 3] = uint8.MaxValue;
-				}
-
-				LodePng.LodePng.Encode32File("testA.png", pixels.CArray(), (.)desc.Width, (.)desc.Height);
-
-				//_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
-				//	(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
-			}
-
-			_range = v;
-		}
-		*/
-
 		void GenerateMSDF(GlyphDescriptor desc)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
@@ -1015,67 +688,7 @@ namespace GlitchyEngine.Renderer.Text
 				_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
 					(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
 			}
-		}
 
-		void GenerateMSDFOld(GlyphDescriptor desc)
-		{
-			Debug.Profiler.ProfileResourceFunction!();
-
-			// prepare shape
-			
-			double advance = 0;
-
-			Shape* shape;
-
-			defer { msdfgen.DestroyShape(shape); }
-			
-			{
-				Debug.Profiler.ProfileResourceScope!("msdfgen.LoadGlyph");
-				
-				msdfgen.LoadGlyph(out shape, ref _face, desc.GlyphIndex, .FONT_SCALING_EM_NORMALIZED, out advance);
-			}
-			
-			msdfgen.ResolveShapeGeometry(shape);
-
-			Shape.Normalize(shape);
-
-			msdfgen.EdgeColoringSimple(shape, 3.0);
-
-			// prepare projection
-			SDFTransformation t = SDFTransformation(Projection(32.0, 32.0, 0.125, 0.125), DistanceMapping(msdfgen.Range(0.125)));
-
-			int bufferX = desc.Width;
-			int bufferY = desc.Height;
-
-			using(Bitmap<ColorRGB, const 1> bitmap = .((.)bufferX, (.)bufferY, .Y_DOWNWARD))
-			{
-				Debug.Profiler.ProfileResourceScope!("GenerateMSDF");
-				
-				MSDFGeneratorConfig config = .();
-	
-				msdfgen.GenerateMSDF(*(Bitmap<float, const 3>*)&bitmap, shape, t, config);
-				
-				int8[] pixels = new:ScopedAlloc! int8[desc.Width * desc.Height * 4];
-				
-				int8 ToInt8(float f) => (.)Math.Clamp(127f * f, int8.MinValue, int8.MaxValue);
-	
-				for(int y = 0; y < desc.Height; y++)
-				for(int x = 0; x < desc.Width; x++)
-				{
-					ColorRGB pixel = bitmap.Pixels[(y) * bufferX + x];
-	
-					int index = (y * desc.Width + x) * 4;
-	
-					pixels[index + 0] = ToInt8(pixel.R);
-					pixels[index + 1] = ToInt8(pixel.G);
-					pixels[index + 2] = ToInt8(pixel.B);
-	
-					pixels[index + 3] = Int8.MaxValue;
-				}
-	
-				_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
-					(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
-			}
 			// The shape is no longer needed
 			msdfgen.DestroyShape(desc.Shape);
 			desc.Shape = null;

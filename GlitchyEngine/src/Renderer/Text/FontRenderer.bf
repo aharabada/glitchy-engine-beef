@@ -315,13 +315,13 @@ namespace GlitchyEngine.Renderer.Text
 				for (uint32 i < glyph_count)
 				{
 					hb_codepoint_t glyphid  = glyph_info[i].codepoint;
-					//hb_position_t x_offset  = glyph_pos[i].x_offset;
-					//hb_position_t y_offset  = glyph_pos[i].y_offset;
+					// hb_position_t x_offset  = glyph_pos[i].x_offset;
+					// hb_position_t y_offset  = glyph_pos[i].y_offset;
 					hb_position_t x_advance = glyph_pos[i].x_advance;
 					hb_position_t y_advance = glyph_pos[i].y_advance;
 
 					// TODO Store color in glyph
-					PreparedGlyph glyph = .(currentFont, glyphid, .(penPosition, baseline), fontScale);//, x_advance / HarfBuzzFontScale, y_advance / HarfBuzzFontScale);
+					PreparedGlyph glyph = .(currentFont, glyphid, .(penPosition, baseline), fontScale);
 
 					preparedText.Glyphs.Add(glyph);
 
@@ -476,7 +476,6 @@ namespace GlitchyEngine.Renderer.Text
 					case "lc", "lowercase":
 						textCaseStack.PushButPopIfTrue(.LowerCase, isEndTag);
 					case "uc", "uppercase":
-						if (isEndTag)
 						textCaseStack.PushButPopIfTrue(.UpperCase, isEndTag);
 					case "rc", "retaincase":
 						textCaseStack.PushButPopIfTrue(.RetainCase, isEndTag);
