@@ -490,9 +490,9 @@ class SceneSerializer
 			case "NameComponent":
 				Try!(DeserializeComponent<NameComponent>(reader, entity, scope (component) =>
 				{
-					Try!(Deserialize.Value<String>(reader, "Name", let name));
+					String name = scope String();
+					Try!(Deserialize.Value<String>(reader, "Name", out name));
 					component.Name = name;
-					delete name;
 
 					return .Ok;
 				}));
@@ -738,9 +738,9 @@ class SceneSerializer
 					switch(fieldIdentifier)
 					{
 					case "ScriptClass":
-						Try!(Deserialize.Value<String>(reader, let scriptClassName));
+						String scriptClassName = scope String();
+						Try!(Deserialize.Value<String>(reader, out scriptClassName));
 						component.ScriptClassName = scriptClassName;
-						delete scriptClassName;
 					case "Fields":
 						Try!(SerializedObject.BonDeserialize(reader, _scriptSerializer, _fileVersion, gBonEnv));
 					default:
@@ -765,9 +765,9 @@ class SceneSerializer
 						Try!(Deserialize.Value<bool>(reader, let isRichText));
 						component.IsRichText = isRichText;
 					case "Text":
-						Try!(Deserialize.Value<String>(reader, let text));
+						String text = scope String();
+						Try!(Deserialize.Value<String>(reader, out text));
 						component.Text = text;
-						delete text;
 					case "Color":
 						Try!(Deserialize.Value(reader, out component.Color));
 					case "FontSize":
