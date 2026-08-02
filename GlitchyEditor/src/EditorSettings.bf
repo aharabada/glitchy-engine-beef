@@ -5,6 +5,7 @@ using GlitchyEditor;
 using System.Collections;
 using System.IO;
 using System.Diagnostics;
+using System.Threading;
 
 namespace GlitchyEngine
 {
@@ -67,18 +68,32 @@ class ScriptSettings
 	[Setting("Tools", "IDE", "The IDE that will be used to open scripts for editing."), BonInclude]
 	public ScriptIde SelectedIde;
 
+	private bool _lookedForVs = false;
+
 	public void Apply()
 	{
-		if (String.IsNullOrWhiteSpace(VisualStudioPath))
+#if BF_PLATFORM_WINDOWS
+		if (!_lookedForVs && String.IsNullOrWhiteSpace(VisualStudioPath))
 		{
-			// TODO: Do later
-			//FildVisualStudio();
+			FindVisualStudio();
 		}
+#endif
 	}
 
-	void FildVisualStudio()
+	void FindVisualStudio()
 	{
-		// TODO: Find devenv.exe ourselves
+		_lookedForVs = true;
+
+		Thread thread = new Thread(new => FindVisualStudioImpl);
+		thread.AutoDelete = true;
+		thread.IsBackground = true;
+		thread.Start();
+	}
+
+	void FindVisualStudioImpl()
+	{
+		Log.EngineLogger.Info("Using vswhere.exe to search for Visual Studio...");
+
 		String exeFile = scope .();
 		Environment.GetExecutableFilePath(exeFile);
 
@@ -89,113 +104,56 @@ class ScriptSettings
 		Path.Combine(vsWherePath, exeDirectory, "vswhere.exe");
 
 		ProcessStartInfo processInfo = scope .();
-		processInfo.SetFileName(vsWherePath);
-		processInfo.UseShellExecute = true;
-		// Find the installation path of the latest visual studio
-		processInfo.SetArguments("-latest -property installationPath");
+		processInfo.UseShellExecute = false;
 		processInfo.RedirectStandardOutput = true;
-		//processInfo.CreateNoWindow = true;
-		
-		String vsInstallDirectory = scope .();
+		processInfo.CreateNoWindow = true;
 
+		processInfo.SetFileName(vsWherePath);
+		// Find the installation path of the latest visual studio with an installed IDE.
+		processInfo.SetArguments("-latest -requires Microsoft.VisualStudio.Workload.NativeDesktop -property productPath");
+
+		let process = scope SpawnedProcess();
+		if (process.Start(processInfo) case .Ok)
 		{
+			FileStream outputStream = scope FileStream();
+			process.AttachStandardOutput(outputStream);
+	
+			process.WaitFor(1000);
+	
+			if (VisualStudioPath == null)
+			{
+				VisualStudioPath = new String();
+			}
+			else
+			{
+				VisualStudioPath.Clear();
+			}
 			
-			Windows.FileHandle h = Windows.CreateFileA("vspath.tmp",
-			    Windows.GENERIC_WRITE,
-			    .ReadWrite,
-			    null,
-			    .Create,
-			    128,
-			    .InvalidHandle);
-
-			//Windows.FileHandle h = (.)Windows.CreateFileMappingA(.InvalidHandle, null, 0x40, 4096, 4096, null);
-
-			Windows.ProcessInformation pi = .();
-			Windows.StartupInfo si = .();
-			Windows.IntBool ret = false; 
-			int32 flags = Windows.CREATE_NO_WINDOW;
-
-			si.mCb = sizeof(Windows.StartupInfo);
-			si.mFlags |= Windows.STARTF_USESTDHANDLES;
-			si.mStdInput = .InvalidHandle;
-			si.mStdError = .InvalidHandle;
-			si.mStdOutput = h;
-
-			char8* cmd = scope $"{vsWherePath} -latest -property installationPath";
-			ret = Windows.CreateProcessA(null, cmd, null, null, true, flags, null, null, &si, &pi);
-
-			// Wait for the process for one second
-			Windows.WaitForSingleObject(pi.mProcess, 1000);
-
-			/*if ( ret ) 
+			if (outputStream.Length > 0)
 			{
-			    CloseHandle(pi.hProcess);
-			    CloseHandle(pi.hThread);
-			    return 0;
-			}*/
+				StreamReader streamReaderOut = scope StreamReader(outputStream, null, false, 4096);
+				streamReaderOut.ReadToEnd(VisualStudioPath).IgnoreError();
 
+				VisualStudioPath.Trim();
 
-			/*let process = scope SpawnedProcess();
-			process.AttachStandardOutput();
-			process.Start(processInfo);
+				if (File.Exists(VisualStudioPath))
+				{
+					Log.EngineLogger.Info($"Located Visual Studio: {VisualStudioPath}");
 
-			while (!process.HasExited)
-			{
-
+					Apply();
+				}
+				else
+				{
+					Log.EngineLogger.Error($"Failed to find Visual Studio. vswhere output: \n{VisualStudioPath}\n\n");
+					VisualStudioPath.Clear();
+				}
 			}
-
-			BufferedFileStream tmpFile = scope BufferedFileStream();
-			tmpFile.Open("vspath.tmp", .ReadWrite, .None, 4096, .DeleteOnClose);
-
-			//scope SpawnedProcess().Start(processInfo);
-
-			//tmpFile.Position = 0;
-
-			{
-				StreamReader reader = scope StreamReader(tmpFile);
-				reader.ReadToEnd(vsInstallDirectory);
-			}
-
-			tmpFile.Close();*/
 		}
-
-		if (VisualStudioPath == null)
-			VisualStudioPath = new String();
 		else
-			VisualStudioPath.Clear();
-
-		Path.Combine(VisualStudioPath, vsInstallDirectory, "Common7/IDE/devenv.exe");
-	}
-
-#if BF_PLATFORM_WINDOWS
-		void StartProgramm()
 		{
-			/*Windows.FileHandle h = (.)Windows.CreateFileMappingA(.InvalidHandle, null, 0x40, 4096, 4096, null);
-
-			Windows.ProcessInformation pi = .();
-			Windows.StartupInfo si = .();
-			Windows.IntBool ret = false; 
-			uint32 flags = Windows.CREATE_NO_WINDOW;
-
-			si.mCb = sizeof(Windows.StartupInfo);
-			si.mFlags |= Windows.STARTF_USESTDHANDLES;
-			si.mStdInput = .InvalidHandle;
-			si.mStdError = .InvalidHandle;
-			si.mStdOutput = h;
-
-
-			ret = Windows.CreateProcessA(null, cmd, NULL, NULL, TRUE, flags, NULL, NULL, &si, &pi);
-
-			if ( ret ) 
-			{
-			    CloseHandle(pi.hProcess);
-			    CloseHandle(pi.hThread);
-			    return 0;
-			}
-
-			return -1;*/
+			Log.EngineLogger.Error("Couldn't automatically determine location of Visual Studio: Failed to launch vswhere.exe");
 		}
-#endif
+	}
 }
 
 [Reflect]
