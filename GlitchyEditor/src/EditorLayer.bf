@@ -1044,19 +1044,26 @@ namespace GlitchyEditor
 				return;
 			}
 
+			bool savedScene;
+
 			if (SceneFilePath.IsWhiteSpace)
 			{
-				SaveCurrentSceneAs();
+				savedScene = SaveCurrentSceneAs();
 			}
 			else
 			{
 				SaveScene(_editorScene, SceneFilePath);
+				// TODO: SaveScene can probably fail too!
+				savedScene = true;
 			}
 
-			// Note: We only update the last opened scene if the CURRENT scene is saved, NOT when ANY scene is saved.
-			String relativePath = scope .();
-			Path.GetRelativePath(SceneFilePath, _currentProject.WorkspacePath, relativePath);
-			_currentProject.UserSettings.LastOpenedScene = relativePath;
+			if (savedScene)
+			{
+				// Note: We only update the last opened scene if the CURRENT scene is saved, NOT when ANY scene is saved.
+				String relativePath = scope .();
+				Path.GetRelativePath(SceneFilePath, _currentProject.WorkspacePath, relativePath);
+				_currentProject.UserSettings.LastOpenedScene = relativePath;
+			}
 		}
 
 		/// Saves the given scene with the specified file name.
@@ -1067,15 +1074,15 @@ namespace GlitchyEditor
 		}
 		
 		/// Opens a save file dialog and saves the scene at the user specified location.
-		private void SaveCurrentSceneAs()
+		private bool SaveCurrentSceneAs()
 		{
 			if (_currentProject == null)
-				return;
+				return false;
 
 			if (!CanSaveScene)
 			{
 				Log.ClientLogger.Error("Scene can't be saved while playing the game!");
-				return;
+				return false;
 			}
 
 			SaveFileDialog sfd = scope .();
@@ -1086,7 +1093,11 @@ namespace GlitchyEditor
 			{
 				SceneFilePath = sfd.FileNames[0];
 				SaveCurrentScene();
+
+				return true;
 			}
+
+			return false;
 		}
 		
 		/// Opens a open file dialog and load the scene selected by the user specified.
