@@ -302,7 +302,7 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 		
-		private bool CanNavigateUp => _currentDirectoryNode.Parent != _manager.AssetHierarchy.RootNode;
+		private bool CanNavigateUp => _currentDirectoryNode?.Parent != _manager.AssetHierarchy.RootNode;
 
 		private void NavigateUp()
 		{
@@ -1528,11 +1528,14 @@ namespace GlitchyEditor.EditWindows
 
 			TreeNode<AssetNode> walker = _currentDirectoryNode;
 
-			repeat
+			if (walker != null)
 			{
-				path.AddFront(walker);
-				walker = walker.Parent;
-			} while (walker != _manager.AssetHierarchy.RootNode);
+				repeat
+				{
+					path.AddFront(walker);
+					walker = walker.Parent;
+				} while (walker != _manager.AssetHierarchy.RootNode);
+			}
 
 			ImGui.SameLine();
 
@@ -1601,7 +1604,7 @@ namespace GlitchyEditor.EditWindows
 				ImGui.SameLine();
 			}
 
-			if (_currentDirectoryNode.Children.Any((c) => c->IsDirectory))
+			if (_currentDirectoryNode?.Children.Any((c) => c->IsDirectory) ?? false)
 			{
 				ImGui.Button("...");
 

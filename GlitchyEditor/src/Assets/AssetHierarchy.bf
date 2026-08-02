@@ -13,7 +13,7 @@ namespace GlitchyEditor.Assets;
 class AssetHierarchy
 {
 	FileSystemWatcher fsw ~ {
-		_.StopRaisingEvents();
+		_?.StopRaisingEvents();
 		delete _;
 	};
 	
