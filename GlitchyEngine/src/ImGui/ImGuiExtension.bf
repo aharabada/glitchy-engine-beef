@@ -743,5 +743,18 @@ namespace ImGui
 				PushStyleVar(.DockingSeparatorSize, Value);
 			}
 		}
+
+		public struct DisabledScope : IDisposable
+		{
+			public this(bool disabled = true)
+			{
+				ImGui.BeginDisabled(disabled);
+			}
+			
+			public void Dispose()
+			{
+				ImGui.EndDisabled();
+			}
+		}
 	}
 }

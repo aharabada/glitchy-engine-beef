@@ -958,6 +958,9 @@ namespace GlitchyEditor
 		/// Creates a new scene and openes it.
 		private void CreateAndOpenNewScene()
 		{
+			if (_currentProject == null)
+				return;
+
 			CloseCurrentScene();
 
 			SceneFilePath = null;
@@ -1032,6 +1035,9 @@ namespace GlitchyEditor
 		/// Saves the scene in the file that is was loaded from or saved to last. If there is no such path (i.e. it is a new scene) the save file dialog will open.
 		private void SaveCurrentScene()
 		{
+			if (_currentProject == null)
+				return;
+
 			if (!CanSaveScene)
 			{
 				Log.ClientLogger.Error("Scene can't be saved while playing the game!");
@@ -1063,6 +1069,9 @@ namespace GlitchyEditor
 		/// Opens a save file dialog and saves the scene at the user specified location.
 		private void SaveCurrentSceneAs()
 		{
+			if (_currentProject == null)
+				return;
+
 			if (!CanSaveScene)
 			{
 				Log.ClientLogger.Error("Scene can't be saved while playing the game!");
@@ -1083,6 +1092,9 @@ namespace GlitchyEditor
 		/// Opens a open file dialog and load the scene selected by the user specified.
 		private void OpenScene()
 		{
+			if (_currentProject == null)
+				return;
+
 			OpenFileDialog ofd = scope .();
 			ofd.InitialDirectory = _currentProject.AssetsFolder;
 			ofd.SetFilter("scene file (*.scene)|*.scene");
@@ -1400,40 +1412,42 @@ namespace GlitchyEditor
 		{
 			ImGui.BeginMainMenuBar();
 
-			if(ImGui.BeginMenu("File", true))
+			if (ImGui.BeginMenu("File", true))
 			{
-				if (ImGui.MenuItem("New Scene", "Ctrl+N"))
-					CreateAndOpenNewScene();
-				
-				ImGui.AttachTooltip("Creates a new (almost) empty scene.");
-
-				if (ImGui.MenuItem("Open Scene...", "Ctrl+O"))
-					OpenScene();
-				
-				ImGui.AttachTooltip("Opens an existing Scene.");
-
-				if (ImGui.BeginMenu("Open recent Scene"))
+				using (ImGui.DisabledScope(_currentProject == null))
 				{
-					ShowOpenRecentSceneMenu();
+					if (ImGui.MenuItem("New Scene", "Ctrl+N"))
+						CreateAndOpenNewScene();
 
-					ImGui.EndMenu();
+					ImGui.AttachTooltip("Creates a new (almost) empty scene.");
+
+					if (ImGui.MenuItem("Open Scene...", "Ctrl+O"))
+						OpenScene();
+
+					ImGui.AttachTooltip("Opens an existing Scene.");
+
+					if (ImGui.BeginMenu("Open recent Scene"))
+					{
+						ShowOpenRecentSceneMenu();
+
+						ImGui.EndMenu();
+					}
+
+					ImGui.Separator();
+					
+					using (ImGui.DisabledScope(!CanSaveScene))
+					{
+						if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
+							SaveCurrentScene();
+
+						ImGui.AttachTooltip("Saves the current scene.");
+
+						if (ImGui.MenuItem("Save Scene as...", "Ctrl+Shift+S"))
+							SaveCurrentSceneAs();
+
+						ImGui.AttachTooltip("Saves the scene under the given file name.");
+					}
 				}
-
-				ImGui.Separator();
-
-				ImGui.BeginDisabled(!CanSaveScene);
-
-				if (ImGui.MenuItem("Save Scene", "Ctrl+S"))
-					SaveCurrentScene();
-				
-				ImGui.AttachTooltip("Saves the current scene.");
-
-				if (ImGui.MenuItem("Save Scene as...", "Ctrl+Shift+S"))
-					SaveCurrentSceneAs();
-				
-				ImGui.AttachTooltip("Saves the scene under the given file name.");
-
-				ImGui.EndDisabled();
 
 				ImGui.Separator();
 				

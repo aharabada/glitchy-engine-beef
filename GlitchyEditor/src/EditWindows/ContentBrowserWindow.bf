@@ -83,7 +83,7 @@ namespace GlitchyEditor.EditWindows
 
 			public Span<String> History => _history;
 
-			public StringView CurrentDirectoryPath => _currentIndex >= 0 ? _history[_currentIndex] : "";
+			public StringView CurrentDirectoryPath => (_history.Count == 0 || _currentIndex < 0) ? "" : _history[_currentIndex];
 
 			public bool CanGoBack => _currentIndex > 0;
 			public bool CanGoForward => (_currentIndex + 1) < _history.Count;
@@ -92,7 +92,11 @@ namespace GlitchyEditor.EditWindows
 			{
 				// We always defer the actual navigation to the next frame, so that the UI-rendering and updates are more robust and don't flicker for one frame
 				_currentIndex = _nextIndex;
-				if (_pathToInsert != null)
+				if (String.IsNullOrWhiteSpace(_pathToInsert))
+				{
+					delete _pathToInsert;
+				}
+				else
 				{
 					if (replace)
 					{
@@ -342,7 +346,17 @@ namespace GlitchyEditor.EditWindows
 			// Make sure we are in an existing directory.
 			if (!_manager.AssetHierarchy.FileExists(CurrentDirectory))
 			{
-				_directoryHistory.Replace(_manager.AssetDirectory);
+				if (Directory.Exists(_manager.AssetDirectory))
+				{
+					_directoryHistory.Replace(_manager.AssetDirectory);
+				}
+				else
+				{
+					// If the assets directory doesn't exist (probably, because we have no project open)
+					// we navigate to the resources directory.
+					// This MUST exist, otherwise we wouldn't have managed to launch the Editor.
+					_directoryHistory.Replace(_manager.ResourcesDirectory);
+				}
 			}
 
 			_directoryHistory.Update();
