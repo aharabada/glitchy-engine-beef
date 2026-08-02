@@ -471,13 +471,11 @@ namespace GlitchyEngine.Renderer.Text
 		void DrawAtlas()
 		{
 			Debug.Profiler.ProfileResourceFunction!();
+
+			// Pixels per Em
+			double scale = 64.0;
 			
 			// TODO: Default values from MSDF-Atlas-Gen
-			// TODO:
-			// Via tryPack argument:
-			double scale = 32.0;
-
-			// Via Atlas Packer constructor:
 			msdfgen.Range unitRange = .(0.0, 0.0);
 			msdfgen.Range pxRange = .(-1.0, 1.0);
     		Padding innerUnitPadding = .(0);
@@ -599,29 +597,15 @@ namespace GlitchyEngine.Renderer.Text
 
 			desc.Advance = (float)(advance * _geometryScale);
 
-			// No Skia, no ResolveShapeGeometry :/
-			//if (preprocessGeometry)
-			//{
-			//	Debug.Profiler.ProfileResourceScope!("msdfgen.ResolveShapeGeometry");
-
-			//	msdfgen.ResolveShapeGeometry(shape);
-			//}
-
 			Shape.Normalize(desc.Shape);
 
 			var bounds = Shape.GetBounds(desc.Shape);
 			// TODO: Save shapes and bounds in desc?
 
-			//if (!preprocessGeometry)
-			{
-				// TODO!
-			    // Determine if shape is winded incorrectly and reverse it in that case
-				//double2 outerPoint = .(bounds.Left - (bounds.Right - bounds.Left) - 1.0, bounds.Bottom - (bounds.Top - bounds.Bottom) - 1.0);
-			    //if (msdfgen::SimpleTrueShapeDistanceFinder::oneShotDistance(shape, outerPoint) > 0) {
-			    //    for (msdfgen::Contour &contour : shape.contours)
-			    //        contour.reverse();
-			    //}
-			}
+			// msdfgen's geometry preprocessing needs Skia, which this build doesn't have, so we do what msdf-atlas-gen
+			// does in that case: determine if the shape is winded incorrectly and reverse it in that case.
+			// Reversing the contours doesn't change the bounding box, so bounds stays valid.
+			Shape.ReverseIfNeeded(desc.Shape, bounds);
 
 			// TODO: Ohne korrekten _geometryScaler läuft hier garnüscht.
 			double scale = glyphAttributes.Scale * _geometryScale;
@@ -992,14 +976,11 @@ namespace GlitchyEngine.Renderer.Text
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			msdfgen.ResolveShapeGeometry(desc.Shape);
-
-			Shape.Normalize(desc.Shape);
-
+			// The shape is already normalized and preprocessed by CalculateGlyphBox and isn't touched inbetween,
+			// so all that's left to do here is coloring the edges.
 			msdfgen.EdgeColoringSimple(desc.Shape, 3.0);
 
 			// prepare projection
-			//SDFTransformation t = SDFTransformation(Projection(32.0, 32.0, 0.125, 0.125), DistanceMapping(msdfgen.Range(0.125)));
 			SDFTransformation t = SDFTransformation(Projection(desc.boxScale, desc.boxScale, desc.boxTranslate.X, desc.boxTranslate.Y), DistanceMapping(desc.boxRange));
 
 			int bufferX = desc.Width;
@@ -1095,6 +1076,9 @@ namespace GlitchyEngine.Renderer.Text
 				_atlas.SetData<Color>((Color*)pixels.Ptr, (.)desc.MapCoord.X, (.)desc.MapCoord.Y,
 					(.)desc.Width, (.)desc.Height, (.)desc.MapCoord.Z);
 			}
+			// The shape is no longer needed
+			msdfgen.DestroyShape(desc.Shape);
+			desc.Shape = null;
 		}
 	}
 }
