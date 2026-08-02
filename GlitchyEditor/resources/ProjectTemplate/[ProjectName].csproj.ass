@@ -1,0 +1,11 @@
+{
+	AssetLoader = null,
+	Config = null,
+	Importer = null,
+	ImporterConfig = null,
+	Processor = null,
+	ProcessorConfig = null,
+	Exporter = null,
+	ExporterConfig = null,
+	AssetHandle = 17767079304205108419
+}
