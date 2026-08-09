@@ -4,13 +4,16 @@ FileVersion = 1
 Name = "GlitchyEditor"
 TargetType = "BeefGUIApplication"
 StartupObject = "GlitchyEngine.Program"
-ProcessorMacros = ["GE_EDITOR_IMGUI_DEMO"]
+ProcessorMacros = ["GE_EDITOR_IMGUI_DEMO", "GE_GRAPHICS_DX11"]
 
 [Dependencies]
 corlib = "*"
 GlitchLog = "*"
 GlitchyEngine = "*"
 Xml-Beef = "*"
+ImGuiImplDX11 = "*"
+ImGuiImplWin32 = "*"
+ImGuizmo = "*"
 
 [Platform.Windows]
 IconFile = "$(ProjectDir)/Resources/Textures/GlitchyEngineIcon.ico"
@@ -18,9 +21,13 @@ IconFile = "$(ProjectDir)/Resources/Textures/GlitchyEngineIcon.ico"
 [Configs.Debug.Win64]
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
 DebugCommandArguments = "\"D:\\Development\\Git\\SingleStateToOrbit\""
+PreprocessorMacros = ["DEBUG", "IMGUI"]
 
 [Configs.Release.Win64]
+TargetDirectory = "$(BuildDir)/dist"
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
+DebugCommandArguments = "\"D:\\Development\\Git\\SingleStateToOrbit\""
+PreprocessorMacros = ["RELEASE", "IMGUI"]
 
 [Configs.Paranoid.Win64]
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]

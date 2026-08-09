@@ -1,6 +1,5 @@
 using System;
 using GlitchyEngine.Events;
-using GlitchyEngine.ImGui;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Debug;
 using GlitchyEngine.Content;
@@ -22,9 +21,6 @@ namespace GlitchyEngine
 
 		private append LayerStack _layerStack = .();
 
-#if IMGUI
-		private ImGuiLayer _imGuiLayer;
-#endif
 
 		private append GameTime _gameTime = .();
 		
@@ -46,8 +42,6 @@ namespace GlitchyEngine
 		public static Application Get() => s_Instance;
 
 		public static Application Instance => s_Instance;
-
-		public Settings Settings {get; private set;} = new .() ~ delete _;
 
 		public this()
 		{
@@ -77,17 +71,6 @@ namespace GlitchyEngine
 
 			Renderer.Init();
 			ScriptEngine.Init();
-
-#if IMGUI
-			_imGuiLayer = new ImGuiLayer();
-			PushOverlay(_imGuiLayer);
-#endif
-
-			GlitchyEngine.Settings.Load();
-			Settings.OnApplySettings.Add(new (s, e) => {
-			   OnEvent(scope SettingsAppliedEvent());
-			});
-			Settings.Apply();
 		}
 
 		/// Initializes the content manager.
@@ -184,7 +167,7 @@ namespace GlitchyEngine
 				if(allowFrame)
 				{
 #if IMGUI
-					_imGuiLayer.ImGuiRender();
+					//_imGuiLayer.ImGuiRender();
 #endif
 	
 					_window.Context.SwapChain.Present();
@@ -212,6 +195,20 @@ namespace GlitchyEngine
 
 			_layerStack.PushOverlay(ownOverlay);
 			ownOverlay.OnAttach();
+		}
+
+		public void PopLayer(Layer layer)
+		{
+			Profiler.ProfileFunction!();
+			
+			_layerStack.PopLayer(layer);
+		}
+
+		public void PopOverlay(Layer layer)
+		{
+			Profiler.ProfileFunction!();
+			
+			_layerStack.PopOverlay(layer);
 		}
 
 		public bool OnWindowClose(WindowCloseEvent e)

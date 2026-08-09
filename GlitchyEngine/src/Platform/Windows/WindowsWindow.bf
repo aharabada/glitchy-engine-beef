@@ -275,7 +275,10 @@ namespace GlitchyEngine
 				return DefWindowProcW(hwnd, uMsg, wParam, lParam);
 			}
 
+			// TODO: This line is the reason why GlitchyEngine depends on ImGui...
+#if IMGUI
 			ImGui.ImGuiImplWin32.WndProcHandler(hwnd, uMsg, wParam, lParam);
+#endif
 
 			switch (uMsg)
 			{

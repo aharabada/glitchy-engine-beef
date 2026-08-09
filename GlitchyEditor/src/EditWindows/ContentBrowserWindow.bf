@@ -604,7 +604,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Open C# Project..."))
 			{
-				switch (Application.Instance.Settings.ScriptSettings.SelectedIde)
+				switch (EditorApp.Instance.Settings.ScriptSettings.SelectedIde)
 				{
 				case .VisualStudio:
 					VisualStudioIdeAdapter.OpenScriptProject();

@@ -66,7 +66,7 @@ namespace GlitchyEngine
 		public static extern void Impl_NewFrame();
 		public static extern void Impl_EndFrame();
 
-		public static void ImGuiDebugDraw()
+		/*public static void ImGuiDebugDraw()
 		{
 			if (ImGui.Begin("Input"))
 			{
@@ -116,7 +116,7 @@ namespace GlitchyEngine
 			}
 
 			ImGui.End();
-		}
+		}*/
 	}
 
 	public static class Mouse

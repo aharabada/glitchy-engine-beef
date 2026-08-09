@@ -4,7 +4,6 @@ using ImGui;
 using GlitchyEngine;
 using GlitchyEditor.EditWindows;
 using GlitchyEngine.Events;
-using GlitchyEngine.ImGui;
 using GlitchyEngine.Math;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.World;
@@ -17,6 +16,7 @@ using GlitchyEngine.Core;
 using GlitchyEditor.Assets;
 using GlitchyEngine.Scripting;
 using GlitchyEditor.Platform.Windows;
+using GlitchyEditor.ImGui;
 
 namespace GlitchyEditor
 {
@@ -777,8 +777,8 @@ namespace GlitchyEditor
 
 			if (Directory.Exists(project.WorkspacePath))
 			{
-				Application.Instance.Settings.EditorSettings.LastOpenedProject = project.WorkspacePath;
-				Application.Instance.Settings.Save();
+				EditorApp.Instance.Settings.EditorSettings.LastOpenedProject = project.WorkspacePath;
+				EditorApp.Instance.Settings.Save();
 			}
 
 			return .Ok;
@@ -811,7 +811,7 @@ namespace GlitchyEditor
 
 			Log.EngineLogger.AssertDebug(_scriptSerializer.SerializedObjectCount == 0, "Somehow some entities are serialized.");
 			
-			if (Application.Instance.Settings.EditorSettings.ClearLogOnPlay)
+			if (EditorApp.Instance.Settings.EditorSettings.ClearLogOnPlay)
 				Editor.Instance.LogWindow.ClearLog();
 
 			_scriptSerializer.SerializeScriptInstances();
@@ -830,7 +830,7 @@ namespace GlitchyEditor
 
 			_editor.CurrentScene = _activeScene;
 
-			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnPlay)
+			if (EditorApp.Instance.Settings.EditorSettings.SwitchToPlayerOnPlay)
 				SwitchToPlayWindow();
 		}
 
@@ -887,7 +887,7 @@ namespace GlitchyEditor
 
 			_editor.CurrentScene = _activeScene;
 			
-			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnSimulate)
+			if (EditorApp.Instance.Settings.EditorSettings.SwitchToPlayerOnSimulate)
 				SwitchToPlayWindow();
 		}
 
@@ -896,7 +896,7 @@ namespace GlitchyEditor
 		{
 			_isPaused = true;
 			
-			if (Application.Instance.Settings.EditorSettings.SwitchToEditorOnPause)
+			if (EditorApp.Instance.Settings.EditorSettings.SwitchToEditorOnPause)
 				SwitchToEditorWindow();
 		}
 
@@ -905,7 +905,7 @@ namespace GlitchyEditor
 		{
 			_isPaused = false;
 			
-			if (Application.Instance.Settings.EditorSettings.SwitchToPlayerOnResume)
+			if (EditorApp.Instance.Settings.EditorSettings.SwitchToPlayerOnResume)
 				SwitchToPlayWindow();
 		}
 
@@ -918,6 +918,9 @@ namespace GlitchyEditor
 		/// Stops the simulation or game and returns to edit mode.
 		private void OnSceneStop()
 		{
+			if (_activeScene == null)
+				return;
+
 			SetActiveScene(_editorScene, startRuntime: true, startSimulation: false, newPlayMode: .Editor);
 
 			// TODO: _editorScene.DeserializeScripts(scriptData);
@@ -939,7 +942,7 @@ namespace GlitchyEditor
 				GameViewportSizeChanged(null, _editor.GameViewportWindow.RenderedViewportSize);
 			}
 			
-			if (Application.Instance.Settings.EditorSettings.SwitchToEditorOnStop)
+			if (EditorApp.Instance.Settings.EditorSettings.SwitchToEditorOnStop)
 				SwitchToEditorWindow();
 
 			// Reconstruct state before play
@@ -1394,7 +1397,7 @@ namespace GlitchyEditor
 
 		private void ShowOpenRecentProjectMenu()
 		{
-			let recentProjects = Application.Instance.Settings.EditorSettings.RecentProjects;
+			let recentProjects = EditorApp.Instance.Settings.EditorSettings.RecentProjects;
 
 			if (recentProjects == null)
 				return;

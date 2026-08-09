@@ -3,8 +3,9 @@ using ImGui;
 using System.Collections;
 using System.IO;
 using Bon;
+using GlitchyEngine;
 
-namespace GlitchyEngine
+namespace GlitchyEditor
 {
 	interface ISettings
 	{
@@ -84,7 +85,7 @@ namespace GlitchyEngine
 
 		public static void Load()
 		{
-			Settings settings = Application.Get().Settings;
+			Settings settings = EditorApp.Instance.Settings;
 
 			if (!File.Exists("./settings.bon"))
 			{
@@ -96,7 +97,7 @@ namespace GlitchyEngine
 			if (result case .Err)
 				Log.EngineLogger.Error("Failed to deserialze settings.");
 
-			Application.Get().Settings.Apply();
+			settings.Apply();
 		}
 
 		public void Save()
@@ -138,7 +139,7 @@ namespace GlitchyEngine
 
 		public void Apply()
 		{
-			Application.Instance.[Friend]_imGuiLayer.SettingsInvalid = true;
+			EditorApp.Instance.[Friend]_imGuiLayer.SettingsInvalid = true;
 		}
 	}
 #endif

@@ -11,6 +11,8 @@ using GlitchyEditor.Multithreading;
 using System.Threading;
 using GlitchyEditor.Platform;
 using System.Diagnostics;
+using GlitchyEditor.ImGui;
+using GlitchyEngine.Events;
 
 namespace GlitchyEditor
 {
@@ -23,6 +25,14 @@ namespace GlitchyEditor
 		private append BackgroundTaskManager _backgroundTaskManager = .();
 
 		public BackgroundTaskManager BackgroundTaskManager => _backgroundTaskManager;
+
+#if IMGUI
+		private ImGuiLayer _imGuiLayer;
+#endif
+
+		private EditorLayer _editorLayer;
+
+		public Settings Settings { get; private set; } = new .() ~ delete _;
 		
 		public this(String[] args)
 		{
@@ -38,11 +48,28 @@ namespace GlitchyEditor
 
 			DragDropManager.Init();
 
-			PushLayer(new EditorLayer(args, _contentManager));
+#if IMGUI
+			_imGuiLayer = new ImGuiLayer();
+			PushOverlay(_imGuiLayer);
+#endif
+
+			_editorLayer = new EditorLayer(args, _contentManager);
+			PushLayer(_editorLayer);
+
+			GlitchyEditor.Settings.Load();
+			Settings.OnApplySettings.Add(new (s, e) => {
+			   OnEvent(scope SettingsAppliedEvent());
+			});
+			Settings.Apply();
 		}
 
 		public ~this()
 		{
+			// TODO: We should clear the queue of _backgroundTaskManager
+			// TODO: We should maybe also notify the user that that would happen!
+
+			PopLayer(_editorLayer);
+
 			DragDropManager.Deinit();
 
 			_backgroundTaskManager.Deinit();

@@ -2,9 +2,10 @@
 
 using System;
 using ImGui;
+using GlitchyEngine;
 using GlitchyEngine.Events;
-using ImGuizmo;
 using GlitchyEngine.Renderer;
+using ImGuizmo;
 using System.IO;
 
 using internal ImGui;
@@ -17,7 +18,7 @@ using internal GlitchyEngine.Platform.DX11;
 
 #endif
 
-namespace GlitchyEngine.ImGui
+namespace GlitchyEditor.ImGui
 {
 	public class ImGuiLayer : Layer
 	{
@@ -91,7 +92,7 @@ namespace GlitchyEngine.ImGui
 
 		private void LoadFont()
 		{
-			var settings = Application.Instance.Settings.ImGuiSettings;
+			var settings = EditorApp.Instance.Settings.ImGuiSettings;
 			
 			ImGui.GetIO().Fonts.Clear();
 
@@ -255,6 +256,11 @@ namespace GlitchyEngine.ImGui
 				ImGui.UpdatePlatformWindows();
 				ImGui.RenderPlatformWindowsDefault();
 			}
+		}
+
+		public override void Update(GameTime gameTime)
+		{
+			ImGuiRender();
 		}
 	}
 }

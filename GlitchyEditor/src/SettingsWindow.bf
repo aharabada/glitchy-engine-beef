@@ -59,7 +59,7 @@ namespace GlitchyEditor
 		{
 			_open = false;
 
-			_settings = Application.Instance.Settings;
+			_settings = EditorApp.Instance.Settings;
 
 			Create();
 		}

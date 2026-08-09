@@ -461,7 +461,7 @@ class Project
 		bool referenceScriptCoreProject = false;
 
 #if DEBUG
-		Settings settings = Application.Instance.Settings;
+		Settings settings = EditorApp.Instance.Settings;
 		referenceScriptCoreProject = settings.DevSettings.UseScriptCoreDll;
 #endif
 

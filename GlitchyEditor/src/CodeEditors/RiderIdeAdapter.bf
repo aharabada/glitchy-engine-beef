@@ -22,7 +22,7 @@ class RiderIdeAdapter : IIdeAdapter
 		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
 
 		ProcessStartInfo startInfo = scope .();
-		startInfo.SetFileName(Application.Instance.Settings.ScriptSettings.RiderPath);
+		startInfo.SetFileName(EditorApp.Instance.Settings.ScriptSettings.RiderPath);
 		startInfo.SetArguments(scope $"{solutionPath} --line {lineNumber} {fileName}");
 
 		scope SpawnedProcess().Start(startInfo);
@@ -39,7 +39,7 @@ class RiderIdeAdapter : IIdeAdapter
 			return;
 		}
 
-		if (!File.Exists(Application.Instance.Settings.ScriptSettings.RiderPath))
+		if (!File.Exists(EditorApp.Instance.Settings.ScriptSettings.RiderPath))
 		{
 			Editor.Instance.ShowSettings();
 			Editor.Instance.SettingsWindow.HighlightSetting("Tools", "Rider path");
@@ -51,7 +51,7 @@ class RiderIdeAdapter : IIdeAdapter
 		}
 
 		ProcessStartInfo startInfo = scope .();
-		startInfo.SetFileName(Application.Instance.Settings.ScriptSettings.RiderPath);
+		startInfo.SetFileName(EditorApp.Instance.Settings.ScriptSettings.RiderPath);
 		startInfo.SetArguments(solutionPath);
 
 		scope SpawnedProcess().Start(startInfo);

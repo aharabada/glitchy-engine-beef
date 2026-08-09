@@ -11,10 +11,6 @@ DirectX = "*"
 FreeType = "*"
 cgltf-beef = "*"
 msdfgen-beef = "*"
-ImGui = "*"
-ImGuiImplDX11 = "*"
-ImGuiImplWin32 = "*"
-ImGuizmo = "*"
 Beefy2D = "*"
 LodePng = "*"
 GlitchyEngineHelper = "*"
@@ -22,6 +18,7 @@ bon = "*"
 box2d-beef = "*"
 "Beef.Linq" = "*"
 NetHostBeef = "*"
+ImGuiImplWin32 = "*"
 
 [Configs.Paranoid.Win32]
 PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
@@ -33,7 +30,7 @@ PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
 PreprocessorMacros = ["RELEASE", "GE_WINDOWS"]
 
 [Configs.Release.Win64]
-PreprocessorMacros = ["IMGUI", "RELEASE", "GE_PROFILE"]
+PreprocessorMacros = ["RELEASE", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "GE_RESOURCE_DEBUG_NAMES"]
 
 [Configs.Test.Win32]
 PreprocessorMacros = ["TEST", "GE_WINDOWS"]
@@ -42,4 +39,4 @@ PreprocessorMacros = ["TEST", "GE_WINDOWS"]
 PreprocessorMacros = ["TEST", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI", "GE_RESOURCE_DEBUG_NAMES"]
 
 [Configs.Debug.Win64]
-PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "IMGUI", "GE_RESOURCE_DEBUG_NAMES"]
+PreprocessorMacros = ["DEBUG", "GE_PROFILE", "GE_PROFILE_RENDERER", "GE_PROFILE_RESOURCES", "GE_RESOURCE_DEBUG_NAMES"]

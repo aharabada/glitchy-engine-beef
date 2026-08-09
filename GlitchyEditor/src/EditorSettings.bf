@@ -8,7 +8,7 @@ using System.IO;
 using System.Diagnostics;
 using System.Threading;
 
-namespace GlitchyEngine
+namespace GlitchyEditor
 {
 	extension Settings
 	{

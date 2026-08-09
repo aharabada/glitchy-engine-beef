@@ -31,7 +31,7 @@ class VisualStudioIdeAdapter : IIdeAdapter
 		if (IsRunning())
 		{
 			ProcessStartInfo startInfo = scope .();
-			startInfo.SetFileName(Application.Instance.Settings.ScriptSettings.VisualStudioPath);
+			startInfo.SetFileName(EditorApp.Instance.Settings.ScriptSettings.VisualStudioPath);
 			startInfo.SetArguments(scope $"/Edit {fileName}");
 
 			scope SpawnedProcess().Start(startInfo);
@@ -39,7 +39,7 @@ class VisualStudioIdeAdapter : IIdeAdapter
 		else
 		{
 			ProcessStartInfo startInfo = scope .();
-			startInfo.SetFileName(Application.Instance.Settings.ScriptSettings.VisualStudioPath);
+			startInfo.SetFileName(EditorApp.Instance.Settings.ScriptSettings.VisualStudioPath);
 			startInfo.SetArguments(scope $"/Edit {fileName}");
 
 			scope SpawnedProcess().Start(startInfo);

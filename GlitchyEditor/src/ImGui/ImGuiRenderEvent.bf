@@ -8,7 +8,7 @@ namespace GlitchyEngine.Events
 	}
 }
 
-namespace GlitchyEngine.ImGui
+namespace GlitchyEditor.ImGui
 {
 	public class ImGuiRenderEvent : Event, IEvent
 	{

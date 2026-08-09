@@ -58,6 +58,7 @@ namespace GlitchyEngine
 			{
 				_insertIndex--;
 				layer.OnDetach();
+				delete layer;
 			}
 		}
 		
@@ -70,6 +71,7 @@ namespace GlitchyEngine
 			if(_layers.Remove(overlay))
 			{
 				overlay.OnDetach();
+				delete overlay;
 			}
 		}
 
