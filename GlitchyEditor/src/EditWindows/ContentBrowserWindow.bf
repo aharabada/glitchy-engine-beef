@@ -604,7 +604,13 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Open C# Project..."))
 			{
-				RiderIdeAdapter.OpenScriptProject();
+				switch (Application.Instance.Settings.ScriptSettings.SelectedIde)
+				{
+				case .VisualStudio:
+					VisualStudioIdeAdapter.OpenScriptProject();
+				case .Rider:
+					RiderIdeAdapter.OpenScriptProject();
+				}
 			}
 
 			ImGui.AttachTooltip("Opens the C# Solution of this project.");

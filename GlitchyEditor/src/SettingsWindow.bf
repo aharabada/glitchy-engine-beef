@@ -299,24 +299,62 @@ namespace GlitchyEditor
 
 							_settingsChanged = true;
 						}
+					case when fieldType.IsEnum:
+						
+						int64 underlyingValue = 0;
 
-						/*if (setting.EditorType == .FilePath)
+						// Read the enum fields value from the settings-object
+						var enumValueResult = fieldInfo.GetValueReference(setting.SettingsObject);
+
+						if (enumValueResult not case .Ok(var enumValueReference))
+							break;
+						
+						// Get underlying integer value from field reference
+						switch (fieldInfo.FieldType.Size)
 						{
-							ImGui.SameLine();
+						case 1: underlyingValue = *(int8*)enumValueReference.DataPtr;
+						case 2: underlyingValue = *(int16*)enumValueReference.DataPtr;
+						case 4: underlyingValue = *(int32*)enumValueReference.DataPtr;
+						case 8: underlyingValue = *(int64*)enumValueReference.DataPtr;
+						}
 
-							if (ImGui.Button("..."))
+						// TODO: handle multiple Flags (as a separate enum type handler though!)
+						
+						StringView currentName = "";
+
+						for (let (name, value) in Enum.GetEnumerator(fieldInfo.FieldType))
+						{
+							if (value == underlyingValue)
 							{
-								OpenFileDialog ofd = scope .();
-								ofd.InitialDirectory = value;
-								ofd.SetFilter("All Files (*.*)|*.*");
-								ofd.Multiselect = false;
+								currentName = name;
+								break;
+							}
+						}
 
-								if (ofd.ShowDialog() case .Ok(let result) && result == .OK)
+						if (ImGui.BeginCombo(scope $"##{setting.Name}", currentName.ToScopeCStr!()))
+						{
+							for (let (name, value) in Enum.GetEnumerator(fieldInfo.FieldType))
+							{
+								bool isSelected = (name == currentName);
+
+								if (ImGui.Selectable(name.ToScopeCStr!(), isSelected))
 								{
-								SetSettingValue!(new String(ofd.FileNames[0]));
+									// Set value in field reference
+									switch (fieldInfo.FieldType.Size)
+									{
+									case 1: *(int8*)enumValueReference.DataPtr = (int8)value;
+									case 2: *(int16*)enumValueReference.DataPtr = (int16)value;
+									case 4: *(int32*)enumValueReference.DataPtr = (int32)value;
+									case 8: *(int64*)enumValueReference.DataPtr = (int64)value;
+									}
+
+									if (!isSelected)
+										_settingsChanged = true;
 								}
 							}
-						}*/
+
+							ImGui.EndCombo();
+						}
 					}
 
 					if (setting.Name == _SettingToHighlight)

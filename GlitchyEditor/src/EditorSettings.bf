@@ -2,6 +2,7 @@ using System;
 using GlitchyEngine;
 using Bon;
 using GlitchyEditor;
+using GlitchyEditor.CodeEditors;
 using System.Collections;
 using System.IO;
 using System.Diagnostics;
@@ -69,6 +70,7 @@ class ScriptSettings
 	public ScriptIde SelectedIde;
 
 	private bool _lookedForVs = false;
+	private bool _lookedForRider = false;
 
 	public void Apply()
 	{
@@ -78,6 +80,11 @@ class ScriptSettings
 			FindVisualStudio();
 		}
 #endif
+
+		if (!_lookedForRider && String.IsNullOrWhiteSpace(RiderPath))
+		{
+			FindRider();
+		}
 	}
 
 	void FindVisualStudio()
@@ -153,6 +160,63 @@ class ScriptSettings
 		{
 			Log.EngineLogger.Error("Couldn't automatically determine location of Visual Studio: Failed to launch vswhere.exe");
 		}
+	}
+
+	void FindRider()
+	{
+		_lookedForRider = true;
+
+		Thread thread = new Thread(new => FindRiderImpl);
+		thread.AutoDelete = true;
+		thread.IsBackground = true;
+		thread.Start();
+	}
+
+	void FindRiderImpl()
+	{
+		List<RiderInstallInfo> installs = new .();
+
+		RiderPathLocator.CollectAllPaths(installs);
+
+		// Don't touch the settings or the log from this thread: the editor's log window appends to
+		// a plain List and isn't synchronized, so logging from here corrupts it.
+		Application.Instance.InvokeOnMainThread(new () => ReportRiderInstalls(installs));
+	}
+
+	/// Logs the located Rider installations and stores the newest one in RiderPath.
+	/// @param installs The located installations, newest first. Takes ownership.
+	bool ReportRiderInstalls(List<RiderInstallInfo> installs)
+	{
+		defer { DeleteContainerAndItems!(installs); }
+
+		for (RiderInstallInfo install in installs)
+		{
+			Log.EngineLogger.Info($"Found Rider {install.Version} at \"{install.Path}\" ({install.InstallType})");
+		}
+
+		if (installs.IsEmpty)
+		{
+			Log.EngineLogger.Warning("Couldn't automatically determine location of Rider: No installation found.");
+			return true;
+		}
+
+		// CollectAllPaths sorts the installations, newest first.
+		RiderInstallInfo newestInstall = installs.Front;
+
+		if (RiderPath == null)
+		{
+			RiderPath = new String(newestInstall.Path);
+		}
+		else
+		{
+			RiderPath..Clear().Append(newestInstall.Path);
+		}
+
+		Log.EngineLogger.Info($"Located Rider: {RiderPath}");
+
+		Apply();
+
+		return true;
 	}
 }
 
