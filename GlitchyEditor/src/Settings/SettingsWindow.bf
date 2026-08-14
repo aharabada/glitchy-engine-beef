@@ -6,12 +6,13 @@ using System.Collections;
 using System.Reflection;
 using GlitchyEngine.Math;
 using System.IO;
+using GlitchyEditor.Settings;
 
 namespace GlitchyEditor
 {
 	class SettingsWindow : EditorWindow
 	{
-		class Binding
+		public class Binding
 		{
 			public Object SettingsObject;
 			public String Name ~ delete _;
@@ -29,9 +30,22 @@ namespace GlitchyEditor
 			}
 		}
 
-		class Category
+		public struct MethodBinding
+		{
+			public Object SettingsObject;
+			public MethodInfo Method;
+
+			public this(MethodInfo method, Object settingsObject)
+			{
+				Method = method;
+				SettingsObject = settingsObject;
+			}
+		}
+
+		public class Category
 		{
 			public List<Binding> _bindings = new .() ~ DeleteContainerAndItems!(_);
+			public List<MethodBinding> _methodBindings = new .() ~ delete _;
 
 			public String Header ~ delete _;
 
@@ -46,6 +60,11 @@ namespace GlitchyEditor
 			{
 				Binding binding = new .(name, fieldName, settingsObject ?? SettingsObject, tooltip, editorType);
 				_bindings.Add(binding);
+			}
+
+			public void AddRenderer(MethodInfo method, Object settingsObject = null)
+			{
+				_methodBindings.Add(MethodBinding(method, settingsObject));
 			}
 		}
 
@@ -87,6 +106,8 @@ namespace GlitchyEditor
 
 		void ScanForSettings(Object container)
 		{
+			Log.EngineLogger.Info($"Visiting type: {container.GetType().GetName(.. scope .())}");
+
 			Type type = container.GetType();
 
 			for (var field in type.GetFields())
@@ -114,6 +135,18 @@ namespace GlitchyEditor
 					ScanForSettings(childContainer);
 				}
 			}
+
+			for (let method in type.GetMethods(.Instance | .Static | .Public | .NonPublic))
+			{
+				Log.EngineLogger.Info($"Visiting method: {method.Name}");
+
+				Result<CustomSettingRendererAttribute> rendererResult = method.GetCustomAttribute<CustomSettingRendererAttribute>();
+				
+				if (rendererResult case .Ok(let rendererInfo))
+				{
+					AddRenderer(rendererInfo.Category, method, container);
+				}
+			}
 		}
 
 		void AddSetting(String categoryName, String name, StringView fieldName, Object container, StringView tooltip, SettingEditor settingEditor)
@@ -121,6 +154,12 @@ namespace GlitchyEditor
 			Category category = AddCategory(categoryName);
 
 			category.AddSetting(name, fieldName, container, tooltip, settingEditor);
+		}
+
+		void AddRenderer(String categoryName, MethodInfo method, Object container)
+		{
+			Category category = AddCategory(categoryName);
+			category.AddRenderer(method, container);
 		}
 
 		private String _tabToSelect = new String() ~ delete _;
@@ -157,6 +196,7 @@ namespace GlitchyEditor
 				if (ImGui.BeginTabItem(category.Header, null, flags))
 				{
 					ShowCategory(category);
+					
 					ImGui.EndTabItem();
 				}
 			}
@@ -208,6 +248,12 @@ namespace GlitchyEditor
 					ImGui.TableNextRow();
 
                 	ImGui.TableNextColumn();
+
+					/*if (setting.EditorType case .Custom(let renderMethod))
+					{
+						renderMethod(setting);
+						continue;
+					}*/
 
 					// Name of setting
 					ImGui.TextUnformatted(setting.Name);
@@ -370,98 +416,16 @@ namespace GlitchyEditor
 							_SettingToHighlight.Clear();
 						}
 					}
-					
-					/*if (fieldInfo.FieldType.IsEnum)
+				}
+
+				for (let methodBinding in category._methodBindings)
+				{
+					if (methodBinding.Method.Invoke(methodBinding.Method.IsStatic ? null : methodBinding.SettingsObject, category) case .Ok(var returnValue))
 					{
-						uint64 enumValue = 0;
+						_settingsChanged |= returnValue.Get<bool>();
 
-						fieldInfo.GetValueReference(setting.SettingsObject);
-
-						// Assign value
-						switch (fieldInfo.FieldType.Size)
-						{
-						case 1: enumValue = *(uint8*)&enumValue;
-						case 2: *(uint16*)&enumValue = *(uint16*)&enumValue;
-						case 4: *(uint32*)&enumValue = *(uint32*)&enumValue;
-						case 8: *(uint64*)&enumValue = *(uint64*)&enumValue;
-						}
-
-						bool found = false;
-						for (var field in valType.GetFields())
-						{
-							if (field.[Friend]mFieldData.mFlags.HasFlag(.EnumCase) &&
-								*(int64*)&field.[Friend]mFieldData.[Friend]mData == valueData)
-							{
-								writer.Enum(field.Name);
-								found = true;
-								break;
-							}
-						}
-
-						// Find field on enum
-						bool found = false;
-						for (var field in valType.GetFields())
-							if (field.[Friend]mFieldData.mFlags.HasFlag(.EnumCase)
-								&& name == field.Name)
-							{
-								// Add value of enum case to current enum value
-								enumValue |= *(int64*)&field.[Friend]mFieldData.[Friend]mData;
-								found = true;
-								break;
-							}
-
-						if (!found)
-							Error!("Enum case not found", reader, valType);
-
-
-						uint64 value = 0;
-						StringView selectedValue;
-						
-						for (FieldInfo enumField in fieldInfo.FieldType.GetFields())
-						{
-							if (enumField.[Friend]mFieldData.mFlags.HasFlag(.EnumCase))
-							{
-								hasCaseData = true;
-
-								if (name == enumField.Name)
-								{
-									unionPayload = ValueView(enumField.FieldType, val.dataPtr);
-									
-									foundCase = true;
-									break;
-								}
-								
-								unionDiscrIndex++;
-							}
-							else if (enumField.[Friend]mFieldData.mFlags.HasFlag(.EnumDiscriminator))
-							{
-								let discrType = enumField.FieldType;
-								Debug.Assert(discrType.IsInteger);
-								discrVal = ValueView(discrType, (uint8*)val.dataPtr + enumField.[Friend]mFieldData.mData);
-							}
-						}
-
-						ImGui.BeginCombo(scope $"##{setting.Name}", null);
-
-						for (var v in Enum.GetValues(fieldInfo.FieldType))
-						{
-
-						}
-
-						ImGui.EndCombo();
-
-						/*// Find field on enum
-						bool found = false;
-						for (var field in valType.GetFields())
-							if (field.[Friend]mFieldData.mFlags.HasFlag(.EnumCase)
-								&& name == field.Name)
-							{
-								// Add value of enum case to current enum value
-								enumValue |= *(int64*)&field.[Friend]mFieldData.[Friend]mData;
-								found = true;
-								break;
-							}*/
-					}*/
+						returnValue.Dispose();
+					}
 				}
 				
 				ImGui.EndTable();

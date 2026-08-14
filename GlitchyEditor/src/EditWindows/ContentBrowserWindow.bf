@@ -604,13 +604,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Open C# Project..."))
 			{
-				switch (EditorApp.Instance.Settings.ScriptSettings.SelectedIde)
-				{
-				case .VisualStudio:
-					VisualStudioIdeAdapter.OpenScriptProject();
-				case .Rider:
-					RiderIdeAdapter.OpenScriptProject();
-				}
+				Editor.Instance.IdeAdapter.OpenScriptProject();
 			}
 
 			ImGui.AttachTooltip("Opens the C# Solution of this project.");
@@ -1440,8 +1434,7 @@ namespace GlitchyEditor.EditWindows
 				// Special treatment for scripts, open them in Visual Studio.
 				if (entry->Path.EndsWith(".cs"))
 				{
-					// Obviously windows only
-					RiderIdeAdapter.OpenScript(entry->Path);
+					Editor.Instance.IdeAdapter.OpenScript(entry->Path);
 				}
 				else if (Path.OpenFolder(entry->Path) case .Err)
 					Log.EngineLogger.Error("Failed to open file.");

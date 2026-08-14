@@ -3,9 +3,7 @@ namespace GlitchyEditor.CodeEditors;
 
 interface IIdeAdapter
 {
-	static void OpenScript(StringView fileName);
+	void OpenScript(StringView fileName, int lineNumber = 0);
 
-	static void OpenScript(StringView fileName, int lineNumber);
-
-	static void OpenScriptProject();
+	void OpenScriptProject();
 }

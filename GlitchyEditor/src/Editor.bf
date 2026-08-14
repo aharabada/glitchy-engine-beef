@@ -6,6 +6,7 @@ using GlitchyEngine.Collections;
 using GlitchyEditor.EditWindows;
 using GlitchyEngine;
 using GlitchyEditor.Assets;
+using GlitchyEditor.CodeEditors;
 
 namespace GlitchyEditor
 {
@@ -79,6 +80,18 @@ namespace GlitchyEditor
 
 		private static Editor s_Instance;
 
+		private IIdeAdapter _ideAdapter = null ~ delete _;
+
+		public IIdeAdapter IdeAdapter
+		{
+			get => _ideAdapter;
+			private set
+			{
+				delete _ideAdapter;
+				_ideAdapter = value;
+			}
+		}
+
 		public static Editor Instance => s_Instance;
 
 		/// Creates a new editor for the given world
@@ -86,6 +99,24 @@ namespace GlitchyEditor
 		{
 			Log.EngineLogger.AssertDebug(s_Instance == null, "Cannot create a second instance of a singleton.");
 			s_Instance = this;
+
+			EditorApp.Instance.Settings.OnApplySettings.Add(new (s, e) => {
+				let activeIde = EditorApp.Instance.Settings.ScriptSettings.ActiveIde;
+				if (activeIde != null)
+				{
+					switch (activeIde.Ide)
+					{
+					case .VisualStudio:
+						IdeAdapter = new VisualStudioIdeAdapter(activeIde);
+					case .Rider:
+						IdeAdapter = new RiderIdeAdapter(activeIde);
+					}
+				}
+				else
+				{
+					IdeAdapter = null;
+				}
+			});
 
 			_activeScene = activeScene;
 			_editorScene = editorScene;

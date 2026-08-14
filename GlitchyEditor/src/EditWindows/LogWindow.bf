@@ -317,7 +317,7 @@ class LogWindow : EditorWindow
 				{
 					if (message.Source.MessageOrigin != null)
 					{
-						RiderIdeAdapter.OpenScript(message.Source.MessageOrigin.FileName, message.Source.MessageOrigin.LineNumber);
+						Editor.Instance.IdeAdapter.OpenScript(message.Source.MessageOrigin.FileName, message.Source.MessageOrigin.LineNumber);
 					}
 				}
 				

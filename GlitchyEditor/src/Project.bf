@@ -4,6 +4,7 @@ using Bon;
 using GlitchyEngine;
 using GlitchyEngine.Scripting;
 using Xml_Beef;
+using GlitchyEditor.Settings;
 
 namespace GlitchyEditor;
 

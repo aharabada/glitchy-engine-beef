@@ -6,29 +6,34 @@ using System.IO;
 using System.IO;
 using GlitchyEditor.EditWindows;
 using ImGui;
+using GlitchyEditor.Settings;
 
 namespace GlitchyEditor.CodeEditors;
 
 class RiderIdeAdapter : IIdeAdapter
 {
-	public static void OpenScript(StringView fileName)
+	private IdeInstallation _ideInstallation;
+
+	public this(IdeInstallation ideInstallation)
 	{
-		OpenScript(fileName, 0);
+		Debug.Assert(ideInstallation.Ide == .Rider);
+
+		_ideInstallation = ideInstallation;
 	}
 
-	public static void OpenScript(StringView fileName, int lineNumber)
+	public void OpenScript(StringView fileName, int lineNumber)
 	{
 		String solutionPath = scope .();
 		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
 
 		ProcessStartInfo startInfo = scope .();
-		startInfo.SetFileName(EditorApp.Instance.Settings.ScriptSettings.RiderPath);
+		startInfo.SetFileName(_ideInstallation.Path);
 		startInfo.SetArguments(scope $"{solutionPath} --line {lineNumber} {fileName}");
 
 		scope SpawnedProcess().Start(startInfo);
 	}
 
-	public static void OpenScriptProject()
+	public void OpenScriptProject()
 	{
 		String solutionPath = scope .();
 		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
@@ -39,7 +44,7 @@ class RiderIdeAdapter : IIdeAdapter
 			return;
 		}
 
-		if (!File.Exists(EditorApp.Instance.Settings.ScriptSettings.RiderPath))
+		if (!File.Exists(_ideInstallation.Path))
 		{
 			Editor.Instance.ShowSettings();
 			Editor.Instance.SettingsWindow.HighlightSetting("Tools", "Rider path");
@@ -51,7 +56,7 @@ class RiderIdeAdapter : IIdeAdapter
 		}
 
 		ProcessStartInfo startInfo = scope .();
-		startInfo.SetFileName(EditorApp.Instance.Settings.ScriptSettings.RiderPath);
+		startInfo.SetFileName(_ideInstallation.Path);
 		startInfo.SetArguments(solutionPath);
 
 		scope SpawnedProcess().Start(startInfo);

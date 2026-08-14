@@ -13,6 +13,7 @@ using GlitchyEditor.Platform;
 using System.Diagnostics;
 using GlitchyEditor.ImGui;
 using GlitchyEngine.Events;
+using GlitchyEditor.Settings;
 
 namespace GlitchyEditor
 {
@@ -47,6 +48,8 @@ namespace GlitchyEditor
 			_backgroundTaskManager.Init();
 
 			DragDropManager.Init();
+			
+			GlitchyEditor.Settings.Settings.Load();
 
 #if IMGUI
 			_imGuiLayer = new ImGuiLayer();
@@ -56,7 +59,6 @@ namespace GlitchyEditor
 			_editorLayer = new EditorLayer(args, _contentManager);
 			PushLayer(_editorLayer);
 
-			GlitchyEditor.Settings.Load();
 			Settings.OnApplySettings.Add(new (s, e) => {
 			   OnEvent(scope SettingsAppliedEvent());
 			});
