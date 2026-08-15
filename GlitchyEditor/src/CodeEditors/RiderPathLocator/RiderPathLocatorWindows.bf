@@ -33,11 +33,19 @@ extension RiderPathLocator
 
 		RiderVersion version = .();
 
+		String installName = scope .();
+		String installVersion = scope .();
+
 		String productInfoPath = scope .();
 		Path.Combine(productInfoPath, riderDirectory, "product-info.json");
 
 		if (File.Exists(productInfoPath))
-			version = ParseProductInfoJson(productInfoPath);
+			version = ParseProductInfoJson(productInfoPath, installName, installVersion);
+		else
+		{
+			installName.Set("Rider");
+			version.ToString(installVersion..Clear());
+		}
 
 		if (!version.IsInitialized)
 		{
@@ -49,7 +57,7 @@ extension RiderPathLocator
 			version = RiderVersion.Parse(directoryName);
 		}
 
-		return new RiderInstallInfo(riderExePath, version, installType);
+		return new RiderInstallInfo(riderExePath, version, installType, scope $"{installName} {installVersion}");
 	}
 
 	public static override void CollectAllPaths(List<RiderInstallInfo> outInstalls)

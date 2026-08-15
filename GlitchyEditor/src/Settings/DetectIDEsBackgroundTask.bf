@@ -183,7 +183,7 @@ class DetectIDEsBackgroundTask : BackgroundTask
 				ide.IsAutoDetected = true;
 				ide.Ide = .Rider;
 				ide.Path = install.Path;
-				ide.Name = scope $"Rider {install.Version}";
+				ide.Name = install.Name;
 
 				installations.Add(ide);
 			}

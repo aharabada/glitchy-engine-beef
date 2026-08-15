@@ -290,6 +290,9 @@ class ScriptSettings
 			{
 				for (let ide in installations)
 				{
+					// Make sure entries have unique IDs, even if two IDEs have the same name.
+					ImGui.PushID(ide.Path.ToScopeCStr!());
+
 					if (ImGui.Selectable(ide.Name.ToScopeCStr!()) && ActiveIde != ide)
 					{
 						_activeIdePath.Set(ide.Path);
@@ -297,6 +300,27 @@ class ScriptSettings
 					}
 
 					ImGui.AttachTooltip(ide.Path);
+
+					// Context menu when right-clicking the entry.
+					if (ImGui.BeginPopupContextItem())
+					{
+						if (ImGui.MenuItem("Copy path"))
+						{
+							ImGui.SetClipboardText(ide.Path.ToScopeCStr!());
+						}
+
+						if (ImGui.MenuItem("Show in file browser..."))
+						{
+							if (Path.OpenFolderAndSelectItem(ide.Path) case .Err)
+							{
+								Log.EngineLogger.Error("Failed to show path in file browser.");
+							}
+						}
+
+					    ImGui.EndPopup();
+					}
+
+					ImGui.PopID();
 				}
 			}
 

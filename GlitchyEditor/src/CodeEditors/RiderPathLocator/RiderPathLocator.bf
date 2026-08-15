@@ -123,12 +123,14 @@ class RiderInstallInfo
 	public String Path ~ delete _;
 	public RiderVersion Version;
 	public RiderInstallType InstallType;
+	public String Name ~ delete _;
 
-	public this(StringView path, RiderVersion version, RiderInstallType installType)
+	public this(StringView path, RiderVersion version, RiderInstallType installType, StringView name)
 	{
 		Path = new String(path);
 		Version = version;
 		InstallType = installType;
+		Name = new String(name);
 	}
 }
 
@@ -366,7 +368,7 @@ static class RiderPathLocator
 	}
 
 	/// Reads the version of a Rider installation out of its "product-info.json".
-	protected static RiderVersion ParseProductInfoJson(StringView productInfoJsonPath)
+	protected static RiderVersion ParseProductInfoJson(StringView productInfoJsonPath, String outName, String outVersion)
 	{
 		StructuredData data = scope .();
 		if (data.Load(productInfoJsonPath) case .Err)
@@ -374,6 +376,9 @@ static class RiderPathLocator
 
 		String buildNumber = scope .();
 		data.GetString("buildNumber", buildNumber);
+		
+		data.GetString("name", outName);
+		data.GetString("version", outVersion);
 
 		return RiderVersion.Parse(buildNumber);
 	}
