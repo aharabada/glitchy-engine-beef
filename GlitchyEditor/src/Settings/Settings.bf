@@ -329,9 +329,7 @@ class ScriptSettings
 
 		if (ImGui.Button("Detect IDEs..."))
 		{
-			//BackgroundTask task = new BackgroundTask();
-
-			EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(new DetectIDEsBackgroundTask(this));
+			EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(new DetectIDEsBackgroundTask(this){ DeleteWhenEnded = true });
 		}
 
 		return settingsChanged;
