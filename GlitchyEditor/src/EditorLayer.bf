@@ -426,6 +426,9 @@ namespace GlitchyEditor
 			// Clear the swapchain-buffer
 			RenderCommand.Clear(null, .Color | .Depth, .(0.2f, 0.2f, 0.2f), 1.0f, 0);
 
+			// Explicitly set the swap chain as render target, because we end a frame with it bound and the RTV might stop existing if we resized the swapchain between frames.
+			// TODO: maybe we need to be smarter about how we handle resizing in general: should the RenderTarget check during resize whether it is bound and update the GraphicsContext?!
+			RenderCommand.SetRenderTarget(null);
 			RenderCommand.SetBlendState(_alphaBlendState);
 			RenderCommand.SetDepthStencilState(_depthStencilState);
 

@@ -62,8 +62,6 @@ namespace GlitchyEngine.Renderer
 			Debug.Profiler.ProfileResourceFunction!();
 
 			_description = description;
-
-			ApplyChanges();
 		}
 
 		/// Recreates the render target using the current description

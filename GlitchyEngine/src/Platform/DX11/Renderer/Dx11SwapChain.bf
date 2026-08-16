@@ -116,8 +116,9 @@ namespace GlitchyEngine.Renderer
 				desc.IsSwapchainTarget = true;
 
 				_backBuffer = new RenderTarget2D(desc);
-				_backBuffer.Identifier = "Backbuffer";
+				_backBuffer.Identifier = "Back buffer";
 				_backBuffer.SamplerState = SamplerStateManager.LinearClamp;
+				_backBuffer.ApplyChanges();
 			}
 
 			_backBufferViewport = GlitchyEngine.Renderer.Viewport(0, 0, _width, _height, 0.0f, 1.0f);

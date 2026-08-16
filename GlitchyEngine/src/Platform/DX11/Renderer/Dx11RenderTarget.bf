@@ -72,6 +72,8 @@ namespace GlitchyEngine.Renderer
 			{
 				PlatformCreateTexture();
 			}
+			
+			SetDebugNames();
 
 			if(_description.DepthStencilFormat != .Unknown)
 			{
@@ -128,6 +130,18 @@ namespace GlitchyEngine.Renderer
 
 				result = NativeDevice.CreateRenderTargetView(_nativeTexture, null, &_nativeRenderTargetView);
 				Log.EngineLogger.Assert(result.Succeeded, "Failed to create render target view");
+			}
+		}
+
+		private void SetDebugNames()
+		{
+			_nativeTexture.SetDebugName(Identifier);
+			_nativeResourceView.SetDebugName(scope $"{Identifier}: SRV");
+			_nativeRenderTargetView.SetDebugName(scope $"{Identifier}: RTV");
+
+			if (_depthStenilTarget != null)
+			{
+				_depthStenilTarget.nativeView.SetDebugName(scope $"{Identifier}: DSV");
 			}
 		}
 
@@ -255,6 +269,7 @@ namespace GlitchyEngine.Renderer
 
 			ID3D11Texture2D* texture = null;
 			var result = NativeDevice.CreateTexture2D(ref desc, null, &texture);
+			texture.SetDebugName(target.DebugName);
 			Log.EngineLogger.Assert(result.Succeeded, "Failed to create RenderTarget2D");
 
 			// TODO: calculate the max mip level
