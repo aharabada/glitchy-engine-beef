@@ -311,7 +311,7 @@ namespace GlitchyEditor
 					switch (fieldType)
 					{
 					case typeof(bool):
-						let value = GetSettingValue!<bool>();
+						bool value = GetSettingValue!<bool>();
 
 						if (!ImGui.Checkbox(scope $"##{setting.Name}", &value))
 							break;

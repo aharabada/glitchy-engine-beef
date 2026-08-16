@@ -322,12 +322,12 @@ namespace GlitchyEngine.World
 						let start = vertices[i - 1];
 						let end = vertices[i];
 
-						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), (ColorRGBA)color);
 					}
 					let start = vertices[vertexCount - 1];
 					let end = vertices[0];
 
-					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f),(ColorRGBA)color);
 				};
 			draw.drawSolidPolygonCallback = (vertices, vertexCount, color, userData) =>
 				{
@@ -336,20 +336,20 @@ namespace GlitchyEngine.World
 						let start = vertices[i - 1];
 						let end = vertices[i];
 
-						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+						Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f),(ColorRGBA)color);
 					}
 					let start = vertices[vertexCount - 1];
 					let end = vertices[0];
 
-					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f), *(ColorRGBA*)&color);
+					Renderer2D.DrawLine(float3(start.x, start.y, 0.0f), float3(end.x, end.y, 0.0f),(ColorRGBA)color);
 				};
 			draw.drawCircleCallback = (center, radius, color, userData) =>
 				{
-					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color, 0.1f);
+					Renderer2D.DrawCircle(center, radius.XX, (ColorRGBA)color, 0.1f);
 				};
 			draw.drawSolidCircleCallback = (center, radius, axis, color, userData) =>
 				{
-					Renderer2D.DrawCircle(center, radius.XX, *(ColorRGBA*)&color);
+					Renderer2D.DrawCircle(center, radius.XX, (ColorRGBA)color);
 				};
 			draw.drawSegmentCallback = (p1, p2, color, userData) =>
 				{
@@ -723,7 +723,7 @@ namespace GlitchyEngine.World
 	
 					b2Body* body = rigidbody.RuntimeBody;
 					b2Vec2 position = Box2D.Body.GetPosition(body);
-					float angle = Box2D.Body.GetAngle(body);
+					//float angle = Box2D.Body.GetAngle(body);
 					b2Transform bodyTransform = Box2D.Body.GetTransform(body);
 	
 					float cos = sqrt((1 + bodyTransform.q.c) / 2);

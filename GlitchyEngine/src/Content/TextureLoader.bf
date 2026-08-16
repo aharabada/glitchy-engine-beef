@@ -15,7 +15,11 @@ class TextureLoader : IProcessedAssetLoader
 		Format pixelFormat = Try!(dataStream.Read<Format>());
 		uint32 width = Try!(dataStream.Read<uint32>());
 		uint32 height = Try!(dataStream.Read<uint32>());
-		uint32 depth = Try!(dataStream.Read<uint32>());
+
+		// TODO: We don't need the depth-value?
+		//uint32 depth =
+		Try!(dataStream.Read<uint32>());
+
 		uint32 arraySize = Try!(dataStream.Read<uint32>());
 		uint32 mipMapCount = Try!(dataStream.Read<uint32>());
 		bool isCubemap = Try!(dataStream.Read<bool>());

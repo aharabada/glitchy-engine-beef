@@ -1205,12 +1205,12 @@ namespace GlitchyEngine.Renderer
 #endif
 
 			Runtime.FatalError("Circle renderer currently broken, do we need it?");
-			QueueCircleInstance(transform, color, texture, null, transform.Translation.Z, uvTransform, innerRadius, entityId);
+			/*QueueCircleInstance(transform, color, texture, null, transform.Translation.Z, uvTransform, innerRadius, entityId);
 
 			if(s_drawOrder == .Immediate)
 			{
 				DrawDeferred();
-			}
+			}*/
 		}
 
 		public struct Statistics

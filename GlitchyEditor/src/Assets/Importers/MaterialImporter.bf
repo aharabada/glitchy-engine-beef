@@ -97,7 +97,7 @@ class MaterialVariable
 
 		Result<int, Int.ParseError> rowsResult = int.Parse(rowsString);
 
-		if (rowsResult case .Err(let error))
+		if (rowsResult case .Err(var error))
 		{
 			switch (error)
 			{
@@ -114,7 +114,7 @@ class MaterialVariable
 		
 		Result<int, Int.ParseError> columnsResult = int.Parse(columnsString);
 
-		if (columnsResult case .Err(let error))
+		if (columnsResult case .Err(out error))
 		{
 			switch (error)
 			{

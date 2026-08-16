@@ -205,14 +205,14 @@ class ShaderProcessor : IAssetProcessor
 			
 			ProcessedShader.ConstantBufferEntry constantBufferEntry = .Default;
 
-			if (vsBufferResult case .Ok(let vsBuffer) && psBufferResult case .Ok(let psBuffer))
+			if (vsBufferResult case .Ok(var vsBuffer) && psBufferResult case .Ok(let psBuffer))
 			{
 				// Choose larger buffer
 				constantBufferEntry.ConstantBuffer = (vsBuffer.Size >= psBuffer.Size) ? vsBuffer : psBuffer;
 				constantBufferEntry.VertexShaderBindPoint = (.)vsBuffer.BindPoint;
 				constantBufferEntry.PixelShaderBindPoint = (.)psBuffer.BindPoint;
 			}
-			else if (vsBufferResult case .Ok(let vsBuffer))
+			else if (vsBufferResult case .Ok(out vsBuffer))
 			{
 				constantBufferEntry.ConstantBuffer = vsBuffer;
 				constantBufferEntry.VertexShaderBindPoint = (.)vsBuffer.BindPoint;

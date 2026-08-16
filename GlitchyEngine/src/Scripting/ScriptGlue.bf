@@ -117,8 +117,6 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 	{
 		String parameters = new String();
 		
-		StringView str = method.Name;
-
 		for (int i < method.ParamCount)
 		{
 			if (i != 0)

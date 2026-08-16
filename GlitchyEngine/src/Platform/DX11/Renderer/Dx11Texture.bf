@@ -335,7 +335,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
-			SubresourceData resData = .(data, linePitch, slicePitch);
+			//SubresourceData resData = .(data, linePitch, slicePitch);
 
 			// If data is null, set subresourceData null
 			SubresourceData* resDataPtr = null;//data == null ? null : &resData;

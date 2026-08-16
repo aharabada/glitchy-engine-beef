@@ -68,7 +68,7 @@ namespace GlitchyEngine.Renderer
 
 			uint32 backBufferCount = 2;
 			Format backBufferFormat = .R8G8B8A8_UNorm;
-			Format backBufferViewFormat = .R8G8B8A8_UNorm; // _SRGB
+			//Format backBufferViewFormat = .R8G8B8A8_UNorm; // _SRGB
 
 			if(nativeSwapChain != null)
 			{

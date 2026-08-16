@@ -131,7 +131,7 @@ namespace GlitchyEngine
 				keycode = VK_XBUTTON1;
 			case .XButton2:
 				keycode = VK_XBUTTON2;
-			case default:
+			default:
 				return false;
 			}
 

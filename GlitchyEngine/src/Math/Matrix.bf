@@ -476,7 +476,7 @@ public struct Matrix
 
 		float3 right = normalize(cross(up, forward));
 
-		float3 newUp = normalize(cross(forward, right));
+		//float3 newUp = normalize(cross(forward, right));
 
 		Matrix result = .Identity;
 

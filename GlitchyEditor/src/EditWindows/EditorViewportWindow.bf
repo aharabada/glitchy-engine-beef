@@ -168,7 +168,7 @@ namespace GlitchyEditor.EditWindows
 
 			let mousePos = (float2)ImGui.GetMousePos();
 
-			let globalToImGuiMouse = (float2)globalMousePosition - mousePos;
+			//let globalToImGuiMouse = (float2)globalMousePosition - mousePos;
 
 			let winPos = (float2)ImGui.GetWindowPos();
 			let regionMin = winPos + (float2)ImGui.GetWindowContentRegionMin();

@@ -226,7 +226,7 @@ extension ShaderCompiler
 		
 		Try!(ShaderCodePreprocessor.ProcessFileContent(shaderCode, context.VsName, context.PsName, context.Variables, context.BufferNames, context.EngineBuffers));
 
-		using (let includer = PreprocessingIncluder(directory, context))
+		using (var includer = PreprocessingIncluder(directory, context))
 		{
 			var result = D3DCompiler.D3DCompile(code.Ptr, (.)code.Length, fileName.FullIdentifier.ToScopeCStr!(), nativeMacros, &includer, entryPoint.ToScopeCStr!(),
 				compileTarget.ToScopeCStr!(), DefaultCompileFlags /* Pass down compile flags? */, .None, &outShader._shaderBlob, &errorBlob);

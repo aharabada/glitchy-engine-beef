@@ -242,7 +242,7 @@ namespace GlitchyEngine.Renderer.Text
 			StyleStack<bool> richTextStack = scope .(true);
 
 			// TODO: color stack not used?!
-			StyleStack<ColorRGBA> fontColorStack = scope .(textRenderer.Color);
+			//StyleStack<ColorRGBA> fontColorStack = scope .(textRenderer.Color);
 
 			StyleStack<float> fontSizeStack = scope .(textRenderer.FontSize);
 

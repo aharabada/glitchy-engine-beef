@@ -276,10 +276,10 @@ namespace ImGui
 			const String[?] componentNames = .("X", "Y", "Z", "W");
 			const String[?] componentIds = .("##X", "##Y", "##Z", "##W");
 
-			static int mouseLockId = 0;
+			//static int mouseLockId = 0;
 
 			bool changed = false;
-			bool deactivated = false;
+			//bool deactivated = false;
 
 			if (!label.IsEmpty)
 			{

@@ -119,11 +119,11 @@ class InspectorWindow : EditorWindow
 		{
 			ShowAssetProperties(assetHandle, editor);
 		}
-		else if (object case .Entity(let entityId))
+		else if (object case .Entity(var entityId))
 		{
 			ShowEntityProperties(entityId, editor);
 		}
-		else if (object case .Component(let entityId, let componentType))
+		else if (object case .Component(out entityId, let componentType))
 		{
 			ShowEntityProperties(entityId, editor, componentType);
 		}
@@ -156,7 +156,7 @@ class InspectorWindow : EditorWindow
 			if (assetFile.LoadedAsset != null)
 			{
 				// TODO: Where do we get the asset editor from?
-				if (let mat = assetFile.LoadedAsset as Material)
+				if (assetFile.LoadedAsset is Material)
 				{
 					MaterialEditor.ShowEditor(assetFile);
 					//ImGui.TextUnformatted(assetFile.LoadedAsset.Identifier);

@@ -929,10 +929,5 @@ static
 		return (int64)gcd((uint64)Math.Abs(u), (uint64)Math.Abs(v));
 	}
 
-	public static this()
-	{
-		int64 i = (int64)gcd(38, 123);
-	}
-
 #endregion
 }

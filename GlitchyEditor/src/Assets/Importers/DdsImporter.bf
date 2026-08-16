@@ -630,7 +630,7 @@ static class DdsImporter
 		surfaces.Reserve(surfaceCount);
 
 		uint32 scanLineSize = 0;
-		uint32 slicePitch = 0;
+		//uint32 slicePitch = 0;
 		uint64 numBytes = 0;
 		uint32 blockSize = 0; // Block size in bytes.
 

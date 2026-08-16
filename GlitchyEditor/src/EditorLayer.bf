@@ -589,7 +589,7 @@ namespace GlitchyEditor
 		/// @remarks If the creation fails at any point the entire directory will be deleted.
 		private Result<void> CreateNewProject(StringView workspaceDirectory, StringView projectName)
 		{
-			if (Directory.CreateDirectory(workspaceDirectory) case .Err(let error))
+			if (Directory.CreateDirectory(workspaceDirectory) case .Err(var error))
 			{
 				Log.ClientLogger.Error($"Failed to create directory \"{workspaceDirectory}\". ({error})");
 				return .Err;
@@ -610,9 +610,9 @@ namespace GlitchyEditor
 			// If the project couldn't be created or initialization failed, we delete the workspace directory.
 			if (newProjectResult == .Err)
 			{
-				if (Directory.DelTree(workspaceDirectory) case .Err(let error))
+				if (Directory.DelTree(workspaceDirectory) case .Err(out error))
 				{
-					Log.EngineLogger.Error($"Failed to delete workspace ({workspaceDirectory}).");
+					Log.EngineLogger.Error($"Failed to delete workspace ({workspaceDirectory}). ({error})");
 				}
 
 				return .Err;

@@ -972,14 +972,14 @@ class EditorContentManager : IContentManager
 	{
 		Runtime.NotImplemented();
 
-		if (oldIdentifier == newIdentifier)
+		/*if (oldIdentifier == newIdentifier)
 			return;
 
 		Log.EngineLogger.Assert(_identiferToHandle.ContainsKey(newIdentifier), "An asset with the same identifier is already managed by this content manager.");
 
 		// Since all we do in order to track assets is add them to a dictionary we can simply unmanage and manage it again.
 		//UnmanageAsset(asset);
-		//ManageAsset(asset);
+		//ManageAsset(asset);*/
 	}
 	
 	// TODO: obviously use a map or something...

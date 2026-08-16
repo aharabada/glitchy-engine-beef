@@ -98,7 +98,7 @@ namespace GlitchyEngine.Content
 
 			for (var mesh in modelData.Meshes)
 			{
-				var name = StringView(mesh.Name);
+				//var name = StringView(mesh.Name);
 
 				//if (name == meshName)
 				{
@@ -616,7 +616,7 @@ namespace GlitchyEngine.Content
 				CGLTF.AccessorReadFloat(accessor, (uint)index, (float*)&result, 16);
 			case typeof(uint16):
 				CGLTF.AccessorReadUint(accessor, (uint)index, (uint32*)&result, 2);
-			case default:
+			default:
 				uint8* data = (uint8*)accessor.BufferView.Buffer.Data;
 
 				data += accessor.BufferView.Offset;

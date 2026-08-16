@@ -310,7 +310,7 @@ class AssetCache
 			Try!(compressedStream.TryRead(compressedData));
 
 			MemoryStream ms = new MemoryStream(asset.UncompressedByteCount);
-			ms.Memory.GrowUnitialized(asset.UncompressedByteCount);
+			ms.Memory.GrowUninitialized(asset.UncompressedByteCount);
 
 			LZ4.LZ4F_dctx* context;
 			LZ4.LZ4F_CreateDecompressionContext(out context);

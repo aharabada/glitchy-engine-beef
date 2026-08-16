@@ -247,6 +247,7 @@ class SerializedObject
 
 	static T GetFieldDataAs<T>(FieldData fieldData)
 	{
+#unwarn		
 		return *(T*)&fieldData.RawData;
 	}
 
@@ -323,7 +324,7 @@ class SerializedObject
 					Serialize.Value(writer, ValueView(typeof(StringView), &dataView), environment);
 				case .EngineObjectReference:
 					writer.Type("EngineObject");
-					if (field.Data.EngineObject.FullTypeName != null)
+					if (field.Data.EngineObject.FullTypeName.IsEmpty)
 						writer.Type((StringView)field.Data.ListEngineObject.FullTypeName);
 					Serialize.Value(writer, field.Data.EngineObject.ID, environment);
 				case .ObjectReference:

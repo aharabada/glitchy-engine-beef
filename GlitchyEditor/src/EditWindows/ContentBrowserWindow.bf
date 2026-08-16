@@ -465,7 +465,7 @@ namespace GlitchyEditor.EditWindows
 						_selectedFiles.ClearAndDeleteItems();
 					}
 					
-					if (currentDirectoryNode case .Ok(TreeNode<AssetNode> currentDirectory))
+					if (currentDirectoryNode case .Ok(out currentDirectory))
 					{
 						FileDropTarget(currentDirectory, .External);
 					}
