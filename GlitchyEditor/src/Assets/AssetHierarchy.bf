@@ -497,7 +497,7 @@ class AssetHierarchy
 		void AddEntryToTree(String filePath, bool isDirectory, TreeNode<AssetNode> parentNode)
 		{
 			// Try to find the node for the specified path in the given parent
-			TreeNode<AssetNode> treeNode = parentNode.Children.Where(scope (node) => node.Value.Path == filePath).FirstOrDefault();
+			TreeNode<AssetNode> treeNode = parentNode.Children.Where((node) => node.Value.Path == filePath).FirstOrDefault();
 
 			// If no node was found -> create one
 			if (treeNode == null)

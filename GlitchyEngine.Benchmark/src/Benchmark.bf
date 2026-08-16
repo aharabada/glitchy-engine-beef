@@ -55,10 +55,20 @@ class StdDevResultColumn : IResultColumn
 	{
 		TimeSpan meanTime = runToCalculate.ResultColumnValue[MeanTimeResultColumn.ColumnName];
 
-		int64 variance = runToCalculate.RunDurations.Select(scope (d) => {
+		// For some reason we need to specify the type arguments here.
+		/*int64 variance = runToCalculate.RunDurations.Sum<TimeSpan[], TimeSpan, delegate int64(TimeSpan), int64>(scope [=meanTime, =runToCalculate] (d) => {
 				TimeSpan delta = d - meanTime;
 				return (delta * delta).Ticks / runToCalculate.RunCount;
-			}).Sum();
+			});*/
+
+		int64 variance = 0;
+
+		for (let duration in runToCalculate.RunDurations)
+		{
+			TimeSpan delta = duration - meanTime;
+			variance += (delta * delta).Ticks / runToCalculate.RunCount;
+		}
+
 		return TimeSpan((int64)Math.Sqrt((double)variance));
 	}
 }
@@ -204,7 +214,7 @@ class BenchmarkResult
 		defer delete columnsToSort;
 		columnsToSort.Sort(scope (a, b) => a.Depth <=> b.Depth);
 
-		outColumnCalculationPlan.AddRange(columnsToSort.Select(scope (a) => a.Column));
+		outColumnCalculationPlan.AddRange(columnsToSort.Select((a) => a.Column));
 	}
 
 	private void CalculateStats(Span<IResultColumn> customColumns)

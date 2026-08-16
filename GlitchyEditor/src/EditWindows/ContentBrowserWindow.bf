@@ -243,7 +243,7 @@ namespace GlitchyEditor.EditWindows
 
 			for (StringView entryName in assetCreator.Name.Split('/'))
 			{
-				AssetCreatorTree nextNode = tree.Children.Where(scope (node) => node->Name == entryName).FirstOrDefault();
+				AssetCreatorTree nextNode = tree.Children.Where((node) => node->Name == entryName).FirstOrDefault();
 
 				// Create new node if we didn't find it
 				nextNode ??= tree.AddChild((entryName, null));
@@ -720,7 +720,7 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.TreeNodeFlags flags = .OpenOnArrow | .SpanAvailWidth;
 
-			if(tree.Children.Where(scope (node) => node->IsDirectory).Count() == 0)
+			if(tree.Children.Where((node) => node->IsDirectory).Count() == 0)
 				flags |= .Leaf;
 
 			if (tree->Path == CurrentDirectory)
@@ -1390,7 +1390,7 @@ namespace GlitchyEditor.EditWindows
 		private void CopySelectedFiles(bool cutFiles)
 		{
 			_filesToCopy.ClearAndDeleteItems();
-			_selectedFiles.Select(scope (file) => new String(file)).ToList(_filesToCopy);
+			_selectedFiles.Select((file) => new String(file)).ToList(_filesToCopy);
 			_cutFiles = cutFiles;
 		}
 

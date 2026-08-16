@@ -129,7 +129,7 @@ class ScriptEngineTestBase
 			TimeSpan totalRunTime = _runDurations.Sum();
 			TimeSpan meanRunTime = TimeSpan(totalRunTime.Ticks / runs);
 
-			double varianceMs = _runDurations.Select(scope (d) => Math.Pow((d - meanRunTime).TotalMilliseconds, 2)).Sum() / runs;
+			double varianceMs = _runDurations.Select((d) => Math.Pow((d - meanRunTime).TotalMilliseconds, 2)).Sum() / runs;
 			TimeSpan stdDeviation = TimeSpan.FromMilliseconds(Math.Sqrt(varianceMs));
 
 			Console.WriteLine($"Results:");
