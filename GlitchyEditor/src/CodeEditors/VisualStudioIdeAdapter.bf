@@ -1,7 +1,8 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using GlitchyEngine;
-using System.Collections;
+using GlitchyEditor.EditWindows;
 using GlitchyEditor.Settings;
 
 namespace GlitchyEditor.CodeEditors;
@@ -17,55 +18,53 @@ class VisualStudioIdeAdapter : IIdeAdapter
 		_ideInstallation = ideInstallation;
 	}
 
-	public bool IsRunning()
-	{
-		List<Process> processes = scope .();
-
-		if (Process.GetProcesses(processes) case .Err)
-		{
-			Log.EngineLogger.Error("Failed to get running processes.");
-			return false;
-		}
-
-		for (Process process in processes)
-		{
-			// TODO?
-		}
-
-		ClearAndDeleteItems!(processes);
-
-		return false;
-	}
-
 	public void OpenScript(StringView fileName, int lineNumber)
 	{
-		if (IsRunning())
-		{
-			ProcessStartInfo startInfo = scope .();
-			startInfo.SetFileName(_ideInstallation.Path);
-			startInfo.SetArguments(scope $"/Edit {fileName}");
-
-			scope SpawnedProcess().Start(startInfo);
-		}
-		else
-		{
-			ProcessStartInfo startInfo = scope .();
-			startInfo.SetFileName(_ideInstallation.Path);
-			startInfo.SetArguments(scope $"/Edit {fileName}");
-
-			scope SpawnedProcess().Start(startInfo);
-		}
+		Open(fileName, lineNumber);
 	}
 
 	public void OpenScriptProject()
 	{
-		String solutionPath = scope .();
+		Open(null, 0);
+	}
+
+	private void Open(StringView fileName, int lineNumber)
+	{
+		String solutionPath = scope String();
 		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
 
-		ProcessStartInfo psi = scope .();
-		psi.SetFileName(_ideInstallation.Path);
-		psi.SetArguments(solutionPath);
+		if (!File.Exists(solutionPath))
+		{
+			Log.EngineLogger.Error(scope $"Could not find solution file \"{solutionPath}\".");
+			return;
+		}
 
-		scope SpawnedProcess().Start(psi);
+		if (!File.Exists(_ideInstallation.Path))
+		{
+			Editor.Instance.ShowSettings();
+			Editor.Instance.SettingsWindow.HighlightSetting("Tools", "IDE");
+
+			PopupService.Instance.ShowMessageBox("Visual Studio not found.",
+				"The Visual Studio path could not be found. Please select a different IDE.");
+			return;
+		}
+
+#if BF_PLATFORM_WINDOWS
+		// Reuses a running Visual Studio instance that has our solution open (via EnvDTE),
+		// otherwise starts a new one.
+		DteOpenRequest request = new .();
+		request.SolutionPath = solutionPath;
+		request.DevenvPath = _ideInstallation.Path;
+		request.FileName = fileName;
+		request.LineNumber = lineNumber;
+
+		DteOpenRequest.Start(request);
+#else
+		ProcessStartInfo startInfo = scope .();
+		startInfo.SetFileName(_ideInstallation.Path);
+		startInfo.SetArguments(scope $"\"{solutionPath}\"");
+
+		scope SpawnedProcess().Start(startInfo);
+#endif
 	}
 }
