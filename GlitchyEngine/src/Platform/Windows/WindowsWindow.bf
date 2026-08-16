@@ -251,7 +251,7 @@ namespace GlitchyEngine
 		[CLink]
 		static extern IntBool IsWindowUnicode(HWND whnd);
 
-		public Result<void> SetIcon(StringView filePath)
+		public override Result<void> SetIcon(StringView filePath)
 		{
 			HICON hIcon = LoadImageW(0, filePath.ToScopedNativeWChar!(), .Icon, 0, 0, .LoadFromFile);
 			if (hIcon == 0)

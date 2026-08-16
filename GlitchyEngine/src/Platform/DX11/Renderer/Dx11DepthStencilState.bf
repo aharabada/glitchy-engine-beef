@@ -45,7 +45,7 @@ namespace GlitchyEngine.Renderer
 		internal DxDSSDesc nativeDescription;
 		internal ID3D11DepthStencilState* nativeDepthStencilState ~ _?.Release();
 
-		public this(GEDSSDesc description)
+		public override this(GEDSSDesc description)
 		{
 			Debug.Profiler.ProfileResourceFunction!();
 
