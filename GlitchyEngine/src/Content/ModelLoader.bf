@@ -92,7 +92,7 @@ namespace GlitchyEngine.Content
 			// TODO: load with content manager
 
 			result = CGLTF.LoadBuffers(options, modelData, (char8*)null);
-			//result = LoadBuffersWithContentManager(options, modelData, meshName, Application.Get().ContentManager);
+			//result = LoadBuffersWithContentManager(options, modelData, meshName, Application.Instance.ContentManager);
 
 			GeometryBinding geoBinding = null;
 

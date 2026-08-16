@@ -139,7 +139,7 @@ namespace GlitchyEditor
 			_componentEditWindow = new ComponentEditWindow();
 			_contentBrowserWindow = new ContentBrowserWindow(this, (.)Application.Instance.ContentManager, _thumbnailManager);
 			_inspectorWindow = new InspectorWindow(this);
-			_assetViewer = new AssetViewer((.)Application.Get().ContentManager);
+			_assetViewer = new AssetViewer((.)Application.Instance.ContentManager);
 			_logWindow = new LogWindow();
 			_settingsWindow = new SettingsWindow();
 		}

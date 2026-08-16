@@ -57,7 +57,7 @@ namespace GlitchyEditor.ImGui
 			}
 
 #if BF_PLATFORM_WINDOWS
-			ImGuiImplWin32.Init(Application.Get().Window.NativeWindow);
+			ImGuiImplWin32.Init(Application.Instance.Window.NativeWindow);
 #endif
 
 #if GE_GRAPHICS_DX11

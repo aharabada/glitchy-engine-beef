@@ -136,7 +136,7 @@ namespace GlitchyEngine.Renderer
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			nativeSwapChain.Present(Application.Get().Window.IsVSync ? 1 : 0, .None);
+			nativeSwapChain.Present(Application.Instance.Window.IsVSync ? 1 : 0, .None);
 		}
 	}
 }

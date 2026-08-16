@@ -39,7 +39,7 @@ namespace GlitchyEngine
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			if(Application.Get().Window.IsActive)
+			if(Application.Instance.Window.IsActive)
 			{
 				float3 movement = .();
 

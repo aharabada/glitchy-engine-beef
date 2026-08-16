@@ -295,7 +295,7 @@ namespace GlitchyEditor
 
 		private void InitGraphics()
 		{
-			_context = Application.Get().Window.Context..AddRef();
+			_context = Application.Instance.Window.Context..AddRef();
 			
 			RasterizerStateDescription rsDesc = .(.Solid, .Back, true);
 			_rasterizerState = new RasterizerState(rsDesc);

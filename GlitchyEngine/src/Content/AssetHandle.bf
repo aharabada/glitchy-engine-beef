@@ -115,7 +115,7 @@ struct AssetHandle<T> where T : Asset
 		_contentManager = _asset?.ContentManager;
 		if (_contentManager == null)
 			_contentManager = contentManager;
-		//_currentFrame = (uint8)Application.Get().GameTime.FrameCount;
+		//_currentFrame = (uint8)Application.Instance.GameTime.FrameCount;
 	}
 
 	// Creates a new invalid asset handle

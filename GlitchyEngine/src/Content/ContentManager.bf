@@ -73,7 +73,7 @@ namespace GlitchyEngine.Content
 			var contentManager;
 
 			if (contentManager == null)
-				contentManager = Application.Get().ContentManager;
+				contentManager = Application.Instance.ContentManager;
 
 			AssetHandle handle = contentManager.LoadAsset(assetHandle, blocking);
 
@@ -86,7 +86,7 @@ namespace GlitchyEngine.Content
 			var contentManager;
 
 			if (contentManager == null)
-				contentManager = Application.Get().ContentManager;
+				contentManager = Application.Instance.ContentManager;
 
 			AssetHandle handle = contentManager.LoadAsset(assetIdentifier, blocking);
 
@@ -134,7 +134,7 @@ namespace GlitchyEngine.Content
 			var contentManager;
 
 			if (contentManager == null)
-				contentManager = Application.Get().ContentManager;
+				contentManager = Application.Instance.ContentManager;
 
 			contentManager.ManageAsset(asset);
 		}*/
