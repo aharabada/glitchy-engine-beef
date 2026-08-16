@@ -14,6 +14,7 @@ Xml-Beef = "*"
 ImGuiImplDX11 = "*"
 ImGuiImplWin32 = "*"
 ImGuizmo = "*"
+"Beef.Linq" = "*"
 
 [Platform.Windows]
 IconFile = "$(ProjectDir)/Resources/Textures/GlitchyEngineIcon.ico"

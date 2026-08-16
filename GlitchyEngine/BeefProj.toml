@@ -16,9 +16,11 @@ LodePng = "*"
 GlitchyEngineHelper = "*"
 bon = "*"
 box2d-beef = "*"
-"Beef.Linq" = "*"
 NetHostBeef = "*"
 ImGuiImplWin32 = "*"
+"Beef.Linq" = "*"
+ImGui = "*"
+ImGuiImplDX11 = "*"
 
 [Configs.Paranoid.Win32]
 PreprocessorMacros = ["DEBUG", "PARANOID", "GE_WINDOWS"]
