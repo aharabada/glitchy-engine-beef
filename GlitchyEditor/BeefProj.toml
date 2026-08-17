@@ -21,7 +21,7 @@ IconFile = "$(ProjectDir)/Resources/Textures/GlitchyEngineIcon.ico"
 
 [Configs.Debug.Win64]
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
-DebugCommandArguments = "\"D:\\Development\\Git\\SingleStateToOrbit\""
+DebugCommandArguments = "\"$(ProjectDir)/../GlitchyEngine.Test/content/TestProject\""
 PreprocessorMacros = ["DEBUG", "IMGUI"]
 
 [Configs.Release.Win64]

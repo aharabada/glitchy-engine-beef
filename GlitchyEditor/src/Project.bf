@@ -36,7 +36,8 @@ class Project
 	[AllowAppend]
 	private this(StringView workspacePath)
 	{
-		_workspacePath = new String(workspacePath);
+		_workspacePath = new String(workspacePath.Length);
+		Path.GetFullPath(workspacePath, _workspacePath);
 
 		_assetsFolder = new String();
 		PathInProject(_assetsFolder, "Assets");
@@ -306,6 +307,8 @@ class Project
 			}
 		}
 
+		bool changedContent = false;
+
 		if (referenceScriptCoreProject)
 		{
 			Log.EngineLogger.Info("Debug mode enabled. Referencing ScriptCore.csproj in Script-Solution.");
@@ -314,31 +317,48 @@ class Project
 			{
 				Log.EngineLogger.Warning("No reference to ScriptCore.csproj found. Adding...");
 				scriptCoreProjectReference = solution.DocumentElement.AddChild("Project");
+
+				changedContent = true;
 			}
 
 			String projectFilePath = scope .();
 			GetScriptCoreProjectFilePath(projectFilePath);
-			scriptCoreProjectReference["Path"] = projectFilePath;
+
+			if (!Path.Equals(scriptCoreProjectReference["Path"], projectFilePath))
+			{
+				scriptCoreProjectReference["Path"] = projectFilePath;
+				changedContent = true;
+			}
 		}
 		else if (scriptCoreProjectReference != null)
 		{
 			Log.EngineLogger.Warning("Reference to ScriptCore.csproj found. Removing...");
 			scriptCoreProjectReference.RemoveFromParent(true);
+			changedContent = true;
 		}
-		
-		String modifiedSolution = new String(solutionFileContent.Length * 2);
-		defer delete modifiedSolution;
-		solution.SaveToString(modifiedSolution);
 
-		if (File.WriteAllText(solutionPath, modifiedSolution) case .Err)
+		if (changedContent)
 		{
-			Log.EngineLogger.Error($"Failed to modify {solutionPath}");
-			return .Err;
+			Log.EngineLogger.Info("Script solution file updated, saving...");
+			
+			String modifiedSolution = new String(solutionFileContent.Length * 2);
+			defer delete modifiedSolution;
+			solution.SaveToString(modifiedSolution);
+
+			if (File.WriteAllText(solutionPath, modifiedSolution) case .Err)
+			{
+				Log.EngineLogger.Error($"Failed to modify {solutionPath}");
+				return .Err;
+			}
+		}
+		else
+		{
+			Log.EngineLogger.Info("Script solution file already up to date.");
 		}
 
 		return .Ok;
 	}
-	
+
 	/// If necessary adds or removes the reference to ScriptCore.dll from the project (.csproj) file.
 	private Result<void> FixupScriptProjectFile(bool referenceScriptCoreProject)
 	{
@@ -372,8 +392,19 @@ class Project
 			}
 		}
 
+		bool changedContent = false;
+
 		// Try to find a reference to the dll
 		XmlNode dllReferenceNode = project.DocumentElement.Find("Reference", "Include", "ScriptCore", recursive: true);
+		
+		mixin SetIfDifferent(XmlNode node, StringView attributeName, StringView wantedValue)
+		{
+			if (node.GetAttribute(attributeName)?.Value != wantedValue)
+			{
+				node.SetAttribute(attributeName, wantedValue);
+				changedContent = true;
+			}
+		}
 
 		if (referenceScriptCoreProject)
 		{
@@ -383,6 +414,7 @@ class Project
 			{
 				Log.EngineLogger.Warning("Reference to ScriptCore.dll found. Removing...");
 				dllReferenceNode.RemoveFromParent(true);
+				changedContent = true;
 			}
 
 			if (scriptCoreProjectReference == null)
@@ -392,16 +424,21 @@ class Project
 				XmlNode itemGroup = project.DocumentElement.Find("ItemGroup", recursive: true);
 
 				scriptCoreProjectReference = itemGroup.AddChild("ProjectReference");
-
-				String scriptCoreProjectPath = scope .();
-				Directory.GetCurrentDirectory(scriptCoreProjectPath);
-				Path.Combine(scriptCoreProjectPath, "../ScriptCore/ScriptCore.csproj");
-				Path.ToActualPath(scriptCoreProjectPath);
-
-				scriptCoreProjectReference.SetAttribute("Include", scriptCoreProjectPath);
-				scriptCoreProjectReference.SetAttribute("OutputItemType", "Analyzer");
-				scriptCoreProjectReference.SetAttribute("ReferenceOutputAssembly", "true");
+				changedContent = true;
 			}
+
+			String scriptCoreProjectPath = scope .();
+			Directory.GetCurrentDirectory(scriptCoreProjectPath);
+			Path.Combine(scriptCoreProjectPath, "../ScriptCore/ScriptCore.csproj");
+			Path.ToActualPath(scriptCoreProjectPath);
+
+			if (!Path.Equals(scriptCoreProjectReference.GetAttribute("Include")?.Value, scriptCoreProjectPath))
+			{
+				scriptCoreProjectReference.SetAttribute("Include", scriptCoreProjectPath);
+				changedContent = true;
+			}
+			SetIfDifferent!(scriptCoreProjectReference, "OutputItemType", "Analyzer");
+			SetIfDifferent!(scriptCoreProjectReference, "ReferenceOutputAssembly", "true");
 		}
 		else
 		{
@@ -409,6 +446,7 @@ class Project
 			{
 				Log.EngineLogger.Warning("Reference to ScriptCore.csproj found. Removing...");
 				scriptCoreProjectReference.RemoveFromParent(true);
+				changedContent = true;
 			}
 
 			if (dllReferenceNode == null)
@@ -418,16 +456,18 @@ class Project
 				XmlNode itemGroup = project.DocumentElement.Find("ItemGroup", recursive: true);
 
 				dllReferenceNode = itemGroup.AddChild("Reference");
+				changedContent = true;
 			}
-
-			dllReferenceNode.SetAttribute("Include", "ScriptCore");
-			dllReferenceNode.SetAttribute("OutputItemType", "Analyzer");
-			dllReferenceNode.SetAttribute("ReferenceOutputAssembly", "true");
+			
+			SetIfDifferent!(dllReferenceNode, "Include", "ScriptCore");
+			SetIfDifferent!(dllReferenceNode, "OutputItemType", "Analyzer");
+			SetIfDifferent!(dllReferenceNode, "ReferenceOutputAssembly", "true");
 
 			XmlNode hintPathNode = dllReferenceNode.Find("HintPath");
 			if (hintPathNode == null)
 			{
 				hintPathNode = dllReferenceNode.AddChild("HintPath");
+				changedContent = true;
 			}
 
 			String pathToScriptCoreDll = scope .();
@@ -441,16 +481,29 @@ class Project
 				return .Err;
 			}	
 
-			hintPathNode.SetText(pathToScriptCoreDll);
+			if (!Path.Equals(hintPathNode.Text, pathToScriptCoreDll))
+			{
+				hintPathNode.SetText(pathToScriptCoreDll);
+				changedContent = true;
+			}
 		}
-
-		String modfiedProject = new String(projectFileContent.Length * 2);
-		defer delete modfiedProject;
-		project.SaveToString(modfiedProject);
-
-		if (File.WriteAllText(csprojPath, modfiedProject) case .Err)
+		
+		if (changedContent)
 		{
-			Log.EngineLogger.Error($"Failed to modify {csprojPath}");
+			Log.EngineLogger.Info("Script project file updated, saving...");
+			
+			String modfiedProject = new String(projectFileContent.Length * 2);
+			defer delete modfiedProject;
+			project.SaveToString(modfiedProject);
+	
+			if (File.WriteAllText(csprojPath, modfiedProject) case .Err)
+			{
+				Log.EngineLogger.Error($"Failed to modify {csprojPath}");
+			}
+		}
+		else
+		{
+			Log.EngineLogger.Info("Script project file already up to date.");
 		}
 
 		return .Ok;
