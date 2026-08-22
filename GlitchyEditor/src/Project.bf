@@ -80,6 +80,27 @@ class Project
 		Path.Combine(outTarget, "../ScriptCore/ScriptCore.csproj");
 		Path.ToActualPath(outTarget);
 	}
+	
+	private static void GetScriptCoreGeneratorProjectFilePath(String outTarget)
+	{
+		Directory.GetCurrentDirectory(outTarget);
+		Path.Combine(outTarget, "../ScriptCoreGenerator/ScriptCoreGenerator.csproj");
+		Path.ToActualPath(outTarget);
+	}
+	
+	private static void GetScriptCoreGeneratorTestProjectFilePath(String outTarget)
+	{
+		Directory.GetCurrentDirectory(outTarget);
+		Path.Combine(outTarget, "../ScriptCoreGenerator.Test/ScriptCoreGenerator.Test.csproj");
+		Path.ToActualPath(outTarget);
+	}
+	
+	private static void GetImGuiDotNetProjectFilePath(String outTarget)
+	{
+		Directory.GetCurrentDirectory(outTarget);
+		Path.Combine(outTarget, "../vendor/ImGui.NET/src/ImGui.NET/ImGui.NET.csproj");
+		Path.ToActualPath(outTarget);
+	}
 
 	/// Loads or creates the user specific settings for this project.
 	private void InitUserSettings()
@@ -275,7 +296,8 @@ class Project
 		return project;
 	}
 	
-	/// If necessary adds or removes the reference to ScriptCore.csproj from the solution (.slnx) file.
+	/// If missing adds the reference to ScriptCore and other script dependencies from the solution (.slnx) file.
+	/// @param referenceScriptCoreProject If true, ScriptCore and other dependencies will be referenced using their .csproj-files. Otherwise the ScriptCore-dll will be referenced.
 	private Result<void> FixupScriptSolutionFile(bool referenceScriptCoreProject)
 	{
 		String solutionPath = scope .();
@@ -294,49 +316,24 @@ class Project
 
 		solution.LoadFromString(solutionFileContent);
 
-		XmlNode scriptCoreProjectReference = null;
-		for (XmlNode projectNode in solution.DocumentElement.EnumerateNodes("Project", recursive: true))
-		{
-			if (projectNode.TryGetAttribute("Path", let includeAttribute))
-			{
-				if (includeAttribute.Value.Contains("ScriptCore.csproj", true))
-				{
-					scriptCoreProjectReference = projectNode;
-					break;
-				}
-			}
-		}
-
 		bool changedContent = false;
-
-		if (referenceScriptCoreProject)
-		{
-			Log.EngineLogger.Info("Debug mode enabled. Referencing ScriptCore.csproj in Script-Solution.");
-
-			if (scriptCoreProjectReference == null)
-			{
-				Log.EngineLogger.Warning("No reference to ScriptCore.csproj found. Adding...");
-				scriptCoreProjectReference = solution.DocumentElement.AddChild("Project");
-
-				changedContent = true;
-			}
-
-			String projectFilePath = scope .();
-			GetScriptCoreProjectFilePath(projectFilePath);
-
-			if (!Path.Equals(scriptCoreProjectReference["Path"], projectFilePath))
-			{
-				scriptCoreProjectReference["Path"] = projectFilePath;
-				changedContent = true;
-			}
-		}
-		else if (scriptCoreProjectReference != null)
-		{
-			Log.EngineLogger.Warning("Reference to ScriptCore.csproj found. Removing...");
-			scriptCoreProjectReference.RemoveFromParent(true);
-			changedContent = true;
-		}
-
+		
+		String scriptCoreFilePath = scope .();
+		GetScriptCoreProjectFilePath(scriptCoreFilePath);
+		changedContent |= Try!(AddProjectToSolution(solution, scriptCoreFilePath, referenceScriptCoreProject));
+		
+		String scriptCoreGeneratorFilePath = scope .();
+		GetScriptCoreGeneratorProjectFilePath(scriptCoreGeneratorFilePath);
+		changedContent |= Try!(AddProjectToSolution(solution, scriptCoreGeneratorFilePath, referenceScriptCoreProject));
+		
+		String scriptCoreGeneratorTestFilePath = scope .();
+		GetScriptCoreGeneratorTestProjectFilePath(scriptCoreGeneratorTestFilePath);
+		changedContent |= Try!(AddProjectToSolution(solution, scriptCoreGeneratorTestFilePath, referenceScriptCoreProject));
+		
+		String imGuiDotNetFilePath = scope .();
+		GetImGuiDotNetProjectFilePath(imGuiDotNetFilePath);
+		changedContent |= Try!(AddProjectToSolution(solution, imGuiDotNetFilePath, referenceScriptCoreProject));
+		
 		if (changedContent)
 		{
 			Log.EngineLogger.Info("Script solution file updated, saving...");
@@ -357,6 +354,54 @@ class Project
 		}
 
 		return .Ok;
+	}
+
+	private Result<bool> AddProjectToSolution(Xml solution, StringView projectFilePath, bool referenceScriptCoreProject)
+	{
+		String projectName = scope .();
+		Path.GetFileName(projectFilePath, projectName);
+
+		XmlNode projectReference = null;
+		for (XmlNode projectNode in solution.DocumentElement.EnumerateNodes("Project", recursive: true))
+		{
+			if (projectNode.TryGetAttribute("Path", let includeAttribute))
+			{
+				if (includeAttribute.Value.Contains(projectName, true))
+				{
+					projectReference = projectNode;
+					break;
+				}
+			}
+		}
+
+		bool changedContent = false;
+
+		if (referenceScriptCoreProject)
+		{
+			Log.EngineLogger.Info($"Debug mode enabled. Referencing {projectName} in Script-Solution.");
+
+			if (projectReference == null)
+			{
+				Log.EngineLogger.Warning($"No reference to {projectName} found. Adding...");
+				projectReference = solution.DocumentElement.AddChild("Project");
+
+				changedContent = true;
+			}
+
+			if (projectReference["Path"] != projectFilePath)
+			{
+				projectReference["Path"] = projectFilePath;
+				changedContent = true;
+			}
+		}
+		else if (projectReference != null)
+		{
+			Log.EngineLogger.Warning($"Reference to {projectName} found. Removing...");
+			projectReference.RemoveFromParent(true);
+			changedContent = true;
+		}
+
+		return changedContent;
 	}
 
 	/// If necessary adds or removes the reference to ScriptCore.dll from the project (.csproj) file.
