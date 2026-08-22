@@ -14,6 +14,9 @@ namespace GlitchyEditor.CodeEditors;
 /// All methods must be called from a thread that is initialized for COM (CoInitializeEx).
 static class VisualStudioDte
 {
+	public const int MaxPolls = 120;
+	public const int PollIntervalMs = 500;
+
 	private const String MonikerPrefix = "!VisualStudio.DTE";
 	/// EnvDTE.Constants.vsViewKindCode
 	private const String ViewKindCode = "{7651A701-06E5-11D1-8EBD-00A0C90F26EA}";
@@ -204,12 +207,12 @@ static class VisualStudioDte
 		defer { delete document; }
 		
 		// Directly after OpenFile the ActiveDocument might not be set yet, so retry for a bit.
-		for (int i < 50)
+		for (int i < MaxPolls)
 		{
 			if (dte.GetObjectProperty("ActiveDocument") case .Ok(out document))
 				break;
 
-			Thread.Sleep(100);
+			Thread.Sleep(PollIntervalMs);
 		}
 
 		if (document == null)

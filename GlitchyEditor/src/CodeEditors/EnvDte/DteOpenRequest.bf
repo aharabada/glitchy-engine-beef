@@ -13,9 +13,6 @@ namespace GlitchyEditor.CodeEditors;
 /// Runs on its own worker thread so the editor never blocks on a busy or starting Visual Studio.
 class DteOpenRequest
 {
-	private const int ColdStartMaxPolls = 120;
-	private const int ColdStartPollIntervalMs = 500;
-
 	private append String _solutionPath = .();
 	private append String _devenvPath = .();
 	private append String _fileName = .();
@@ -108,9 +105,9 @@ class DteOpenRequest
 
 		// Wait for the new instance to finish loading the solution (Solution.FullName stays empty
 		// until then), then open the file in it.
-		for (int i < ColdStartMaxPolls)
+		for (int i < VisualStudioDte.MaxPolls)
 		{
-			Thread.Sleep(ColdStartPollIntervalMs);
+			Thread.Sleep(VisualStudioDte.PollIntervalMs);
 
 			if (VisualStudioDte.FindRunningInstance(SolutionPath) case .Ok(let startedDte))
 			{
