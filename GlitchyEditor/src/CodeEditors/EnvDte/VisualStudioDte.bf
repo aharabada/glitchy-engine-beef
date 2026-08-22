@@ -107,7 +107,7 @@ static class VisualStudioDte
 
 	/// Opens the given file in the code editor of the given Visual Studio instance and
 	/// jumps to lineNumber (1-based, ignored if <= 0).
-	public static Result<void> OpenFileAtLine(ComDispatch dte, StringView fileName, int lineNumber)
+	public static Result<void> OpenFileAtLine(ComDispatch dte, StringView fileName, int lineNumber, int columnNumber)
 	{
 		ComDispatch itemOperations = Try!(dte.GetObjectProperty("ItemOperations"));
 		defer delete itemOperations;
@@ -125,7 +125,7 @@ static class VisualStudioDte
 		}
 
 		if (lineNumber > 0)
-			GoToLine(dte, lineNumber);
+			GoToLine(dte, lineNumber, columnNumber);
 
 		ActivateMainWindow(dte);
 
@@ -198,13 +198,13 @@ static class VisualStudioDte
 		return path;
 	}
 
-	private static void GoToLine(ComDispatch dte, int lineNumber)
+	private static void GoToLine(ComDispatch dte, int lineNumber, int columnNumber)
 	{
 		ComDispatch document = null;
 		defer { delete document; }
 		
 		// Directly after OpenFile the ActiveDocument might not be set yet, so retry for a bit.
-		for (int i < 10)
+		for (int i < 50)
 		{
 			if (dte.GetObjectProperty("ActiveDocument") case .Ok(out document))
 				break;
@@ -224,9 +224,14 @@ static class VisualStudioDte
 			return;
 		}
 
-		VARIANT[2] gotoLineArgs = .(VARIANT.FromInt32((int32)lineNumber), VARIANT.FromBool(false));
+		/*VARIANT[2] gotoLineArgs = .(VARIANT.FromInt32((int32)lineNumber), VARIANT.FromBool(false));
 
 		if (selection.InvokeMethod("GotoLine", gotoLineArgs) case .Ok(var gotoResult))
+			VariantClear(&gotoResult);*/
+		
+		VARIANT[3] gotoLineArgs = .(VARIANT.FromInt32((int32)lineNumber), VARIANT.FromInt32((int32)columnNumber), VARIANT.FromBool(false));
+
+		if (selection.InvokeMethod("MoveTo", gotoLineArgs) case .Ok(var gotoResult))
 			VariantClear(&gotoResult);
 
 		delete selection;

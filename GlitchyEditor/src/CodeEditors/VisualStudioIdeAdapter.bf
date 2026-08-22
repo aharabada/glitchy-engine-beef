@@ -18,17 +18,17 @@ class VisualStudioIdeAdapter : IIdeAdapter
 		_ideInstallation = ideInstallation;
 	}
 
-	public void OpenScript(StringView fileName, int lineNumber)
+	public void OpenScript(StringView fileName, int lineNumber, int columnNumber)
 	{
-		Open(fileName, lineNumber);
+		Open(fileName, lineNumber, columnNumber);
 	}
 
 	public void OpenScriptProject()
 	{
-		Open(null, 0);
+		Open(null, 0, 0);
 	}
 
-	private void Open(StringView fileName, int lineNumber)
+	private void Open(StringView fileName, int lineNumber, int columnNumber)
 	{
 		String solutionPath = scope String();
 		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
@@ -57,6 +57,7 @@ class VisualStudioIdeAdapter : IIdeAdapter
 		request.DevenvPath = _ideInstallation.Path;
 		request.FileName = fileName;
 		request.LineNumber = lineNumber;
+		request.ColumnNumber = columnNumber;
 
 		DteOpenRequest.Start(request);
 #else

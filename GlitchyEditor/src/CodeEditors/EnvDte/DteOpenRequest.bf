@@ -40,6 +40,7 @@ class DteOpenRequest
 	}
 
 	public int LineNumber;
+	public int ColumnNumber;
 
 	private static int32 sWorkerActive = 0;
 
@@ -83,7 +84,7 @@ class DteOpenRequest
 			if (FileName.IsEmpty)
 				VisualStudioDte.ActivateMainWindow(dte);
 			else
-				VisualStudioDte.OpenFileAtLine(dte, FileName, LineNumber).IgnoreError();
+				VisualStudioDte.OpenFileAtLine(dte, FileName, LineNumber, ColumnNumber).IgnoreError();
 
 			delete dte;
 
@@ -113,7 +114,7 @@ class DteOpenRequest
 
 			if (VisualStudioDte.FindRunningInstance(SolutionPath) case .Ok(let startedDte))
 			{
-				VisualStudioDte.OpenFileAtLine(startedDte, FileName, LineNumber).IgnoreError();
+				VisualStudioDte.OpenFileAtLine(startedDte, FileName, LineNumber, ColumnNumber).IgnoreError();
 
 				delete startedDte;
 				return;

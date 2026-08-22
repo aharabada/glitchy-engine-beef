@@ -21,14 +21,15 @@ class RiderIdeAdapter : IIdeAdapter
 		_ideInstallation = ideInstallation;
 	}
 
-	public void OpenScript(StringView fileName, int lineNumber)
+	public void OpenScript(StringView fileName, int lineNumber, int columnNumber)
 	{
 		String solutionPath = scope .();
 		Editor.Instance.CurrentProject.GetPathToScriptSolutionFile(solutionPath);
 
 		ProcessStartInfo startInfo = scope .();
 		startInfo.SetFileName(_ideInstallation.Path);
-		startInfo.SetArguments(scope $"{solutionPath} --line {lineNumber} {fileName}");
+		// For rider columns appear to be 0-indexed
+		startInfo.SetArguments(scope $"\"{solutionPath}\" --line {lineNumber} --column {columnNumber - 1} \"{fileName}\"");
 
 		scope SpawnedProcess().Start(startInfo);
 	}
