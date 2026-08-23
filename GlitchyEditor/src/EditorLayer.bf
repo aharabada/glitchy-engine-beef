@@ -75,14 +75,6 @@ namespace GlitchyEditor
 
 		private float _fixedTimestep = 1.0f / 60.0f;
 		
-		append List<(String Name, String Path)> _recentScenePaths = .() ~ {
-				for (var item in _)
-				{
-					delete item.Name;
-					delete item.Path;
-				}
-			};
-		
 		private GameTime _simulationGameTime = new .() ~ delete _;
 		
 		/// Gets or sets the path of the current scene.

@@ -375,17 +375,25 @@ class EditorSettings
 			if (_recentProjects == null)
 				_recentProjects = new List<String>();
 
+			String absolutePath = new String(value.Length);
+			Path.GetFullPath(value, absolutePath);
+			if (absolutePath.EndsWith(Path.DirectorySeparatorChar))
+				absolutePath.RemoveFromEnd(1);
+
 			// Remove duplicates
 			for (var entry in _recentProjects)
 			{
-				if (entry == value)
+				if (entry.EndsWith(Path.DirectorySeparatorChar))
+					entry.RemoveFromEnd(1);
+	
+				if (Path.Equals(entry, absolutePath))
 				{
 					delete entry;
 					@entry.Remove();
 				}
 			}
 
-			_recentProjects.Insert(0, new String(value));
+			_recentProjects.Insert(0, absolutePath);
 
 			if (_recentProjects.Count > 10)
 			{

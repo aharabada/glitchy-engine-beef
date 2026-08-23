@@ -38,6 +38,8 @@ class Project
 	{
 		_workspacePath = new String(workspacePath.Length);
 		Path.GetFullPath(workspacePath, _workspacePath);
+		if (_workspacePath.EndsWith(Path.DirectorySeparatorChar))
+			_workspacePath.RemoveFromEnd(1);
 
 		_assetsFolder = new String();
 		PathInProject(_assetsFolder, "Assets");
