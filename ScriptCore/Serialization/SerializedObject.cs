@@ -321,7 +321,7 @@ public class SerializedObject
     {
         if (fieldType.IsSubclassOf(typeof(EngineObject)))
         {
-            AddValueTypeField(fieldName, SerializationType.ObjectReference, ((EngineObject?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
+            AddValueTypeField(fieldName, SerializationType.EngineObjectReference, ((EngineObject?)fieldValue)?.UUID ?? UUID.Zero, fieldValue?.GetType().FullName);
         }
         else
         {
