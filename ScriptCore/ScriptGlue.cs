@@ -589,13 +589,15 @@ internal static unsafe partial class ScriptGlue
     public static void Entity_GetScriptInstance(UUID entityId, out Entity? instance)
     {
         // We currently can implement this method here, because we only have C# scripts.
-        // If we ever need to do something to interop with other script languages, then this would change.
+        // If we ever need to do something to interop with other script languages, then this would probably need to communicate with the engine.
         if (EntityScriptInstances.TryGetValue(entityId, out var match))
         {
             instance = match.Entity;
         }
-
-        instance = null;
+        else
+        {
+            instance = null;
+        }
     }
 
     public static void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string fieldName, object? valueObject, string? fullTypeName)
