@@ -492,19 +492,17 @@ static class ScriptEngine
 		return scriptClass;
 	}
 
-	internal static void LogScriptException(ScriptException exception, UUID entityId)
+	internal static void LogScriptException(ScriptException exception)
 	{
 		String entityInfo = scope .();
 
-		if (entityId != .Zero && Context != null)
+		if (exception.EntityId != .Zero && Context != null)
 		{
-			exception.EntityId = entityId;
-
-			Result<Entity> sourceEntity = Context.GetEntityByID(entityId);
+			Result<Entity> sourceEntity = Context.GetEntityByID(exception.EntityId);
 
 			if (sourceEntity case .Ok(let e))
 			{
-				entityInfo.AppendF($" ({e.Name} | {entityId})");
+				entityInfo.AppendF($" ({e.Name} | {exception.EntityId})");
 			}
 		}
 

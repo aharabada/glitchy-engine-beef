@@ -139,7 +139,7 @@ public class EditorLogger : Logger
 		}
 		else if (args.Count > 0 && messageOrigin != null)
 		{
-			Editor.Instance.LogWindow.Log(timestamp, level, message, new .() {IsEngineMessage = IsEngineLogger, MessageOrigin = new MessageOrigin(messageOrigin.FileName, messageOrigin.LineNumber)});
+			Editor.Instance.LogWindow.Log(timestamp, level, message, new .() {Entity = (messageOrigin.EntityId != .Zero ? messageOrigin.EntityId : null), IsEngineMessage = IsEngineLogger, MessageOrigin = new MessageOrigin(messageOrigin.EntityId, messageOrigin.FileName, messageOrigin.CallerMemberName, messageOrigin.LineNumber, messageOrigin.ColumnNumber)});
 		}
 		else
 		{

@@ -122,7 +122,8 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         None,
         Ref,
         In,
-        Out
+        Out,
+        Pointer
     }
 
     private static (MappedType Type, TypeModifier Modifier) DecodeType(string beefType, Dictionary<string, MappedType> beefTypeToMappedType)
@@ -143,6 +144,15 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         {
             modifier = TypeModifier.In;
             beefType = beefType.Substring(3);
+        }
+
+        if (beefTypeToMappedType.TryGetValue(beefType, out var mapping))
+            return (mapping, modifier);
+
+        if (beefType.EndsWith("*"))
+        {
+            modifier = TypeModifier.Pointer;
+            beefType = beefType.Substring(0, beefType.Length - 1);
         }
 
         if (beefTypeToMappedType.TryGetValue(beefType, out MappedType? mappedType))
@@ -296,6 +306,14 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             }
 
             parameterText.Append(parameterType.CSharpTypeName);
+
+            switch (parameterModifier)
+            {
+                case TypeModifier.Pointer:
+                    parameterText.Append("*");
+                    break;
+            }
+
             parameterText.Append(", ");
         }
 
@@ -345,7 +363,12 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                     break;
             }
 
-            parameterText.Append($"{parameterType.CSharpWrapperType} {param.Name}");
+            parameterText.Append($"{parameterType.CSharpWrapperType}");
+            
+            if (parameterModifier == TypeModifier.Pointer)
+                parameterText.Append("*");
+
+            parameterText.Append($" {param.Name}");
 
             switch (parameterModifier)
             {

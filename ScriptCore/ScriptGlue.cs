@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text;
+using System.Threading;
 
 namespace GlitchyEngine;
 
@@ -272,17 +273,26 @@ internal static unsafe partial class ScriptGlue
         _unsafeClasses = null;
     }
 
+    private static readonly AsyncLocal<UUID> _currentEntityId = new ();
+
+    internal static UUID CurrentEntityId => _currentEntityId.Value;
+
     [UnmanagedCallersOnly]
     public static void ShowEntityEditor(UUID entityId)
     {
         try
         {
+            _currentEntityId.Value = entityId;
             (Entity entity, Type type) = EntityScriptInstances[entityId];
             EntityEditor.ShowEntityEditor(entity);
         }
         catch (Exception e)
         {
             Log.Exception(e);
+        }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
         }
     }
 
@@ -291,12 +301,17 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
+            _currentEntityId.Value = entityId;
             (Entity entity, Type type) = EntityScriptInstances[entityId];
             entity.OnCreate();
         }
         catch (Exception e)
         {
             Log.Exception(e);
+        }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
         }
     }
     
@@ -305,12 +320,17 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
+            _currentEntityId.Value = entityId;
             (Entity entity, Type type) = EntityScriptInstances[entityId];
             entity.OnUpdate(deltaTime);
         }
         catch (Exception e)
         {
             Log.Exception(e);
+        }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
         }
     }
     
@@ -319,12 +339,17 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
+            _currentEntityId.Value = entityId;
             (Entity entity, Type type) = EntityScriptInstances[entityId];
             entity.OnCollisionEnter2D(collision);
         }
         catch (Exception e)
         {
             Log.Exception(e);
+        }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
         }
     }
 
@@ -333,6 +358,7 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
+            _currentEntityId.Value = entityId;
             if (EntityScriptInstances.Remove(entityId, out var match) && callDestroy > 0)
             {
                 match.Entity.OnDestroy();
@@ -341,6 +367,10 @@ internal static unsafe partial class ScriptGlue
         catch (Exception e)
         {
             Log.Exception(e);
+        }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
         }
     }
 
@@ -365,6 +395,7 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
+            _currentEntityId.Value = entityId;
             Type? scriptType = GetTypeFromNativeString(scriptClassName);
 
             Debug.Assert(scriptType != null, "Script class Type not found.");
@@ -378,6 +409,10 @@ internal static unsafe partial class ScriptGlue
         catch (Exception e)
         {
             Log.Exception(e);
+        }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
         }
     }
 
@@ -459,6 +494,7 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
+            _currentEntityId.Value = entityId;
             if (!EntityScriptInstances.TryGetValue(entityId, out var match))
                 return;
 
@@ -468,6 +504,10 @@ internal static unsafe partial class ScriptGlue
         {
             Log.Exception(e);
         }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
+        }
     }
     
     [UnmanagedCallersOnly]
@@ -475,6 +515,7 @@ internal static unsafe partial class ScriptGlue
     {
         try
         {
+            _currentEntityId.Value = entityId;
             if (!EntityScriptInstances.TryGetValue(entityId, out var match))
                 return;
 
@@ -483,6 +524,10 @@ internal static unsafe partial class ScriptGlue
         catch (Exception e)
         {
             Log.Exception(e);
+        }
+        finally
+        {
+            _currentEntityId.Value = UUID.Zero;
         }
     }
     

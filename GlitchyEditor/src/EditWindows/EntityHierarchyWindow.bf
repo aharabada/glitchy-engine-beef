@@ -66,6 +66,8 @@ namespace GlitchyEditor.EditWindows
 		{
 			_entityToHighlight = e;
 
+			SelectEntity(e, true);
+
 			Entity walker = _entityToHighlight;
 
 			while (walker.Parent != null)

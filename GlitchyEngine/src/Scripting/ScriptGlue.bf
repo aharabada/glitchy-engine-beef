@@ -28,19 +28,29 @@ using internal GlitchyEngine.Content;
 // TODO: Move to logger?
 class MessageOrigin
 {
+	private UUID _entityId;
 	private String _fileName ~ delete:append _;
+	private String _callerMemberName ~ delete:append _;
 	private int _lineNumber;
+	private int _columnNumber;
 
+	public UUID EntityId => _entityId;
 	public StringView FileName => _fileName;
+	public StringView CallerMemberName => _callerMemberName;
 	public int LineNumber => _lineNumber;
+	public int ColumnNumber => _columnNumber;
 
 	[AllowAppend]
-	public this(StringView fileName, int lineNumber)
+	public this(UUID entityId, StringView fileName, StringView callerMemberName, int lineNumber, int columnNumber)
 	{
 		String file = append String(fileName);
+		String caller = append String(callerMemberName);
 
+		_entityId = entityId;
 		_fileName = file;
+		_callerMemberName = caller;
 		_lineNumber = lineNumber;
+		_columnNumber = columnNumber;
 	}
 }
 
@@ -445,7 +455,7 @@ static class ScriptGlue
 #region Log
 
 	[RegisterCall, CallingConvention(.Cdecl)]
-	static void Log_LogMessage(LogLevel logLevel, StringView messagePtr, StringView fileNamePtr, int lineNumber)
+	static void Log_LogMessage(LogLevel logLevel, UUID entityId, StringView messagePtr, StringView fileNamePtr, StringView callerMemberNamePtr, int lineNumber, int columnNumber)
 	{
 		String escapedMessage = new:ScopedAlloc! String(messagePtr);
 
@@ -455,9 +465,7 @@ static class ScriptGlue
 
 		if (!fileNamePtr.IsEmpty)
 		{
-			String fileName = new:ScopedAlloc! String(fileNamePtr);
-
-			MessageOrigin messageOrigin = scope MessageOrigin(fileName, lineNumber);
+			MessageOrigin messageOrigin = scope MessageOrigin(entityId, fileNamePtr, callerMemberNamePtr, lineNumber, columnNumber);
 
 			Log.ClientLogger.Log((LogLevel)logLevel, escapedMessage, messageOrigin);
 		}
@@ -467,11 +475,27 @@ static class ScriptGlue
 		}
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
-	static void Log_LogException(UUID entityId, StringView fullExceptionClassName, StringView exceptionMessage, StringView stackTrace)
+	[Ordered]
+	public struct GlueStackFrameInfo
 	{
-		ScriptException exception = new ScriptException(entityId, fullExceptionClassName, exceptionMessage, stackTrace);
-		ScriptEngine.LogScriptException(exception, entityId);
+		public StringView FileName;
+		public StringView MethodSignature;
+		public int32 Line;
+		public int32 Column;
+	}
+
+	[RegisterCall, CallingConvention(.Cdecl)]
+	static void Log_LogException(UUID entityId, StringView fullExceptionClassName, StringView exceptionMessage, GlueStackFrameInfo* stackFrameInfos, int32 stackFrameCount)
+	{
+		List<StackFrameInfo> frames = new .(stackFrameCount);
+
+		for (GlueStackFrameInfo frameInfo in Span<GlueStackFrameInfo>(stackFrameInfos, stackFrameCount))
+		{
+			frames.Add(new StackFrameInfo(frameInfo.FileName, frameInfo.MethodSignature, frameInfo.Line, frameInfo.Column));
+		}
+
+		ScriptException exception = new ScriptException(entityId, fullExceptionClassName, exceptionMessage, new StackTrace(frames));
+		ScriptEngine.LogScriptException(exception);
 	}
 
 #endregion
@@ -642,7 +666,7 @@ static class ScriptGlue
 
 #endregion
 
-#region TransformComponen
+#region TransformComponent
 
 	[RegisterCall, CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetParent(UUID entityId, out UUID parentId)
@@ -966,7 +990,7 @@ static class ScriptGlue
 
 #endregion Rigidbody2D
 
-#region Camer
+#region Camera
 
 	[RegisterCall, CallingConvention(.Cdecl)]
 	static void Camera_GetProjectionType(UUID entityId, out SceneCamera.ProjectionType projectionType)

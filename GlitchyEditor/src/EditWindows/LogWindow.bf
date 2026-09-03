@@ -8,6 +8,7 @@ using GlitchyEngine.Scripting;
 using GlitchyEngine.Renderer;
 using GlitchyEngine;
 using GlitchyEditor.CodeEditors;
+using System.IO;
 
 namespace GlitchyEditor.EditWindows;
 
@@ -295,12 +296,30 @@ class LogWindow : EditorWindow
 					{
 						if (ImGui.CollapsingHeader(message.Message.Ptr))
 						{
-							// Show the native to managed entry point only if we show engine messages
+							String lineBuffer = scope .();
+							for (StackFrameInfo frameInfo in message.Source.Exception.StackTrace.Frames)
+							{
+								String relativeSourcePath = scope .(frameInfo.FileName);
 
-							if (_showEngineMessages)
-								ImGui.TextUnformatted(message.Source.Exception.StackTrace);
-							else
-								ImGui.TextUnformatted(message.Source.Exception.CleanStackTrace);
+								relativeSourcePath.Replace(Editor.Instance.ContentManager.ResourcesDirectory, "Resources");
+								relativeSourcePath.Replace(Editor.Instance.ContentManager.AssetDirectory, "Assets");
+
+								//Path.GetRelativePath(frameInfo.FileName, Editor.Instance.CurrentProject.WorkspacePath, relativeSourcePath);
+
+								StackFrameInfo sfi = scope .(relativeSourcePath, frameInfo.MethodSignature, frameInfo.Line, frameInfo.Column);
+
+								//_editor.CurrentProject.PathInProject();
+
+								lineBuffer.Clear();
+								lineBuffer.SetF($"  {sfi}");
+								
+								float width = ImGui.CalcTextSize(lineBuffer.CStr()).x;
+								if (ImGui.Selectable(lineBuffer, false, .None, .(width, 0)))
+								{
+									// TODO: Columns?
+									Editor.Instance.IdeAdapter.OpenScript(frameInfo.FileName, frameInfo.Line, frameInfo.Column);
+								}
+							}
 
 							ImGui.NewLine();
 						}
@@ -318,6 +337,13 @@ class LogWindow : EditorWindow
 					if (message.Source.MessageOrigin != null)
 					{
 						Editor.Instance.IdeAdapter.OpenScript(message.Source.MessageOrigin.FileName, message.Source.MessageOrigin.LineNumber);
+					}
+					else if (message.Source.Exception != null)
+					{
+						// TODO: Column?
+						let firstFrame = message.Source.Exception.StackTrace.Frames[0];
+						Editor.Instance.IdeAdapter.OpenScript(firstFrame.FileName, firstFrame.Line);
+						//message.Source.Exception.StackTrace
 					}
 				}
 				
@@ -373,15 +399,8 @@ class LogWindow : EditorWindow
 
 	public void LogException(DateTime timestamp, ScriptException exception)
 	{
-		StringView firstLine = exception.StackTrace;
-
-		int firstInIndex = exception.StackTrace.IndexOf("\n");
-
-		if (firstInIndex != -1)
-			firstLine = firstLine.Substring(0, firstInIndex);
-
 		String message = scope .(128);
-		message.AppendF($"Exception: \"{exception.FullName}\" | Message: \"{exception.Message}\" {firstLine}\0");
+		message.AppendF($"Exception: \"{exception.FullName}\" | Message: \"{exception.Message}\" {exception.StackTrace.Frames[0]}\0");
 
 		// TODO: are mono exceptions never engine only?
 		LogMessage logMessage = new LogMessage(timestamp, message, .Error, new MessageSource(){Entity = exception.EntityId, Exception = exception, IsEngineMessage = false});
