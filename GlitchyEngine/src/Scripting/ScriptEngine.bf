@@ -81,6 +81,8 @@ class EngineClasses
 	}
 }
 
+// TODO: Init after FileSystemWatcher so that ScriptEngine's destructor runs before FSW's. The proper fix might be to not delete _userAssemblyWatcher in the static destructor...
+[StaticInitAfter(typeof(FileSystemWatcher))]
 static class ScriptEngine
 {
 	// TODO: Maybe make it possible to set the path to ScriptCore just like for the script project?
