@@ -307,6 +307,10 @@ static class ScriptEngine
 			
 			//ScriptGlue.RegisterManagedComponents();
 		}
+		else
+		{
+			Log.EngineLogger.Error("Failed to load script assembly, because it doesn't exist.");
+		}
 
 		InitAssemblyWatcher();
 	}
