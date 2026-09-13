@@ -1,4 +1,11 @@
-﻿using System;
+﻿using GlitchyEngine.Core;
+using GlitchyEngine.Extensions;
+using GlitchyEngine.Graphics;
+using GlitchyEngine.Math;
+using GlitchyEngine.Math.Attributes;
+using ImGuiNET;
+using System;
+using System.Buffers;
 using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -10,12 +17,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
-using GlitchyEngine.Core;
-using GlitchyEngine.Extensions;
-using GlitchyEngine.Graphics;
-using GlitchyEngine.Math;
-using GlitchyEngine.Math.Attributes;
-using ImGuiNET;
+using System.Text.Unicode;
 using Component = GlitchyEngine.Core.Component;
 
 namespace GlitchyEngine.Editor;
@@ -327,9 +329,6 @@ internal class EntityEditor
         {
             unsafe
             {
-                // TODO: Allow escaped unicode chars \u XXXX
-                // TODO: Add text input validation, so that it isn't possible to type invalid chars
-
                 char* value = stackalloc char[4];
                 switch((char)reference!)
                 {
@@ -374,20 +373,143 @@ internal class EntityEditor
                 // Place string delimiter after encoded UTF8 sequence.
                 buffer[encodedBytes] = (byte)'\0';
 
-                if (ImGui.InputText(fieldId, (IntPtr)buffer, 8))
+                // Makes sure the data of a char text field is always valid or can be extended to be a valid char.
+                int CharTextFieldFilter(ImGuiInputTextCallbackData* data)
                 {
-                    if (buffer[0] == '\\' && buffer[1] != '\0')
+                    try
                     {
-                        newValue = (char)buffer[1] switch
+                        Span<byte> span = new Span<byte>(data->Buf, data->BufTextLen);
+
+                        if (span.IsEmpty)
+                            return 0;
+
+                        if (span[0] == '\\')
                         {
-                            'a' => newValue = '\a',
-                            'b' => newValue = '\b',
-                            'f' => newValue = '\f',
-                            'n' => newValue = '\n',
-                            'r' => newValue = '\r',
-                            't' => newValue = '\t',
-                            'v' => newValue = '\v',
-                            _ => newValue = '\\'
+                            // It's just the backslash, so we don't need to do anything yet.
+                            if (span.Length == 1)
+                                return 0;
+
+                            if (span[1] == 'a' || span[1] == 'b' || span[1] == 'f' || span[1] == 'n' ||
+                                span[1] == 'r' || span[1] == 't' || span[1] == 'v' || span[1] == '\0')
+                            {
+                                if (span.Length == 2)
+                                    return 0;
+
+                                // Handle simply ascii escape sequence
+                                if (span[2] != '\0')
+                                {
+                                    span[2] = 0;
+                                    data->BufTextLen = 2;
+                                    data->BufDirty = 1;
+                                }
+
+                                return 0;
+                            }
+                            else if (span[1] == 'u')
+                            {
+                                // Handle unicode escape sequence \uXXXX
+                                // Check if the next four characters are valid hex digits
+                                for (int i = 2; i < span.Length; i++)
+                                {
+                                    char c = (char)span[i];
+
+                                    if (c == '\0')
+                                    {
+                                        break;
+                                    }
+
+                                    if (!Uri.IsHexDigit(c))
+                                    {
+                                        span[i] = 0;
+                                        data->BufTextLen = i;
+                                        data->BufDirty = 1;
+                                        return 0;
+                                    }
+                                }
+
+                                if (span.Length > 6)
+                                {
+                                    span[6] = 0;
+                                    data->BufTextLen = 6;
+                                    data->BufDirty = 1;
+                                    return 0;
+                                }
+                            }
+                            else
+                            {
+                                if (span[1] != '\0')
+                                {
+                                    span[1] = 0;
+                                    data->BufTextLen = 1;
+                                    data->BufDirty = 1;
+                                    return 0;
+                                }
+
+                                return 0;
+                            }
+                        }
+                        else
+                        {
+                            var status = Rune.DecodeFromUtf8(span, out Rune rune, out int bytesConsumed);
+
+                            // invalid UTF-8 oder Unicode-symbol needs two UTF-16 chars.
+                            if (status != OperationStatus.Done || !rune.IsBmp)
+                            {
+                                span[0] = 0;
+                                data->BufTextLen = 0;
+                                data->BufDirty = 1;
+                                return 0;
+                            }
+
+                            // TODO: if we want to support Rune as a type, we "just" need to disable this if-check
+                            // Cut off everything after the first C# char (which is the first UTF-16 char of the Rune)
+                            if (bytesConsumed < span.Length)
+                            {
+                                span[bytesConsumed] = 0;
+                                data->BufTextLen = bytesConsumed;
+                                data->BufDirty = 1;
+                                return 0;
+                            }
+
+                            return 0;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error($"Failed to process char field {fieldName}: {e.Message}.");
+                    }
+
+                    return 0;
+                }
+
+                // Make space for the hex code of the char after the textbox
+                ImGui.SetNextItemWidth(ImGui.CalcItemWidth() / 2);
+                
+                if (ImGui.InputText(fieldId, (IntPtr)buffer, 8, ImGuiInputTextFlags.CallbackEdit, CharTextFieldFilter))
+                {
+                    var dataSpan = new ReadOnlySpan<byte>(buffer, 8);
+
+                    if (dataSpan[0] == '\\' && dataSpan[1] == 'u')
+                    {
+                        // Decode unicode escape sequence \uXXXX
+                        string hex = Encoding.UTF8.GetString(dataSpan[2..]);
+                        if (int.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int codePoint))
+                        {
+                            newValue = (char)codePoint;
+                        }
+                    }
+                    else if (dataSpan[0] == '\\' && dataSpan[1] != '\0')
+                    {
+                        newValue = (char)dataSpan[1] switch
+                        {
+                            'a' => '\a',
+                            'b' => '\b',
+                            'f' => '\f',
+                            'n' => '\n',
+                            'r' => '\r',
+                            't' => '\t',
+                            'v' => '\v',
+                            _ => '\\'
                         };
                     }
                     else
@@ -397,7 +519,11 @@ internal class EntityEditor
 
                         newValue = value[0];
                     }
-                }   
+                }
+
+                // Show the char as hex code
+                ImGui.SameLine();
+                ImGui.TextUnformatted($"(U+{(ushort)(char)reference:X4})");
             }
         }
         else if (fieldType == typeof(byte))
