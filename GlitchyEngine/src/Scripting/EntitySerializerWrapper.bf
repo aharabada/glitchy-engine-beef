@@ -16,6 +16,7 @@ class EntitySerializerWrapper : NewScriptClass
 	function void DeserializeMethod(UUID entityId, void* serializedObjPtr, void* serializerPtr);
 	function void SerializeStaticMethod(char8* fullTypeName, void* serializedObjPtr, void* serializerPtr);
 	function void DeserializeStaticMethod(char8* fullTypeName, void* serializedObjPtr, void* serializerPtr);
+	function void FinishSerializationMethod(void* serializerPtr);
 
 	private CreateSerializationContextMethod _createSerializationContextMethod;
 	//private ClearSerializationContextMethod _clearSerializationContextMethod;
@@ -25,16 +26,19 @@ class EntitySerializerWrapper : NewScriptClass
 	private DeserializeMethod _deserializeMethod;
 	private SerializeStaticMethod _serializeStaticMethod;
 	private DeserializeStaticMethod _deserializeStaticMethod;
+	private FinishSerializationMethod _finishSerializationMethod;
 
 	[AllowAppend]
 	public this() : base("GlitchyEngine.Serialization.EntitySerializer", .Empty, .None, false)
 	{
 		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "CreateSerializationContext", out _createSerializationContextMethod);
 		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "DestroySerializationContext", out _destroySerializationContextMethod);
+
 		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "EntitySerializer_Serialize", out _serializeMethod);
 		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "EntitySerializer_Deserialize", out _deserializeMethod);
 		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "EntitySerializer_SerializeStaticFields", out _serializeStaticMethod);
 		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "EntitySerializer_DeserializeStaticFields", out _deserializeStaticMethod);
+		CoreClrHelper.GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "EntitySerializer_FinishSerialization", out _finishSerializationMethod);
 	}
 
 	public void CreateSerializationContext(ScriptInstanceSerializer serializer)
@@ -92,5 +96,11 @@ class EntitySerializerWrapper : NewScriptClass
 		void* serializerPtr = Internal.UnsafeCastToPtr(serializedObject.Serializer);
 		
 		_deserializeStaticMethod(@class.FullName.CStr(), serializedObjectPtr, serializerPtr);
+	}
+	
+	public void FinishSerialization(ScriptInstanceSerializer serializer)
+	{
+		void* serializerPtr = Internal.UnsafeCastToPtr(serializer);
+		_finishSerializationMethod(serializerPtr);
 	}
 }

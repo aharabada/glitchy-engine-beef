@@ -209,32 +209,6 @@ static class ScriptEngine
 		CoreClrHelper.Init(ScriptCorePath);
 	}	
 
-	/*static void InitMono()
-	{
-		Mono.mono_set_assemblies_path("mono/lib/4.5");
-
-		if (_debuggingEnabled)
-		{
-			char8*[2] options = .(
-				  "--debugger-agent=transport=dt_socket,address=127.0.0.1:2550,server=y,suspend=n,loglevel=3,logfile=MonoDebugger.log",
-				  "--soft-breakpoints"
-				);
-
-			Mono.mono_jit_parse_options(options.Count, &options);
-			Mono.mono_debug_init(.Mono);
-		}
-
-		s_RootDomain = Mono.mono_jit_init("GlitchyEngineJITRuntime");
-		Log.EngineLogger.Assert(s_RootDomain != null, "Failed to initialize mono root domain");
-
-		if (_debuggingEnabled)
-		{
-			Mono.mono_debug_domain_create(s_RootDomain);
-		}
-
-		Mono.mono_thread_set_main(Mono.mono_thread_current());
-	}*/
-	
 	static bool _requestingReload = false;
 
 	static void InitAssemblyWatcher()
@@ -301,7 +275,7 @@ static class ScriptEngine
 
 			File.ReadAll(pdbPath, pdbData);
 
-			CoreClrHelper.LoadAppAssembly(data, pdbData);
+			CoreClrHelper.LoadScriptAssembly(data, pdbData);
 			
 			GetEntitiesFromAssemblies();
 			
@@ -445,14 +419,15 @@ static class ScriptEngine
 	{
 		Debug.Profiler.ProfileFunction!();
 
-		Log.EngineLogger.Info("Reloading script assemblies.");
+		// TODO: Assembly reload might actually take a second. We should consider doing it in a separate thread in the editor.
 
+		Log.EngineLogger.Info("Reloading script assemblies.");
 
 		ScriptInstanceSerializer contextSerializer = scope .();
 
 		contextSerializer.SerializeScriptInstances();
 
-		// TODO: Unload script assemblies, remove class handles, fire unload events?
+		UnloadScriptAssemblies();
 
 		LoadScriptAssemblies();
 
@@ -479,15 +454,28 @@ static class ScriptEngine
 		Log.EngineLogger.Info("Script assemblies reloaded!");
 	}
 
+	private static void UnloadScriptAssemblies()
+	{
+		for (let (id, scriptInstance) in _entityScriptInstances)
+		{
+			if (Context.GetEntityByID(id) case .Ok(let entity))
+			{
+				ScriptComponent* script = entity.GetComponent<ScriptComponent>();
+				DestroyInstance(entity, script);
+			}
+			else
+			{
+				Log.EngineLogger.AssertDebug(false, "Entity script instance exists but no entity?!");
+			}
+		}
+
+		CoreClrHelper.UnloadScriptAssembly();
+		CoreClrHelper.WaitUntilOldAssemblyDead();
+	}
+
 	public static void Shutdown()
 	{
-		/*Mono.mono_domain_set(s_RootDomain, false);
-
-		Mono.mono_domain_unload(s_AppDomain);
-		s_AppDomain = null;
-
-		Mono.mono_jit_cleanup(s_RootDomain);
-		s_RootDomain = null;*/
+		UnloadScriptAssemblies();
 	}
 
 	/// Returns the script class with the given name, or null, if no such class exists.

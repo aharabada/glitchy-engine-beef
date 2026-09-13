@@ -31,6 +31,15 @@ public class ScriptInstanceSerializer
 		ScriptEngine.Classes.EntitySerializer.CreateSerializationContext(this);
 	}
 
+	/// Signals, that no more objects will be serialized into this context.
+	/// This allows the managed serialization context to do cleanup:
+	/// i. e. for C# we can release references to types which allows us to cleanup the old script assembly.
+	public void FinishSerialization()
+	{
+		ScriptEngine.Classes.EntitySerializer.FinishSerialization(this);
+	}
+
+
 	/// Serializes all script instances that are currently managed by the ScriptEngine.
 	public void SerializeScriptInstances()
 	{
@@ -47,6 +56,8 @@ public class ScriptInstanceSerializer
 		{
 			SerializeStaticScriptClassFields(scriptClass);
 		}
+
+		FinishSerialization();
 	}
 
 	/// Serializes the given script instance.
@@ -79,6 +90,8 @@ public class ScriptInstanceSerializer
 		{
 			DeserializeStaticScriptClassFields(scriptClass);
 		}
+
+		FinishSerialization();
 	}
 
 	/// Deserializes the data into the given script instance, if there is data available.

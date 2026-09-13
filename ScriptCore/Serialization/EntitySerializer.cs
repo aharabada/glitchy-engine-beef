@@ -33,10 +33,21 @@ internal static class EntitySerializer
 
     internal static void DestroySerializationContext(IntPtr engineSerializer)
     {
-        SerializationObjects.Remove(engineSerializer);
-        DeserializationObjects.Remove(engineSerializer);
+        if (SerializationObjects.Remove(engineSerializer, out var serializedObjects))
+        {
+            serializedObjects.Clear();
+        }
+
+        if (DeserializationObjects.Remove(engineSerializer, out var deserializationObjects))
+        {
+            deserializationObjects.Clear();
+        }
     }
-    
+    internal static void FinishSerialization(IntPtr engineSerializer)
+    {
+        ClearSerializationContext(engineSerializer);
+    }
+
     internal static void Serialize(Entity entity, IntPtr engineObject, IntPtr engineSerializer)
     {
         SerializedObject obj = new SerializedObject(engineObject, false, UUID.Zero, SerializationObjects[engineSerializer]);

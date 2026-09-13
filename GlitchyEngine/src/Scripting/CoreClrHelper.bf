@@ -29,7 +29,9 @@ static class CoreClrHelper
 
 	//static function void(char8* path) LoadScriptAssembly;
 	static LoadScriptAssemblyFunc _loadScriptAssembly;
-	static function void() _unloadAssemblies;
+	static function void() _unloadScriptAssembly;
+	
+	static function void() _waitUntilOldAssemblyDead;
 
 	// public static unsafe void GetScriptClasses(void** outBuffer, long* length)
 	private function void GetScriptClassesFunc(void** outBuffer, int64* length);
@@ -108,8 +110,10 @@ static class CoreClrHelper
 	{
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "LoadScriptAssembly", out _loadScriptAssembly);
 
-		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "UnloadAssemblies", out _unloadAssemblies);
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "UnloadScriptAssembly", out _unloadScriptAssembly);
 		
+		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "WaitUntilOldAssemblyDead", out _waitUntilOldAssemblyDead);
+
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "GetScriptClasses", out _getScriptClasses);
 
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "FreeScriptClassNames", out _freeScriptClassNames);
@@ -130,15 +134,20 @@ static class CoreClrHelper
 		GetFunctionPointerUnmanagedCallersOnly("GlitchyEngine.ScriptGlue, ScriptCore", "InvokeEntityOnCollisionEnter2D", out _entityScriptFunctions.OnCollisionEnter2D);
 	}
 
-	public static void LoadAppAssembly(Span<uint8> appAssemblyData, Span<uint8> pdbData)
+	public static void LoadScriptAssembly(Span<uint8> appAssemblyData, Span<uint8> pdbData)
 	{
 		_loadScriptAssembly(appAssemblyData.Ptr, appAssemblyData.Length, pdbData.Ptr, pdbData.Length);
 	}
 
-	public static void UnloadAssemblies()
+	public static void UnloadScriptAssembly()
 	{
-		_unloadAssemblies();
+		_unloadScriptAssembly();
 	}	
+
+	public static void WaitUntilOldAssemblyDead()
+	{
+		_waitUntilOldAssemblyDead();
+	}
 
 	/// Gets an array of script class infos. Use FreeScriptClassNames to release the buffer.
 	public static void GetScriptClasses(out void* outBuffer, out int64 entryCount)

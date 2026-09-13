@@ -107,6 +107,7 @@ public class SerializedObject
 
     public void Serialize(Entity entity)
     {
+        _serializedClasses.Add(entity, this);
         SerializeInstanceFields(entity);
     }
 

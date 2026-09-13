@@ -8,6 +8,7 @@ using ImGuiNET;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.Metrics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.CompilerServices;
@@ -15,6 +16,7 @@ using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 using System.Text;
 using System.Threading;
+using System.Xml.Linq;
 
 namespace GlitchyEngine;
 
@@ -112,25 +114,53 @@ internal static unsafe partial class ScriptGlue
         }
     }
 
+    /// <summary>
+    /// Counter for the number of script contexts that have been created. This allows us to debug and track the number of script contexts that have been created and destroyed.
+    /// </summary>
+    private static int _contextCounter = 0;
+
     private static void LoadAssembly(Stream assemblyStream, Stream? pdbStream)
     {
-        _scriptAssemblyContext ??= new AssemblyLoadContext("ScriptContext", true);
+        Debug.Assert(_scriptAssemblyContext == null);
+        Debug.Assert(_appAssembly == null);
+
+        // A new AssemblyLoadContext for the script assembly allows us to unload the assembly later.
+        _scriptAssemblyContext = new AssemblyLoadContext($"ScriptContext_{Interlocked.Increment(ref _contextCounter)}", true);
 
         _appAssembly = _scriptAssemblyContext.LoadFromStream(assemblyStream, pdbStream);
 
         Debug.Assert(_appAssembly != null);
     }
-    
+
+    private static WeakReference? _weakAssemblyRef;
+    private static string? _lastAssemblyName;
+
     /// <summary>
-    /// Called by the engine to unload the assembly (containing user scripts).
+    /// Called by the engine to unload the assembly containing user scripts.
     /// </summary>
     [UnmanagedCallersOnly]
-    public static void UnloadAssemblies()
+    public static void UnloadScriptAssembly()
     {
         try
         {
-            _scriptAssemblyContext?.Unload();
+            Debug.Assert(EntityScriptInstances.Count == 0, "Can not unload assemblies while entities are still active!");
+
+            // TODO: Should we allow calling unload when we never loaded?
+            if (_scriptAssemblyContext == null)
+                return;
+
+            _weakAssemblyRef = new WeakReference(_scriptAssemblyContext);
+            _lastAssemblyName = _scriptAssemblyContext.Name;
+            Debug.WriteLine($"--- Killing {_lastAssemblyName}...");
+
+            // TODO: we should probably have a way to collect and terminate threads. (like a EngineThread override or something)
+
+            _scriptAssemblyContext.Unload();
             _scriptAssemblyContext = null;
+            _appAssembly = null;
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
         }
         catch (Exception e)
         {
@@ -138,6 +168,42 @@ internal static unsafe partial class ScriptGlue
         }
     }
 
+    /// <summary>
+    /// Waits until the old assembly is dead.
+    /// </summary>
+    [UnmanagedCallersOnly]
+    public static void WaitUntilOldAssemblyDead()
+    {
+        try
+        {
+            if (_weakAssemblyRef == null)
+                return;
+
+            int iterations = 0;
+
+            while (_weakAssemblyRef.IsAlive)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+
+                // We must sleep a bit, otherwise we absolutely wreck the debugger.
+                Thread.Sleep(10);
+                iterations++;
+            }
+            Debug.WriteLine($"--- {_lastAssemblyName} is now dead after {iterations} garbage collections!");
+
+            _weakAssemblyRef = null;
+            _lastAssemblyName = null;
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
+    }
+    
+    /// <summary>
+    /// Waits until the old assembly is dead.
+    /// </summary>
     private static NativeScriptClassInfo[]? _unsafeClasses;
 
     [StructLayout(LayoutKind.Sequential, Pack = 0)]
@@ -556,6 +622,19 @@ internal static unsafe partial class ScriptGlue
             Debug.Assert(type != null);
 
             EntitySerializer.DeserializeStaticFields(type, engineObject, engineSerializer);
+        }
+        catch (Exception e)
+        {
+            Log.Exception(e);
+        }
+    }
+
+    [UnmanagedCallersOnly]
+    public static void EntitySerializer_FinishSerialization(IntPtr engineSerializer)
+    {
+        try
+        {
+            EntitySerializer.FinishSerialization(engineSerializer);
         }
         catch (Exception e)
         {
