@@ -282,10 +282,10 @@ internal class EntityEditor
                 if (value is float || value is double || value is Half)
                     format = "0.#####";
                 else
-                    format = "0";
+                    format = null;
             }
 
-            if (!format.StartsWith("%"))
+            if (format?.StartsWith("%") == false)
             {
                 if (value is float f)
                 {
@@ -303,14 +303,14 @@ internal class EntityEditor
 
             if (range?.Slider == true)
             {
-                if (ImGui.SliderScalar(fieldId, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max), format))
+                if (ImGui.SliderScalar(fieldId, dataType, (IntPtr)(&value), (IntPtr)(&min), (IntPtr)(&max), format, flags: ImGuiSliderFlags.AlwaysClamp))
                 {
                     newValue = value;
                 }
             }
             else
             {
-                if (ImGui.DragScalar(fieldId, dataType, (IntPtr)(&value), dragSpeed, (IntPtr)(&min), (IntPtr)(&max), format))
+                if (ImGui.DragScalar(fieldId, dataType, (IntPtr)(&value), dragSpeed, (IntPtr)(&min), (IntPtr)(&max), format, flags: ImGuiSliderFlags.AlwaysClamp))
                 {
                     newValue = value;
                 }
