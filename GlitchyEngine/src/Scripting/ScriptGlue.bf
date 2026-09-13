@@ -86,6 +86,7 @@ struct GlueParamAttribute : Attribute
 	}
 }
 
+/// Collects all methods in ScriptGlue that have a RegisterCallAttribute. Generates a function pointer for them as well as outputting a json file that can be used to generate the script library side of the ScriptGlue construct.
 [AttributeUsage(.Struct)]
 struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 {
@@ -195,11 +196,13 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
     }
 }
 
+/// A struct containing all pointers to functions that can be called from the script library.
 [EngineFunctionsGenerator]
 struct EngineFunctions
 {
 	static Self _functions;
-	
+
+	/// Sends the references to all ScriptGlue functions to the script library.
 	[RegisterMethod]
 	public static void FillEngineFunctions()
 	{
@@ -210,7 +213,7 @@ struct EngineFunctions
 	}
 }
 
-/* Adding this attribute to a method will log method entry and returned Result<T> errors */
+/// Collects all methods in ScriptGlue that have a RegisterCallAttribute. Generates the assignment of the corresponding function pointer in EngineFunctions.
 [AttributeUsage(.Method | .Constructor)]
 public struct RegisterMethodAttribute : Attribute, IOnMethodInit
 {
@@ -262,6 +265,7 @@ static class ScriptGlue
 
 	private static String _lastExceptionMessage = new .() ~ delete _;
 
+	/// Initializes the glue layer between native engine and script library.
 	public static void Init()
 	{
 		if (_setEngineFunctions == null)
@@ -274,6 +278,13 @@ static class ScriptGlue
 		RegisterManagedComponents();
 	}
 
+	/// Collects and sends the function pointers to all glue functions to the script library.
+	private static void RegisterCalls()
+	{
+		EngineFunctions.FillEngineFunctions();
+	}
+
+	/// Creates the function pointers to create, remove and check for components and sends them to the script library.
 	public static void RegisterManagedComponents()
 	{
 		Debug.Profiler.ProfileFunction!();
@@ -288,11 +299,7 @@ static class ScriptGlue
 		RegisterComponent<MeshRendererComponent>();
 	}
 
-	private static void RegisterCalls()
-	{
-		EngineFunctions.FillEngineFunctions();
-	}
-	
+	/// Register the function pointers to create, remove and check for components of the specified type and sends them to the script library.
 	private static void RegisterComponent<T>() where T : struct, new
 	{
 		String fullComponentTypeName = scope String();
@@ -1558,6 +1565,7 @@ static class ScriptGlue
 		asset
 	}*/
 
+	/// Set an exception message that the script library can collect when a glue function returned an error.
 	static void SetExceptionMessage(StringView message)
 	{
 		_lastExceptionMessage.Set(message);

@@ -293,7 +293,8 @@ namespace GlitchyEngine.World
 
 		private void StartRuntime()
 		{
-			ScriptEngine.StartRuntime(this);
+			// We don't retain data of script instances, because our callers do that if necessary
+			ScriptEngine.StartRuntime(this, retainScriptData: false);
 
 			// Initialize ScriptComponents
 			for (let (handle, scriptComponent) in _ecsWorld.Enumerate<ScriptComponent>())

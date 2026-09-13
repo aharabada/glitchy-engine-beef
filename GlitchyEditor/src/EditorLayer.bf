@@ -712,6 +712,8 @@ namespace GlitchyEditor
 
 		private void CloseCurrentProject()
 		{
+			Log.EngineLogger.Trace("Closing current Project...");
+
 			CloseCurrentScene();
 
 			SetEditorScene(null);
@@ -721,6 +723,8 @@ namespace GlitchyEditor
 			// TODO: Do actual work here!
 			delete _currentProject;
 			_currentProject = null;
+
+			Log.EngineLogger.Trace("Project closed.");
 		}
 
 		private Result<void> LoadAndOpenProject(StringView workspacePath)
@@ -741,32 +745,46 @@ namespace GlitchyEditor
 		{
 			if (project == null)
 				return .Err;
-			
+
 			CloseCurrentProject();
+			
+			Log.EngineLogger.Trace("Opening Project...");
 
 			_currentProject = project;
 
 			_editor.CurrentProject = _currentProject;
+			
+			Log.EngineLogger.Trace("Preparing asset manager...");
 
 			String appAssemblyPath = scope String();
 			_contentManager.SetAssetCacheDirectory(_currentProject.GetScopedPath!(".cache"));
 			_contentManager.SetAssetDirectory(_currentProject.AssetsFolder);
 
 			_currentProject.PathInProject(appAssemblyPath, scope $".cache/bin/{_currentProject.Name}.dll");
-
-			ScriptEngine.SetAppAssemblyPath(appAssemblyPath);
+			
+			Log.EngineLogger.Trace("Loading script assembly...");
+			ScriptEngine.SetAppAssemblyPath(appAssemblyPath, retainScriptData: false);
 
 			if (!_currentProject.UserSettings.LastOpenedScene.IsWhiteSpace)
 			{
 				String lastSceneFile = _currentProject.GetScopedPath!(_currentProject.UserSettings.LastOpenedScene);
 
 				if (File.Exists(lastSceneFile))
+				{
+					Log.EngineLogger.Trace("Opening last opened scene...");
 					LoadSceneFile(lastSceneFile);
+				}
 				else
+				{
+					Log.EngineLogger.Trace("Opening new scene...");
 					CreateAndOpenNewScene();
+				}
 			}
 			else
+			{
+				Log.EngineLogger.Trace("Opening new scene...");
 				CreateAndOpenNewScene();
+			}
 
 			UpdateWindowTitle();
 
@@ -775,6 +793,8 @@ namespace GlitchyEditor
 				EditorApp.Instance.Settings.EditorSettings.LastOpenedProject = project.WorkspacePath;
 				EditorApp.Instance.Settings.Save();
 			}
+
+			Log.EngineLogger.Trace("Project opened.");
 
 			return .Ok;
 		}
@@ -800,27 +820,34 @@ namespace GlitchyEditor
 		append ScriptInstanceSerializer _scriptSerializer = .();
 
 		/// Starts the play mode for the current scene
-		private void OnScenePlay()
+		private void OnScenePlay(SceneState newSceneState)
 		{
 			Debug.Profiler.ProfileFunction!();
+
+			Runtime.Assert(newSceneState == .Play || newSceneState == .Simulate, "newSceneState must either be Play or Simulate");
 
 			Log.EngineLogger.AssertDebug(_scriptSerializer.SerializedObjectCount == 0, "Somehow some entities are serialized.");
 			
 			if (EditorApp.Instance.Settings.EditorSettings.ClearLogOnPlay)
 				Editor.Instance.LogWindow.ClearLog();
 
+			/// Save the in memory state of the script intances so se can recreate it after stopping play/simulation
 			_scriptSerializer.SerializeScriptInstances();
 			
 			_editor.SceneViewportWindow.EditorMode = false;
-			_sceneState = .Play;
+			_sceneState = newSceneState;
 
 			using (Scene runtimeScene = new Scene())
 			{
-				_editorScene.CopyTo(runtimeScene, true);
+				// In simulation mode we don't want any scripts to run, just physics.
+				_editorScene.CopyTo(runtimeScene, _sceneState == .Play);
 
-				SetActiveScene(runtimeScene, startRuntime: true, startSimulation: true, newPlayMode: .Play);
+				SetActiveScene(runtimeScene, startRuntime: (_sceneState == .Play), startSimulation: true, newPlayMode: (_sceneState == .Play ? .Play : .Simulation));
 				
-				_scriptSerializer.DeserializeScriptInstances();
+				if (_sceneState == .Play)
+				{
+					_scriptSerializer.DeserializeScriptInstances();
+				}
 			}
 
 			_editor.CurrentScene = _activeScene;
@@ -867,25 +894,6 @@ namespace GlitchyEditor
 			SetReference!(_activeScene, scene);
 		}
 
-		/// Starts the physics simulation mode for the current scene
-		private void OnSceneSimulate()
-		{
-			_editor.SceneViewportWindow.EditorMode = false;
-			_sceneState = .Simulate;
-
-			using (Scene simulationScene = new Scene())
-			{
-				_editorScene.CopyTo(simulationScene, false);
-
-				SetActiveScene(simulationScene, startRuntime: false, startSimulation: true, newPlayMode: .Simulation);
-			}
-
-			_editor.CurrentScene = _activeScene;
-			
-			if (EditorApp.Instance.Settings.EditorSettings.SwitchToPlayerOnSimulate)
-				SwitchToPlayWindow();
-		}
-
 		/// Pauses the scene
 		private void OnScenePause()
 		{
@@ -915,10 +923,10 @@ namespace GlitchyEditor
 		{
 			if (_activeScene == null)
 				return;
+			
+			Log.EngineLogger.Trace("Stopping current scene and returing to edit mode...");
 
 			SetActiveScene(_editorScene, startRuntime: true, startSimulation: false, newPlayMode: .Editor);
-
-			// TODO: _editorScene.DeserializeScripts(scriptData);
 
 			_editor.SceneViewportWindow.EditorMode = true;
 			_sceneState = .Edit;
@@ -935,14 +943,19 @@ namespace GlitchyEditor
 				 * into "Editor"-mode (because Game-Mode works on a copy of the scene).
 				 */
 				GameViewportSizeChanged(null, _editor.GameViewportWindow.RenderedViewportSize);
+
+				if (_scriptSerializer.SerializedObjectCount != 0)
+				{
+					// Reconstruct state before play
+					_scriptSerializer.DeserializeScriptInstances();
+					_scriptSerializer.Clear();
+				}
 			}
 			
 			if (EditorApp.Instance.Settings.EditorSettings.SwitchToEditorOnStop)
 				SwitchToEditorWindow();
 
-			// Reconstruct state before play
-			_scriptSerializer.DeserializeScriptInstances();
-			_scriptSerializer.Clear();
+			Log.EngineLogger.Trace("Switched to edit mode.");
 		}
 
 		/// Stops the scene and cleans up the subsystems to allow loading another scene.
@@ -975,6 +988,8 @@ namespace GlitchyEditor
 		/// Sets the current editor scene
 		private void SetEditorScene(Scene scene, ScriptInstanceSerializer serializedObjects = null)
 		{
+			Log.EngineLogger.Trace($"Switching to scene \"{(scene?.Name ?? "<none>")}\"...");
+
 			_editorScene?.Stop();
 
 			SetReference!(_editorScene, scene);
@@ -994,6 +1009,7 @@ namespace GlitchyEditor
 			}
 
 			UpdateWindowTitle();
+			Log.EngineLogger.Trace($"Switched scene to \"{(scene?.Name ?? "<none>")}\".");
 		}
 
 		/// Creates a new default scene.
@@ -1231,7 +1247,7 @@ namespace GlitchyEditor
 				ImGui.PushID(0);
 
 				if (ImGui.ImageButton("", _editorIcons.Play, .(size, size), .Zero, .Ones))
-					OnScenePlay();
+					OnScenePlay(.Play);
 				
 				ImGui.PopID();
 
@@ -1242,7 +1258,7 @@ namespace GlitchyEditor
 				ImGui.PushID(1);
 
 				if (ImGui.ImageButton("", _editorIcons.Simulate, .(size, size), .Zero, .Ones))
-					OnSceneSimulate();
+					OnScenePlay(.Simulate);
 				
 				ImGui.PopID();
 
@@ -1514,7 +1530,7 @@ namespace GlitchyEditor
 			if(ImGui.BeginMenu("Tools", true))
 			{
 				if(ImGui.MenuItem("Reload Scripts"))
-					ScriptEngine.ReloadAssemblies();
+					ScriptEngine.ReloadAssemblies(retainScriptData: true);
 
 #if GE_EDITOR_IMGUI_DEMO
 				ImGui.Checkbox("Show ImGui Demo", &_showImguiDemoWindow);

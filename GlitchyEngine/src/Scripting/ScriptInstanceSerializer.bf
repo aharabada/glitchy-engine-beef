@@ -1,6 +1,7 @@
 using System.Collections;
 using GlitchyEngine.Core;
 using GlitchyEngine.Serialization;
+using System;
 
 namespace GlitchyEngine.Scripting;
 
@@ -45,6 +46,8 @@ public class ScriptInstanceSerializer
 	{
 		Debug.Profiler.ProfileFunction!();
 
+		Log.EngineLogger.Trace($"Serializing {Internal.UnsafeCastToPtr(this)}...");
+
 		Init();
 
 		for (let (id, scriptInstance) in ScriptEngine._entityScriptInstances)
@@ -78,6 +81,8 @@ public class ScriptInstanceSerializer
 	public void DeserializeScriptInstances()
 	{
 		Debug.Profiler.ProfileFunction!();
+		
+		Log.EngineLogger.Trace($"Deserializing {Internal.UnsafeCastToPtr(this)}...");
 
 		Init();
 

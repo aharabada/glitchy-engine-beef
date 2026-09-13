@@ -192,11 +192,11 @@ static class ScriptEngine
 	}
 
 	/// Changes the path to the current app assembly.
-	public static void SetAppAssemblyPath(StringView appAssemblyPath)
+	public static void SetAppAssemblyPath(StringView appAssemblyPath, bool retainScriptData)
 	{
 		_appAssemblyPath.Set(appAssemblyPath);
 
-		ReloadAssemblies();
+		ReloadAssemblies(retainScriptData);
 	}
 
 	static void InitRuntime()
@@ -239,7 +239,7 @@ static class ScriptEngine
 
 				Application.Instance.InvokeOnMainThread(new () =>
 				{
-					ReloadAssemblies();
+					ReloadAssemblies(retainScriptData: true);
 					
 					_requestingReload = false;
 					_userAssemblyWatcher.StartRaisingEvents();
@@ -290,12 +290,12 @@ static class ScriptEngine
 	}
 
 	/// Starts the script runtime and sets the context scene.
-	public static void StartRuntime(Scene context)
+	public static void StartRuntime(Scene context, bool retainScriptData = true)
 	{
 		Debug.Assert(s_Context == null, "StartRuntime was called twice without StopRuntime in between!");
 		Context = context;
 
-		ReloadAssemblies();
+		ReloadAssemblies(retainScriptData);
 	}
 
 	/// Stopts the script runtime and disposes of all script instances.
@@ -415,7 +415,7 @@ static class ScriptEngine
 		CoreClrHelper.FreeScriptClassNames();
 	}
 
-	public static void ReloadAssemblies()
+	public static void ReloadAssemblies(bool retainScriptData = true)
 	{
 		Debug.Profiler.ProfileFunction!();
 
@@ -423,10 +423,14 @@ static class ScriptEngine
 
 		Log.EngineLogger.Info("Reloading script assemblies.");
 
-		ScriptInstanceSerializer contextSerializer = scope .();
+		ScriptInstanceSerializer contextSerializer = null;
 
-		contextSerializer.SerializeScriptInstances();
-
+		if (retainScriptData)
+		{
+			contextSerializer = scope:: .();
+			contextSerializer.SerializeScriptInstances();
+		}
+		
 		UnloadScriptAssemblies();
 
 		LoadScriptAssemblies();
@@ -448,8 +452,11 @@ static class ScriptEngine
 				}
 			}
 		}
-
-		contextSerializer.DeserializeScriptInstances();
+		
+		if (retainScriptData)
+		{
+			contextSerializer.DeserializeScriptInstances();
+		}
 
 		Log.EngineLogger.Info("Script assemblies reloaded!");
 	}
