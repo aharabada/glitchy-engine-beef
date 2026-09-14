@@ -94,53 +94,101 @@ public static class TypeExtension
 
         ReadOnlySpan<char> typeName = ReadTypeName(fullName);
         rest = rest.Slice(typeName.Length);
-        
-        if (rest.IsEmpty || rest[0] != '`')
+
+        Type? baseType = GetType(typeName);
+
+        if (baseType == null)
         {
-            // Non generic type, easy!
-            return GetType(typeName);
+            return null;
         }
 
-        // Handle generic type
-
-        int brackedIndex = fullName.IndexOf('[');
-
-        typeName = fullName.Slice(0, brackedIndex);
-        rest = fullName.Slice(brackedIndex + 1).Trim();
-
-        Type? genericType = GetType(typeName);
-
-        Console.WriteLine($"Generic Type: {genericType}");
-        
-        List<Type> arguments = new List<Type>();
-
-        while (true)
+        if (rest.IsEmpty)
         {
-            Type? argument = FindType(rest, ref rest);
-            Console.WriteLine($"Argument:  {argument}");
-
-            Debug.Assert(argument != null);
-
-            arguments.Add(argument!);
-
-            rest = rest.TrimStart();
-
-            if (rest.TrimStart()[0] == ',')
+            // Non generic type, easy!
+            return baseType;
+        }
+        
+        if (rest[0] == '[')
+        {
+            // Handle array type
+            int rank = 1;
+            bool forceMultiDimensional = false;
+            for (int i = 0; i < rest.Length; i++)
             {
-                rest = rest.Slice(1);
+                if (rest[i] == ',')
+                {
+                    rank++;
+                }
+                else if (rest[i] == '*')
+                {
+                    forceMultiDimensional = true;
+                }
+                else if (rest[i] == ']')
+                {
+                    rest = rest.Slice(i + 1);
+                    break;
+                }
             }
-            else if (rest.TrimStart()[0] == ']')
+
+            Debug.Assert(rest.IsEmpty);
+
+            // It is important to use MakeArrayType() for single-dimensional arrays, as a single-dimension array is distinct from a multi-dimension array of rank 1. The latter cannot be created using normal code, but can be created using reflection.
+            if (rank == 1 && !forceMultiDimensional)
             {
-                rest = rest.Slice(1);
-                break;
+                return baseType.MakeArrayType();
             }
             else
             {
-                break;
+                return baseType.MakeArrayType(rank);
             }
         }
         
-        return genericType?.MakeGenericType(arguments.ToArray());
+        if (rest[0] == '`')
+        {
+            // Handle generic type
+
+            int brackedIndex = fullName.IndexOf('[');
+
+            typeName = fullName.Slice(0, brackedIndex);
+            rest = fullName.Slice(brackedIndex + 1).Trim();
+
+            Type? genericType = GetType(typeName);
+
+            Console.WriteLine($"Generic Type: {genericType}");
+
+            List<Type> arguments = new List<Type>();
+
+            while (true)
+            {
+                Type? argument = FindType(rest, ref rest);
+                Console.WriteLine($"Argument:  {argument}");
+
+                Debug.Assert(argument != null);
+
+                arguments.Add(argument!);
+
+                rest = rest.TrimStart();
+
+                if (rest.TrimStart()[0] == ',')
+                {
+                    rest = rest.Slice(1);
+                }
+                else if (rest.TrimStart()[0] == ']')
+                {
+                    rest = rest.Slice(1);
+                    break;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            return genericType?.MakeGenericType(arguments.ToArray());
+        }
+
+        Log.Error($"Failed to find a type for {typeName}.");
+        return null;
     }
 
     private static Type? GetType(ReadOnlySpan<char> fullName)

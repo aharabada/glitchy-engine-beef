@@ -56,6 +56,7 @@ public class DeserializationObject
         {
             ScriptGlue.Serialization_GetObjectTypeName(_internalContext, out string fullTypeName);
 
+            // TODO: Retrieving the entire type by name is not ideal, we should probably consider using a more efficient approach.
             return GetTypeFromName(fullTypeName);
         }
     }
