@@ -34,6 +34,8 @@ namespace GlitchyEditor
 		private EditorLayer _editorLayer;
 
 		public Settings Settings { get; private set; } = new .() ~ delete _;
+
+		public EditorLayer EditorLayer => _editorLayer;
 		
 		public this(String[] args)
 		{

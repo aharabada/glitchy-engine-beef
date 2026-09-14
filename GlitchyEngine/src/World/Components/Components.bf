@@ -670,7 +670,7 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct ScriptComponent : IDisposableComponent
+	struct ScriptComponent : IDisposableComponent, ICopyComponent<ScriptComponent>
 	{
 		private String _scriptClassName = null;
 
@@ -704,6 +704,13 @@ namespace GlitchyEngine.World
 		{
 			delete _scriptClassName;
 			ReleaseRefAndNullify!(_instance);
+		}
+
+		public static void Copy(ScriptComponent* source, ScriptComponent* target)
+		{
+			target.ScriptClassName = source.ScriptClassName;
+
+			// TODO: This is just half the work, because we actually have to somehow handle the script instance
 		}
 	}
 }

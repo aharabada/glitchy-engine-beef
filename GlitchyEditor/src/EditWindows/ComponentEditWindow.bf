@@ -205,17 +205,29 @@ namespace GlitchyEditor.EditWindows
 				positionX -= buttonSize.X + ImGui.GetStyle().FramePadding.x;
 				ImGui.SameLine(positionX);
 
-				if (ImGui.ImageButton("save", EditorIcons.Instance.Icon_Save, (.)buttonSize))
+				if (ImGui.ImageButton("save_to_editor", EditorIcons.Instance.Icon_Save, (.)buttonSize))
 				{
 					if (Entity editorEntity = Editor.Instance.EditorScene.GetEntityByID(entity.UUID))
 					{
 						Scene.CopyComponent<TComponent>(entity, editorEntity);
-
+						
 						if (typeof(TComponent) == typeof(ScriptComponent))
 						{
-							// TODO: Copy script data into editor
-							// TODO: Somehow get the scriptserializer used to serialize the editor scene
-							//scriptSerializer.SerializeScriptInstance(((ScriptComponent*)component).Instance);
+							// Dirty hack to get to the serialized script instances of the editor scene.
+							var serializer = EditorApp.Instance.EditorLayer.[Friend]_scriptSerializer;
+
+							// Dirty hack to remove the old data
+							if (serializer.SerializedObjects.GetAndRemove(entity.UUID) case .Ok(let kvPair))
+							{
+								delete kvPair.value;
+							}
+
+							// Just save the new data into the context (what could possibly go wrong?!)
+							// this could probably serialize too much data into our context (because we can serialize reference types)
+							// and leave a bunch of dangling data in it (because we can serialize reference types)
+							serializer.SerializeScriptInstance(((ScriptComponent*)component).Instance);
+							// This is also a massive hack to make sure we don't keep references to types, but this also mean we might serialize too much?
+							serializer.FinishSerialization();
 						}
 					}
 					else
