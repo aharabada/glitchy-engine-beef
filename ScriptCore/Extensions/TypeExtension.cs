@@ -95,21 +95,22 @@ public static class TypeExtension
         ReadOnlySpan<char> typeName = ReadTypeName(fullName);
         rest = rest.Slice(typeName.Length);
 
-        Type? baseType = GetType(typeName);
-
-        if (baseType == null)
-        {
-            return null;
-        }
-
-        if (rest.IsEmpty)
+        if (rest.IsEmpty || (rest[0] != '[' && rest[0] != '`'))
         {
             // Non generic type, easy!
-            return baseType;
+            return GetType(typeName);
         }
         
         if (rest[0] == '[')
         {
+            Type? baseType = GetType(typeName);
+
+            if (baseType == null)
+            {
+                Log.Error($"Failed to find element type {typeName} of array type {fullName}");
+                return null;
+            }
+
             // Handle array type
             int rank = 1;
             bool forceMultiDimensional = false;
@@ -154,14 +155,11 @@ public static class TypeExtension
 
             Type? genericType = GetType(typeName);
 
-            Console.WriteLine($"Generic Type: {genericType}");
-
             List<Type> arguments = new List<Type>();
 
             while (true)
             {
                 Type? argument = FindType(rest, ref rest);
-                Console.WriteLine($"Argument:  {argument}");
 
                 Debug.Assert(argument != null);
 
