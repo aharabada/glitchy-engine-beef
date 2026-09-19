@@ -204,6 +204,18 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             ReturnValueConversion = null
         });
 
+        // A bool in an unmanaged function pointer is marshalled as a 4-byte Win32 BOOL.
+        // Beef bools are 1 byte (only al is written), so we pass them as byte and convert manually.
+        beefTypeToMappedType.Add("bool", new MappedType
+        {
+            BeefTypeName = "bool",
+            CSharpTypeName = "byte",
+            CSharpWrapperType = "bool",
+            ReturnValueConversion = "return returnValue != 0;",
+            WrapperConvertInput = "byte {0} = (byte)({1} ? 1 : 0);",
+            WrapperOutConversion = "{1} = {0} != 0;"
+        });
+
         beefTypeToMappedType.Add("uint8*", new MappedType
         {
             BeefTypeName = "uint8*",
