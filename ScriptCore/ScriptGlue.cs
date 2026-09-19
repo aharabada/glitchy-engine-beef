@@ -685,6 +685,15 @@ internal static unsafe partial class ScriptGlue
         }
     }
 
+    /// <summary>
+    /// Layout stand-in to get a reference to the contents of a boxed value type via <see cref="Unsafe.As{T}(object)"/>.
+    /// Never instantiated.
+    /// </summary>
+    private sealed class RawData
+    {
+        public byte Data;
+    }
+
     public static void Serialization_SerializeField(IntPtr serializationContext, SerializationType type, string fieldName, object? valueObject, string? fullTypeName)
     {
         StringView fieldNameConverted;
@@ -744,25 +753,16 @@ internal static unsafe partial class ScriptGlue
             default:
                 if (valueObject is not null)
                 {
-                    // This is probably the dirtiest piece of C# Code, that I have ever seen.
-                    // We first take a pointer the Object (which itself is a reference type -> object* is a double pointer!)
-                    // We then dereference this double pointer, which gives us a pointer to the objects internals.
-                    // These are Header (64bit), Method Table (64bit), and the objects content (at least another 64bit)
-                    // I believe, that the actual reference points to the method table however and not the header (compare gcenv.object.h)
-                    // Below we calculate a pointer to the objects contents by adding the size of a pointer.
-
-#pragma warning disable CS8500 // This takes the address of, gets the size of, or declares a pointer to a managed type
-                    object?* objectRef = &valueObject;
-                    // Skip Object Header (IntPtr) + Method Table (IntPtr) 
-                    byte* valueRef = (byte*)*(IntPtr*)objectRef + sizeof(IntPtr);
-                    float* fRef = (float*)(void*)valueRef;
-                    _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, &fieldNameConverted, valueRef, &fullTypeNameConverted);
+                    // valueObject is a boxed value type. An object reference points to the method table pointer, the boxed value starts right behind it.
+                    // That's exactly where the first field of RawData lives, so reinterpreting the box gives us a reference to the first byte of the value.
+                    // We have to pin it: During the native call this thread is in preemptive mode and a GC is free to move the box.
+                    fixed (byte* valueRef = &Unsafe.As<RawData>(valueObject).Data)
+                    {
+                        _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, &fieldNameConverted, valueRef, &fullTypeNameConverted);
+                    }
                 }
                 break;
         }
-
-        //StringView.FreeNativeMemory(fieldNameConverted);
-        //StringView.FreeNativeMemory(fullTypeNameConverted);
     }
 
     public static void Serialization_SerializeValueType<T>(IntPtr serializationContext, SerializationType type, string fieldName, in T value, string? fullTypeName) where T : unmanaged
