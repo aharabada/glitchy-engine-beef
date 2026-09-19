@@ -204,18 +204,6 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             ReturnValueConversion = null
         });
 
-        // A bool in an unmanaged function pointer is marshalled as a 4-byte Win32 BOOL.
-        // Beef bools are 1 byte (only al is written), so we pass them as byte and convert manually.
-        beefTypeToMappedType.Add("bool", new MappedType
-        {
-            BeefTypeName = "bool",
-            CSharpTypeName = "byte",
-            CSharpWrapperType = "bool",
-            ReturnValueConversion = "return returnValue != 0;",
-            WrapperConvertInput = "byte {0} = (byte)({1} ? 1 : 0);",
-            WrapperOutConversion = "{1} = {0} != 0;"
-        });
-
         beefTypeToMappedType.Add("uint8*", new MappedType
         {
             BeefTypeName = "uint8*",
@@ -304,23 +292,13 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             var (parameterType, parameterModifier) = DecodeType(param.Type, beefTypeToMappedType);
             parameters.Add(parameterType);
 
-            switch (parameterModifier)
-            {
-                case TypeModifier.In:
-                    parameterText.Append("in ");
-                    break;
-                case TypeModifier.Out:
-                    parameterText.Append("out ");
-                    break;
-                case TypeModifier.Ref:
-                    parameterText.Append("ref ");
-                    break;
-            }
-
             parameterText.Append(parameterType.CSharpTypeName);
 
             switch (parameterModifier)
             {
+                case TypeModifier.In:
+                case TypeModifier.Out:
+                case TypeModifier.Ref:
                 case TypeModifier.Pointer:
                     parameterText.Append("*");
                     break;
@@ -334,12 +312,11 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
     private static void GenerateWrapper(GlueMethod method, Dictionary<string, MappedType> beefTypeToMappedType, StringBuilder output)
     {
-        // MappedType returnType = DecodeType(method.ReturnType, beefTypeToMappedType);
-        //
         List<MappedType> parameters = new();
         StringBuilder parameterText = new();
-        StringBuilder parameterConversion = new();
-        StringBuilder cleanup = new();
+        List<string> parameterConversions = new();
+        List<string> cleanups = new();
+        List<string> afterReturnCleanups = new();
         StringBuilder call = new();
 
         var (returnType, _) = DecodeType(method.ReturnType, beefTypeToMappedType);
@@ -382,33 +359,36 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
             parameterText.Append($" {param.Name}");
 
-            switch (parameterModifier)
-            {
-                case TypeModifier.In:
-                    call.Append("in ");
-                    break;
-                case TypeModifier.Out:
-                    call.Append("out ");
-                    break;
-                case TypeModifier.Ref:
-                    call.Append("ref ");
-                    break;
-            }
-
             if (parameterModifier == TypeModifier.Out && parameterType.WrapperOutConversion is not null)
             {
                 string tmpArgName = $"{param.Name}Tmp";
 
-                call.Append($"var {tmpArgName}");
-                
+                call.Append($"&{tmpArgName}");
+
+                parameterConversions.Add($"\t\t{parameterType.CSharpTypeName} {tmpArgName} = default;\n");
+
+                StringBuilder cleanup = new();
                 cleanup.Append("\t\t");
                 cleanup.AppendFormat(parameterType.WrapperOutConversion, tmpArgName, param.Name);
                 cleanup.AppendLine();
+                cleanups.Add(cleanup.ToString());
             }
             else if (parameterType.WrapperConvertInput is not null)
             {
+                switch (parameterModifier)
+                {
+                    case TypeModifier.In:
+                    case TypeModifier.Out:
+                    case TypeModifier.Ref:
+                    case TypeModifier.Pointer:
+                        call.Append("&");
+                        break;
+                }
+
                 string convertedParamName = $"{param.Name}Converted";
 
+                StringBuilder parameterConversion = new();
+                StringBuilder cleanup = new();
                 parameterConversion.AppendLine();
                 parameterConversion.Append("\t\t");
                 parameterConversion.AppendFormat(parameterType.WrapperConvertInput, convertedParamName, param.Name);
@@ -421,21 +401,40 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                 }
 
                 call.Append(convertedParamName);
+                parameterConversions.Add(parameterConversion.ToString());
+                cleanups.Add(cleanup.ToString());
             }
             else
             {
-                call.Append(param.Name);
+                string paramName = param.Name;
+
+                switch (parameterModifier)
+                {
+                    case TypeModifier.In:
+                    case TypeModifier.Out:
+                    case TypeModifier.Ref:
+                        paramName = "__fixed" + param.Name;
+                        parameterConversions.Add($"\t\tfixed ({parameterType.CSharpTypeName}* {paramName} = &{param.Name}) {{");
+                        afterReturnCleanups.Add("\t\t}");
+                        break;
+                }
+
+                call.Append(paramName);
             }
         }
 
         call.Append(");");
 
+        cleanups.Reverse();
+
         output.AppendLine($$"""
                                 public static {{returnType.CSharpWrapperType}} {{method.Name}}({{parameterText}})
-                                {{{parameterConversion}}
+                                {
+                            {{string.Join("\n", parameterConversions)}}
                                     {{call}}
-                            {{cleanup}}
+                            {{string.Join("\n", cleanups)}}
                                     {{returnType.ReturnValueConversion}}
+                            {{string.Join("\n", afterReturnCleanups)}}
                                 }
 
                             """);
@@ -447,34 +446,34 @@ public class ScriptGlueGenerator : IIncrementalGenerator
         SourceProductionContext context,
         GeneratorInput input)
     {
-         Dictionary<string, MappedType> beefTypeToMappedType = new();
+        Dictionary<string, MappedType> beefTypeToMappedType = new();
 
-         InitializeTypes(beefTypeToMappedType);
+        InitializeTypes(beefTypeToMappedType);
 
-         foreach (ITypeSymbol? mapping in input.TypeMappings)
-         {
-             if (mapping is null)
-                 continue;
+        foreach (ITypeSymbol? mapping in input.TypeMappings)
+        {
+            if (mapping is null)
+                continue;
 
-             string csharpTypeName = mapping.ToDisplayString();
+            string csharpTypeName = mapping.ToDisplayString();
 
-             foreach (AttributeData attribute in mapping.GetAttributes()
-                 .Where(attribute => attribute.AttributeClass?.Name == "EngineClassAttribute"))
-             {
-                 string? beefTypeName = attribute.ConstructorArguments[0].Value?.ToString();
+            foreach (AttributeData attribute in mapping.GetAttributes()
+                .Where(attribute => attribute.AttributeClass?.Name == "EngineClassAttribute"))
+            {
+                string? beefTypeName = attribute.ConstructorArguments[0].Value?.ToString();
 
-                 if (beefTypeName is null)
-                     continue;
+                if (beefTypeName is null)
+                    continue;
 
-                 (MappedType newMapping, _) = DecodeType(beefTypeName, beefTypeToMappedType);
-                 newMapping.CSharpTypeName = csharpTypeName;
-             }
-         }
+                (MappedType newMapping, _) = DecodeType(beefTypeName, beefTypeToMappedType);
+                newMapping.CSharpTypeName = csharpTypeName;
+            }
+        }
 
-         StringBuilder engineFunctions = new StringBuilder();
-         StringBuilder wrappers = new StringBuilder();
+        StringBuilder engineFunctions = new StringBuilder();
+        StringBuilder wrappers = new StringBuilder();
 
-         engineFunctions.Append("""
+        engineFunctions.Append("""
                        // <auto-generated />
                        using System.Collections.Generic;
 
@@ -484,7 +483,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                        {
                        """);
 
-         wrappers.Append("""
+        wrappers.Append("""
                     // <auto-generated />
                     using System;
                     using System.Collections.Generic;
@@ -497,31 +496,31 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                     {
                     """);
 
-         List<GlueMethod> methods = new List<GlueMethod>();
+        List<GlueMethod> methods = new List<GlueMethod>();
 
-         foreach (string glueFunctions in input.GlueFunctionDefinitions)
-         {
-             methods.AddRange(JsonSerializer.Deserialize<GlueMethod[]>(glueFunctions) ?? []);
-         }
+        foreach (string glueFunctions in input.GlueFunctionDefinitions)
+        {
+            methods.AddRange(JsonSerializer.Deserialize<GlueMethod[]>(glueFunctions) ?? []);
+        }
 
-         foreach (GlueMethod method in methods)
-         {
-             if (!input.ExistingEngineFunctionStructs.Contains(method.Name))
-             {
-                 GenerateFunctionPointer(method, beefTypeToMappedType, engineFunctions);
-             }
+        foreach (GlueMethod method in methods)
+        {
+            if (!input.ExistingEngineFunctionStructs.Contains(method.Name))
+            {
+                GenerateFunctionPointer(method, beefTypeToMappedType, engineFunctions);
+            }
 
-             if (!input.ExistingScriptGlueClasses.Contains(method.Name))
-             {
-                 GenerateWrapper(method, beefTypeToMappedType, wrappers);
-             }
-         }
+            if (!input.ExistingScriptGlueClasses.Contains(method.Name))
+            {
+                GenerateWrapper(method, beefTypeToMappedType, wrappers);
+            }
+        }
 
-         engineFunctions.Append("\n}");
-         wrappers.Append("\n}");
+        engineFunctions.Append("\n}");
+        wrappers.Append("\n}");
 
-         context.AddSource("EngineFunctions.g.cs", engineFunctions.ToString());
-         context.AddSource("ScriptGlue.g.cs", wrappers.ToString());
+        context.AddSource("EngineFunctions.g.cs", engineFunctions.ToString());
+        context.AddSource("ScriptGlue.g.cs", wrappers.ToString());
     }
 
     private static bool IsScriptGlueClass(

@@ -18,6 +18,12 @@ using System.Text;
 using System.Threading;
 using System.Xml.Linq;
 
+// This attribute is NOT optional, removing it silently breaks every engine function that takes or returns a bool!
+// With runtime marshalling enabled the CLR treats bool in an unmanaged function pointer as a 4-byte Win32 BOOL and checks all of eax,
+// but Beef only writes al (1 byte). The upper bytes are garbage, so the result is (almost) always true. Everything would still compile.
+// The price: in/ref/out are not allowed in unmanaged signatures of this assembly, which is why the generator emits raw pointers and pins with fixed.
+[assembly: DisableRuntimeMarshalling]
+
 namespace GlitchyEngine;
 
 /// <summary>
@@ -730,7 +736,7 @@ internal static unsafe partial class ScriptGlue
                     nativeString = new StringView(pointer, bytes);
                 }
                 
-                _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, &nativeString, fullTypeNameConverted);
+                _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, &fieldNameConverted, &nativeString, &fullTypeNameConverted);
                 
                 if (onHeap)
                     StringView.FreeNativeMemory(nativeString);
@@ -750,7 +756,7 @@ internal static unsafe partial class ScriptGlue
                     // Skip Object Header (IntPtr) + Method Table (IntPtr) 
                     byte* valueRef = (byte*)*(IntPtr*)objectRef + sizeof(IntPtr);
                     float* fRef = (float*)(void*)valueRef;
-                    _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, valueRef, fullTypeNameConverted);
+                    _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, &fieldNameConverted, valueRef, &fullTypeNameConverted);
                 }
                 break;
         }
@@ -782,7 +788,7 @@ internal static unsafe partial class ScriptGlue
 
         fixed (T* valuePtr = &value)
         {
-            _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, fieldNameConverted, valuePtr, fullTypeNameConverted);
+            _engineFunctions.Serialization_SerializeField((void*)serializationContext, type, &fieldNameConverted, valuePtr, &fullTypeNameConverted);
         }
     }
 
