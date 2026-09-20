@@ -21,7 +21,7 @@ public partial class Entity : EngineObject
     /// </summary>
     public string Name
     {
-        get => "TODO!";//ScriptGlue.Entity_GetName(_uuid);
+        get => ScriptGlue.Entity_GetName(_uuid);
         set => ScriptGlue.Entity_SetName(_uuid, value);
     }
     
