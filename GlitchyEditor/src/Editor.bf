@@ -177,5 +177,37 @@ namespace GlitchyEditor
 		{
 			_settingsWindow.Open = true;
 		}
+
+		/// Wrapper for IdeAdapter.OpenScript that check whether or not an IDE Adapter is configured.
+		/// If not, a popup will be show.
+		public void OpenScript(StringView fileName, int lineNumber = 0, int columnNumber = 0)
+		{
+			if (IdeAdapter == null)
+			{
+				PopupService.Instance.OpenPopup("No IDE configured.", new (close) => {
+					close = false;
+
+					ImGui.TextUnformatted("In order to open a source file you need to configure an IDE to use.");
+
+					if (ImGui.Button("Go to settings..."))
+					{
+						ShowSettings();
+						SettingsWindow.HighlightSetting("Tools", "ide");
+						close = true;
+					}
+
+					ImGui.SameLine();
+
+					if (ImGui.Button("Cancel"))
+					{
+						close = true;
+					}
+				});
+			}
+			else
+			{
+				IdeAdapter.OpenScript(fileName, lineNumber, columnNumber);
+			}
+		}
 	}
 }

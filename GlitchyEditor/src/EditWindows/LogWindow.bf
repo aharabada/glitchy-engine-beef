@@ -9,6 +9,7 @@ using GlitchyEngine.Renderer;
 using GlitchyEngine;
 using GlitchyEditor.CodeEditors;
 using System.IO;
+using GlitchyEditor.Settings;
 
 namespace GlitchyEditor.EditWindows;
 
@@ -316,8 +317,7 @@ class LogWindow : EditorWindow
 								float width = ImGui.CalcTextSize(lineBuffer.CStr()).x;
 								if (ImGui.Selectable(lineBuffer, false, .None, .(width, 0)))
 								{
-									// TODO: Columns?
-									Editor.Instance.IdeAdapter.OpenScript(frameInfo.FileName, frameInfo.Line, frameInfo.Column);
+									Editor.Instance.OpenScript(frameInfo.FileName, frameInfo.Line, frameInfo.Column);
 								}
 							}
 
@@ -336,13 +336,13 @@ class LogWindow : EditorWindow
 				{
 					if (message.Source.MessageOrigin != null)
 					{
-						Editor.Instance.IdeAdapter.OpenScript(message.Source.MessageOrigin.FileName, message.Source.MessageOrigin.LineNumber);
+						Editor.Instance.OpenScript(message.Source.MessageOrigin.FileName, message.Source.MessageOrigin.LineNumber);
 					}
 					else if (message.Source.Exception != null)
 					{
 						// TODO: Column?
 						let firstFrame = message.Source.Exception.StackTrace.Frames[0];
-						Editor.Instance.IdeAdapter.OpenScript(firstFrame.FileName, firstFrame.Line);
+						Editor.Instance.OpenScript(firstFrame.FileName, firstFrame.Line);
 						//message.Source.Exception.StackTrace
 					}
 				}
