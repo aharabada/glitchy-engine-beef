@@ -9,7 +9,10 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace ScriptCoreGenerator;
 
@@ -386,13 +389,8 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
                 call.Append($"&{tmpArgName}");
 
-                parameterConversions.Add($"\t\t{parameterType.CSharpTypeName} {tmpArgName} = default;\n");
-
-                StringBuilder cleanup = new();
-                cleanup.Append("\t\t");
-                cleanup.AppendFormat(parameterType.WrapperOutConversion, tmpArgName, param.Name);
-                cleanup.AppendLine();
-                cleanups.Add(cleanup.ToString());
+                parameterConversions.Add($"{parameterType.CSharpTypeName} {tmpArgName} = default;");
+                cleanups.Add(string.Format(parameterType.WrapperOutConversion, tmpArgName, param.Name));
             }
             else if (parameterType.WrapperConvertInput is not null)
             {
@@ -434,9 +432,9 @@ public class ScriptGlueGenerator : IIncrementalGenerator
                     case TypeModifier.In:
                     case TypeModifier.Out:
                     case TypeModifier.Ref:
-                        paramName = "__fixed" + param.Name;
-                        parameterConversions.Add($"\t\tfixed ({parameterType.CSharpTypeName}* {paramName} = &{param.Name}) {{");
-                        afterReturnCleanups.Add("\t\t}");
+                        paramName = "__" + param.Name + "FixedPtr";
+                        parameterConversions.Add($"fixed ({parameterType.CSharpTypeName}* {paramName} = &{param.Name}) {{");
+                        afterReturnCleanups.Add("}");
                         break;
                 }
 
@@ -446,19 +444,17 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
         call.Append(");");
 
-        cleanups.Reverse();
-
-        output.AppendLine($$"""
-                                public static {{returnType.CSharpWrapperType}} {{method.Name}}({{parameterText}})
-                                {
-                            {{string.Join("\n", parameterConversions)}}
-                                    {{call}}
-                            {{string.Join("\n", cleanups)}}
-                                    {{returnType.ReturnValueConversion}}
-                            {{string.Join("\n", afterReturnCleanups)}}
-                                }
-
-                            """);
+        output.AppendLine(
+            $$"""
+            public static {{returnType.CSharpWrapperType}} {{method.Name}}({{parameterText}})
+            {
+                {{string.Join("\n", parameterConversions)}}
+                {{call}}
+                {{string.Join("\n", Enumerable.Reverse(cleanups))}}
+                {{returnType.ReturnValueConversion}}
+                {{string.Join("\n", afterReturnCleanups)}}
+            }
+            """);
 
 
     }
@@ -502,6 +498,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
                        unsafe internal partial struct EngineFunctions
                        {
+                       
                        """);
 
         wrappers.Append("""
@@ -515,6 +512,7 @@ public class ScriptGlueGenerator : IIncrementalGenerator
 
                     internal static unsafe partial class ScriptGlue
                     {
+                    
                     """);
 
         List<GlueMethod> methods = new List<GlueMethod>();
@@ -537,11 +535,13 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             }
         }
 
-        engineFunctions.Append("\n}");
+        engineFunctions.Append("}");
         wrappers.Append("\n}");
 
+        var parsedWrappers = ParseCompilationUnit(wrappers.ToString());
+
         context.AddSource("EngineFunctions.g.cs", engineFunctions.ToString());
-        context.AddSource("ScriptGlue.g.cs", wrappers.ToString());
+        context.AddSource("ScriptGlue.g.cs", parsedWrappers.NormalizeWhitespace().ToFullString());
     }
 
     private static bool IsScriptGlueClass(
