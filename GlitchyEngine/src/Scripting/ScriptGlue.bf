@@ -59,6 +59,12 @@ struct RegisterCallAttribute : Attribute
 {
 	public bool EngineResultAsBool { get; set mut; }
 	public bool IsExtension { get; set mut; }
+	/**
+	 * If true, marks the method as guaranteed short running.
+	 * A GuaranteedShortRunning function should have a VERY short runtime (< 1μs), must NEVER block, and NEVER call back into managed code!
+	 * This allows the script glue infrastructure to apply some optimizations (i.e. SuppressGCTransition in C#)
+	 */
+	public bool GuaranteedShortRunning {get; set mut; }
 }
 
 struct TypeTranslationTemplate
@@ -147,6 +153,7 @@ struct EngineFunctionsGeneratorAttribute : Attribute, IComptimeTypeApply
 				{{
 					"name": "{method.Name}",
 					"return_type": "{GetTypeInfo(method.ReturnType, registerCallAttribute)}",
+					"guaranteed_short_running": {registerCallAttribute.GuaranteedShortRunning ? "true" : "false"},
 					"parameters": [{parameters}
 					]
 				}},
@@ -453,7 +460,7 @@ static class ScriptGlue
 		}
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static StringView GetLastExceptionMessage()
 	{
 		return _lastExceptionMessage;
@@ -509,32 +516,32 @@ static class ScriptGlue
 
 #region Input
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsKeyPressed(Key key) => Input.IsKeyPressed(key);
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsKeyReleased(Key key) => Input.IsKeyReleased(key);
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsKeyToggled(Key key) => Input.IsKeyToggled(key);
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsKeyPressing(Key key) => Input.IsKeyPressing(key);
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsKeyReleasing(Key key) => Input.IsKeyReleasing(key);
 
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsMouseButtonPressed(MouseButton mouseButton) => Input.IsMouseButtonPressed(mouseButton);
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsMouseButtonReleased(MouseButton mouseButton) => Input.IsMouseButtonReleased(mouseButton);
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsMouseButtonPressing(MouseButton mouseButton) => Input.IsMouseButtonPressing(mouseButton);
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Input_IsMouseButtonReleasing(MouseButton mouseButton) => Input.IsMouseButtonReleasing(mouseButton);
 
 #endregion Input
@@ -632,7 +639,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
     static StringView Entity_GetName(UUID entityId)
 	{
 		Result<Entity> foundEntity = ScriptEngine.Context.GetEntityByID(entityId);
@@ -675,7 +682,7 @@ static class ScriptGlue
 
 #region TransformComponent
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetParent(UUID entityId, out UUID parentId)
 	{
 		parentId = .Zero;
@@ -702,7 +709,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetTranslation(UUID entityId, out float3 translation)
 	{
 		translation = ?;
@@ -727,7 +734,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetWorldTranslation(UUID entityId, out float3 translationWorld)
 	{
 		translationWorld = ?;
@@ -757,7 +764,7 @@ static class ScriptGlue
 		// TODO: we need to handle repositioning of colliders that are children of the entity with rigidbody...
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_TransformPointToWorld(UUID entityId, float3 point, out float3 pointWorld)
 	{
 		pointWorld = ?;
@@ -769,7 +776,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetRotation(UUID entityId, out Quaternion rotation)
 	{
 		rotation = ?;
@@ -794,7 +801,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetRotationEuler(UUID entityId, out float3 rotationEuler)
 	{
 		rotationEuler = ?;
@@ -831,7 +838,7 @@ static class ScriptGlue
 		}
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetRotationAxisAngle(UUID entityId, out AxisAngle rotationAxisAngle)
 	{
 		rotationAxisAngle = ?;
@@ -855,7 +862,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_GetScale(UUID entityId, out float3 scale)
 	{
 		scale = ?;
@@ -865,7 +872,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult Transform_SetScale(UUID entityId, float3 scale)
 	{
 		Entity entity = GetEntityOrReturnError!(entityId);
@@ -883,14 +890,14 @@ static class ScriptGlue
 
 #region Rigidbody2
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_ApplyForce(UUID entityId, in float2 force, in float2 point, bool wakeUp)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		Box2D.Body.ApplyForce(rigidBody.[Friend]RuntimeBody, force, point, wakeUp);
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_ApplyForceToCenter(UUID entityId, in float2 force, bool wakeUp)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
@@ -904,7 +911,7 @@ static class ScriptGlue
 		rigidBody.SetPosition(position);
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_GetPosition(UUID entityId, out float2 position)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
@@ -918,42 +925,42 @@ static class ScriptGlue
 		rigidBody.SetAngle(rotation);
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_GetRotation(UUID entityId, out float rotation)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rotation = rigidBody.GetAngle();
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_GetLinearVelocity(UUID entityId, out float2 velocity)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		velocity = rigidBody.GetLinearVelocity();
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_SetLinearVelocity(UUID entityId, in float2 velocity)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rigidBody.SetLinearVelocity(velocity);
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_GetAngularVelocity(UUID entityId, out float velocity)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		velocity = rigidBody.GetAngularVelocity();
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_SetAngularVelocity(UUID entityId, float velocity)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		rigidBody.SetAngularVelocity(velocity);
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_GetBodyType(UUID entityId, out Rigidbody2DComponent.BodyType bodyType)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
@@ -967,7 +974,7 @@ static class ScriptGlue
 		rigidBody.BodyType = bodyType;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_IsFixedRotation(UUID entityId, out bool isFixedRotation)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
@@ -981,14 +988,14 @@ static class ScriptGlue
 		rigidBody.FixedRotation = isFixedRotation;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_GetGravityScale(UUID entityId, out float gravityScale)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
 		gravityScale = rigidBody.GravityScale;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Rigidbody2D_SetGravityScale(UUID entityId, float gravityScale)
 	{
 		Rigidbody2DComponent* rigidBody = GetComponentSafe<Rigidbody2DComponent>(entityId);
@@ -999,126 +1006,126 @@ static class ScriptGlue
 
 #region Camera
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetProjectionType(UUID entityId, out SceneCamera.ProjectionType projectionType)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		projectionType = camera.Camera.ProjectionType;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetProjectionType(UUID entityId, SceneCamera.ProjectionType projectionType)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.ProjectionType = projectionType;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetPerspectiveFovY(UUID entityId, out float fovY)
 	{
 	    CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		fovY = camera.Camera.PerspectiveFovY;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetPerspectiveFovY(UUID entityId, float fovY)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.PerspectiveFovY = fovY;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetPerspectiveNearPlane(UUID entityId, out float nearPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		nearPlane = camera.Camera.PerspectiveNearPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetPerspectiveNearPlane(UUID entityId, float nearPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.PerspectiveNearPlane = nearPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetPerspectiveFarPlane(UUID entityId, out float farPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		farPlane = camera.Camera.PerspectiveFarPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetPerspectiveFarPlane(UUID entityId, float farPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.PerspectiveFarPlane = farPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetOrthographicHeight(UUID entityId, out float height)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		height = camera.Camera.OrthographicHeight;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetOrthographicHeight(UUID entityId, float height)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.OrthographicHeight = height;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetOrthographicNearPlane(UUID entityId, float nearPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.OrthographicNearPlane = nearPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetOrthographicNearPlane(UUID entityId, out float nearPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		nearPlane = camera.Camera.OrthographicNearPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetOrthographicFarPlane(UUID entityId, float farPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.OrthographicFarPlane = farPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetOrthographicFarPlane(UUID entityId, out float farPlane)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		farPlane = camera.Camera.OrthographicFarPlane;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetAspectRatio(UUID entityId, float aspectRatio)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.AspectRatio = aspectRatio;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetAspectRatio(UUID entityId, out float aspectRatio)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		aspectRatio = camera.Camera.AspectRatio;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_SetFixedAspectRatio(UUID entityId, bool fixedAspectRatio)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
 		camera.Camera.FixedAspectRatio = fixedAspectRatio;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Camera_GetFixedAspectRatio(UUID entityId, out bool fixedAspectRatio)
 	{
 		CameraComponent* camera = GetComponentSafe<CameraComponent>(entityId);
@@ -1131,7 +1138,7 @@ static class ScriptGlue
 
 	// TODO: We need a wrapper class!
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Physics2D_GetGravity(out float2 gravity)
 	{
 		Scene scene = ScriptEngine.Context;
@@ -1139,7 +1146,7 @@ static class ScriptGlue
 		gravity = scene.Physics2DSettings.Gravity;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void Physics2D_SetGravity(in float2 gravity)
 	{
 		Scene scene = ScriptEngine.Context;
@@ -1152,42 +1159,42 @@ static class ScriptGlue
 	// TODO: Do we even need the circle renderer?
 #region CircleRenderer
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void CircleRenderer_GetColor(UUID entityId, out ColorRGBA color)
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
 		color = circleRenderer.Color;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void CircleRenderer_SetColor(UUID entityId, ColorRGBA color)
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
 		circleRenderer.Color = color;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void CircleRenderer_GetUvTransform(UUID entityId, out float4 uvTransform)
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
 		uvTransform = circleRenderer.UvTransform;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void CircleRenderer_SetUvTransform(UUID entityId, float4 uvTransform)
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
 		circleRenderer.UvTransform = uvTransform;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void CircleRenderer_GetInnerRadius(UUID entityId, out float innerRadius)
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
 		innerRadius = circleRenderer.InnerRadius;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void CircleRenderer_SetInnerRadius(UUID entityId, float innerRadius)
 	{
 		CircleRendererComponent* circleRenderer = GetComponentSafe<CircleRendererComponent>(entityId);
@@ -1198,7 +1205,7 @@ static class ScriptGlue
 
 #region SpriteRenderer
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult SpriteRenderer_GetColor(UUID entityId, out ColorRGBA color)
 	{
 		color = ?;
@@ -1207,7 +1214,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult SpriteRenderer_SetColor(UUID entityId, ColorRGBA color)
 	{
 		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
@@ -1215,7 +1222,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult SpriteRenderer_GetUvTransform(UUID entityId, out float4 uvTransform)
 	{
 		uvTransform = ?;
@@ -1224,7 +1231,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult SpriteRenderer_SetUvTransform(UUID entityId, float4 uvTransform)
 	{
 		SpriteRendererComponent* spriteRenderer = GetComponentOrReturn!<SpriteRendererComponent>(entityId);
@@ -1267,14 +1274,14 @@ static class ScriptGlue
 
 #region TextRenderer
 
-	[RegisterCall(EngineResultAsBool = true), CallingConvention(.Cdecl)]
+	[RegisterCall(EngineResultAsBool = true, GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_GetIsRichText(UUID entityId)
 	{
 		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
 		return textComponent.IsRichText ? .Ok : .False;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_SetIsRichText(UUID entityId, bool isRichText)
 	{
 		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
@@ -1285,7 +1292,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_GetText(UUID entityId, out StringView text)
 	{
 		text = ?;
@@ -1306,7 +1313,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_GetColor(UUID entityId, out ColorRGBA color)
 	{
 		color = ?;
@@ -1316,7 +1323,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_SetColor(UUID entityId, ColorRGBA color)
 	{
 		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
@@ -1326,7 +1333,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_GetHorizontalAlignment(UUID entityId, [GlueParam("out HorizontalTextAlignment")] out HorizontalTextAlignment horizontalAlignment)
 	{
 		horizontalAlignment = ?;
@@ -1335,7 +1342,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_SetHorizontalAlignment(UUID entityId, [GlueParam("HorizontalTextAlignment")] HorizontalTextAlignment horizontalAlignment)
 	{
 		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
@@ -1344,7 +1351,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_GetFontSize(UUID entityId, out float fontSize)
 	{
 		fontSize = ?;
@@ -1353,7 +1360,7 @@ static class ScriptGlue
 		return .Ok;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static EngineResult TextRenderer_SetFontSize(UUID entityId, float fontSize)
 	{
 		TextRendererComponent* textComponent = GetComponentOrReturn!<TextRendererComponent>(entityId);
@@ -1422,25 +1429,25 @@ static class ScriptGlue
 
 #region Math
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static float Math_ModfFloat(float x, out float integerPart)
 	{
 		return modf(x, out integerPart);
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static float2 Math_ModfFloat2(float2 x, out float2 integerPart)
 	{
 		return modf(x, out integerPart);
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static float3 Math_ModfFloat3(float3 x, out float3 integerPart)
 	{
 		return modf(x, out integerPart);
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static float4 Math_ModfFloat4(float4 x, out float4 integerPart)
 	{
 		return modf(x, out integerPart);
@@ -1448,7 +1455,7 @@ static class ScriptGlue
 
 #endregion
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static void UUID_Create(out UUID id)
 	{
 		id = UUID.Create();
@@ -1456,25 +1463,25 @@ static class ScriptGlue
 
 #region Application
 	
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Application_IsEditor()
 	{
 		return ScriptEngine.ApplicationInfo.IsEditor;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Application_IsPlayer()
 	{
 		return ScriptEngine.ApplicationInfo.IsPlayer;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Application_IsInEditMode()
 	{
 		return ScriptEngine.ApplicationInfo.IsInEditMode;
 	}
 
-	[RegisterCall, CallingConvention(.Cdecl)]
+	[RegisterCall(GuaranteedShortRunning = true), CallingConvention(.Cdecl)]
 	static bool Application_IsInPlayMode()
 	{
 		return ScriptEngine.ApplicationInfo.IsInPlayMode;

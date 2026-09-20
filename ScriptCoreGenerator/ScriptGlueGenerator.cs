@@ -19,6 +19,8 @@ internal class GlueMethod
     public string Name { get; set; }
     [JsonPropertyName("return_type")]
     public string ReturnType { get; set; }
+    [JsonPropertyName("guaranteed_short_running")]
+    public bool GuaranteedShortRunning { get; set; }
     [JsonPropertyName("parameters")]
     public List<Parameter> Parameters { get; set; }
 
@@ -307,7 +309,26 @@ public class ScriptGlueGenerator : IIncrementalGenerator
             parameterText.Append(", ");
         }
 
-        output.AppendLine($"    public delegate* unmanaged[Cdecl]<{parameterText}{returnType.CSharpTypeName}> {method.Name};");
+        string callingConvention = "Cdecl";
+
+#if !DEBUG
+        // Normally when calling into unmanaged code the current thread transitions
+        // from cooperative GC mode (all threads block for GC collection) to preemtive (other threads can gc independently from us).
+        // This is done to prevent long running native code (e.g. native code opens a message box) from blocking all threads because
+        // they wait for GC to happen, which can lead to problems. If we know however that the called native function is very short
+        // (short than the GC transition itself) then we can explicitly prevent the suppression.
+        // We rely on the engine (ScriptGlue.bf) to tell us that information.
+        //
+	    // A GuaranteedShortRunning function should have a VERY short runtime (< 1μs), must NEVER block, and NEVER call back into managed code!
+        //
+        // We only enable it in release builds, as it will prevent the mixed mode debugger from stepping over the managed-native-border.
+        if (method.GuaranteedShortRunning)
+        {
+            callingConvention += ", SuppressGCTransition";
+        }
+#endif
+
+        output.AppendLine($"    public delegate* unmanaged[{callingConvention}]<{parameterText}{returnType.CSharpTypeName}> {method.Name};");
     }
 
     private static void GenerateWrapper(GlueMethod method, Dictionary<string, MappedType> beefTypeToMappedType, StringBuilder output)
