@@ -1,11 +1,28 @@
+// Based on the Decimal implementation from the Mono Runtime: https://github.com/mono/mono/blob/0f53e9e151d92944cacab3e24ac359410c606df6/mcs/class/referencesource/mscorlib/system/decimal.cs
+// Originally licensed under the MIT license.
+
 using System;
-using Bon.Integrated;
 using Bon;
+using Bon.Integrated;
+
 namespace GlitchyEngine.Scripting;
 
-/// A struct providing access to the components of a mono decimal.
-struct MonoDecimal
+/// A struct compatible with the Decimal type form the .Net Runtime.
+struct Decimal
 {
+    // Sign mask for the flags field. A value of zero in this bit indicates a
+    // positive Decimal value, and a value of one in this bit indicates a
+    // negative Decimal value.
+    //
+    // Look at OleAut's DECIMAL_NEG constant to check for negative values
+    // in native code.
+    private const uint32 SignMask = 0x80000000u;
+	
+	// Scale mask for the flags field. This byte in the flags field contains
+	// the power of 10 to divide the Decimal value by. The scale byte must
+	// contain a value between 0 and 28 inclusive.
+	private const uint32 ScaleMask = 0x00FF0000u;
+
 	[Bitfield<uint16>(.Private, .BitsAt(16, 0), "_dontUse", .Read)]
 	[Bitfield<uint8>(.Public, .BitsAt(8, 16), "Exponent")]
 	[Bitfield<uint8>(.Private, .BitsAt(7, 24), "_dontUse2")]
@@ -20,15 +37,48 @@ struct MonoDecimal
 
 	static this
 	{
-		gBonEnv.typeHandlers.Add(typeof(MonoDecimal),
+		gBonEnv.typeHandlers.Add(typeof(Decimal),
 			    ((.)new => AssetSerialize, new => AssetDeserialize));
 	}
+
+	public this()
+	{
+		_high = 0;
+		_low = 0;
+		_mid = 0;
+		_flags = 0;
+	}
+	
+	public this(int value)
+	{
+		var value;
+	    if (value >= 0)
+	    {
+	        _flags = 0;
+	    }
+	    else
+	    {
+	        _flags = SignMask;
+	        value = -value;
+	    }
+	    _low = (uint32)value;
+	    _mid = (uint32)(value >> 32);
+	    _high = 0;
+	}
+
+    public this(uint value)
+    {
+        _flags = 0;
+	    _low = (uint32)value;
+	    _mid = (uint32)(value >> 32);
+        _high = 0;
+    }
 
 	static void AssetSerialize(BonWriter writer, ValueView value, BonEnvironment environment, SerializeValueState state)
 	{
 		Log.EngineLogger.Assert(value.type == typeof(Self));
 
-		MonoDecimal decimal = value.Get<MonoDecimal>();
+		Decimal decimal = value.Get<Decimal>();
 
 		decimal.ToString(writer.outStr);
 	}
@@ -86,11 +136,11 @@ struct MonoDecimal
 		strBuffer.Append('m');
 	}
 
-	public static Result<MonoDecimal> Parse(StringView strBuffer)
+	public static Result<Decimal> Parse(StringView strBuffer)
 	{
 		var strBuffer;
 
-		MonoDecimal result = .();
+		Decimal result = .();
 
 		if (strBuffer.StartsWith('-'))
 		{

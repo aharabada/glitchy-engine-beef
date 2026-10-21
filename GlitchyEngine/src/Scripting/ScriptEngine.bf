@@ -186,7 +186,6 @@ static class ScriptEngine
 	public static void Init()
 	{
 		InitRuntime();
-		//InitMono();
 
 		LoadScriptAssemblies();
 	}

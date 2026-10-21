@@ -1,5 +1,0 @@
-namespace Mono;
-
-class Jit
-{
-}

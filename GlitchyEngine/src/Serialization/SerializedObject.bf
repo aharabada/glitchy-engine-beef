@@ -1,6 +1,5 @@
 using GlitchyEngine.Core;
 using GlitchyEngine.Scripting;
-using Mono;
 using System;
 using System.Collections;
 using Bon.Integrated;
@@ -315,7 +314,7 @@ class SerializedObject
 					Serialize.Value(writer, GetFieldDataAs<double>(field.Data), environment);
 				case .Decimal:
 					writer.Type("decimal");
-					Serialize.Value(writer, GetFieldDataAs<MonoDecimal>(field.Data), environment);
+					Serialize.Value(writer, GetFieldDataAs<Decimal>(field.Data), environment);
 
 				case .Enum:
 					writer.Type("Enum");
@@ -499,7 +498,7 @@ class SerializedObject
 						if (reader.inStr.StartsWith('m'))
 							reader.inStr.RemoveFromStart(1);
 	
-						MonoDecimal decimalValue = Try!(MonoDecimal.Parse(numberView));
+						Decimal decimalValue = Try!(Decimal.Parse(numberView));
 						fieldType = .Decimal;
 						object.SetRawData(fieldType, decimalValue, ref fieldData);
 						

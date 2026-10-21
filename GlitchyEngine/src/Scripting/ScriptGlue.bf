@@ -344,7 +344,7 @@ static class ScriptGlue
 			});
 	}
 
-	/// Gets the entity with the given id. Throws a mono exception, if the entity doesn't exist.
+	/// Gets the entity with the given id. Returns an .Err if it doesn't exist.
 	static Result<Entity> GetEntitySafe(UUID entityId)
 	{
 		if (ScriptEngine.Context.GetEntityByID(entityId) case .Ok(let entity))
@@ -625,7 +625,6 @@ static class ScriptGlue
 			return .ArgumentError;
 		}
 
-		//return scriptComponent.Instance.MonoInstance;
 		return .Ok;
 	}
 	

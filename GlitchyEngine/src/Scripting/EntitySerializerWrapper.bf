@@ -48,17 +48,6 @@ class EntitySerializerWrapper : NewScriptClass
 		_createSerializationContextMethod(serializerPtr);
 	}
 	
-	/*public void ClearSerializationContext(ScriptInstanceSerializer serializer)
-	{
-		void* serializerPtr = Internal.UnsafeCastToPtr(serializer);
-
-		MonoException* exception = null;
-		_clearSerializationContextMethod(serializerPtr, &exception);
-
-		if (exception != null)
-			ScriptEngine.[Friend]HandleMonoException(exception, null);
-	}*/
-
 	public void DestroySerializationContext(ScriptInstanceSerializer serializer)
 	{
 		void* serializerPtr = Internal.UnsafeCastToPtr(serializer);

@@ -8,7 +8,6 @@ using GlitchyEngine;
 using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Core;
-using Mono;
 using GlitchyEngine.World.Components;
 
 namespace GlitchyEditor.EditWindows
