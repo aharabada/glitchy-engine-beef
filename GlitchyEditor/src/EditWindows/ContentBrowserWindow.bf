@@ -604,7 +604,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.MenuItem("Open C# Project..."))
 			{
-				Editor.Instance.IdeAdapter.OpenScriptProject();
+				Editor.Instance.OpenScriptProject();
 			}
 
 			ImGui.AttachTooltip("Opens the C# Solution of this project.");
@@ -1434,7 +1434,7 @@ namespace GlitchyEditor.EditWindows
 				// Special treatment for scripts, open them in Visual Studio.
 				if (entry->Path.EndsWith(".cs"))
 				{
-					Editor.Instance.IdeAdapter.OpenScript(entry->Path);
+					Editor.Instance.OpenScript(entry->Path);
 				}
 				else if (Path.OpenFolder(entry->Path) case .Err)
 					Log.EngineLogger.Error("Failed to open file.");
