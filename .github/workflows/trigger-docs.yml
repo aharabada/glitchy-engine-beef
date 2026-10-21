@@ -1,0 +1,19 @@
+name: Trigger docs build
+
+# Rebuilds the documentation website (aharabada/glitchy-engine-docs) whenever main changes
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify docs repository
+        env:
+          # Fine-grained PAT, only for glitchy-engine-docs, permission "Contents: Read and write"
+          GH_TOKEN: ${{ secrets.DOCS_DISPATCH_TOKEN }}
+        run: gh api repos/aharabada/glitchy-engine-docs/dispatches -f event_type=engine-updated
