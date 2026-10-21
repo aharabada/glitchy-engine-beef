@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
         <!-- General configuration -->
     <AssemblyTitle>[ProjectName]</AssemblyTitle>
@@ -10,6 +10,7 @@
     <OutputPath>./.cache/bin/</OutputPath>
     <!-- Generates a runtimeconfig-file and copies nuget references to the output -->
     <EnableDynamicLoading>true</EnableDynamicLoading>
+    <DefaultItemExcludes>$(DefaultItemExcludes);**/*.ass</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="ScriptCore" OutputItemType="Analyzer" ReferenceOutputAssembly="true">
