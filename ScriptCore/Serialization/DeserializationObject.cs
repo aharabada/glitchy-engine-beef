@@ -324,7 +324,9 @@ public class DeserializationObject
             return deserializedValue;
         }
 
-        if (fieldType.IsPrimitive)
+        // Decimals are not actually primitives, but we treat them as if they were, because they are a built-in type
+        // and it makes more sense to send them over to the engine as a binary type than to serialize their underlying fields (which would happen when we treated them as a struct).
+        if (fieldType.IsPrimitive || fieldType == typeof(decimal))
         {
             return DeserializePrimitive(fieldName, fieldType);
         }
@@ -364,7 +366,7 @@ public class DeserializationObject
 
     public object? DeserializePrimitive(string fieldName, Type fieldType)
     {
-        Debug.Assert(fieldType.IsPrimitive, $"{fieldType} is not a primitive type.");
+        Debug.Assert(fieldType.IsPrimitive || fieldType == typeof(decimal), $"{fieldType} is not a primitive type.");
 
         SerializationType expectedType = SerializationType.None;
         
