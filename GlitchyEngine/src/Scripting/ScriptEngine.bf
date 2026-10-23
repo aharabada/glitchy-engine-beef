@@ -374,8 +374,6 @@ static class ScriptEngine
 		if (script.Instance != null)
 			script.Instance = null;
 
-		script.ScriptClassName = null;
-
 		DestroyInstance(entityId);
 	}
 
@@ -455,26 +453,20 @@ static class ScriptEngine
 
 		LoadScriptAssemblies();
 
-		{
-			Debug.Profiler.ProfileScope!("Initialize Instances");
-			
-			// We need to create a new instance for every entity
-			for (let (id, scriptInstance) in _entityScriptInstances)
-			{
-				if (Context.GetEntityByID(id) case .Ok(let entity))
-				{
-					ScriptComponent* script = entity.GetComponent<ScriptComponent>();
-					InitializeInstance(entity, script);
-				}
-				else
-				{
-					Log.EngineLogger.AssertDebug(false, "Entities script was just serialized but the entity doesn't exist anymore.");
-				}
-			}
-		}
 		
 		if (retainScriptData)
 		{
+			if (Context != null)
+			{
+				Debug.Profiler.ProfileScope!("Initialize Instances");
+	
+				// We need to create a new instance for every entity
+				for (let (ecsEntity, scriptComponent) in Context.GetEntities<ScriptComponent>())
+				{
+					InitializeInstance(Entity(ecsEntity, Context), scriptComponent);
+				}
+			}
+
 			contextSerializer.DeserializeScriptInstances();
 		}
 
