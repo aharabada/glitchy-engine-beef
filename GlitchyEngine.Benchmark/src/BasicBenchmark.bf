@@ -17,7 +17,7 @@ class BasicBenchmark
 		Console.WriteLine(Directory.GetCurrentDirectory(.. scope .()));
 		ScriptEngine.Init();
 		
-		ScriptEngine.SetAppAssemblyPath(@"..\GlitchyEngine.Test\content\TestProject\.cache\bin\TestProject.dll");
+		ScriptEngine.SetAppAssemblyPath(@"..\GlitchyEngine.Test\content\TestProject\.cache\bin\TestProject.dll", false);
 	}
 
 	protected static void Shutdown()
