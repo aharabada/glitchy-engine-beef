@@ -212,6 +212,22 @@ static class ScriptEngine
 	}	
 
 	static bool _requestingReload = false;
+	static bool _assemblyWatcherSuspended = false;
+
+	public static void SuspendAssemblyWatcher()
+	{
+		Log.EngineLogger.Trace("Suspending assembly watching");
+
+		_assemblyWatcherSuspended = true;
+		_userAssemblyWatcher?.StopRaisingEvents();
+	}
+
+	public static void ResumeAssemblyWatcher()
+	{
+		Log.EngineLogger.Trace("Resuming assembly watching");
+		_assemblyWatcherSuspended = false;
+		_userAssemblyWatcher?.StartRaisingEvents();
+	}
 
 	static void InitAssemblyWatcher()
 	{
@@ -244,7 +260,8 @@ static class ScriptEngine
 					ReloadAssemblies(retainScriptData: true);
 					
 					_requestingReload = false;
-					_userAssemblyWatcher.StartRaisingEvents();
+					if (_assemblyWatcherSuspended)
+						_userAssemblyWatcher.StartRaisingEvents();
 
 					return true;
 				});
@@ -252,7 +269,8 @@ static class ScriptEngine
 			});
 		}
 
-		_userAssemblyWatcher.StartRaisingEvents();
+		if (_assemblyWatcherSuspended)
+			_userAssemblyWatcher.StartRaisingEvents();
 	}
 
 	static void LoadScriptAssemblies()

@@ -826,7 +826,9 @@ namespace GlitchyEditor
 
 			if (allowRebuild && EditorApp.Instance.Settings.ScriptSettings.RebuildOnPlay)
 			{
-				var task = _editor.BuildScripts();
+				// Don't immediately reload the scripts after the build, because SetActiveScene will do that anyway.
+				var task = _editor.BuildScripts(reloadAfterBuild: false);
+
 				task.ContinueWith(new (t) => {
 					// Continuations run in worker threads, invoke play on main thread!
 					EditorApp.Instance.InvokeOnMainThread(new () => {
