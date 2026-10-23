@@ -675,7 +675,7 @@ namespace ImGui
 		{
 			PushStyleVar(value);
 			defer:mixin PopStyleVar();
-		}	
+		}
 
 		public static void PushStyleVar(TypedStyleVar value)
 		{
@@ -742,6 +742,43 @@ namespace ImGui
 			case .DockingSeparatorSize(let Value):
 				PushStyleVar(.DockingSeparatorSize, Value);
 			}
+		}
+		
+		public static mixin PushScopedStyleColor(ImGui.Col idx, uint32 color)
+		{
+			PushStyleColor(idx, color);
+			defer:mixin PopStyleColor();
+		}
+		
+		public static mixin PushScopedStyleColor(ImGui.Col idx, Vec4 color)
+		{
+			PushStyleColor(idx, color);
+			defer:mixin PopStyleColor();
+		}
+
+		public static mixin PushScopedStyleColor(ImGui.Col idx, GlitchyEngine.Math.Color color)
+		{
+			PushStyleColor(idx, color);
+			defer:mixin PopStyleColor();
+		}
+
+		public static void PushStyleColor(ImGui.Col idx, GlitchyEngine.Math.Color color)
+		{
+#unwarn
+			uint32 bitColor = *(uint32*)(void*)&color;
+
+			ImGui.PushStyleColor(.Text, bitColor);
+		}
+		
+		public static mixin PushScopedStyleColor(ImGui.Col idx, GlitchyEngine.Math.ColorRGBA color)
+		{
+			PushStyleColor(idx, color);
+			defer:mixin PopStyleColor();
+		}
+
+		public static void PushStyleColor(ImGui.Col idx, GlitchyEngine.Math.ColorRGBA color)
+		{
+			ImGui.PushStyleColor(.Text, ((Color)color).Value);
 		}
 
 		public struct DisabledScope : IDisposable

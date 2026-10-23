@@ -10,6 +10,7 @@ using GlitchyEngine;
 using GlitchyEditor.CodeEditors;
 using System.IO;
 using GlitchyEditor.Settings;
+using GlitchyEngine.Math;
 
 namespace GlitchyEditor.EditWindows;
 
@@ -138,7 +139,7 @@ class LogWindow : EditorWindow
 			if (_visibleMessageTypes.HasFlag(.Trace))
 				ImGui.PushStyleColor(.Button, *col);
 			else
-				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
+				ImGui.PushStyleColor(.Button, ColorRGBA(0, 0, 0, 0));
 
 			if (ImGui.ImageButtonEx(1, s_TraceIcon, buttonSize, .Zero, .Ones))
 				_visibleMessageTypes ^= .Trace;
@@ -148,7 +149,7 @@ class LogWindow : EditorWindow
 			if (_visibleMessageTypes.HasFlag(.Info))
 				ImGui.PushStyleColor(.Button, *col);
 			else
-				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
+				ImGui.PushStyleColor(.Button, ColorRGBA(0, 0, 0, 0));
 
 			if (ImGui.ImageButtonEx(2, s_InfoIcon, buttonSize, .Zero, .Ones))
 				_visibleMessageTypes ^= .Info;
@@ -158,7 +159,7 @@ class LogWindow : EditorWindow
 			if (_visibleMessageTypes.HasFlag(.Warning))
 				ImGui.PushStyleColor(.Button, *col);
 			else
-				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
+				ImGui.PushStyleColor(.Button, ColorRGBA(0, 0, 0, 0));
 
 			if (ImGui.ImageButtonEx(3, s_WarningIcon, buttonSize, .Zero, .Ones))
 				_visibleMessageTypes ^= .Warning;
@@ -168,7 +169,7 @@ class LogWindow : EditorWindow
 			if (_visibleMessageTypes.HasFlag(.Error))
 				ImGui.PushStyleColor(.Button, *col);
 			else
-				ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
+				ImGui.PushStyleColor(.Button, ColorRGBA(0, 0, 0, 0));
 
 
 			if (ImGui.ImageButtonEx(4, s_ErrorIcon, buttonSize, .Zero, .Ones))

@@ -178,7 +178,7 @@ namespace GlitchyEditor.EditWindows
 			
 			float2 buttonSize = ImGui.GetTextLineHeight().XX;
 			
-			ImGui.PushStyleColor(.Button, .(0, 0, 0, 0));
+			ImGui.PushStyleColor(.Button, ColorRGBA(0, 0, 0, 0));
 
 			if (showComponentContextMenu != null)
 			{
