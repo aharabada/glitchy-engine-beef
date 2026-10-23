@@ -535,6 +535,35 @@ namespace ImGui
 			ImGui.EndTooltip();
 		}
 
+		/// Provides a text input field that allows to edit the given string directly. The string will grow as needed.
+		/// Returns true if the text was changed.
+		public static bool InputText(char8* label, String str, InputTextFlags flags = .None)
+		{
+			return ImGui.InputText(label, str.CStr(), (.)str.AllocSize, flags | .CallbackResize, => StringResizeCallback, Internal.UnsafeCastToPtr(str));
+		}
+
+		private static int StringResizeCallback(InputTextCallbackData* data)
+		{
+			if (data.EventFlag != .CallbackResize)
+				return 0;
+			
+			String str = (String)Internal.UnsafeCastToObject(data.UserData);
+			
+			int newLength = data.BufTextLen;
+			
+			// PrepareBuffer increases the length and reserves room for the null terminator.
+			if (newLength > str.Length)
+				str.PrepareBuffer(newLength - str.Length);
+			else
+				str.Length = newLength;
+			
+			// The string might have been reallocated.
+			data.Buf = str.Ptr;
+			data.BufSize = (.)str.AllocSize;
+			
+			return 0;
+		}
+
 		[Comptime]
 		private static DataType GetDataType<T>()
 		{
