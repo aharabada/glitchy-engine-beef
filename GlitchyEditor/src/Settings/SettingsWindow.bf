@@ -106,8 +106,6 @@ namespace GlitchyEditor
 
 		void ScanForSettings(Object container)
 		{
-			Log.EngineLogger.Info($"Visiting type: {container.GetType().GetName(.. scope .())}");
-
 			Type type = container.GetType();
 
 			for (var field in type.GetFields())
@@ -138,8 +136,6 @@ namespace GlitchyEditor
 
 			for (let method in type.GetMethods(.Instance | .Static | .Public | .NonPublic))
 			{
-				Log.EngineLogger.Info($"Visiting method: {method.Name}");
-
 				Result<CustomSettingRendererAttribute> rendererResult = method.GetCustomAttribute<CustomSettingRendererAttribute>();
 				
 				if (rendererResult case .Ok(let rendererInfo))
