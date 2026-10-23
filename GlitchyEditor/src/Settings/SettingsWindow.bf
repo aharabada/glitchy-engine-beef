@@ -420,6 +420,9 @@ namespace GlitchyEditor
 
 				for (let methodBinding in category._methodBindings)
 				{
+					ImGui.TableNextRow();
+					ImGui.TableNextColumn();
+
 					if (methodBinding.Method.Invoke(methodBinding.Method.IsStatic ? null : methodBinding.SettingsObject, category) case .Ok(var returnValue))
 					{
 						_settingsChanged |= returnValue.Get<bool>();

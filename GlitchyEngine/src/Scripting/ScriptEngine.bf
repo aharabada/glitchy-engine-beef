@@ -89,6 +89,9 @@ static class ScriptEngine
 	// This would probably require a separate small project that just handles the script-engine interface.
 	public const String ScriptCorePath = "Resources/Scripts/ScriptCore.dll";
 
+	/// The minimum supported .Net Version.
+	public const DotNetVersion MinDotNetVersion = .(10, 0, 0, .Normal);
+
 	private static Scene s_Context ~ _?.ReleaseRef();
 
 	private static EngineClasses _classes = new .() ~ delete _;

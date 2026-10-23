@@ -51,7 +51,7 @@ class DetectIDEsBackgroundTask : BackgroundTask
 		_stage = .SearchRider;
 		FindRider();
 
-		return .Finished;
+		return .Finish;
 	}
 
 	public override void OnRenderPopup()

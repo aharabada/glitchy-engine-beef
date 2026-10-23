@@ -9,7 +9,7 @@ class BackgroundTaskList
 {
 	BackgroundTask _sentinel = new BackgroundTask()
 	{
-		public override BackgroundTask.RunResult Run() => .Finished;
+		public override BackgroundTask.RunResult Run() => .Finish;
 		public override void OnRenderPopup() { }
 		_next = _,
 		_previous = _,

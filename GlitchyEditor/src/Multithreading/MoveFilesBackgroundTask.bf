@@ -252,7 +252,7 @@ class MoveFilesBackgroundTask : BackgroundTask
 			delete currentPath;
 		}
 
-		return .Finished;
+		return .Finish;
 	}
 
 	private Result<void, CopyError> MovePath(CopyInfo copyInfo)

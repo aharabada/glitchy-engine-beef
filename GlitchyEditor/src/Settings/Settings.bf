@@ -6,6 +6,9 @@ using Bon;
 using GlitchyEngine;
 using System.Threading;
 using System.Linq;
+using GlitchyEngine.Scripting;
+using GlitchyEditor.Multithreading;
+using GlitchyEngine.Math;
 
 using static GlitchyEditor.SettingsWindow;
 
@@ -239,6 +242,19 @@ class IdeInstallation
 [Reflect]
 class ScriptSettings
 {
+	private List<DotNetVersion> _dotNetSdks = new .() ~ delete _;
+	public List<DotNetVersion> DotNetSdks => _dotNetSdks;
+	
+	[BonInclude]
+	private String _dotnetExePath = new .("dotnet") ~ delete _;
+	private TestDotnetBackgroundTask.TestResult _dotnetTestResult = .None;
+
+	public StringView DotNetExecutablePath
+	{
+		get => _dotnetExePath;
+		set => String.NewOrSet!(_dotnetExePath, value);
+	}
+
 	[BonInclude]
 	private List<IdeInstallation> _ideInstallations = new .() ~ DeleteContainerAndItems!(_);
 
@@ -253,6 +269,13 @@ class ScriptSettings
 
 	private bool _lookedForVs = false;
 	private bool _lookedForRider = false;
+
+	
+	[Setting("Tools", "Rebuild scripts on play", "If active, the scripts will be rebuilt every time the user presses play."), BonInclude]
+	public bool RebuildOnPlay = true;
+
+	[Setting("Tools", "Automatically rebuild changed scripts", "If active, the scripts will be rebuilt every time the user presses play."), BonInclude]
+	public bool AutoRebuildOnChange = true;
 
 	/// Enters the lock and gets the list of Ide installations.
 	public Monitor.MonitorLockInstance EnterAndGetIdeInstallations(out List<IdeInstallation> ideInstallations)
@@ -275,6 +298,18 @@ class ScriptSettings
 				}
 			}
 		}
+
+		if (_dotNetSdks.Count == 0)
+		{
+			TestDotnetInstallation();
+		}
+	}
+
+	private TestDotnetBackgroundTask TestDotnetInstallation()
+	{
+		TestDotnetBackgroundTask task = new TestDotnetBackgroundTask(this, null){ DeleteWhenEnded = true };
+		EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(task);
+		return task;
 	}
 
 	[CustomSettingRenderer("Tools")]
@@ -282,8 +317,17 @@ class ScriptSettings
 	{
 		bool settingsChanged = false;
 
-		ImGui.Text("IDE:");
+		ImGui.Text("IDE");
+		
+		ImGui.SameLine(ImGui.GetContentRegionAvail().x - ImGui.CalcTextSize("Detect IDEs...").x - 2 * ImGui.GetStyle().FramePadding.x);
 
+		if (ImGui.Button("Detect IDEs..."))
+		{
+			EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(new DetectIDEsBackgroundTask(this){ DeleteWhenEnded = true });
+		}
+
+		ImGui.TableNextColumn();
+		
 		if (ImGui.BeginCombo("##ide", ActiveIde?.Name.ToScopeCStr!()))
 		{
 			using (EnterAndGetIdeInstallations(let installations))
@@ -327,12 +371,70 @@ class ScriptSettings
 			ImGui.EndCombo();
 		}
 
-		if (ImGui.Button("Detect IDEs..."))
+		ImGui.TableNextRow();
+		ImGui.TableNextColumn();
+		
+		ImGui.Text("DotNet Executable Path");
+		
+		ImGui.SameLine(ImGui.GetContentRegionAvail().x - ImGui.CalcTextSize("Test").x - 2 * ImGui.GetStyle().FramePadding.x);
+
+		if (ImGui.Button("Test"))
 		{
-			EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(new DetectIDEsBackgroundTask(this){ DeleteWhenEnded = true });
+			_dotnetTestResult = .None;
+			TestDotnetInstallation().ContinueWith(new (task) => {
+				_dotnetTestResult = ((TestDotnetBackgroundTask)task).TestResult;
+			});
+		}
+
+		ImGui.TableNextColumn();
+
+		if (ImGui.InputText("##dotnetPath", _dotnetExePath))
+		{
+			settingsChanged = true;
+		}
+
+		switch (_dotnetTestResult)
+		{
+		case .None:
+			// Nothing to do.
+		case .Ok:
+			ImGui.PushStyleColor(.Text, ColorRGBA.Green);
+			ImGui.TextUnformatted(scope $"Dotnet works and found latest version: {GetLatestInstalledDotNetVersion()}");
+			ImGui.PopStyleColor();
+		case .Timeout:
+			ImGui.PushStyleColor(.Text, ColorRGBA.Red);
+			ImGui.TextUnformatted(scope $"Dotnet timed out.");
+			ImGui.PopStyleColor();
+		case .FailedToExecute:
+			ImGui.PushStyleColor(.Text, ColorRGBA.Red);
+			ImGui.TextUnformatted(scope $"Failed to execute dotnet.");
+			ImGui.PopStyleColor();
+		case .NoSdksFound:
+			ImGui.PushStyleColor(.Text, ColorRGBA.Red);
+			ImGui.TextUnformatted(scope $"Dotnet works but no SDK found.");
+			ImGui.PopStyleColor();
+		case .TooOld:
+			ImGui.PushStyleColor(.Text, ColorRGBA.Red);
+			ImGui.TextUnformatted(scope $"Dotnet works but latest installed version {GetLatestInstalledDotNetVersion()} is too old.");
+			ImGui.PopStyleColor();
 		}
 
 		return settingsChanged;
+	}
+
+	public DotNetVersion GetLatestInstalledDotNetVersion()
+	{
+		DotNetVersion maxVersion = .(-1, -1, -1, .Unknown);
+
+		for (DotNetVersion version in _dotNetSdks)
+		{
+			if (version > maxVersion)
+			{
+				maxVersion = version;
+			}
+		}
+
+		return maxVersion;
 	}
 }
 

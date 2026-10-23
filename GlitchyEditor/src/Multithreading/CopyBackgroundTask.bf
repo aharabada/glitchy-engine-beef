@@ -249,7 +249,7 @@ class CopyBackgroundTask : BackgroundTask
 			delete currentPath;
 		}
 
-		return .Finished;
+		return .Finish;
 	}
 
 	private Result<void, CopyError> CopyPath(CopyInfo copyInfo)

@@ -17,6 +17,15 @@ abstract class BackgroundTask
 
 	internal BackgroundTaskManager _taskManager;
 
+	public delegate void Continuation(BackgroundTask);
+
+	internal append List<(TaskContinuationOptions ContinuationOptions, Continuation Continuation)> _continuations = .() ~ {
+		for (let entry in _)
+		{
+			delete entry.Continuation;
+		}
+	};
+
 	public enum RunState
 	{
 		Ready,
@@ -24,7 +33,8 @@ abstract class BackgroundTask
 		Paused,
 		Running,
 		Aborted,
-		Finished
+		Finished,
+		Failed
 	}
 	 
 	public enum RunResult
@@ -34,9 +44,11 @@ abstract class BackgroundTask
 		/// The task gives up it's runtime, because it cannot continue without user intervention through the UI.
 		Pause,
 		/// The task finished and wont run again.
-		Finished,
+		Finish,
 		/// The operation was aborted, the task will not run again.
-		Abort
+		Abort,
+		/// The task failed and wont run again.
+		Fail
 	}
 
     public RunState State { get; internal set; } = .Ready;
@@ -46,9 +58,10 @@ abstract class BackgroundTask
 	public bool Blocked => State == .Blocked;
 	public bool Running => State == .Running;
 	public bool Aborted => State == .Aborted;
+	public bool Failed => State == .Failed;
 	public bool Finished => State == .Finished;
 
-	public bool Ended => Finished || Aborted;
+	public bool Ended => Finished || Aborted || Failed;
 
 	public bool DeleteWhenEnded { get; set; }
 
@@ -69,5 +82,37 @@ abstract class BackgroundTask
 	public void Abort()
 	{
 		_taskManager.AbortTask(this);
+	}
+
+	public enum TaskContinuationOptions
+	{
+		/// Same as Default
+		None = 0,
+
+		RunOnFinished = 1,
+		RunOnFailed = 2,
+		RunOnAborted = 4,
+
+		Default = RunOnFinished | RunOnFailed | RunOnAborted
+	}
+
+	/// Creates a continuation that executes when the target Task completes.
+	public void ContinueWith(Continuation ownContinuation, TaskContinuationOptions continuationOptions = .Default)
+	{
+		var continuationOptions;
+
+		if (continuationOptions == .None)
+		{
+			continuationOptions = .Default;
+		}
+
+		if (Ended)
+		{
+			ownContinuation(this);
+		}
+		else
+		{
+			_continuations.Add((continuationOptions, ownContinuation));
+		}
 	}
 }

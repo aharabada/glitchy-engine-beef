@@ -820,9 +820,25 @@ namespace GlitchyEditor
 		append ScriptInstanceSerializer _scriptSerializer = .();
 
 		/// Starts the play mode for the current scene
-		private void OnScenePlay(SceneState newSceneState)
+		private void OnScenePlay(SceneState newSceneState, bool allowRebuild = true)
 		{
 			Debug.Profiler.ProfileFunction!();
+
+			if (allowRebuild && EditorApp.Instance.Settings.ScriptSettings.RebuildOnPlay)
+			{
+				var task = _editor.BuildScripts();
+				task.ContinueWith(new (t) => {
+					// Continuations run in worker threads, invoke play on main thread!
+					EditorApp.Instance.InvokeOnMainThread(new () => {
+						// Remember not to rebuild this time!
+						OnScenePlay(newSceneState, allowRebuild: false);
+						return true;
+					});
+				}, .RunOnFinished);
+
+				// Don't play just yet, the continuation will do that.
+				return;
+			}
 
 			Runtime.Assert(newSceneState == .Play || newSceneState == .Simulate, "newSceneState must either be Play or Simulate");
 
@@ -1520,8 +1536,15 @@ namespace GlitchyEditor
 			
 			if(ImGui.BeginMenu("Tools", true))
 			{
-				if(ImGui.MenuItem("Reload Scripts"))
-					ScriptEngine.ReloadAssemblies(retainScriptData: true);
+				if(ImGui.MenuItem("Build Scripts", "Ctrl+B"))
+					_editor.BuildScripts();
+
+				ImGui.AttachTooltip("Compiles the C# script project.");
+
+				if(ImGui.MenuItem("Reload Scripts", "Ctrl+Shift+R"))
+					_editor.ReloadScripts();
+
+				ImGui.AttachTooltip("Unloads and reloads the compiled scripts.");
 
 #if GE_EDITOR_IMGUI_DEMO
 				ImGui.Checkbox("Show ImGui Demo", &_showImguiDemoWindow);
@@ -1623,6 +1646,17 @@ namespace GlitchyEditor
 					else
 						// "Save Scene"
 						SaveCurrentScene();
+					
+					return true;
+				case .B:
+					// "Compile scripts"
+					_editor.BuildScripts();
+					
+					return true;
+				case .R:
+					if (shift)
+						// "Compile scripts"
+						_editor.ReloadScripts();
 					
 					return true;
 				default:

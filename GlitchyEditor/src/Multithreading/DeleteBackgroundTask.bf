@@ -141,7 +141,7 @@ class DeleteBackgroundTask : BackgroundTask
 			delete currentPath;
 		}
 
-		return .Finished;
+		return .Finish;
 	}
 
 	private Result<void, DeleteError> DeletePath(StringView deletePath)

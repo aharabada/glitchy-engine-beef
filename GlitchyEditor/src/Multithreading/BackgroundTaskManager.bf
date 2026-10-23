@@ -59,7 +59,7 @@ class BackgroundTaskManager
 				if (_deferredStateChanges.TryGetValue(task, let desiredState))
 				{
 					// If the task already finished or aborted by itself, we don't care about the desired state, because it no longer applies.
-					if (runResult != .Finished && runResult != .Abort)
+					if (runResult != .Finish && runResult != .Abort && runResult != .Fail)
 					{
 						switch (desiredState)
 						{
@@ -74,7 +74,9 @@ class BackgroundTaskManager
 
 					_deferredStateChanges.Remove(task);
 				}
-				
+
+				BackgroundTask.TaskContinuationOptions endStateFlag = .None;
+
 				switch (runResult)
 				{
 				case .Continue:
@@ -89,15 +91,27 @@ class BackgroundTaskManager
 					{
 						_waitingTasks.AddLast(task);
 					}
-				case .Finished:
+				case .Finish:
 					task.State = .Finished;
-		
-					if (task.DeleteWhenEnded)
-					{
-						delete task;
-					}
+					endStateFlag = .RunOnFinished;
 				case .Abort:
 					task.State = .Aborted;
+					endStateFlag = .RunOnAborted;
+				case .Fail:
+					task.State = .Failed;
+					endStateFlag = .RunOnFailed;
+				}
+
+				if (task.Ended)
+				{
+					// Run the appropriate continuations
+					for (let (options, continuation) in task._continuations)
+					{
+						if (options.HasFlag(endStateFlag))
+						{
+							continuation(task);
+						}
+					}
 
 					if (task.DeleteWhenEnded)
 					{

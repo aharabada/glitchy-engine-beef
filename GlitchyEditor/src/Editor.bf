@@ -7,6 +7,9 @@ using GlitchyEditor.EditWindows;
 using GlitchyEngine;
 using GlitchyEditor.Assets;
 using GlitchyEditor.CodeEditors;
+using GlitchyEditor.Settings;
+using GlitchyEditor.Multithreading;
+using GlitchyEngine.Scripting;
 
 namespace GlitchyEditor
 {
@@ -226,6 +229,21 @@ namespace GlitchyEditor
 			{
 				IdeAdapter.OpenScriptProject();
 			}
+		}
+
+		/// Rebuilds the C# scripts.
+		public BuildScriptsBackgroundTask BuildScripts()
+		{
+			BuildScriptsBackgroundTask task = new .(EditorApp.Instance.Settings.ScriptSettings.DotNetExecutablePath, EditorApp.Instance.EditorLayer.CurrentProject, false){ DeleteWhenEnded = true };
+
+			EditorApp.Instance.BackgroundTaskManager.StartBackgroundTask(task);
+
+			return task;
+		}
+
+		public void ReloadScripts()
+		{
+			ScriptEngine.ReloadAssemblies(retainScriptData: true);
 		}
 	}
 }
