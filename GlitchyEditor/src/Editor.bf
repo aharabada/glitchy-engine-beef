@@ -232,11 +232,11 @@ namespace GlitchyEditor
 		}
 
 		/// Rebuilds the C# scripts.
-		public BuildScriptsBackgroundTask BuildScripts(bool reloadAfterBuild = true)
+		public BuildScriptsBackgroundTask BuildScripts(bool reloadAfterBuild = true, bool doCleanRebuild = false)
 		{
 			ScriptEngine.SuspendAssemblyWatcher();
 
-			BuildScriptsBackgroundTask task = new .(EditorApp.Instance.Settings.ScriptSettings.DotNetExecutablePath, EditorApp.Instance.EditorLayer.CurrentProject, false){ DeleteWhenEnded = true };
+			BuildScriptsBackgroundTask task = new .(EditorApp.Instance.Settings.ScriptSettings.DotNetExecutablePath, EditorApp.Instance.EditorLayer.CurrentProject, releaseBuild: false, doCleanRebuild){ DeleteWhenEnded = true };
 			task.ContinueWith(new (task) => {
 				ScriptEngine.ResumeAssemblyWatcher();
 

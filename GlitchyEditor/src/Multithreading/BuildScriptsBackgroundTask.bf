@@ -19,16 +19,18 @@ class BuildScriptsBackgroundTask : BackgroundTask
 	private Project _project;
 	private bool _releaseBuild;
 	private StringView _dotnetPath;
+	private bool _doCleanRebuild;
 
 	private String _buildLog = new .() ~ delete _;
 
 	private SpawnedProcess _process ~ delete _;
 
-	public this(StringView dotnetPath, Project project, bool releaseBuild)
+	public this(StringView dotnetPath, Project project, bool releaseBuild, bool doCleanRebuild)
 	{
 		_dotnetPath = dotnetPath;
 		_project = project;
 		_releaseBuild = releaseBuild;
+		_doCleanRebuild = doCleanRebuild;
 	}
 
 	public override RunResult Run()
@@ -81,10 +83,22 @@ class BuildScriptsBackgroundTask : BackgroundTask
 
 		processInfo.SetFileName(EditorApp.Instance.Settings.ScriptSettings.DotNetExecutablePath);
 
+		StringView target;
+
+		if (_doCleanRebuild)
+		{
+			target = "build -t:Rebuild";
+		}
+		else
+		{
+			target = "build";
+		}
+
+
 		// -sc|--self-contained... Publish the .NET runtime with your application so the runtime doesn't need to be installed on the target machine.
 		// 		-> This might be useful to build the final game
 		// -o|--ouput <OUTPUT_DIRECTORY>... might be useful for building the final game
-		processInfo.SetArguments(scope $"build -c {(_releaseBuild ? "Release" : "Debug")}");
+		processInfo.SetArguments(scope $"{target} -c {(_releaseBuild ? "Release" : "Debug")}");
 
 		_process = new SpawnedProcess();
 

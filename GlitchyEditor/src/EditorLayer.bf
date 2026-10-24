@@ -1543,6 +1543,11 @@ namespace GlitchyEditor
 
 				ImGui.AttachTooltip("Compiles the C# script project.");
 
+				if(ImGui.MenuItem("Clean and build Scripts", "Ctrl+Shift+B"))
+					_editor.BuildScripts(doCleanRebuild: true);
+
+				ImGui.AttachTooltip("Makes a clean rebuild of the C# script project.");
+
 				if(ImGui.MenuItem("Reload Scripts", "Ctrl+Shift+R"))
 					_editor.ReloadScripts();
 
