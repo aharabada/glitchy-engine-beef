@@ -15,13 +15,14 @@ ImGuiImplDX11 = "*"
 ImGuiImplWin32 = "*"
 ImGuizmo = "*"
 "Beef.Linq" = "*"
+"Oregano.git" = {Git = "https://github.com/zerkawei/Oregano.git"}
 
 [Platform.Windows]
 IconFile = "$(ProjectDir)/Resources/Textures/GlitchyEngineIcon.ico"
 
 [Configs.Debug.Win64]
 PostBuildCmds = ["CopyFilesIfNewer(\"$(WorkspaceDir)/bin/vswhere.exe\", \"$(TargetDir)\")"]
-DebugCommandArguments = "\"$(ProjectDir)/../GlitchyEngine.Test/content/TestProject\""
+DebugCommandArguments = "\"D:\\Development\\Git\\SingleStateToOrbit\\\""
 PreprocessorMacros = ["DEBUG", "IMGUI"]
 
 [Configs.Release.Win64]

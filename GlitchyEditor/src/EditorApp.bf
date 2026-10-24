@@ -23,6 +23,8 @@ namespace GlitchyEditor
 
 		public new static EditorApp Instance => Application.Instance as EditorApp;
 
+		public new EditorContentManager ContentManager => _contentManager;
+
 		private append BackgroundTaskManager _backgroundTaskManager = .();
 
 		public BackgroundTaskManager BackgroundTaskManager => _backgroundTaskManager;

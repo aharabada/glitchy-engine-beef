@@ -363,12 +363,23 @@ namespace GlitchyEditor
 						// TODO: handle multiple Flags (as a separate enum type handler though!)
 						
 						StringView currentName = "";
+						StringView currentTooltip = "";
 
 						for (let (name, value) in Enum.GetEnumerator(fieldInfo.FieldType))
 						{
 							if (value == underlyingValue)
 							{
-								currentName = name;
+								if (fieldInfo.FieldType.GetField(@name.Index) case .Ok(FieldInfo info) &&
+									info.GetCustomAttribute<SettingValueAttribute>() case .Ok(SettingValueAttribute settingValue))
+								{
+									currentName = settingValue.Name;
+									currentTooltip = settingValue.Tooltip;
+								}
+								else
+								{
+									currentName = name;
+								}
+
 								break;
 							}
 						}
@@ -379,7 +390,17 @@ namespace GlitchyEditor
 							{
 								bool isSelected = (name == currentName);
 
-								if (ImGui.Selectable(name.ToScopeCStr!(), isSelected))
+								StringView valueName = name;
+								StringView valueTooltip = "";
+								
+								if (fieldInfo.FieldType.GetField(@name.Index) case .Ok(FieldInfo info) &&
+									info.GetCustomAttribute<SettingValueAttribute>() case .Ok(SettingValueAttribute settingValue))
+								{
+									valueName = settingValue.Name;
+									valueTooltip = settingValue.Tooltip;
+								}
+
+								if (ImGui.Selectable(valueName.ToScopeCStr!(), isSelected))
 								{
 									// Set value in field reference
 									switch (fieldInfo.FieldType.Size)
@@ -393,9 +414,19 @@ namespace GlitchyEditor
 									if (!isSelected)
 										_settingsChanged = true;
 								}
+
+								if (!valueTooltip.IsEmpty)
+								{
+									ImGui.AttachTooltip(valueTooltip);
+								}
 							}
 
 							ImGui.EndCombo();
+						}
+
+						if (!currentTooltip.IsEmpty)
+						{
+							ImGui.AttachTooltip(currentTooltip);
 						}
 					}
 

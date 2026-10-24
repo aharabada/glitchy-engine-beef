@@ -1,0 +1,6 @@
+FileVersion = 1
+
+[Locks."Oregano.git".Git]
+URL = "https://github.com/zerkawei/Oregano.git"
+Tag = ""
+Hash = "0811b2dc6a878c472d2bc08b37ebc0862f853290"

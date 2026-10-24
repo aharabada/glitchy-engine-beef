@@ -54,6 +54,20 @@ struct SettingAttribute : Attribute
 }
 
 /// Fields with this Attribute will be exposed as settings.
+[AttributeUsage(AttributeTargets.StaticField, .ReflectAttribute)]
+struct SettingValueAttribute : Attribute
+{
+	public String Name;
+	public String Tooltip;
+
+	public this(String name, String tooltip = "")
+	{
+		Name = name;
+		Tooltip = tooltip;
+	}
+}
+
+/// Fields with this Attribute will be exposed as settings.
 [AttributeUsage(.Method, .ReflectAttribute | .AlwaysIncludeTarget)]
 struct CustomSettingRendererAttribute : Attribute
 {
@@ -240,6 +254,24 @@ class IdeInstallation
 }
 
 [Reflect]
+enum RebuildOnPlay
+{
+	[SettingValue("Off", "The scripts will not be rebuild when entering play mode.")]
+	Off,
+	[SettingValue("Always", "The scripts will always be rebuild when entering play mode.")]
+	Always,
+	[SettingValue("When any Asset changed", """
+		The scripts will automatically be rebuild when any asset in asset-directory changed, even if it is not necessary for the build process.
+		This can be helpful if you include files in your build-process that are not detected by the heuristic up to date check.
+		""")]
+	WhenAnyAssetsChanged,
+	[SettingValue("When the fancy dancy heuristic check says so.", """
+		A highly sophisticated heuristic will determine if a rebuild is required.
+		""")]
+	UseFastUpToDateCheck
+}
+
+[Reflect]
 class ScriptSettings
 {
 	private List<DotNetVersion> _dotNetSdks = new .() ~ delete _;
@@ -269,10 +301,9 @@ class ScriptSettings
 
 	private bool _lookedForVs = false;
 	private bool _lookedForRider = false;
-
 	
-	[Setting("Tools", "Rebuild scripts on play", "If active, the scripts will be rebuilt every time the user presses play."), BonInclude]
-	public bool RebuildOnPlay = true;
+	[Setting("Tools", "Rebuild scripts on play mode", "Configures if and how the scripts will be rebuilt every time the play mode is entered."), BonInclude]
+	public RebuildOnPlay RebuildOnPlayMode = .UseFastUpToDateCheck;
 
 	[Setting("Tools", "Automatically rebuild changed scripts", "If active, the scripts will be rebuilt every time the user presses play."), BonInclude]
 	public bool AutoRebuildOnChange = true;

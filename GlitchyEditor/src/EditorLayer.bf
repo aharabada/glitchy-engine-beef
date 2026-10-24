@@ -824,7 +824,7 @@ namespace GlitchyEditor
 		{
 			Debug.Profiler.ProfileFunction!();
 
-			if (allowRebuild && EditorApp.Instance.Settings.ScriptSettings.RebuildOnPlay)
+			if (allowRebuild && _contentManager.AssetHierarchy.ScriptProjectDirtyManager.NeedsRebuild(EditorApp.Instance.Settings.ScriptSettings.RebuildOnPlayMode))
 			{
 				// Don't immediately reload the scripts after the build, because SetActiveScene will do that anyway.
 				var task = _editor.BuildScripts(reloadAfterBuild: false);

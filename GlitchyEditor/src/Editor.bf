@@ -240,6 +240,8 @@ namespace GlitchyEditor
 			task.ContinueWith(new (task) => {
 				ScriptEngine.ResumeAssemblyWatcher();
 
+				EditorApp.Instance.ContentManager.AssetHierarchy.ScriptProjectDirtyManager.SetClean();
+
 				if (reloadAfterBuild)
 				{
 					EditorApp.Instance.InvokeOnMainThread(new () => {

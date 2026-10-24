@@ -33,6 +33,10 @@ class AssetHierarchy
 
 	public TreeNode<AssetNode> RootNode => _assetRootNode;
 
+	private append ScriptProjectDirtyManager _scriptProjectDirtyManager = .();
+
+	public ScriptProjectDirtyManager ScriptProjectDirtyManager => _scriptProjectDirtyManager;
+
 	public StringView ResourcesDirectory
 	{
 		get => _resourcesDirectory;
@@ -235,6 +239,8 @@ class AssetHierarchy
 		//SetupResourcesFileSystemWatcher();
 
 		UpdateFiles();
+
+		ScriptProjectDirtyManager.SetVeryDirty();
 	}
 
 	/// Sets path to the directory that contains the game assets.
@@ -322,18 +328,24 @@ class AssetHierarchy
 			Log.EngineLogger.Trace($"File content changed (\"{filename}\")");
 
 			FileContentChanged(filename);
+
+			ScriptProjectDirtyManager.AssetChanged(filename);
 		});
 
 		fsw.OnCreated.Add(new (filename) => {
 			Log.EngineLogger.Trace($"File created (\"{filename}\")");
 
 			DeferFileTreeUpdate();
+
+			ScriptProjectDirtyManager.AssetChanged(filename);
 		});
 
 		fsw.OnDeleted.Add(new (filename) => {
 			Log.EngineLogger.Trace($"File deleted (\"{filename}\")");
 
 			DeferFileTreeUpdate();
+
+			ScriptProjectDirtyManager.AssetChanged(filename);
 		});
 
 		fsw.OnRenamed.Add(new (oldName, newName) => {
@@ -342,6 +354,9 @@ class AssetHierarchy
 			FileRenamed(oldName, newName);
 			
 			DeferFileTreeUpdate();
+
+			ScriptProjectDirtyManager.AssetChanged(oldName);
+			ScriptProjectDirtyManager.AssetChanged(newName);
 		});
 
 		fsw.StartRaisingEvents();
