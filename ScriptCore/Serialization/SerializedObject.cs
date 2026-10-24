@@ -176,6 +176,9 @@ public class SerializedObject
 
     public void SerializeField(string fieldName, object? fieldValue, Type fieldType)
     {
+        if (TryCustomSerializer(fieldName, fieldValue, fieldType))
+            return;
+
         // Decimals are not actually primitives, but we treat them as if they were, because they are a built-in type
         // and it makes more sense to send them over to the engine as a binary type than to serialize their underlying fields (which would happen when we treated them as a struct).
         if (fieldType.IsPrimitive || fieldType == typeof(decimal))
@@ -202,38 +205,17 @@ public class SerializedObject
 
             SerializeList(fieldName, fieldValue, fieldType, fieldType.GetElementType()!);
         }
-        else if (fieldType.IsGenericType)
+        else if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
         {
-            if (TryCustomSerializer(fieldName, fieldValue, fieldType))
-                return;
-
-            if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
-            {
-                SerializeList(fieldName, fieldValue, fieldType, fieldType.GetGenericArguments()[0]);
-            }
-            //else if (fieldType.GetGenericTypeDefinition() == typeof(Dictionary<,>))
-            //{
-            //    ImGui.Text($"{fieldName} Dictionary");
-            //}
-            else
-            {
-                // TODO: what to do?
-                Log.Error($"Generic class serialization not yet implemented");
-            }
+            SerializeList(fieldName, fieldValue, fieldType, fieldType.GetGenericArguments()[0]);
         }
         else if (fieldType.IsValueType)
         {
-            if (TryCustomSerializer(fieldName, fieldValue, fieldType))
-                return;
-
             // Value Types cant be null
             SerializeStruct(fieldName, fieldValue!, fieldType);
         }
         else if (fieldType.IsClass)
         {
-            if (TryCustomSerializer(fieldName, fieldValue, fieldType))
-                return;
-
             SerializeClass(fieldName, fieldValue, fieldType);
         }
         else

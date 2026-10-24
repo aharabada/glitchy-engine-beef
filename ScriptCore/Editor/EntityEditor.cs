@@ -613,16 +613,9 @@ internal class EntityEditor
         {
 
         }
-        else if (fieldType.IsGenericType)
+        else if (fieldType.IsGenericType && fieldType.GetGenericTypeDefinition() == typeof(List<>))
         {
-            if (fieldType.GetGenericTypeDefinition() == typeof(List<>))
-            {
-                newValue = ShowListEditor(fieldType, reference, fieldName);
-            }
-            else
-            {
-                ImGui.TextColored(new Vector4(1, 0, 0, 1), $"{fieldName}: Type {fieldType} is not implemented.");
-            }
+            newValue = ShowListEditor(fieldType, reference, fieldName);
         }
         else if (fieldType.IsArray)
         {

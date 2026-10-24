@@ -1,0 +1,179 @@
+{
+	Version = 1,
+	Entities = [
+		{
+			Id = 8893155135649576304,
+			NameComponent = {
+				Name = "Camera"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 2,
+					Z = -5
+				},
+				Rotation = {
+					X = 0,
+					Y = 0.21643962,
+					Z = 0,
+					W = 0.976296
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0.43633237,
+					Z = 0
+				}
+			},
+			CameraComponent = {
+				Primary = true,
+				ProjectionType = .InfinitePerspective,
+				PerspectiveFovY = 1.3089969,
+				PerspectiveNearPlane = 0.1,
+				PerspectiveFarPlane = 10000,
+				OrthographicHeight = 10,
+				OrthographicNearPlane = 0,
+				OrthographicFarPlane = 10,
+				AspectRatio = 1.9840086,
+				FixedAspectRatio = false
+			},
+			Editor = {
+				Flags = .Default
+			}
+		},
+		{
+			Id = 14812165297099037146,
+			NameComponent = {
+				Name = "Light"
+			},
+			TransformComponent = {
+				Position = {
+					X = -3,
+					Y = 4,
+					Z = -1.5
+				},
+				Rotation = {
+					X = 0.23977584,
+					Y = 0.6143275,
+					Z = 0.031567074,
+					W = 0.7510744
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0.3490659,
+					Y = 1.3089968,
+					Z = 0.34906587
+				}
+			},
+			LightComponent = {
+				LightType = .Directional,
+				Illuminance = 10,
+				Color = {
+					R = 1,
+					G = 0.9500002,
+					B = 0.8
+				}
+			},
+			Editor = {
+				Flags = .Default
+			}
+		},
+		{
+			Id = 4185051642788402424,
+			NameComponent = {
+				Name = "Entity"
+			},
+			TransformComponent = {
+				Position = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				},
+				Rotation = {
+					X = 0,
+					Y = 0,
+					Z = 0,
+					W = 1
+				},
+				Scale = {
+					X = 1,
+					Y = 1,
+					Z = 1
+				},
+				EditorEulerRotation = {
+					X = 0,
+					Y = 0,
+					Z = 0
+				}
+			},
+			ScriptComponent = {
+				ScriptClass = "TestProject.Assets.Scripts.AdvancedSerializationTest",
+				Fields = (TestProject.Assets.Scripts.AdvancedSerializationTest){
+					ID = 4185051642788402424,
+					LeTuple.Item1 = (int32)101,
+					LeTuple.Item2.X = (float)49,
+					LeTuple.Item2.Y = (float)31,
+					LeTuple.Item3 = &16946239429800937368,
+					LeListDeTuple = &13357518334354818316,
+					GenericStructField.MyField = (float)-56,
+					GenericClassField = &6770493598825812026
+				}
+			},
+			Editor = {
+				Flags = .Default
+			}
+		}
+	],
+	ReferencedObjects = [
+		(TestProject.BClass){
+			ID = 16946239429800937368,
+			F = (float)131
+		},
+		(System.Collections.Generic.List`1[System.ValueTuple`3[System.Int32,GlitchyEngine.Math.float2,TestProject.BClass]]){
+			ID = 13357518334354818316,
+			Count = (int32)4,
+			0.Item1 = (int32)64,
+			0.Item2.X = (float)-81,
+			0.Item2.Y = (float)-118,
+			0.Item3 = &14597969159961685574,
+			1.Item1 = (int32)0,
+			1.Item2.X = (float)0,
+			1.Item2.Y = (float)0,
+			1.Item3 = &0,
+			2.Item1 = (int32)73,
+			2.Item2.X = (float)165,
+			2.Item2.Y = (float)115,
+			2.Item3 = &15752578204681304901,
+			3.Item1 = (int32)0,
+			3.Item2.X = (float)0,
+			3.Item2.Y = (float)0,
+			3.Item3 = &0
+		},
+		(TestProject.BClass){
+			ID = 14597969159961685574,
+			F = (float)23
+		},
+		(TestProject.BClass){
+			ID = 15752578204681304901,
+			F = (float)159
+		},
+		(TestProject.Assets.Scripts.SimpleGenericClass`1[System.Double]){
+			ID = 6770493598825812026,
+			MyField = (double)0.9599999785423279
+		}
+	],
+	StaticFields = [
+		(TestProject.SerializationTest){
+			ID = 1460275328679732402,
+			StaticNumber = (int32)0
+		}
+	]
+}

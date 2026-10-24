@@ -1,4 +1,7 @@
 <Solution>
   <Project Path="TestProject.csproj"/>
   <Project Path="D:\Development\Projects\Beef\GlitchyEngine\ScriptCore\ScriptCore.csproj"/>
+  <Project Path="D:\Development\Projects\Beef\GlitchyEngine\ScriptCoreGenerator\ScriptCoreGenerator.csproj"/>
+  <Project Path="D:\Development\Projects\Beef\GlitchyEngine\ScriptCoreGenerator.Test\ScriptCoreGenerator.Test.csproj"/>
+  <Project Path="D:\Development\Projects\Beef\GlitchyEngine\vendor\ImGui.NET\src\ImGui.NET\ImGui.NET.csproj"/>
 </Solution>

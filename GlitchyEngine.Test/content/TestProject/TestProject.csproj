@@ -2,7 +2,7 @@
   <PropertyGroup>
     <!-- General configuration -->
     <AssemblyTitle>TestProject</AssemblyTitle>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
     <!-- Define the output path -->
