@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <RootNamespace>MarshallingBench</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bench.NoMarshalling\Bench.NoMarshalling.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Built by beefbuild (see run.ps1). Needed next to the exe for the DllImport variants. -->
+    <None Include="..\build\Release_Win64\BeefDemoLib\BeefDemoLib.dll" Link="BeefDemoLib.dll" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,18 @@
+FileVersion = 1
+Projects = {BeefDemoLib = {Path = "BeefDemoLib"}}
+
+[Workspace]
+StartupProject = "BeefDemoLib"
+
+[Configs.Release.Win64]
+Toolset = "Microsoft"
+BfOptimizationLevel = "O2"
+LTOType = "None"
+AllocType = "CRT"
+RuntimeChecks = false
+EmitDynamicCastCheck = false
+EnableObjectDebugFlags = false
+EmitObjectAccessCheck = false
+EnableRealtimeLeakCheck = false
+AllowHotSwapping = false
+IncrementalBuild = false

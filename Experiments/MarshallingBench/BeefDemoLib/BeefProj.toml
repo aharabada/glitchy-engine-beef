@@ -1,0 +1,15 @@
+FileVersion = 1
+Dependencies = {corlib = "*"}
+
+[Project]
+Name = "BeefDemoLib"
+TargetType = "BeefLib"
+DefaultNamespace = "BeefDemoLib"
+
+[Configs.Debug.Win64]
+BuildKind = "DynamicLib"
+
+[Configs.Release.Win64]
+BuildKind = "DynamicLib"
+BeefLibType = "Static"
+CLibType = "Static"
