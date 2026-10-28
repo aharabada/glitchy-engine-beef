@@ -10,6 +10,7 @@ using GlitchyEditor.CodeEditors;
 using GlitchyEditor.Settings;
 using GlitchyEditor.Multithreading;
 using GlitchyEngine.Scripting;
+using GlitchyEditor.History;
 
 namespace GlitchyEditor
 {
@@ -34,6 +35,8 @@ namespace GlitchyEditor
 		private SettingsWindow _settingsWindow ~ delete _;
 
 		private List<ClosableWindow> _windows = new .() ~ DeleteContainerAndItems!(_);
+
+		private append HistoryManager _historyManager = .();
 
 		public Scene CurrentScene
 		{
@@ -96,6 +99,8 @@ namespace GlitchyEditor
 		}
 
 		public static Editor Instance => s_Instance;
+
+		public HistoryManager HistoryManager => _historyManager;
 
 		/// Creates a new editor for the given world
 		public this(Scene activeScene, Scene editorScene, EditorContentManager contentManager, AssetThumbnailManager thumbnailManager)

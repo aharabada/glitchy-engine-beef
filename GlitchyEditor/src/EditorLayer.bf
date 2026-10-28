@@ -1217,6 +1217,8 @@ namespace GlitchyEditor
 
 			_editor.Update();
 
+			_editor.HistoryManager.DrawDebugUi();
+
 			return false;
 		}
 

@@ -11,6 +11,7 @@ using GlitchyEngine.Scripting.Classes;
 using GlitchyEngine.Serialization;
 using GlitchyEngine.World.Components;
 using GlitchyEngine.Renderer.Text;
+using System.Diagnostics;
 using static GlitchyEngine.Renderer.Text.FontRenderer;
 
 namespace GlitchyEngine.World
@@ -863,9 +864,19 @@ namespace GlitchyEngine.World
 			BuildTexts();
 		}
 
-		/// Creates a new Entity with the given name.
+		/**
+		 * Creates a new Entity with the given name.
+		 * @param name The optional name of the entity.
+		 * @param id The optional Id of the entity. Pass in UUID.Zero to pick a random Id.
+		 * @returns a newly created Entity.
+		 */
 		public Entity CreateEntity(StringView name = "", UUID id = .Zero)
 		{
+			// If an Id was specified, it either shouldn't exist or "only" be reserved.
+			// If an actual entity already owns this Id, we have a problem.
+			if (id != .Zero && _idToEntity.TryGetValue(id, let foundEntity))
+				Debug.Assert(foundEntity == .InvalidEntity);
+
 			Entity entity = Entity(_ecsWorld.NewEntity(), this);
 			entity.AddComponent<TransformComponent>();
 
@@ -876,25 +887,43 @@ namespace GlitchyEngine.World
 			// Only add the editor flags if we are indeed in an editor
 			entity.AddComponent<EditorFlagsComponent>();
 #endif
-			
+
 			// If no id is given generate a random one.
-			IDComponent idComponent = (id == .Zero) ? IDComponent(CreateEntityId()) : IDComponent(id);
+			IDComponent idComponent = IDComponent((id != .Zero) ? id : CreateEntityId());
 
 			entity.AddComponent<IDComponent>(idComponent);
-
-			_idToEntity.Add(idComponent.ID, entity.Handle);
+			
+			// TODO: the great question here is: do we want using a reserved Id to be an explicit operation, or not?
+			//_idToEntity.Add(idComponent.ID, entity.Handle);
+			// For now: we implicitly overwrite a reserved Id, might make finding bugs more difficult.
+			_idToEntity[idComponent.ID] = entity.Handle;
 
 			return entity;
 		}
+		
+		/**
+		 * Reserves the given entity Id within this scene, so that it cannot be randomly picked by another entity.
+		 * @param entityId The Id that will be reserved.
+		 * @returns Result.Ok if the Id was reserved. Result.Err if the Id is already taken or reserved.
+		 */
+		public Result<void> ReserveEntityId(UUID entityId)
+		{
+			// Try to reserve the Id within the mapping.
+			if (_idToEntity.TryAdd(entityId, EcsEntity.InvalidEntity))
+				return .Ok;
 
-		/// Creates a new entity Id that is unique within this scene.
+			return .Err;
+		}
+
+		/// Creates a new random entity Id that is unique within this scene and reserves it.
 		public UUID CreateEntityId()
 		{
 			while (true)
 			{
 				UUID entityId = UUID.Create();
 
-				if (!_idToEntity.ContainsKey(entityId))
+				// Try to reserve the Id within the mapping.
+				if (ReserveEntityId(entityId) case .Ok)
 					return entityId;
 			}
 		}
@@ -902,10 +931,15 @@ namespace GlitchyEngine.World
 		/** Deletes the given entity.
 		 * @param entity The entity to delete.
 		 * @param destroyChildren If set to true all children of entity will be destroyed.
+		 * @param leaveIdReserved If set to true, the Ids of the entity and of all children will remain reserved.
+		 * 			Otherwise they will be freed for reuse.
 		*/
-		public void DestroyEntity(Entity entity, bool destroyChildren = false)
+		public void DestroyEntity(Entity entity, bool destroyChildren = false, bool leaveIdReserved = false)
 		{
-			_idToEntity.Remove(entity.UUID);
+			if (!leaveIdReserved)
+				_idToEntity.Remove(entity.UUID);
+			else
+				_idToEntity[entity.UUID] = .InvalidEntity;
 			
 			ScriptEngine.DestroyInstance(entity.UUID);
 
@@ -913,9 +947,13 @@ namespace GlitchyEngine.World
 			{
 				for (Entity child in entity.EnumerateChildren)
 				{
-					DestroyEntity(child, true);
+					DestroyEntity(child, true, leaveIdReserved);
 				}
 			}
+			// TODO: If we destroy an entity which has children, but don't specify destroyChildren, what happens then?
+			// 			Is this caught somewhere else... or does the engine just explode?
+			//			Answer: it just explodes in TransformSystem... so we must change the entities.
+			// 			Which becomes quite annoying with the history.
 			
 			_ecsWorld.RemoveEntity(entity.Handle);
 		}
@@ -1049,6 +1087,10 @@ namespace GlitchyEngine.World
 		{
 			if (_idToEntity.TryGetValue(id, let ecsEntity))
 			{
+				// We use InvalidEntity to reserve Ids, these should not be confused with actual entities.
+				if (ecsEntity == .InvalidEntity)
+					return .Err;
+
 				return .Ok(Entity(ecsEntity, this));
 			}
 

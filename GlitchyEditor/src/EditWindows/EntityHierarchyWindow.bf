@@ -9,6 +9,7 @@ using System.Diagnostics;
 using GlitchyEngine.World.Components;
 using GlitchyEngine.Renderer;
 using GlitchyEngine.Math;
+using GlitchyEditor.History;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -292,16 +293,6 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
-		/// Creates a new entity that is a child of the given entity.
-		private void CreateChild(Entity? entity)
-		{
-			let newEntity = _scene.CreateEntity();
-
-			let transformCmp = newEntity.GetComponent<TransformComponent>();
-			// Last entity in list is the entity that has been selected last.
-			transformCmp.Parent = entity?.Handle ?? .InvalidEntity;
-		}
-		
 		/// Creates a new entity that is a parent of the selected entities.
 		private void CreateParent()
 		{
@@ -311,29 +302,54 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
-			let commonParent = TrySilent!(GetSelectedEntity(0)).GetComponent<TransformComponent>();
+			//let commonParent = TrySilent!(GetSelectedEntity(0)).GetComponent<TransformComponent>();
 
-			let newEntity = _scene.CreateEntity();
+			//Entity newEntity = CreateEntity();
+			Entity newEntity;
 
-			if(commonParent != null)
+			// TODO: I'm not quite sure how this commonParent thing was supposed to work... it seems wrong:
+			// 		we just assume the first selected entities parent is the common parent?
+			//if(commonParent != null)
+			if (GetSelectedEntity(0) case .Ok(let firstSelectedEntity))
 			{
 				// parent of selected entities is parent of the new entity.
 				// (which is why this doesn't work if the entities don't have the same parent)
-				let newEntityTransform = newEntity.GetComponent<TransformComponent>();
-				newEntityTransform.Parent = commonParent.Parent;
+				//let newEntityTransform = newEntity.GetComponent<TransformComponent>();
+				//newEntityTransform.Parent = commonParent.Parent;
+
+				newEntity = CreateEntity(firstSelectedEntity.Parent?.UUID ?? UUID.Zero);
 			}
+			else
+			{
+				newEntity = CreateEntity();
+			}
+
+			UUID newParentId = newEntity.UUID;
 			
 			// new entity is parent of all selected entities.
 			for (int i < SelectionSize)
 			{
 				Result<Entity> selectedEntity = GetSelectedEntity(i);
 
-				if (selectedEntity case .Err)
+				if (selectedEntity not case .Ok(let entity))
 					continue;
-
-				let selectedTransform = selectedEntity.Value.GetComponent<TransformComponent>();
-				selectedTransform?.Parent = newEntity.Handle;
+				
+				// TODO: we might want to add the ability to "chain" multiple commands into one undo/redo operation
+				Editor.Instance.HistoryManager.Do(new ChangeEntityParentCommand(_scene, entity.UUID, newParentId));
 			}
+		}
+
+		/**
+		 * Creates a new entity.
+		 * @param parentId If not UUID.Zero the new entity will become a child of Entity with the specified Id.
+		*/
+		private Entity CreateEntity(UUID parentId = .Zero)
+		{
+			CreateEntityCommand command = new .(_scene, name: "", entityId: .Zero, parentId);
+			Editor.Instance.HistoryManager.Do(command);
+
+			// After the command was executed we know the Id.
+			return _scene.GetEntityByID(command.EntityId);
 		}
 
 		private void Show_ContextMenu_Create(bool allowEmpty = true, bool allowChild = true, bool allowParent = true)
@@ -344,18 +360,15 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.MenuItem("Empty Entity"))
 					{
-						if (SelectionSize == 0)
-							_scene.CreateEntity();
-						else
+						UUID parentId = .Zero;
+						
+						if (SelectionSize > 0 && GetSelectedEntity(-1) case .Ok(let lastSelectedEntity))
 						{
-							Result<Entity> selectedEntityResult = GetSelectedEntity(-1);
-
-							if (selectedEntityResult case .Ok(let selectedEntity))
-							{
-								Entity? parent = selectedEntity.Parent;
-								CreateChild(parent);
-							}
+							// Last entity in selection list is the entity that has been selected last and becomes the parent.
+							parentId = lastSelectedEntity.UUID;
 						}
+
+						CreateEntity(parentId);
 					}
 
 					if(ImGui.IsItemHovered())
@@ -368,11 +381,9 @@ namespace GlitchyEditor.EditWindows
 				{
 					if(ImGui.MenuItem("Empty Child", null, false, SelectionSize != 0))
 					{
-						Result<Entity> selectedEntityResult = GetSelectedEntity(-1);
-
-						if (selectedEntityResult case .Ok(let selectedEntity))
+						if (SelectionSize > 0 && GetSelectedEntity(-1) case .Ok(let lastSelectedEntity))
 						{
-							CreateChild(selectedEntity);
+							CreateEntity(lastSelectedEntity.UUID);
 						}
 					}
 					
@@ -634,8 +645,7 @@ namespace GlitchyEditor.EditWindows
 
 					if(dropLegal)
 					{
-						var movedEntityTransform = movedEntity.GetComponent<TransformComponent>();
-						movedEntityTransform.Parent = target.Handle;
+						Editor.Instance.HistoryManager.Do(new ChangeEntityParentCommand(_scene, movedEntity.UUID, target.UUID));
 					}
 				}
 
@@ -692,8 +702,7 @@ namespace GlitchyEditor.EditWindows
 				{
 					if (_editor.CurrentScene.GetEntityByID(payload->Data) case .Ok(let movedEntity))
 					{
-						var transformComponent = movedEntity.GetComponent<TransformComponent>();
-						transformComponent.Parent = .InvalidEntity;
+						Editor.Instance.HistoryManager.Do(new ChangeEntityParentCommand(_scene, movedEntity.UUID, .Zero));
 					}
 					else
 					{
