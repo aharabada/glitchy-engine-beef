@@ -302,30 +302,22 @@ namespace GlitchyEditor.EditWindows
 				return;
 			}
 
-			//let commonParent = TrySilent!(GetSelectedEntity(0)).GetComponent<TransformComponent>();
+			CommandChain createParentCommand = new .();
 
-			//Entity newEntity = CreateEntity();
-			Entity newEntity;
+			UUID oldParentId = .Zero;
 
-			// TODO: I'm not quite sure how this commonParent thing was supposed to work... it seems wrong:
-			// 		we just assume the first selected entities parent is the common parent?
-			//if(commonParent != null)
+			// Pick the parent of the first "soon to be child".
+			// This works, because we only allow parenting when all children share a parent
 			if (GetSelectedEntity(0) case .Ok(let firstSelectedEntity))
 			{
-				// parent of selected entities is parent of the new entity.
-				// (which is why this doesn't work if the entities don't have the same parent)
-				//let newEntityTransform = newEntity.GetComponent<TransformComponent>();
-				//newEntityTransform.Parent = commonParent.Parent;
-
-				newEntity = CreateEntity(firstSelectedEntity.Parent?.UUID ?? UUID.Zero);
-			}
-			else
-			{
-				newEntity = CreateEntity();
+				oldParentId = firstSelectedEntity.Parent?.UUID ?? UUID.Zero;
 			}
 
-			UUID newParentId = newEntity.UUID;
-			
+			// We need to know the Id of the new Entity before we execute the command, for the chained commands to work.
+			UUID newEntityId = _scene.CreateEntityId();
+			CreateEntityCommand createEntityCommand = new .(_scene, name: "", newEntityId, oldParentId);
+			createParentCommand.AddCommand(createEntityCommand);
+
 			// new entity is parent of all selected entities.
 			for (int i < SelectionSize)
 			{
@@ -334,9 +326,10 @@ namespace GlitchyEditor.EditWindows
 				if (selectedEntity not case .Ok(let entity))
 					continue;
 				
-				// TODO: we might want to add the ability to "chain" multiple commands into one undo/redo operation
-				Editor.Instance.HistoryManager.Do(new ChangeEntityParentCommand(_scene, entity.UUID, newParentId));
+				createParentCommand.AddCommand(new ChangeEntityParentCommand(_scene, entity.UUID, newParentId: newEntityId));
 			}
+
+			Editor.Instance.HistoryManager.Do(createParentCommand);
 		}
 
 		/**
