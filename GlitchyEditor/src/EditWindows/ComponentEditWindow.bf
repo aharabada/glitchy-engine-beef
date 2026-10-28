@@ -9,6 +9,7 @@ using GlitchyEngine.Content;
 using GlitchyEngine.Scripting;
 using GlitchyEngine.Core;
 using GlitchyEngine.World.Components;
+using GlitchyEditor.History;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -991,7 +992,9 @@ namespace GlitchyEditor.EditWindows
 				if (name.Contains(searchFilter, true) && ImGui.Selectable(name))
 				{
 					if (!entity.HasComponent<TComponent>())
-						entity.AddComponent<TComponent>();
+					{
+						Editor.Instance.HistoryManager.Do(new AddComponentCommand<TComponent>(entity.Scene, entity.UUID));
+					}
 				}
 			}
 
