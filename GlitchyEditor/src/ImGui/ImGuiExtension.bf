@@ -286,6 +286,8 @@ namespace ImGui
 				PushID(label);
 				defer:: PopID();
 				
+				BeginGroup();
+
 				Columns(2);
 				defer:: Columns(1);
 				SetColumnWidth(0, columnWidth);
@@ -296,6 +298,12 @@ namespace ImGui
 	
 				NextColumn();
 			}
+			else
+			{
+				BeginGroup();
+			}
+
+
 
 			float lineHeight = GetFont().FontSize + GetStyle().FramePadding.y * 2.0f;
 			ImGui.Vec2 buttonSize = .(lineHeight + 3.0f, lineHeight);
@@ -363,6 +371,8 @@ namespace ImGui
 				Mouse.UnlockPosition(mouseLockId);
 				mouseLockId = 0;
 			}*/
+
+			EndGroup();
 	
 			return changed;
 		}
@@ -394,6 +404,9 @@ namespace ImGui
 
 			PushID(label);
 			defer PopID();
+
+			BeginGroup();
+			defer EndGroup();
 
 			//PushMultiItemsWidths(NumComponents, CalcItemWidth());
 

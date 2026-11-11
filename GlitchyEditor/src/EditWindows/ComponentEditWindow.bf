@@ -331,6 +331,8 @@ namespace GlitchyEditor.EditWindows
 			}
 		}
 
+		static IHistorizableCommand _currentCommand;
+
 		private static void ShowTransformComponentEditor(Entity entity, TransformComponent* transform)
 		{
 			float textWidth = ImGui.CalcTextSize("Position".CStr()).x;
@@ -344,13 +346,22 @@ namespace GlitchyEditor.EditWindows
 			ImGui.PropertyTableStartNewProperty("Position");
 			if (ImGui.Float3Editor("##Position", ref position, resetValues: .Zero, dragSpeed: 0.1f))
 			{
-				transform.Position = position;
-
-				// if necessary reposition Rigidbody2D
-				if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+				if (let cmd = _currentCommand as ChangePropertyCommand && cmd.WidgetId == ImGui.GetItemID())
 				{
-					rigidbody2D.SetPosition(position.XY);
+					cmd.NewPosition = position;
+					cmd.Do();
 				}
+				else
+				{
+					_currentCommand = new ChangePropertyCommand(ImGui.GetItemID(), entity.Scene, entity.UUID, newPosition: position, oldPosition: transform.Position);
+					_currentCommand.Do();
+				}
+			}
+			
+			if (ImGui.IsItemDeactivated() && (let cmd = _currentCommand as ChangePropertyCommand) && cmd.WidgetId == ImGui.GetItemID())
+			{
+				Editor.Instance.HistoryManager.Do(_currentCommand);
+				_currentCommand = null;
 			}
 
 			float3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
