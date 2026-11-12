@@ -330,7 +330,7 @@ struct VectorAttribute<T, ComponentCount> : Attribute, IComptimeTypeApply where 
 		}
 
 		String func = scope $"""
-			public void ToString(String outString)
+			public override void ToString(String outString)
 			{{
 			{toString}
 				outString.Append(')');
