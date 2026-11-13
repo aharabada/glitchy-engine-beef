@@ -7,78 +7,89 @@ using ImGui;
 
 namespace GlitchyEditor.History;
 
-class ChangePropertyCommand : IHistorizableCommand
+class ChangeComponentPropertyCommand<TComponent, TValue> : IHistorizableCommand where TComponent: struct, new
 {
+	public function void ApplyValueFunction(Entity entity, TComponent* component, TValue newValue);
+
 	ImGui.ID _widgetId;
 	Scene _scene;
 	UUID _entityId;
-	float3 _oldPosition;
-	float3 _newPosition;
-
+	protected TValue _oldValue;
+	protected TValue _newValue;
+	ApplyValueFunction _applyValue;
+	
 	public ImGui.ID WidgetId => _widgetId;
-
-	public float3 NewPosition
+	
+	public TValue NewValue
 	{
-		get => _newPosition;
-		set => _newPosition = value;
+		get => _newValue;
+		set => _newValue = value;
 	}
 
-	public this(ImGui.ID widgetId, Scene scnene, UUID entityId, float3 newPosition, float3 oldPosition)
+	public this(ImGui.ID widgetId, Scene scene, UUID entityId, TValue newValue, TValue oldValue, ApplyValueFunction applyValue)
 	{
 		_widgetId = widgetId;
-		_scene = scnene;
+		_scene = scene;
 		_entityId = entityId;
-		_newPosition = newPosition;
-		_oldPosition = oldPosition;
+		_newValue = newValue;
+		_oldValue = oldValue;
+		_applyValue = applyValue;
 	}
 
 	public void Do()
 	{
-		if (_scene.GetEntityByID(_entityId) not case .Ok(let entity))
-		{
-			Log.EngineLogger.Error($"The required Entity doesn't exist. ({this})");
-			return;
-		}
-		
-		let transformComponent = entity.GetComponent<TransformComponent>();
-
-		//_oldPosition = transformComponent.Position;
-		transformComponent.Position = _newPosition;
-
-		// if necessary reposition Rigidbody2D
-		if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
-		{
-			rigidbody2D.SetPosition(_newPosition.XY);
-		}
+		ApplyValue(_newValue);
 	}
 
 	public void Undo()
+	{
+		ApplyValue(_oldValue);
+	}
+
+	private void ApplyValue(TValue value)
 	{
 		if (_scene.GetEntityByID(_entityId) not case .Ok(let entity))
 		{
 			Log.EngineLogger.Error($"The required Entity doesn't exist. ({this})");
 			return;
 		}
-		
-		let transformComponent = entity.GetComponent<TransformComponent>();
 
-		transformComponent.Position = _oldPosition;
+		TComponent* component = entity.GetComponent<TComponent>();
 
-		// if necessary reposition Rigidbody2D
-		if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
-		{
-			rigidbody2D.SetPosition(_oldPosition.XY);
-		}
+		_applyValue(entity, component, value);
 	}
 	
 	public override void ToString(String strBuffer)
 	{
 		strBuffer.AppendF($"""
-			Command: Change Position
+			Command: Change {typeof(TComponent)}
+				- WidgetId: {_widgetId}
 				- Scene: {_scene}
 				- Entity: {_entityId}
-				- Old Position: {_oldPosition}
-				- New Position: {_newPosition}
+				- Old Value: {_oldValue}
+				- New Value: {_newValue}
 			""");
+	}
+}
+
+extension ChangeComponentPropertyCommand<TComponent, TValue>
+	where TComponent: struct, new
+	where TValue: String, delete
+{
+	public new StringView NewValue
+	{
+		get => _newValue;
+		set => _newValue.Set(value);
+	}
+	
+	public this(ImGui.ID widgetId, Scene scene, UUID entityId, StringView newValue, StringView oldValue, ApplyValueFunction applyValue):
+		[NoExtension]this(widgetId, scene, entityId, new String(newValue), new String(oldValue), applyValue)
+	{
+	}
+
+	public ~this()
+	{
+		delete _oldValue;
+		delete _newValue;
 	}
 }

@@ -10,6 +10,7 @@ using GlitchyEngine.Scripting;
 using GlitchyEngine.Core;
 using GlitchyEngine.World.Components;
 using GlitchyEditor.History;
+using GlitchyEngine.Renderer.Text;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -38,7 +39,7 @@ namespace GlitchyEditor.EditWindows
 			ShowComponentEditor<CameraComponent>(componentType, "Camera", entity, => ShowCameraComponentEditor, => ShowComponentContextMenu<CameraComponent>);
 			
 			ShowComponentEditor<SpriteRendererComponent>(componentType, "Sprite Renderer", entity, => ShowSpriteRendererComponentEditor, => ShowComponentContextMenu<SpriteRendererComponent>);
-			ShowComponentEditor<CircleRendererComponent>(componentType, "Circle Renderer", entity, => ShowCircleRendererComponentEditor, => ShowComponentContextMenu<CircleRendererComponent>);
+			//ShowComponentEditor<CircleRendererComponent>(componentType, "Circle Renderer", entity, => ShowCircleRendererComponentEditor, => ShowComponentContextMenu<CircleRendererComponent>);
 			ShowComponentEditor<TextRendererComponent>(componentType, "Text Renderer", entity, => ShowTextRendererComponentEditor, => ShowComponentContextMenu<TextRendererComponent>);
 
 			ShowComponentEditor<MeshRendererComponent>(componentType, "Mesh Renderer", entity, => ShowMeshRendererComponentEditor, => ShowComponentContextMenu<MeshRendererComponent>);
@@ -79,17 +80,41 @@ namespace GlitchyEditor.EditWindows
 		{
 			if (_editVerticesPolygonCollider2D)
 			{
-				for (int i < collider.VertexCount)
+				for (int8 i < collider.VertexCount)
 				{
 					Matrix localToWorld = entity.Transform.WorldTransform * Matrix.Translation(collider.Offset.X, collider.Offset.Y, 0);
 					Matrix transform = Matrix.Translation(float3(collider.Vertices[i], 0)) * localToWorld;
-	
+					
 					if (Handles.ShowGizmo(ref transform, .TRANSLATE_X | .TRANSLATE_Y, true, id: (int32)i))
 					{
 						transform = localToWorld.Invert() * transform;
-	
-						collider.Vertices[i] = transform.Translation.XY;
+
+						if (let cmd = _currentCommand as ChangeComponentPropertyCommand<PolygonCollider2DComponent, (int8 Index, float2 Position)>
+							&& cmd.WidgetId == (uint32)i)
+						{
+							cmd.NewValue = (i, transform.Translation.XY);
+							cmd.Do();
+						}
+						else
+						{
+							_currentCommand = new ChangeComponentPropertyCommand<PolygonCollider2DComponent, (int8 Index, float2 Position)>(
+								(uint32)i, entity.Scene, entity.UUID, newValue: (i, transform.Translation.XY), oldValue: (i, collider.Vertices[i]),
+								applyValue: (entity, component, newValue) => component.Vertices[newValue.Index] = newValue.Position);
+							_currentCommand.Do();
+						}
 					}
+
+					if (Handles.UsedGizmo)
+					{
+						Editor.Instance.SceneViewportWindow.DisableMousePicking = true;
+					}
+					else if ((let cmd = _currentCommand as ChangeComponentPropertyCommand<PolygonCollider2DComponent, (int8 Index, float2 Position)>)
+							&& cmd.WidgetId == (uint32)i)
+					{
+						Editor.Instance.HistoryManager.Do(_currentCommand);
+						_currentCommand = null;
+					}
+
 				}
 			}
 		}
@@ -333,6 +358,56 @@ namespace GlitchyEditor.EditWindows
 
 		static IHistorizableCommand _currentCommand;
 
+		private static void HistorizeContinuousEdit<TComponent, TValue>(
+			Entity entity,
+			TValue currentValue,
+			delegate bool(ref TValue currentValue) showWidget,
+			ChangeComponentPropertyCommand<TComponent, TValue>.ApplyValueFunction applyValue) where TComponent: struct, new
+		{
+			TValue oldValue = currentValue;
+			var currentValue;
+
+			if (showWidget(ref currentValue))
+			{
+				if (let cmd = _currentCommand as ChangeComponentPropertyCommand<TComponent, TValue> && cmd.WidgetId == ImGui.GetItemID())
+				{
+					cmd.NewValue = currentValue;
+					cmd.Do();
+				}
+				else
+				{
+					_currentCommand = new ChangeComponentPropertyCommand<TComponent, TValue>(ImGui.GetItemID(), entity.Scene, entity.UUID, newValue: currentValue, oldValue: oldValue,
+						applyValue);
+					_currentCommand.Do();
+				}
+			}
+
+			if (ImGui.IsItemDeactivatedAfterEdit() && (let cmd = _currentCommand as ChangeComponentPropertyCommand<TComponent, TValue>) && cmd.WidgetId == ImGui.GetItemID())
+			{
+				Editor.Instance.HistoryManager.Do(_currentCommand);
+				_currentCommand = null;
+			}
+		}
+
+		private static void HistorizeEdit<TComponent, TValue>(
+			Entity entity,
+			TValue currentValue,
+			delegate bool(ref TValue currentValue) showWidget,
+			ChangeComponentPropertyCommand<TComponent, TValue>.ApplyValueFunction applyValue) where TComponent: struct, new
+		{
+			TValue oldValue = currentValue;
+			var currentValue;
+
+			if (showWidget(ref currentValue))
+			{
+				let command = new ChangeComponentPropertyCommand<TComponent, TValue>(
+					ImGui.GetItemID(), entity.Scene, entity.UUID,
+					newValue: currentValue, oldValue: oldValue,
+					applyValue);
+				Editor.Instance.HistoryManager.Do(command);
+			}
+		}
+
 		private static void ShowTransformComponentEditor(Entity entity, TransformComponent* transform)
 		{
 			float textWidth = ImGui.CalcTextSize("Position".CStr()).x;
@@ -341,28 +416,18 @@ namespace GlitchyEditor.EditWindows
 
 			textWidth += ImGui.GetStyle().FramePadding.x * 3.0f;
 
-			float3 position = transform.Position;
-
 			ImGui.PropertyTableStartNewProperty("Position");
-			if (ImGui.Float3Editor("##Position", ref position, resetValues: .Zero, dragSpeed: 0.1f))
-			{
-				if (let cmd = _currentCommand as ChangePropertyCommand && cmd.WidgetId == ImGui.GetItemID())
-				{
-					cmd.NewPosition = position;
-					cmd.Do();
-				}
-				else
-				{
-					_currentCommand = new ChangePropertyCommand(ImGui.GetItemID(), entity.Scene, entity.UUID, newPosition: position, oldPosition: transform.Position);
-					_currentCommand.Do();
-				}
-			}
-			
-			if (ImGui.IsItemDeactivated() && (let cmd = _currentCommand as ChangePropertyCommand) && cmd.WidgetId == ImGui.GetItemID())
-			{
-				Editor.Instance.HistoryManager.Do(_currentCommand);
-				_currentCommand = null;
-			}
+			HistorizeContinuousEdit<TransformComponent, float3>(entity, transform.Position,
+				showWidget: scope (value) => ImGui.Float3Editor("##Position", ref value, resetValues: .Zero, dragSpeed: 0.1f),
+				applyValue: (entity, component, newValue) => {
+							component.Position = newValue;
+
+							// if necessary reposition Rigidbody2D
+							if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+							{
+								rigidbody2D.SetPosition(newValue.XY);
+							}
+						});
 
 			float3 rotationEuler = MathHelper.ToDegrees(transform.EditorRotationEuler);
 
@@ -374,150 +439,166 @@ namespace GlitchyEditor.EditWindows
 				componentEditable.XY = false;
 				rotationEuler.XY = 0;
 			}
-			
+
 			ImGui.PropertyTableStartNewProperty("Rotation");
-			if (ImGui.Float3Editor("##Rotation", ref rotationEuler, resetValues: .Zero, dragSpeed: 0.1f, componentEnabled: componentEditable, format: .("0.#####°",)))
-			{
-				transform.EditorRotationEuler = MathHelper.ToRadians(rotationEuler);
-				
-				// if necessary reposition Rigidbody2D
-				if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
-				{
-					rigidbody2D.SetAngle(rotationEuler.Z);
-				}
-			}
-			
-			float3 scale = transform.Scale;
+			HistorizeContinuousEdit<TransformComponent, float3>(entity, rotationEuler,
+				showWidget: scope (value) => ImGui.Float3Editor("##Rotation", ref value, resetValues: .Zero, dragSpeed: 0.1f, componentEnabled: componentEditable, format: .("0.#####°",)),
+				applyValue: (entity, component, newRotationEuler) => {
+					component.EditorRotationEuler = MathHelper.ToRadians(newRotationEuler);
+
+					// if necessary reposition Rigidbody2D
+					if (entity.TryGetComponent<Rigidbody2DComponent>(let rigidbody2D))
+					{
+						rigidbody2D.SetAngle(newRotationEuler.Z);
+					}
+				});
 
 			ImGui.PropertyTableStartNewProperty("Scale");
-			if (ImGui.Float3Editor("##Scale", ref scale, resetValues: .One, dragSpeed: 0.1f))
-				transform.Scale = scale;
+			HistorizeContinuousEdit<TransformComponent, float3>(entity, transform.Scale,
+				showWidget: scope (value) => ImGui.Float3Editor("##Scale", ref value, resetValues: .One, dragSpeed: 0.1f),
+				applyValue: (entity, component, newScale) => {
+					component.Scale = newScale;
+				});
 		}
-		
+
 		static String[] strings = new String[]("Orthographic", "Perspective", "Perspective (Infinite)") ~ delete _;
 
 		private static void ShowCameraComponentEditor(Entity entity, CameraComponent* cameraComponent)
 		{
 			ImGui.PropertyTableStartNewProperty("Is Primary");
-			ImGui.Checkbox("##Is_Primary", &cameraComponent.Primary);
+			HistorizeContinuousEdit<CameraComponent, bool>(entity,
+				currentValue: cameraComponent.Primary,
+				showWidget: scope (value) => ImGui.Checkbox("##Is_Primary", &value),
+				applyValue: (entity, component, newValue) => component.Primary = newValue);
 
 			var camera = ref cameraComponent.Camera;
 
-			String typeName = strings[camera.ProjectionType.Underlying];
-			
 			ImGui.PropertyTableStartNewProperty("Projection");
-			if (ImGui.BeginCombo("##Projection", typeName.CStr()))
-			{
-				for (int i = 0; i < 3; i++)
-				{
-					bool isSelected = (typeName == strings[i]);
-
-					if (ImGui.Selectable(strings[i], isSelected))
+			HistorizeEdit<CameraComponent, SceneCamera.ProjectionType>(entity,
+				currentValue: camera.ProjectionType,
+				showWidget: scope (value) => {
+					bool changed = false;
+					
+					String typeName = strings[camera.ProjectionType.Underlying];
+					if (ImGui.BeginCombo("##Projection", typeName.CStr()))
 					{
-						camera.ProjectionType = (.)i;
+						for (int i = 0; i < 3; i++)
+						{
+							bool isSelected = (typeName == strings[i]);
+
+							if (ImGui.Selectable(strings[i], isSelected))
+							{
+								value = (SceneCamera.ProjectionType)i;
+								changed = true;
+							}
+
+							if (isSelected)
+								ImGui.SetItemDefaultFocus();
+						}
+
+						ImGui.EndCombo();
 					}
 
-					if (isSelected)
-						ImGui.SetItemDefaultFocus();
-				}
-
-				ImGui.EndCombo();
-			}
+					return changed;
+				},
+				applyValue: (entity, component, newValue) => component.Camera.ProjectionType = newValue);
 
 			if (camera.ProjectionType == .Perspective)
 			{
 				ImGui.PropertyTableStartNewProperty("Fov Y");
-				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
-				if (ImGui.DragFloat("##Fov Y", &fovY, 0.1f, format: "%.3g°"))
-					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: MathHelper.ToDegrees(camera.PerspectiveFovY),
+					showWidget: scope (value) => ImGui.DragFloat("##Fov Y", &value, 0.1f, format: "%.3g°"),
+					applyValue: (entity, component, newValue) => component.Camera.PerspectiveFovY = MathHelper.ToRadians(newValue));
 				
 				ImGui.PropertyTableStartNewProperty("Near");
-				float near = camera.PerspectiveNearPlane;
-				if (ImGui.DragFloat("##Near", &near, 0.1f, format: "%.3g"))
-					camera.PerspectiveNearPlane = near;
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: camera.PerspectiveNearPlane,
+					showWidget: scope (value) => ImGui.DragFloat("##Near", &value, 0.1f, format: "%.3g"),
+					applyValue: (entity, component, newValue) => component.Camera.PerspectiveNearPlane = newValue);
 				
 				ImGui.PropertyTableStartNewProperty("Far");
-				float far = camera.PerspectiveFarPlane;
-				if (ImGui.DragFloat("##Far", &far, 0.1f, format: "%.3g"))
-					camera.PerspectiveFarPlane = far;
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: camera.PerspectiveFarPlane,
+					showWidget: scope (value) => ImGui.DragFloat("##Far", &value, 0.1f, format: "%.3g"),
+					applyValue: (entity, component, newValue) => component.Camera.PerspectiveFarPlane = newValue);
 			}
 			else if (camera.ProjectionType == .InfinitePerspective)
 			{
 				ImGui.PropertyTableStartNewProperty("Vertical FOV");
-				float fovY = MathHelper.ToDegrees(camera.PerspectiveFovY);
-				if (ImGui.DragFloat("##Vertical FOV", &fovY, 0.1f, format: "%.3g°"))
-					camera.PerspectiveFovY = MathHelper.ToRadians(fovY);
-				
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: MathHelper.ToDegrees(camera.PerspectiveFovY),
+					showWidget: scope (value) => ImGui.DragFloat("##Vertical FOV", &value, 0.1f, format: "%.3g°"),
+					applyValue: (entity, component, newValue) => component.Camera.PerspectiveFovY = MathHelper.ToRadians(newValue));
+
 				ImGui.PropertyTableStartNewProperty("Near");
-				float near = camera.PerspectiveNearPlane;
-				if (ImGui.DragFloat("##Near", &near, 0.1f, format: "%.3g"))
-					camera.PerspectiveNearPlane = near;
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: camera.PerspectiveNearPlane,
+					showWidget: scope (value) => ImGui.DragFloat("##Near", &value, 0.1f, format: "%.3g"),
+					applyValue: (entity, component, newValue) => component.Camera.PerspectiveNearPlane = newValue);
 			}
 			else if (camera.ProjectionType == .Orthographic)
 			{
 				ImGui.PropertyTableStartNewProperty("Size");
-				float size = camera.OrthographicHeight;
-				if (ImGui.DragFloat("##Size", &size, 0.1f, format: "%.3g"))
-					camera.OrthographicHeight = size;
-				
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: camera.OrthographicHeight,
+					showWidget: scope (value) => ImGui.DragFloat("##Size", &value, 0.1f, format: "%.3g"),
+					applyValue: (entity, component, newValue) => component.Camera.OrthographicHeight = newValue);
+
 				ImGui.PropertyTableStartNewProperty("Near");
-				float near = camera.OrthographicNearPlane;
-				if (ImGui.DragFloat("##Near", &near, 0.1f, format: "%.3g"))
-					camera.OrthographicNearPlane = near;
-				
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: camera.OrthographicNearPlane,
+					showWidget: scope (value) => ImGui.DragFloat("##Near", &value, 0.1f, format: "%.3g"),
+					applyValue: (entity, component, newValue) => component.Camera.OrthographicNearPlane = newValue);
+
 				ImGui.PropertyTableStartNewProperty("Far");
-				float far = camera.OrthographicFarPlane;
-				if (ImGui.DragFloat("##Far", &far, 0.1f, format: "%.3g"))
-					camera.OrthographicFarPlane = far;
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: camera.OrthographicFarPlane,
+					showWidget: scope (value) => ImGui.DragFloat("##Far", &value, 0.1f, format: "%.3g"),
+					applyValue: (entity, component, newValue) => component.Camera.OrthographicFarPlane = newValue);
 			}
 			
 			ImGui.PropertyTableStartNewProperty("Fixed Aspect Ratio");
-			bool fixedAspectRatio = camera.FixedAspectRatio;
-			if (ImGui.Checkbox("##Fixed Aspect Ratio", &fixedAspectRatio))
-				camera.FixedAspectRatio = fixedAspectRatio;
+			HistorizeEdit<CameraComponent, bool>(entity,
+				currentValue: camera.FixedAspectRatio,
+				showWidget: scope (value) => ImGui.Checkbox("##Fixed Aspect Ratio", &value),
+				applyValue: (entity, component, newValue) => component.Camera.FixedAspectRatio = newValue);
 
-			if (fixedAspectRatio)
+			if (camera.FixedAspectRatio)
 			{
 				ImGui.PropertyTableStartNewProperty("Aspect Ratio");
-				float aspect = camera.AspectRatio;
-				if (ImGui.DragFloat("##Aspect Ratio", &aspect, 0.1f, format: "%.3g"))
-					camera.AspectRatio = aspect;
+				HistorizeContinuousEdit<CameraComponent, float>(entity,
+					currentValue: camera.AspectRatio,
+					showWidget: scope (value) => ImGui.DragFloat("##Aspect Ratio", &value, 0.1f, format: "%.3g"),
+					applyValue: (entity, component, newValue) => component.Camera.AspectRatio = newValue);
 			}
 		}
 
 		private static void ShowSpriteRendererComponentEditor(Entity entity, SpriteRendererComponent* spriteRendererComponent)
 		{
-			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(spriteRendererComponent.Color);
 			ImGui.PropertyTableStartNewProperty("Color");
-			if (ImGui.ColorEdit4("##Color", ref spriteColor))
-				spriteRendererComponent.Color = ColorRGBA.SRgbToLinear(spriteColor);
+			HistorizeContinuousEdit<SpriteRendererComponent, ColorRGBA>(entity,
+				currentValue: ColorRGBA.LinearToSRGB(spriteRendererComponent.Color),
+				showWidget: scope (value) => ImGui.ColorEdit4("##Color", ref value),
+				applyValue: (entity, component, newValue) => component.Color = ColorRGBA.SRgbToLinear(newValue));
 			
 			ImGui.PropertyTableStartNewProperty("Texture");
-			ShowAssetDropTarget(ref spriteRendererComponent.Sprite);
-			/*ImGui.Button("...");
-
-			if (ImGui.BeginDragDropTarget())
-			{
-				ImGui.Payload* payload = ImGui.AcceptDragDropPayload(.ContentBrowserItem);
-
-				if (payload != null)
-				{
-					Log.EngineLogger.Warning("");
-
-					StringView path = .((char8*)payload.Data, (int)payload.DataSize);
-
-					spriteRendererComponent.Sprite = Content.LoadAsset(path);
-				}
-
-				ImGui.EndDragDropTarget();
-			}*/
+			HistorizeEdit<SpriteRendererComponent, AssetHandle>(entity,
+				currentValue: spriteRendererComponent.Sprite,
+				showWidget: scope (value) => ShowAssetDropTarget(ref value),
+				applyValue: (entity, component, newValue) => component.Sprite = newValue);
 
 			ImGui.PropertyTableStartNewProperty("UV Transform");
-			ImGui.Float4Editor("##UV Transform", ref spriteRendererComponent.UvTransform, resetValues: float4(0, 0, 1, 1));
+			HistorizeContinuousEdit<SpriteRendererComponent, float4>(entity,
+				currentValue: spriteRendererComponent.UvTransform,
+				showWidget: scope (value) => ImGui.Float4Editor("##UV Transform", ref value, resetValues: float4(0, 0, 1, 1)),
+				applyValue: (entity, component, newValue) => component.UvTransform = newValue);
 
 			ImGui.PropertyTableStartNewProperty("Material");
-			
-			ShowAssetDropTarget<Material>(ref spriteRendererComponent.Material);
+			HistorizeEdit<SpriteRendererComponent, AssetHandle<Material>>(entity,
+				currentValue: spriteRendererComponent.Material,
+				showWidget: scope (value) => ShowAssetDropTarget(ref value),
+				applyValue: (entity, component, newValue) => component.Material = newValue);
 		}
 		
 		public static bool ShowAssetDropTarget(ref AssetHandle target)
@@ -592,7 +673,7 @@ namespace GlitchyEditor.EditWindows
 			return changed;
 		}
 
-		private static void ShowCircleRendererComponentEditor(Entity entity, CircleRendererComponent* circleRendererComponent)
+		/*private static void ShowCircleRendererComponentEditor(Entity entity, CircleRendererComponent* circleRendererComponent)
 		{
 			ColorRGBA spriteColor = ColorRGBA.LinearToSRGB(circleRendererComponent.Color);
 			ImGui.PropertyTableStartNewProperty("Color");
@@ -623,24 +704,7 @@ namespace GlitchyEditor.EditWindows
 			
 			ImGui.PropertyTableStartNewProperty("Inner Radius");
 			ImGui.DragFloat("##Inner Radius", &circleRendererComponent.InnerRadius, 0.1f, 0.0f, 1.0f, format: "%.3g");
-		}
-		
-		static int InputTextCallback(ImGui.InputTextCallbackData* data)
-		{
-			if (data.EventFlag == .CallbackResize)
-			{
-				String str = (String)Internal.UnsafeCastToObject(data.UserData);
-
-				Log.EngineLogger.AssertDebug(str.Ptr == data.Buf);
-
-				str.PadRight(data.BufTextLen * 2, '\0');
-				data.Buf = str.Ptr;
-
-				return 0;
-			}
-
-			return 0;
-		}
+		}*/
 
 		private static void ShowTextRendererComponentEditor(Entity entity, TextRendererComponent* textRendererComponent)
 		{
@@ -648,171 +712,172 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.AttachTooltip("If checked, the text will be interpreted as rich text.");
 
-			bool isRichText = textRendererComponent.IsRichText;
+			HistorizeEdit<TextRendererComponent, bool>(entity,
+				currentValue: textRendererComponent.IsRichText,
+				showWidget: scope (value) => ImGui.Checkbox("##rich_text", &value),
+				applyValue: (entity, component, newValue) => {
+						component.IsRichText = newValue;
+						component.NeedsRebuild = true;
+					});
 
-			if (ImGui.Checkbox("##rich_text", &isRichText))
-			{
-				textRendererComponent.IsRichText = isRichText;
-				textRendererComponent.NeedsRebuild = true;
-			}
-
+			String buffer = new:ScopedAlloc! String(textRendererComponent.Text);
 			ImGui.PropertyTableStartNewProperty("Text");
-
-			String text = textRendererComponent.[Friend]_text;
-
-			if (text == null)
-			{
-				text = textRendererComponent.[Friend]_text = new String();
-			}
-
-			text?.EnsureNullTerminator();
-
-			if (ImGui.InputTextMultiline("##text", text.CStr(), (uint64)(text.Length + 1), .Zero, .CallbackResize, => InputTextCallback, Internal.UnsafeCastToPtr(text)))
-			{
-				// To deleting text, ImGui simply puts a null char after the remaining text.
-				// Search for null char and set the length of the string accordingly.
-				int length = text.IndexOf('\0');
-
-				if (length >= 0)
-				{
-					text.Length = length;
-				}
-				
-				textRendererComponent.NeedsRebuild = true;
-			}
+			HistorizeContinuousEdit<TextRendererComponent, String>(entity,
+				currentValue: buffer,
+				showWidget: scope (value) => ImGui.InputTextMultiline("##text", value),
+				applyValue: (entity, component, newValue) => {
+						component.Text = newValue;
+						component.NeedsRebuild = true;
+					});
 
 			ImGui.PropertyTableStartNewProperty("Font Size");
-
-			if (ImGui.DragFloat("##fontSize", &textRendererComponent.FontSize, format: "%.3g"))
-			{
-				textRendererComponent.NeedsRebuild = true;
-			}
+			HistorizeContinuousEdit<TextRendererComponent, float>(entity,
+				currentValue: textRendererComponent.[Friend]FontSize,
+				showWidget: scope (value) => ImGui.DragFloat("##fontSize", &value, format: "%.3g"),
+				applyValue: (entity, component, newValue) => {
+						component.FontSize = newValue;
+						component.NeedsRebuild = true;
+					});
 
 			ImGui.PropertyTableStartNewProperty("Color");
+			HistorizeContinuousEdit<TextRendererComponent, ColorRGBA>(entity,
+				currentValue: textRendererComponent.Color,
+				showWidget: scope (value) => ImGui.ColorEdit4("##color", ref value),
+				applyValue: (entity, component, newValue) => {
+						component.Color = newValue;
+						component.NeedsRebuild = true;
+					});
 
-			if (ImGui.ColorEdit4("##color", ref textRendererComponent.Color))
-			{
-				textRendererComponent.NeedsRebuild = true;
-			}
-
-			ImGui.PropertyTableStartNewProperty("Horizontal Alignment");
-
-			if (ImGui.EnumCombo("##horAlign", ref textRendererComponent.HorizontalAlignment))
-			{
-				textRendererComponent.NeedsRebuild = true;
-			}
+			HistorizeEdit<TextRendererComponent, FontRenderer.HorizontalTextAlignment>(entity,
+				currentValue: textRendererComponent.HorizontalAlignment,
+				showWidget: scope (value) => ImGui.EnumCombo("##horAlign", ref value),
+				applyValue: (entity, component, newValue) => {
+						component.HorizontalAlignment = newValue;
+						component.NeedsRebuild = true;
+					});
 		}
 
 		private static void ShowMeshRendererComponentEditor(Entity entity, MeshRendererComponent* meshRendererComponent)
 		{
 			ImGui.PropertyTableStartNewProperty("Material");
-			
-			ShowAssetDropTarget<Material>(ref meshRendererComponent.Material);
+			HistorizeEdit<MeshRendererComponent, AssetHandle<Material>>(entity,
+				currentValue: meshRendererComponent.Material,
+				showWidget: scope (value) => ShowAssetDropTarget(ref value),
+				applyValue: (entity, component, newValue) => component.Material = newValue);
 		}
 		
 		private static void ShowRigidBody2DComponentEditor(Entity entity, Rigidbody2DComponent* rigidBodyComponent)
 		{
-			const String[?] bodyTypeStrings = .("Static", "Dynamic", "Kinematic");
-			String bodyTypeName = bodyTypeStrings[rigidBodyComponent.BodyType.Underlying];
-			
 			ImGui.PropertyTableStartNewProperty("Type");
-			if (ImGui.BeginCombo("##Type", bodyTypeName.CStr()))
-			{
-				for (int i = 0; i < 3; i++)
-				{
-					bool isSelected = (bodyTypeName == bodyTypeStrings[i]);
+			HistorizeEdit<Rigidbody2DComponent, Rigidbody2DComponent.BodyType>(entity,
+				currentValue: rigidBodyComponent.BodyType,
+				showWidget: scope (value) => ImGui.EnumCombo("##Type", ref value),
+				applyValue: (entity, component, newValue) => component.BodyType = newValue
+			);
 
-					if (ImGui.Selectable(bodyTypeStrings[i], isSelected))
-					{
-						rigidBodyComponent.BodyType = (.)i;
-					}
-
-					if (isSelected)
-						ImGui.SetItemDefaultFocus();
-				}
-
-				ImGui.EndCombo();
-			}
-
-			bool isFixedRotation = rigidBodyComponent.FixedRotation;
 			ImGui.PropertyTableStartNewProperty("Fixed Rotation");
-			if (ImGui.Checkbox("##Fixed Rotation", &isFixedRotation))
-			{
-				rigidBodyComponent.FixedRotation = isFixedRotation;
-			}
+			HistorizeEdit<Rigidbody2DComponent, bool>(entity,
+				currentValue: rigidBodyComponent.FixedRotation,
+				showWidget: scope (value) => ImGui.Checkbox("##Fixed Rotation", &value),
+				applyValue: (entity, component, newValue) => component.FixedRotation = newValue
+			);
 
-			float gravityScale = rigidBodyComponent.GravityScale;
-			ImGui.PropertyTableStartNewProperty("Gravity Scale");
-			if (ImGui.DragFloat("##Gravity Scale", &gravityScale, format: "%.3g"))
-			{
-				rigidBodyComponent.GravityScale = gravityScale;
-			}
+			ImGui.PropertyTableStartNewProperty("Fixed Rotation");
+			HistorizeContinuousEdit<Rigidbody2DComponent, float>(entity,
+				currentValue: rigidBodyComponent.GravityScale,
+				showWidget: scope (value) => ImGui.DragFloat("##Gravity Scale", &value, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.GravityScale = newValue
+			);
 		}
 
 		private static void ShowBoxCollider2DComponentEditor(Entity entity, BoxCollider2DComponent* boxCollider)
 		{
-			float2 offset = boxCollider.Offset;
 			ImGui.PropertyTableStartNewProperty("Offset");
-			if (ImGui.Float2Editor("##Offset", ref offset, .Zero, 0.1f))
-				boxCollider.Offset = offset;
-
-			float2 size = boxCollider.Size;
-			ImGui.PropertyTableStartNewProperty("Size");
-			if (ImGui.Float2Editor("##Size", ref size, .Zero, 0.1f, float2(0.01f, 0.01f), float.PositiveInfinity.XX))
-				boxCollider.Size = size;
+			HistorizeContinuousEdit<BoxCollider2DComponent, float2>(entity,
+				currentValue: boxCollider.Offset,
+				showWidget: scope (value) => ImGui.Float2Editor("##Offset", ref value, .Zero, 0.1f),
+				applyValue: (entity, component, newValue) => component.Offset = newValue
+			);
 			
-			float density = boxCollider.Density;
+			ImGui.PropertyTableStartNewProperty("Offset");
+			HistorizeContinuousEdit<BoxCollider2DComponent, float2>(entity,
+				currentValue: boxCollider.Size,
+				showWidget: scope (value) => ImGui.Float2Editor("##Size", ref value, .Zero, 0.1f, float2(0.01f, 0.01f), float.PositiveInfinity.XX),
+				applyValue: (entity, component, newValue) => component.Size = newValue
+			);
+
 			ImGui.PropertyTableStartNewProperty("Density");
-			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f, format: "%.3g"))
-				boxCollider.Density = density;
+			HistorizeContinuousEdit<BoxCollider2DComponent, float>(entity,
+				currentValue: boxCollider.Density,
+				showWidget: scope (value) => ImGui.DragFloat("##Density", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Density = newValue
+			);
 			
-			float friction = boxCollider.Friction;
 			ImGui.PropertyTableStartNewProperty("Friction");
-			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f, format: "%.3g"))
-				boxCollider.Friction = friction;
+			HistorizeContinuousEdit<BoxCollider2DComponent, float>(entity,
+				currentValue: boxCollider.Friction,
+				showWidget: scope (value) => ImGui.DragFloat("##Friction", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Friction = newValue
+			);
 
-			float restitution = boxCollider.Restitution;
 			ImGui.PropertyTableStartNewProperty("Restitution");
-			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f, format: "%.3g"))
-				boxCollider.Restitution = restitution;
+			HistorizeContinuousEdit<BoxCollider2DComponent, float>(entity,
+				currentValue: boxCollider.Restitution,
+				showWidget: scope (value) => ImGui.DragFloat("##Restitution", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Restitution = newValue
+			);
 
-			float restitutionThreshold = boxCollider.RestitutionThreshold;
 			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
-			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, format: "%.3g"))
-				boxCollider.RestitutionThreshold = restitutionThreshold;
+			HistorizeContinuousEdit<BoxCollider2DComponent, float>(entity,
+				currentValue: boxCollider.RestitutionThreshold,
+				showWidget: scope (value) => ImGui.DragFloat("##RestitutionThreshold", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.RestitutionThreshold = newValue
+			);
 		}
 
 		private static void ShowCircleCollider2DComponentEditor(Entity entity, CircleCollider2DComponent* circleCollider)
 		{
-			float2 offset = circleCollider.Offset;
 			ImGui.PropertyTableStartNewProperty("Offset");
-			if (ImGui.Float2Editor("##Offset", ref offset, .Zero, 0.1f))
-				circleCollider.Offset = offset;
-
-			float radius = circleCollider.Radius;
+			HistorizeContinuousEdit<CircleCollider2DComponent, float2>(entity,
+				currentValue: circleCollider.Offset,
+				showWidget: scope (value) => ImGui.Float2Editor("##Offset", ref value, .Zero, 0.1f),
+				applyValue: (entity, component, newValue) => component.Offset = newValue
+			);
+			
 			ImGui.PropertyTableStartNewProperty("Radius");
-			if (ImGui.DragFloat("##Radius", &radius, 0.0f, 0.1f, format: "%.3g"))
-				circleCollider.Radius = radius;
+			HistorizeContinuousEdit<CircleCollider2DComponent, float>(entity,
+				currentValue: circleCollider.Radius,
+				showWidget: scope (value) => ImGui.DragFloat("##Radius", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Radius = newValue
+			);
 			
-			float density = circleCollider.Density;
 			ImGui.PropertyTableStartNewProperty("Density");
-			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f, format: "%.3g"))
-				circleCollider.Density = density;
+			HistorizeContinuousEdit<CircleCollider2DComponent, float>(entity,
+				currentValue: circleCollider.Density,
+				showWidget: scope (value) => ImGui.DragFloat("##Density", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Density = newValue
+			);
 			
-			float friction = circleCollider.Friction;
 			ImGui.PropertyTableStartNewProperty("Friction");
-			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f, format: "%.3g"))
-				circleCollider.Friction = friction;
-
-			float restitution = circleCollider.Restitution;
+			HistorizeContinuousEdit<CircleCollider2DComponent, float>(entity,
+				currentValue: circleCollider.Friction,
+				showWidget: scope (value) => ImGui.DragFloat("##Friction", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Friction = newValue
+			);
+			
 			ImGui.PropertyTableStartNewProperty("Restitution");
-			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f, format: "%.3g"))
-				circleCollider.Restitution = restitution;
-
-			float restitutionThreshold = circleCollider.RestitutionThreshold;
+			HistorizeContinuousEdit<CircleCollider2DComponent, float>(entity,
+				currentValue: circleCollider.Restitution,
+				showWidget: scope (value) => ImGui.DragFloat("##Restitution", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Restitution = newValue
+			);
+			
 			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
-			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, format: "%.3g"))
-				circleCollider.RestitutionThreshold = restitutionThreshold;
+			HistorizeContinuousEdit<CircleCollider2DComponent, float>(entity,
+				currentValue: circleCollider.RestitutionThreshold,
+				showWidget: scope (value) => ImGui.DragFloat("##RestitutionThreshold", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.RestitutionThreshold = newValue
+			);
 		}
 
 		/// If true handles for editing the vertices of the PolygonCollider2DComponent will be visible 
@@ -829,10 +894,12 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowPolygonCollider2DComponentEditor(Entity entity, PolygonCollider2DComponent* polygonCollider)
 		{
-			float2 offset = polygonCollider.Offset;
 			ImGui.PropertyTableStartNewProperty("Offset");
-			if (ImGui.Float2Editor("Offset", ref offset, .Zero, 0.1f))
-				polygonCollider.Offset = offset;
+			HistorizeContinuousEdit<PolygonCollider2DComponent, float2>(entity,
+				currentValue: polygonCollider.Offset,
+				showWidget: scope (value) => ImGui.Float2Editor("##Offset", ref value, .Zero, 0.1f),
+				applyValue: (entity, component, newValue) => component.Offset = newValue
+			);
 
 			ImGui.PropertyTableStartNewRow();
 
@@ -846,9 +913,19 @@ namespace GlitchyEditor.EditWindows
 			ImGui.SameLine(ImGui.GetContentRegionAvail().x - addButtonWidth - ImGui.GetStyle().FramePadding.x - removeButtonWidth);
 			
 			ImGui.BeginDisabled(polygonCollider.VertexCount >= 8);
-
-			if (ImGui.SmallButton("+"))
-				polygonCollider.VertexCount++;
+			
+			HistorizeEdit<PolygonCollider2DComponent, int8>(entity,
+				currentValue: polygonCollider.VertexCount,
+				showWidget: scope (value) => {
+					if (ImGui.SmallButton("+"))
+					{
+						value++;
+						return true;
+					}
+					return false;
+				},
+				applyValue: (entity, component, newValue) => component.VertexCount = newValue
+			);
 
 			ImGui.AttachTooltip("Add a new vertex to the collider.");
 
@@ -858,14 +935,23 @@ namespace GlitchyEditor.EditWindows
 
 			ImGui.BeginDisabled(polygonCollider.VertexCount <= 3);
 
-			if (ImGui.SmallButton("-"))
-				polygonCollider.VertexCount--;
+			HistorizeEdit<PolygonCollider2DComponent, int8>(entity,
+				currentValue: polygonCollider.VertexCount,
+				showWidget: scope (value) => {
+					if (ImGui.SmallButton("-"))
+					{
+						value--;
+						return true;
+					}
+					return false;
+				},
+				applyValue: (entity, component, newValue) => component.VertexCount = newValue
+			);
 
 			ImGui.AttachTooltip("Remove the last vertex from the collider.");
 
 			ImGui.EndDisabled();
 
-			// If isOpen is true, show list of vertices
 			if (isOpen)
 			{
 				ImGui.PropertyTableStartNewProperty("Show Vertex gizmos");
@@ -874,31 +960,46 @@ namespace GlitchyEditor.EditWindows
 				for (int i < polygonCollider.VertexCount)
 				{
 					ImGui.PropertyTableStartNewProperty(scope $"{i}");
-					ImGui.Float2Editor(scope $"##{i}", ref polygonCollider.Vertices[i]);
+
+					// applyValue is a function pointer and can't capture values.
+					// However we need the polygon-index -> capture it inside value tuple (index, value)
+					HistorizeContinuousEdit<PolygonCollider2DComponent, (int Index, float2 Value)>(entity,
+						currentValue: (i, polygonCollider.Vertices[i]),
+						showWidget: scope (value) => ImGui.Float2Editor(scope $"##{i}", ref value.Value),
+						applyValue: (entity, component, newValue) => component.Vertices[newValue.Index] = newValue.Value
+					);
 				}
 
 				ImGui.TreePop();
 			}
 
-			float density = polygonCollider.Density;
 			ImGui.PropertyTableStartNewProperty("Density");
-			if (ImGui.DragFloat("##Density", &density, 0.0f, 0.1f, format: "%.3g"))
-				polygonCollider.Density = density;
-			
-			float friction = polygonCollider.Friction;
+			HistorizeContinuousEdit<PolygonCollider2DComponent, float>(entity,
+				currentValue: polygonCollider.Density,
+				showWidget: scope (value) => ImGui.DragFloat("##Density", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Density = newValue
+			);
+
 			ImGui.PropertyTableStartNewProperty("Friction");
-			if (ImGui.DragFloat("##Friction", &friction, 0.0f, 0.1f, format: "%.3g"))
-				polygonCollider.Friction = friction;
+			HistorizeContinuousEdit<PolygonCollider2DComponent, float>(entity,
+				currentValue: polygonCollider.Friction,
+				showWidget: scope (value) => ImGui.DragFloat("##Friction", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Friction = newValue
+			);
 
-			float restitution = polygonCollider.Restitution;
 			ImGui.PropertyTableStartNewProperty("Restitution");
-			if (ImGui.DragFloat("##Restitution", &restitution, 0.0f, 0.1f, format: "%.3g"))
-				polygonCollider.Restitution = restitution;
+			HistorizeContinuousEdit<PolygonCollider2DComponent, float>(entity,
+				currentValue: polygonCollider.Restitution,
+				showWidget: scope (value) => ImGui.DragFloat("##Restitution", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.Restitution = newValue
+			);
 
-			float restitutionThreshold = polygonCollider.RestitutionThreshold;
 			ImGui.PropertyTableStartNewProperty("Restitution Threshold");
-			if (ImGui.DragFloat("##RestitutionThreshold", &restitutionThreshold, 0.0f, 0.1f, format: "%.3g"))
-				polygonCollider.RestitutionThreshold = restitutionThreshold;
+			HistorizeContinuousEdit<PolygonCollider2DComponent, float>(entity,
+				currentValue: polygonCollider.RestitutionThreshold,
+				showWidget: scope (value) => ImGui.DragFloat("##RestitutionThreshold", &value, 0.0f, 0.1f, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.RestitutionThreshold = newValue
+			);
 		}
 
 		private static void ShowScriptComponentEditor(Entity entity, ScriptComponent* scriptComponent)
@@ -927,7 +1028,15 @@ namespace GlitchyEditor.EditWindows
 					if (ImGui.Selectable(className.ToScopeCStr!(),
 						className == scriptComponent.ScriptClassName))
 					{
-						scriptComponent.ScriptClassName = scriptClass.FullName;
+						var command = new ChangeComponentPropertyCommand<ScriptComponent, String>(ImGui.GetItemID(),
+							entity.Scene, entity.UUID,
+							newValue: scriptClass.FullName, oldValue: scriptComponent.ScriptClassName,
+							applyValue: (entity, component, newValue) => {
+								component.ScriptClassName = newValue;
+								// TODO: This currently does nothing useful, because we don't create new instances,
+								// also when we implement creating the appropriate script instance, we must somehow retain the old one.
+							});
+						Editor.Instance.HistoryManager.Do(command);
 					}
 				}
 				ImGui.EndPopup();
@@ -938,47 +1047,36 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowLightComponentEditor(Entity entity, LightComponent* lightComponent)
 		{
-			const String[?] strings = String[]("Directional", "Point", "Spot");
-
-			var light = ref lightComponent.SceneLight;
-
-			String typeName = strings[light.LightType.Underlying];
-			
 			ImGui.PropertyTableStartNewProperty("Type");
-			if (ImGui.BeginCombo("##Type", typeName.CStr()))
-			{
-				for (int i = 0; i < 3; i++)
-				{
-					bool isSelected = (typeName == strings[i]);
-
-					if (ImGui.Selectable(strings[i], isSelected))
-					{
-						light.LightType = (.)i;
-					}
-
-					if (isSelected)
-						ImGui.SetItemDefaultFocus();
-				}
-
-				ImGui.EndCombo();
-			}
+			HistorizeContinuousEdit<LightComponent, SceneLight.LightType>(entity,
+				currentValue: lightComponent.SceneLight.LightType,
+				showWidget: scope (value) => ImGui.EnumCombo("##Type", ref value),
+				applyValue: (entity, component, newValue) => component.SceneLight.LightType = newValue
+			);
 			
-			ColorRGB color = ColorRGB.LinearToSRGB(light.Color);
 			ImGui.PropertyTableStartNewProperty("Color");
-			if (ImGui.ColorEdit3("##Color", ref color))
-				light.Color = ColorRGB.SRgbToLinear(color);
+			HistorizeContinuousEdit<LightComponent, ColorRGB>(entity,
+				currentValue: ColorRGB.LinearToSRGB(lightComponent.SceneLight.Color),
+				showWidget: scope (value) => ImGui.ColorEdit3("##Color", ref value),
+				applyValue: (entity, component, newValue) => component.SceneLight.Color = ColorRGB.SRgbToLinear(newValue)
+			);
 
-			float illuminance = light.Illuminance;
 			ImGui.PropertyTableStartNewProperty("Illuminance");
-			if (ImGui.DragFloat("##Illuminance", &illuminance, 0.1f, 0.0f, float.MaxValue, format: "%.3g"))
-				light.Illuminance = illuminance;
+			HistorizeContinuousEdit<LightComponent, float>(entity,
+				currentValue: lightComponent.SceneLight.Illuminance,
+				showWidget: scope (value) => ImGui.DragFloat("##Illuminance", &value, 0.1f, 0.0f, float.MaxValue, format: "%.3g"),
+				applyValue: (entity, component, newValue) => component.SceneLight.Illuminance = newValue
+			);
 		}
 
 		private static void ShowMeshComponentEditor(Entity entity, MeshComponent* meshComponent)
 		{
 			ImGui.PropertyTableStartNewProperty("Mesh");
-			
-			ShowAssetDropTarget<GeometryBinding>(ref meshComponent.Mesh);
+			HistorizeEdit<MeshComponent, AssetHandle<GeometryBinding>>(entity,
+				currentValue: meshComponent.Mesh,
+				showWidget: scope (value) => ShowAssetDropTarget<GeometryBinding>(ref value),
+				applyValue: (entity, component, newValue) => component.Mesh = newValue
+			);
 		}
 
 		private static void ShowAddComponentButton(Entity entity)
@@ -1033,7 +1131,7 @@ namespace GlitchyEditor.EditWindows
 				ShowComponentButton<LightComponent>("Light");
 				ShowComponentButton<Rigidbody2DComponent>("Rigidbody 2D");
 				ShowComponentButton<BoxCollider2DComponent>("Box collider 2D");
-				ShowComponentButton<CircleCollider2DComponent>("Circle collider 2D");
+				//ShowComponentButton<CircleCollider2DComponent>("Circle collider 2D");
 				ShowComponentButton<PolygonCollider2DComponent>("Polygon collider 2D");
 				ShowComponentButton<MeshComponent>("Mesh");
 				ShowComponentButton<MeshRendererComponent>("Mesh Renderer");

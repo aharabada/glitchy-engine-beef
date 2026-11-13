@@ -56,6 +56,10 @@ namespace GlitchyEditor.EditWindows
 
 		public bool Visible => _visible;
 
+		// TODO: For now we just reenable it every frame. But maybe we want to use a counter approach (enable it when counter is 0).
+		/// Disables mouse picking for the next frame.
+		public bool DisableMousePicking { get; set; }
+
 		public this(Editor editor)
 		{
 			_editor = editor;
@@ -120,7 +124,11 @@ namespace GlitchyEditor.EditWindows
 
 			bool gizmoUsed = DrawImGuizmo(viewportSize);
 
-			MousePicking(viewportSize, gizmoUsed);
+			if (!DisableMousePicking)
+			{
+				MousePicking(viewportSize, gizmoUsed);
+				DisableMousePicking = false;
+			}
 	
 			ImGui.End();
 

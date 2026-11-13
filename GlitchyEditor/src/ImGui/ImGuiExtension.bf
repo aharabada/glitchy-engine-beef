@@ -554,6 +554,13 @@ namespace ImGui
 		{
 			return ImGui.InputText(label, str.CStr(), (.)str.AllocSize, flags | .CallbackResize, => StringResizeCallback, Internal.UnsafeCastToPtr(str));
 		}
+		
+		/// Provides a multi line text input field that allows to edit the given string directly. The string will grow as needed.
+		/// Returns true if the text was changed.
+		public static bool InputTextMultiline(char8* label, String str, Vec2 size = .Zero, InputTextFlags flags = .None)
+		{
+			return ImGui.InputTextMultiline(label, str.CStr(), (.)str.AllocSize, size, flags | .CallbackResize, => StringResizeCallback, Internal.UnsafeCastToPtr(str));
+		}
 
 		private static int StringResizeCallback(InputTextCallbackData* data)
 		{
