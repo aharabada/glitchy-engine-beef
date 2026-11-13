@@ -156,7 +156,7 @@ class AssetFile
 		if (assetLoader != null || assetImporter != null)
 		{
 			_assetConfig.AssetLoader = new String();
-			assetLoader.GetType().GetName(_assetConfig.AssetLoader);
+			assetLoader?.GetType().GetName(_assetConfig.AssetLoader);
 
 			_assetConfig.Config = assetLoader?.GetDefaultConfig();
 			_assetConfig.Config?.[Friend]_changed = true;
