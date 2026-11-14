@@ -827,7 +827,7 @@ namespace ImGui
 
 		public static void PushStyleColor(ImGui.Col idx, GlitchyEngine.Math.ColorRGBA color)
 		{
-			ImGui.PushStyleColor(.Text, ((Color)color).Value);
+			ImGui.PushStyleColor(idx, ((Color)color).Value);
 		}
 
 		public struct DisabledScope : IDisposable
