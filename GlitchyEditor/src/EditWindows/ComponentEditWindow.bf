@@ -1001,13 +1001,10 @@ namespace GlitchyEditor.EditWindows
 				applyValue: (entity, component, newValue) => component.RestitutionThreshold = newValue
 			);
 		}
-
+		
+		static String search = new .(64) ~ delete _;
 		private static void ShowScriptComponentEditor(Entity entity, ScriptComponent* scriptComponent)
 		{
-			static char8[64] buffer = .();
-
-			StringView search = StringView();
-
 			char8* scriptLabel = scriptComponent.ScriptClassName.ToScopeCStr!() ?? "Select Script...";
 			
 			ImGui.PropertyTableStartNewProperty("Script");
@@ -1016,9 +1013,7 @@ namespace GlitchyEditor.EditWindows
 
 			if (ImGui.BeginPopup("SelectScript"))
 			{
-				ImGui.InputText("##ScriptSearch", &buffer, buffer.Count);
-
-				search = StringView(&buffer);
+				ImGui.InputText("##ScriptSearch", search);
 
 				for (let (className, scriptClass) in ScriptEngine.EntityClasses)
 				{
