@@ -131,7 +131,7 @@ namespace GlitchyEditor.EditWindows
 
 		private static void ShowComponentContextMenu<TComponent>(Entity entity, TComponent* component) where TComponent: struct, new
 		{
-			if (ImGui.Selectable("Remove Component"))
+			if (ImGui.MenuItem("Remove Component"))
 				entity.RemoveComponent<TComponent>();
 		}
 
@@ -204,15 +204,15 @@ namespace GlitchyEditor.EditWindows
 			
 			float2 buttonSize = ImGui.GetTextLineHeight().XX;
 			
-			ImGui.PushStyleColor(.Button, ColorRGBA(0, 0, 0, 0));
+			ImGui.PushStyleColor(.Button, ColorRGBA.Transparent);
 
 			if (showComponentContextMenu != null)
 			{
 				positionX -= buttonSize.X + ImGui.GetStyle().FramePadding.x;
 				ImGui.SameLine(positionX);
 				positionX -= ImGui.GetStyle().FramePadding.x;
-
-				if (ImGui.ImageButton("save", EditorIcons.Instance.Icon_ContextMenu, (.)buttonSize))
+				
+				if (ImGui.ImageButton("open_context_menu", EditorIcons.Instance.Icon_ContextMenu, (.)buttonSize))
 				{
 					ImGui.OpenPopup("component_popup");
 				}
