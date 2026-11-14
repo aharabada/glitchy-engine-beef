@@ -1511,7 +1511,17 @@ namespace GlitchyEditor
 
 				ImGui.EndMenu();
 			}
-			
+
+			if (ImGui.BeginMenu("Edit"))
+			{
+				if(ImGui.MenuItem("Undo", "Ctrl+Z", enabled: _editor.HistoryManager.CanUndo))
+					_editor.HistoryManager.Undo();
+				if(ImGui.MenuItem("Redo", "Ctrl+Shift+Z", enabled: _editor.HistoryManager.CanRedo))
+					_editor.HistoryManager.Redo();
+
+				ImGui.EndMenu();
+			}
+
 			if(ImGui.BeginMenu("View", true))
 			{
 				if(ImGui.MenuItem(ContentBrowserWindow.s_WindowTitle))
@@ -1668,6 +1678,11 @@ namespace GlitchyEditor
 						_editor.ReloadScripts();
 					
 					return true;
+				case .Z:
+					if (shift)
+						_editor.HistoryManager.Redo();
+					else
+						_editor.HistoryManager.Undo();
 				default:
 				}
 			}

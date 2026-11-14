@@ -19,10 +19,13 @@ class HistoryManager
 		command.Do();
 	}
 
+	public bool CanUndo => !_undoHistory.IsEmpty;
+	public bool CanRedo => !_redoHistory.IsEmpty;
+
 	/// Reverts the last command and puts it onto the redo stack.
 	public bool Undo()
 	{
-		if (_undoHistory.IsEmpty)
+		if (!CanUndo)
 		{
 			return false;
 		}
@@ -39,7 +42,7 @@ class HistoryManager
 	/// Reapplies the last reverted command and puts it onto the undo stack.
 	public bool Redo()
 	{
-		if (_redoHistory.IsEmpty)
+		if (!CanRedo)
 		{
 			return false;
 		}
