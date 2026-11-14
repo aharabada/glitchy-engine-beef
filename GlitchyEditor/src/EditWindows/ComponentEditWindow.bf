@@ -1045,7 +1045,7 @@ namespace GlitchyEditor.EditWindows
 		private static void ShowLightComponentEditor(Entity entity, LightComponent* lightComponent)
 		{
 			ImGui.PropertyTableStartNewProperty("Type");
-			HistorizeContinuousEdit<LightComponent, SceneLight.LightType>(entity,
+			HistorizeEdit<LightComponent, SceneLight.LightType>(entity,
 				currentValue: lightComponent.SceneLight.LightType,
 				showWidget: scope (value) => ImGui.EnumCombo("##Type", ref value),
 				applyValue: (entity, component, newValue) => component.SceneLight.LightType = newValue
