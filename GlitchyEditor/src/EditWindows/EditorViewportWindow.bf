@@ -6,6 +6,7 @@ using GlitchyEngine;
 using GlitchyEngine.World;
 using ImGuizmo;
 using GlitchyEngine.Events;
+using GlitchyEditor.History;
 
 namespace GlitchyEditor.EditWindows
 {
@@ -357,10 +358,29 @@ namespace GlitchyEditor.EditWindows
 
 			if (Handles.ShowGizmo(ref worldTransform, _gizmoType, _gizmoMode case .WORLD, id: 1337))
 			{
-				// TODO: Fix when parent is scaled
-				// Seems to work fine for parent rotation and translation but scaled parent ruins everything
-				// (probably because scaling a rotated matrix results in a skewed matrix, but unity can do it and so should we)
-				transformCmp.LocalTransform = parentView * worldTransform;
+				Matrix newLocalTransform = parentView * worldTransform;
+
+				if (let cmd = ComponentEditWindow.[Friend]_currentCommand as ChangeComponentPropertyCommand<TransformComponent, Matrix>
+					&& cmd.WidgetId == 1337)
+				{
+					cmd.NewValue = newLocalTransform;
+				}
+				else
+				{
+					ComponentEditWindow.[Friend]_currentCommand = new ChangeComponentPropertyCommand<TransformComponent, Matrix>(
+						1337, entity.Scene, entity.UUID,
+						newValue: newLocalTransform, oldValue: transformCmp.LocalTransform,
+						applyValue: (entity, component, newValue) => component.LocalTransform = newValue
+					);
+				}
+				ComponentEditWindow.[Friend]_currentCommand.Do();
+			}
+
+			if (!Handles.UsedGizmo && (let cmd = ComponentEditWindow.[Friend]_currentCommand as ChangeComponentPropertyCommand<TransformComponent, Matrix>)
+					&& cmd.WidgetId == 1337)
+			{
+				Editor.Instance.HistoryManager.Do(ComponentEditWindow.[Friend]_currentCommand);
+				ComponentEditWindow.[Friend]_currentCommand = null;
 			}
 
 			return Handles.UsedGizmo;
