@@ -2,7 +2,7 @@ using GlitchyEngine.Math;
 
 namespace GlitchyEngine.World
 {
-	public struct TransformComponent
+	public struct TransformComponent : IComponent<TransformComponent>
 	{
 		EcsEntity _parent = .InvalidEntity;
 

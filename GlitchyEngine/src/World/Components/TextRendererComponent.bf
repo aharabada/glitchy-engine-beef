@@ -9,7 +9,7 @@ enum TextRendererFlags
 	NeedsRebuild = 2
 }
 
-struct TextRendererComponent : IDisposableComponent, ICopyComponent<TextRendererComponent>
+struct TextRendererComponent : IDisposableComponent, IComponent<TextRendererComponent>
 {
 	private String _text;
 	

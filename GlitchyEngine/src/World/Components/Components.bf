@@ -8,11 +8,15 @@ using GlitchyEngine.Scripting;
 
 namespace GlitchyEngine.World
 {
-	/// Components that implement this interface provide custom copy logic.
-	interface ICopyComponent<T>
+	interface IComponent<T>
 	{
 		/// Copies the data from source to target.
-		concrete static void Copy(T* source, T* target);
+		/// Default implementation does a simple memory copy.
+		/// Components can provide a more complex implementation if needed.
+		concrete static void Copy(T* source, T* target)
+		{
+			*target = *source;
+		}
 	}
 
 	[AttributeUsage(.Struct, .ReflectAttribute, ReflectUser=.Methods | .NonStaticFields)]
@@ -26,7 +30,7 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct IDComponent
+	struct IDComponent : IComponent<IDComponent>
 	{
 		public readonly UUID ID;
 
@@ -42,7 +46,7 @@ namespace GlitchyEngine.World
 	}
 
 	[Component("Sprite Renderer")]
-	struct SpriteRendererComponent
+	struct SpriteRendererComponent : IComponent<SpriteRendererComponent>
 	{
 		public AssetHandle Sprite = .Invalid;
 
@@ -62,7 +66,7 @@ namespace GlitchyEngine.World
 	}
 
 	[Component("Circle Renderer")]
-	struct CircleRendererComponent
+	struct CircleRendererComponent : IComponent<CircleRendererComponent>
 	{
 		public AssetHandle<Texture2D> Sprite = .Invalid;
 
@@ -285,7 +289,7 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct CameraComponent : IDisposableComponent
+	struct CameraComponent : IComponent<CameraComponent>, IDisposableComponent
 	{
 		public SceneCamera Camera = .();
 		public bool Primary = true;  // Todo: probably move into scene
@@ -340,12 +344,12 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct LightComponent
+	struct LightComponent : IComponent<LightComponent>
 	{
 		public SceneLight SceneLight;
 	}
 
-	struct Rigidbody2DComponent : IDisposableComponent, ICopyComponent<Rigidbody2DComponent>
+	struct Rigidbody2DComponent : IDisposableComponent, IComponent<Rigidbody2DComponent>
 	{
 		public enum BodyType
 		{
@@ -560,7 +564,7 @@ namespace GlitchyEngine.World
 		}
 	}*/
 
-	struct BoxCollider2DComponent : ICopyComponent<BoxCollider2DComponent>
+	struct BoxCollider2DComponent : IComponent<BoxCollider2DComponent>
 	{
 		public float2 Offset = .(0.0f, 0.0f);
 		public float2 Size = .(0.5f, 0.5f);
@@ -587,6 +591,7 @@ namespace GlitchyEngine.World
 		public static void Copy(Self* source, Self* target)
 		{
 			target.Offset = source.Offset;
+			target.Size = source.Size;
 			target.Density = source.Density;
 			target.Friction = source.Friction;
 			target.Restitution = source.Restitution;
@@ -594,7 +599,7 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct CircleCollider2DComponent : ICopyComponent<CircleCollider2DComponent>
+	struct CircleCollider2DComponent : IComponent<CircleCollider2DComponent>
 	{
 		public float2 Offset = .(0.0f, 0.0f);
 
@@ -631,7 +636,7 @@ namespace GlitchyEngine.World
 	}
 
 	// Todo: This component is rather large (> 1 Cache line)
-	struct PolygonCollider2DComponent : ICopyComponent<PolygonCollider2DComponent>
+	struct PolygonCollider2DComponent : IComponent<PolygonCollider2DComponent>
 	{
 		public float2 Offset = .(0.0f, 0.0f);
 
@@ -669,7 +674,7 @@ namespace GlitchyEngine.World
 		}
 	}
 
-	struct ScriptComponent : IDisposableComponent, ICopyComponent<ScriptComponent>
+	struct ScriptComponent : IDisposableComponent, IComponent<ScriptComponent>
 	{
 		private String _scriptClassName = null;
 

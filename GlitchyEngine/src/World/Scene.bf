@@ -169,7 +169,7 @@ namespace GlitchyEngine.World
 		
 			CopyComponents<Rigidbody2DComponent>(this, target);
 			CopyComponents<BoxCollider2DComponent>(this, target);
-			CopyComponents<CircleCollider2DComponent>(this, target);
+			//CopyComponents<CircleCollider2DComponent>(this, target);
 			CopyComponents<PolygonCollider2DComponent>(this, target);
 			
 			CopyComponents<EditorFlagsComponent>(this, target);
@@ -207,7 +207,7 @@ namespace GlitchyEngine.World
 		}
 
 		/// Copies the all components of type TComponent from source scene to the corresponding entities in target scene.
-		private static void CopyComponents<TComponent>(Scene source, Scene target) where TComponent : struct, new
+		private static void CopyComponents<TComponent>(Scene source, Scene target) where TComponent : struct, new, IComponent<TComponent>
 		{
 			Debug.Profiler.ProfileFunction!();
 
@@ -229,35 +229,17 @@ namespace GlitchyEngine.World
 		}
 
 		/// Copy POD components that don't need any extra care.
-		public static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new
+		public static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new, IComponent<TComponent>
 		{
 			if (source.TryGetComponent<TComponent>(let sourceComponent))
 			{
 				if (target.TryGetComponent<TComponent>(let targetComponent))
 				{
-					*targetComponent = *sourceComponent;
+					TComponent.Copy(sourceComponent, targetComponent);
 				}
 				else
 				{
 					target.AddComponent<TComponent>(*sourceComponent);
-				}
-			}
-		}
-
-		/// Copy components that have custom copy methods.
-		public static void CopyComponent<TComponent>(Entity source, Entity target) where TComponent : struct, new, ICopyComponent<TComponent>
-		{
-			if (source.TryGetComponent<TComponent>(let sourceComponent))
-			{
-				TComponent* targetComponent = null;
-
-				if (!target.TryGetComponent<TComponent>(out targetComponent))
-				{
-					targetComponent = target.AddComponent<TComponent>(*sourceComponent);
-				}
-				else
-				{
-					TComponent.Copy(sourceComponent, targetComponent);
 				}
 			}
 		}

@@ -129,10 +129,12 @@ namespace GlitchyEditor.EditWindows
 			showSceneGUI(entity, component);
 		}
 
-		private static void ShowComponentContextMenu<TComponent>(Entity entity, TComponent* component) where TComponent: struct, new
+		private static void ShowComponentContextMenu<TComponent>(Entity entity, TComponent* component) where TComponent: struct, new, IComponent<TComponent>
 		{
 			if (ImGui.MenuItem("Remove Component"))
-				entity.RemoveComponent<TComponent>();
+			{
+				Editor.Instance.HistoryManager.Do(new RemoveComponentCommand<TComponent>(entity.Scene, entity.UUID));
+			}
 		}
 
 		private static void ShowOnlyComponent<TComponent>(UUID entityId, function void(Entity, TComponent*) showComponentEditor) where TComponent: struct, new
@@ -162,7 +164,7 @@ namespace GlitchyEditor.EditWindows
 
 		static PropertiesWindow window = null;
 
-		private static void ShowComponentEditor<TComponent>(Type soloType, String header, Entity entity, function void(Entity, TComponent*) showComponentEditor, function void(Entity, TComponent*) showComponentContextMenu = null) where TComponent: struct, new
+		private static void ShowComponentEditor<TComponent>(Type soloType, String header, Entity entity, function void(Entity, TComponent*) showComponentEditor, function void(Entity, TComponent*) showComponentContextMenu = null) where TComponent: struct, new, IComponent<TComponent>
 		{
 			if ((soloType != null && soloType != typeof(TComponent)) || !entity.HasComponent<TComponent>())
 				return;
@@ -799,7 +801,7 @@ namespace GlitchyEditor.EditWindows
 				applyValue: (entity, component, newValue) => component.Offset = newValue
 			);
 			
-			ImGui.PropertyTableStartNewProperty("Offset");
+			ImGui.PropertyTableStartNewProperty("Size");
 			HistorizeContinuousEdit<BoxCollider2DComponent, float2>(entity,
 				currentValue: boxCollider.Size,
 				showWidget: scope (value) => ImGui.Float2Editor("##Size", ref value, .Zero, 0.1f, float2(0.01f, 0.01f), float.PositiveInfinity.XX),

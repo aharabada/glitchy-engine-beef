@@ -103,7 +103,7 @@ namespace GlitchyEngine.World
 			return component;
 		}
 
-		public T* AddComponent<T>(in T value) where T: struct, new, ICopyComponent<T>
+		public T* AddComponent<T>(in T value) where T: struct, new, IComponent<T>
 		{
 			Log.EngineLogger.AssertDebug(!HasComponent<T>(), scope $"Entity already has component.");
 
